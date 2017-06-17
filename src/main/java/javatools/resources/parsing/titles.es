@@ -1,0 +1,12 @@
+D\.
+Da\.
+Dr\.
+Dra\.
+Gral\.
+Ing\.
+M\.
+Mme\.?
+[pP]rofa?\.?
+Sr\.
+Sra\.
+Srta\.
