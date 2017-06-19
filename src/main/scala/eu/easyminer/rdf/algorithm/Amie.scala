@@ -10,7 +10,7 @@ import scala.language.implicitConversions
 /**
   * Created by propan on 16. 4. 2017.
   */
-object Amie {
+/*object Amie {
 
   type TripleMap = collection.Map[String, TripleIndex]
   type Measures = collection.mutable.HashMap[MeasureKey, Measure]
@@ -449,4 +449,4 @@ class Stack[T](a: T*) {
   def isEmpty: Boolean = list.isEmpty
 
   def push(v: T) = list = v :: list
-}
+}*/

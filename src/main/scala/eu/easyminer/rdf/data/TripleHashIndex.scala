@@ -5,7 +5,7 @@ package eu.easyminer.rdf.data
   */
 object TripleHashIndex {
 
-  type TripleMap = collection.Map[String, TripleIndex]
+  type TripleMap = collection.mutable.Map[String, TripleIndex]
 
   class TripleIndex(val subjects: collection.Map[String, collection.Set[String]], val objects: collection.Map[String, collection.Set[String]])
 

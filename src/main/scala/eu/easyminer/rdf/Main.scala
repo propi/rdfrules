@@ -3,7 +3,7 @@ package eu.easyminer.rdf
 import java.io.File
 
 import amie.mining.AMIE
-import eu.easyminer.rdf.algorithm.Amie
+//import eu.easyminer.rdf.algorithm.Amie
 
 import scala.io.Source
 
@@ -19,7 +19,7 @@ object Main extends App {
 
   println("*******************************************************")
 
-  Amie.mine(new File("yago2core.10kseedsSample.compressed.notypes.tsv"))
+  //Amie.mine(new File("yago2core.10kseedsSample.compressed.notypes.tsv"))
 
 }
 
