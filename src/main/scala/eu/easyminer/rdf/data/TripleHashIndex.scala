@@ -6,8 +6,11 @@ package eu.easyminer.rdf.data
 object TripleHashIndex {
 
   type TripleMap = collection.mutable.Map[String, TripleIndex]
+  type TripleItemMap = collection.mutable.Map[String, collection.mutable.Set[String]]
 
-  class TripleIndex(val subjects: collection.Map[String, collection.Set[String]], val objects: collection.Map[String, collection.Set[String]])
+  class TripleIndex(val subjects: TripleItemMap, val objects: TripleItemMap) {
+    val size = subjects.valuesIterator.map(_.size).sum
+  }
 
   def apply(it: Iterator[Triple]): TripleMap = {
     collection.mutable.HashMap(

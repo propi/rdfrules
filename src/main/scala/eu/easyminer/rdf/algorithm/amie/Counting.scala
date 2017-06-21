@@ -3,7 +3,9 @@ package eu.easyminer.rdf.algorithm.amie
 import eu.easyminer.rdf.data.TripleHashIndex
 import eu.easyminer.rdf.rule.Rule.OneDangling
 import eu.easyminer.rdf.rule._
+import eu.easyminer.rdf.utils.HowLong
 
+import scala.collection.mutable.ListBuffer
 import scala.language.implicitConversions
 
 /**
@@ -13,9 +15,8 @@ trait Counting {
 
   case class Triple(subject: String, predicate: String, `object`: String)
 
-  def countPaths(atoms: List[Atom], variableMap: Map[Atom.Item, Atom.Constant])(implicit tripleMap: TripleHashIndex.TripleMap, reduce: Iterator[Int] => Int): Int = atoms match {
-    case head :: tail =>
-      val tm = tripleMap(head.predicate)
+  def countPaths(atoms: List[(Atom, TripleHashIndex.TripleIndex)], variableMap: Map[Atom.Item, Atom.Constant])(implicit reduce: Iterator[Int] => Int): Int = atoms match {
+    case (head, tm) :: tail =>
       val it = (variableMap.getOrElse(head.subject, head.subject), variableMap.getOrElse(head.`object`, head.`object`)) match {
         case (sv: Atom.Variable, ov: Atom.Variable) =>
           tm.subjects.iterator
@@ -32,10 +33,34 @@ trait Counting {
     case Nil => 1
   }
 
+  @scala.annotation.tailrec
+  private def sortRelations(atoms: Set[Atom], specifiedVariables: Set[Atom.Variable], result: ListBuffer[Atom] = ListBuffer.empty)(implicit tripleMap: TripleHashIndex.TripleMap): List[Atom] = {
+    def count(r: Atom) = {
+      val tripleIndex = tripleMap(r.predicate)
+      val (unknownSize1, subjectSize) = r.subject match {
+        case v: Atom.Variable if !specifiedVariables(v) => 1 -> tripleIndex.size
+        case _ => 0 -> 0
+      }
+      val (unknownSize2, objectSize) = r.`object` match {
+        case v: Atom.Variable if !specifiedVariables(v) => 1 -> tripleIndex.size
+        case _ => 0 -> 0
+      }
+      (unknownSize1 + unknownSize2, subjectSize + objectSize)
+    }
+    if (atoms.isEmpty) {
+      result.toList
+    } else {
+      val minAtom = if (atoms.size > 1) atoms.minBy(count) else atoms.head
+      result += minAtom
+      sortRelations(atoms - minAtom, specifiedVariables ++ List(minAtom.subject, minAtom.`object`).collect { case x: Atom.Variable => x }, result)
+    }
+  }
+
   def countSupport(rule: Rule[List[Atom]])(implicit tripleMap: TripleHashIndex.TripleMap): Unit = {
     implicit def reduce(it: Iterator[Int]): Int = it.find(_ == 1).getOrElse(0)
     val tm = tripleMap(rule.head.predicate)
-    val sortedRelations = rule.body.reverse
+    //val sortedRelations = /*rule.body.reverse*//*sortRelations(rule.body, Set(rule.head.subject, rule.head.`object`).collect { case x: Atom.Variable => x })*/sortRelations(rule.body.toSet, Set(rule.head.subject, rule.head.`object`).collect { case x: Atom.Variable => x })
+    val sortedRelations = sortRelations(rule.body.toSet, Set(rule.head.subject, rule.head.`object`).collect { case x: Atom.Variable => x }).map(x => x -> tripleMap(x.predicate))
     val (size, supp) = Some(rule.head).collect {
       case Atom(sv: Atom.Variable, _, ov: Atom.Variable) =>
         tm.subjects.iterator.flatMap(x => x._2.iterator.map(y => x._1 -> y)).map(x => 1 -> countPaths(sortedRelations, Map(sv -> Atom.Constant(x._1), ov -> Atom.Constant(x._2))))
@@ -100,9 +125,9 @@ trait Counting {
         m += i -> (m.getOrElse(i, 0) + 1)
       }
       val nr = if (rule.body.head.subject == dangling) (x: String) => rule.body.head.copy(subject = Atom.Constant(x)) else (x: String) => rule.body.head.copy(`object` = Atom.Constant(x))
-      val nrule: (String) => Rule = rule.variables match {
-        case Rule.OneDangling(_, others) => x => ClosedRule(nr(x) :: rule.body.tail, rule.head, rule.measures.empty, others)
-        case Rule.TwoDanglings(_, dangling2, others) => x => DanglingRule(nr(x) :: rule.body.tail, rule.head, rule.measures.empty, OneDangling(dangling2, others))
+      val nrule: (String) => Rule[List[Atom]] = rule.variables match {
+        case Rule.OneDangling(_, others) => x => ClosedRule(nr(x) :: rule.body.tail, rule.head, rule.measures.empty, others, rule.maxVariable.--)
+        case Rule.TwoDanglings(_, dangling2, others) => x => DanglingRule(nr(x) :: rule.body.tail, rule.head, rule.measures.empty, OneDangling(dangling2, others), rule.maxVariable.--)
       }
       val headSize = rule.measures(Measure.HeadSize).asInstanceOf[Measure.HeadSize]
       m.iterator.map { x =>
@@ -113,8 +138,10 @@ trait Counting {
         irule
       }
     } else {
-      Iterator()
+      Iterator.empty
     }
   }
 
 }
+
+object Counting extends Counting

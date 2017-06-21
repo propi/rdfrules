@@ -24,6 +24,8 @@ object Atom {
     override def toString: String = value
   }
 
+  implicit val variableOrdering = Ordering.by[Variable, Int](_.index)
+
   case class Constant(value: String) extends Item
 
 }
