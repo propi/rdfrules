@@ -92,7 +92,7 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
       //staci brat prvni predikat z tela protoze nemuze existovat novy predikat, ktery je mensi nez aktualni predikat z tela pravidla (viz predchozi dropWhile)
       //pro novou relaci, pokud v pravidlu existuje relace se stejnym predikatem a stejnym subjektem nebo objektem, potom pravidlo nemuze mit mensi support
       //nova relace totiz bude vzdy pokryvat, alespon jednu instanci (relaci), ktera je jiz v pravidlu obsazena -- tudiz se support nesnizi
-      val measures = if ((rule.head :: rule.body).exists(x => x.predicate == r._1.predicate && x.subject == r._1.subject || x.`object` == r._1.`object`)) {
+      val measures = if ((rule.head :: rule.body).exists(x => x.predicate == r._1.predicate && (x.subject == r._1.subject || x.`object` == r._1.`object`))) {
         rule.measures.clone()
       } else {
         rule.measures.empty
