@@ -8,9 +8,12 @@ import eu.easyminer.rdf.utils.HowLong
 trait Rule[T <: Iterable[Atom] {def reverse : T}] {
   val body: T
   val head: Atom
+  val headTriples: List[(String, String)]
   val measures: Measure.Measures
   val ruleLength: Int
   val maxVariable: Atom.Variable
+
+  def headSize = headTriples.length
 }
 
 
@@ -63,7 +66,11 @@ object Rule {
 
 }
 
-case class ClosedRule(body: List[Atom], head: Atom, measures: Measure.Measures, variables: List[Atom.Variable], maxVariable: Atom.Variable) extends Rule[List[Atom]] {
+case class ClosedRule(body: List[Atom], head: Atom)
+                     (val measures: Measure.Measures,
+                      val variables: List[Atom.Variable],
+                      val maxVariable: Atom.Variable,
+                      val headTriples: List[(String, String)]) extends Rule[List[Atom]] {
   lazy val ruleLength: Int = body.length + 1
 
   override def hashCode(): Int = {
@@ -80,7 +87,11 @@ case class ClosedRule(body: List[Atom], head: Atom, measures: Measure.Measures, 
   override def toString: String = body.mkString(" ^ ") + " -> " + head + "  :  " + " support:" + measures(Measure.Support).asInstanceOf[Measure.Support].value + ", hc:" + measures(Measure.HeadCoverage).asInstanceOf[Measure.HeadCoverage].value
 }
 
-case class DanglingRule(body: List[Atom], head: Atom, measures: Measure.Measures, variables: Rule.DanglingVariables, maxVariable: Atom.Variable) extends Rule[List[Atom]] {
+case class DanglingRule(body: List[Atom], head: Atom)
+                       (val measures: Measure.Measures,
+                        val variables: Rule.DanglingVariables,
+                        val maxVariable: Atom.Variable,
+                        val headTriples: List[(String, String)]) extends Rule[List[Atom]] {
   lazy val ruleLength: Int = body.length + 1
 
   override def hashCode(): Int = {

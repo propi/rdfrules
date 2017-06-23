@@ -1,6 +1,7 @@
 package eu.easyminer.rdf.algorithm.amie
 
 import eu.easyminer.rdf.data.TripleHashIndex
+import eu.easyminer.rdf.rule.Atom.Item
 import eu.easyminer.rdf.rule.Rule.OneDangling
 import eu.easyminer.rdf.rule._
 import eu.easyminer.rdf.utils.HowLong
@@ -18,8 +19,10 @@ trait Counting {
   class IncrementalInt {
     private var value = 0
 
-    def ++ = {
-      value += 1
+    def ++ = this + 1
+
+    def +(x: Int) = {
+      value += x
       this
     }
 
@@ -28,7 +31,26 @@ trait Counting {
 
   type AtomWithIndex = (Atom, TripleHashIndex.TripleIndex)
 
-  def bestAtom(atoms: Set[AtomWithIndex], variableMap: Map[Atom.Item, Atom.Constant]) = atoms.minBy { case (atom, tm) =>
+  sealed trait ExpandingAtom {
+    val subject: Atom.Item
+    val `object`: Atom.Item
+    val predicate: Option[String]
+  }
+
+  case class FixedAtom(atom: Atom) extends ExpandingAtom {
+    def subject: Atom.Item = atom.subject
+
+    def `object`: Atom.Item = atom.`object`
+
+    def predicate: Option[String] = Some(atom.predicate)
+  }
+
+  case class FreshAtom(subject: Atom.Variable, `object`: Atom.Variable) extends ExpandingAtom {
+    def predicate: Option[String] = None
+  }
+
+  def bestAtom(atoms: Set[Atom], variableMap: Map[Atom.Item, Atom.Constant])(implicit tripleIndex: TripleHashIndex) = atoms.minBy { atom =>
+    val tm = tripleIndex.predicates(atom.predicate)
     (variableMap.getOrElse(atom.subject, atom.subject), variableMap.getOrElse(atom.`object`, atom.`object`)) match {
       case (_: Atom.Variable, _: Atom.Variable) => tm.size
       case (_: Atom.Variable, Atom.Constant(oc)) => tm.objects.get(oc).map(_.size).getOrElse(0)
@@ -37,7 +59,25 @@ trait Counting {
     }
   }
 
-  def exists(atoms: Set[AtomWithIndex], variableMap: Map[Atom.Item, Atom.Constant]): Boolean = {
+  /*def bestAtom(atoms: Set[ExpandingAtom], variableMap: Map[Atom.Item, Atom.Constant])(implicit tripleIndex: TripleHashIndex) = atoms.minBy { atom =>
+    (variableMap.getOrElse(atom.subject, atom.subject), atom.predicate, variableMap.getOrElse(atom.`object`, atom.`object`)) match {
+      case (_: Atom.Variable, None, _: Atom.Variable) =>
+        tripleIndex.size
+      case (_: Atom.Variable, Some(predicate), _: Atom.Variable) =>
+        tripleIndex.predicates(predicate).size
+      case (_: Atom.Variable, predicate, Atom.Constant(oc)) =>
+        val tm = tripleIndex.objects(oc)
+        predicate.map(tm.predicates(_).size).getOrElse(tm.size)
+      case (Atom.Constant(sc), predicate, _: Atom.Variable) =>
+        val tm = tripleIndex.subjects(sc)
+        predicate.map(tm.predicates(_).size).getOrElse(tm.size)
+      case (Atom.Constant(sc), predicate, Atom.Constant(oc)) =>
+        val tm = tripleIndex.subjects(sc).objects(oc)
+        if (predicate.forall(tm(_))) 1 else 0
+    }
+  }*/
+
+  /*def exists(atoms: Set[AtomWithIndex], variableMap: Map[Atom.Item, Atom.Constant]): Boolean = {
     val best@(atom, tm) = if (atoms.size == 1) atoms.head else bestAtom(atoms, variableMap)
     val rest = if (atoms.size == 1) Set.empty[AtomWithIndex] else atoms - best
     (variableMap.getOrElse(atom.subject, atom.subject), variableMap.getOrElse(atom.`object`, atom.`object`)) match {
@@ -82,9 +122,9 @@ trait Counting {
       case (Atom.Constant(sc), Atom.Constant(oc)) =>
         if (tm.subjects.get(sc).exists(x => x(oc))) selectDistinct(rest, variableMap)
     }
-  }
+  }*/
 
-  def countProjection(body: Set[AtomWithIndex], head: AtomWithIndex, variable: Atom.Variable, minSupport: Int): Iterator[(Atom.Constant, Int)] = {
+  /*def countProjection(body: Set[AtomWithIndex], head: AtomWithIndex, variable: Atom.Variable, minSupport: Int): Iterator[(Atom.Constant, Int)] = {
     val (headAtom, tm) = head
     if (headAtom.subject == variable || headAtom.`object` == variable) {
       val projections = (headAtom.subject, headAtom.`object`) match {
@@ -111,6 +151,141 @@ trait Counting {
         val result = collection.mutable.HashSet.empty[Atom.Constant]
         selectDistinct(body, variableMap)(variable, result)
         result.foreach(projections.getOrElseUpdate(_, new IncrementalInt).++)
+      }
+      projections.iterator.map(x => x._1 -> x._2.getValue).filter(_._2 >= minSupport)
+    }
+  }*/
+
+  val isWithInstances: Boolean
+
+  val tripleIndex: TripleHashIndex
+
+  val dangling: Atom.Variable
+
+  def countFreshAtom(atom: FreshAtom, variableMap: Map[Atom.Item, Atom.Constant])
+                    (implicit result: collection.mutable.HashMap[Atom, IncrementalInt]): Unit = {
+    (variableMap.getOrElse(atom.subject, atom.subject), variableMap.getOrElse(atom.`object`, atom.`object`)) match {
+      case (sv: Atom.Variable, Atom.Constant(oc)) =>
+        for ((predicate, subjects) <- tripleIndex.objects(oc).predicates) {
+          if (isWithInstances) for (subject <- subjects) result.getOrElseUpdate(Atom(Atom.Constant(subject), predicate, atom.`object`), new IncrementalInt).++
+          result.getOrElseUpdate(Atom(sv, predicate, atom.`object`), new IncrementalInt) + subjects.size
+        }
+      case (Atom.Constant(sc), ov: Atom.Variable) =>
+        for ((predicate, objects) <- tripleIndex.subjects(sc).predicates) {
+          if (isWithInstances) for (_object <- objects) result.getOrElseUpdate(Atom(atom.subject, predicate, Atom.Constant(_object)), new IncrementalInt).++
+          result.getOrElseUpdate(Atom(atom.subject, predicate, ov), new IncrementalInt) + objects.size
+        }
+      case (Atom.Constant(sc), Atom.Constant(oc)) =>
+        for (predicate <- tripleIndex.subjects(sc).objects(oc)) {
+          result.getOrElseUpdate(Atom(atom.subject, predicate, atom.`object`), new IncrementalInt).++
+        }
+      case _ =>
+    }
+  }
+
+  def selectAtoms(atoms: Set[Atom], possibleFreshAtoms: List[FreshAtom], variableMap: Map[Atom.Item, Atom.Constant])
+                 (implicit result: collection.mutable.HashMap[Atom, IncrementalInt]): Unit = {
+    val (countableAtoms, restAtoms) = possibleFreshAtoms.partition(atom => (variableMap.contains(atom.subject) || atom.subject == dangling) && (variableMap.contains(atom.`object`) || atom.`object` == dangling))
+    countableAtoms.foreach(countFreshAtom(_, variableMap))
+    if (restAtoms.nonEmpty) {
+      val atom = if (atoms.size == 1) atoms.head else bestAtom(atoms, variableMap)
+      val rest = if (atoms.size == 1) Set.empty[Atom] else atoms - atom
+      val tm = tripleIndex.predicates(atom.predicate)
+      (variableMap.getOrElse(atom.subject, atom.subject), variableMap.getOrElse(atom.`object`, atom.`object`)) match {
+        case (sv: Atom.Variable, ov: Atom.Variable) =>
+          tm.subjects.iterator
+            .flatMap(x => x._2.iterator.map(y => variableMap +(sv -> Atom.Constant(x._1), ov -> Atom.Constant(y))))
+            .foreach(selectAtoms(rest, restAtoms, _))
+        case (sv: Atom.Variable, Atom.Constant(oc)) =>
+          tm.objects.getOrElse(oc, collection.mutable.Set.empty).foreach(subject => selectAtoms(rest, restAtoms, variableMap + (sv -> Atom.Constant(subject))))
+        case (Atom.Constant(sc), ov: Atom.Variable) =>
+          tm.subjects.getOrElse(sc, collection.mutable.Set.empty).foreach(`object` => selectAtoms(rest, restAtoms, variableMap + (ov -> Atom.Constant(`object`))))
+        case (Atom.Constant(sc), Atom.Constant(oc)) =>
+          if (tm.subjects.get(sc).exists(x => x(oc))) selectAtoms(rest, restAtoms, variableMap)
+      }
+    }
+  }
+
+  def selectDistinct2(atoms: Set[Atom], variableMap: Map[Atom.Item, Atom.Constant])
+                     (implicit
+                      variableCombinations: List[(Atom.Variable, Atom.Variable)],
+                      isWithInstances: Boolean,
+                      tripleIndex: TripleHashIndex,
+                      result: collection.mutable.HashMap[Atom, IncrementalInt] = collection.mutable.HashMap.empty): List[Boolean] = {
+    if (atoms.isEmpty) {
+      for ((freshSubject, freshObject) <- variableCombinations) yield {
+        (variableMap.getOrElse(freshSubject, freshSubject), variableMap.getOrElse(freshObject, freshObject)) match {
+          case (sv: Atom.Variable, Atom.Constant(oc)) =>
+            for ((predicate, subjects) <- tripleIndex.objects(oc).predicates) {
+              if (isWithInstances) for (subject <- subjects) result.getOrElseUpdate(Atom(Atom.Constant(subject), predicate, freshObject), new IncrementalInt).++
+              result.getOrElseUpdate(Atom(sv, predicate, freshObject), new IncrementalInt) + subjects.size
+            }
+            true
+          case (Atom.Constant(sc), ov: Atom.Variable) =>
+            for ((predicate, objects) <- tripleIndex.subjects(sc).predicates) {
+              if (isWithInstances) for (_object <- objects) result.getOrElseUpdate(Atom(freshSubject, predicate, Atom.Constant(_object)), new IncrementalInt).++
+              result.getOrElseUpdate(Atom(freshSubject, predicate, ov), new IncrementalInt) + objects.size
+            }
+            true
+          case (Atom.Constant(sc), Atom.Constant(oc)) =>
+            for (predicate <- tripleIndex.subjects(sc).objects(oc)) {
+              result.getOrElseUpdate(Atom(freshSubject, predicate, freshObject), new IncrementalInt).++
+            }
+            true
+          case _ => false
+        }
+      }
+    } else {
+      val atom = if (atoms.size == 1) atoms.head else bestAtom(atoms, variableMap)
+      val rest = if (atoms.size == 1) Set.empty[Atom] else atoms - atom
+      val tm = tripleIndex.predicates(atom.predicate)
+      (variableMap.getOrElse(atom.subject, atom.subject), variableMap.getOrElse(atom.`object`, atom.`object`)) match {
+        case (sv: Atom.Variable, ov: Atom.Variable) =>
+          tm.subjects.iterator
+            .flatMap(x => x._2.iterator.map(y => variableMap +(sv -> Atom.Constant(x._1), ov -> Atom.Constant(y))))
+            .foreach(selectDistinct2(rest, _))
+        case (sv: Atom.Variable, Atom.Constant(oc)) =>
+          tm.objects.getOrElse(oc, collection.mutable.Set.empty).foreach(subject => selectDistinct2(rest, variableMap + (sv -> Atom.Constant(subject))))
+        case (Atom.Constant(sc), ov: Atom.Variable) =>
+          tm.subjects.getOrElse(sc, collection.mutable.Set.empty).foreach(`object` => selectDistinct2(rest, variableMap + (ov -> Atom.Constant(`object`))))
+        case (Atom.Constant(sc), Atom.Constant(oc)) =>
+          if (tm.subjects.get(sc).exists(x => x(oc))) selectDistinct2(rest, variableMap)
+      }
+    }
+
+
+  }
+
+  def countProjection2(body: Set[AtomWithIndex], head: AtomWithIndex, variables: Set[Atom.Variable], minSupport: Int): Iterator[(Atom.Constant, Int)] = {
+
+
+    val (headAtom, tm) = head
+    if (headAtom.subject == variable || headAtom.`object` == variable) {
+      val projections = (headAtom.subject, headAtom.`object`) match {
+        case (sv: Atom.Variable, ov: Atom.Variable) =>
+          val (v1, v2, instances) = if (headAtom.subject == variable) (sv, ov, tm.subjects) else (ov, sv, tm.objects)
+          instances.iterator.map(x => x._1 -> x._2.count(y => exists(body, Map(v1 -> Atom.Constant(x._1), v2 -> Atom.Constant(y)))))
+        case (sv: Atom.Variable, Atom.Constant(oc)) =>
+          tm.objects.get(oc).iterator.flatten.map(x => x -> (if (exists(body, Map(sv -> Atom.Constant(x)))) 1 else 0))
+        case (Atom.Constant(sc), ov: Atom.Variable) =>
+          tm.subjects.get(sc).iterator.flatten.map(x => x -> (if (exists(body, Map(ov -> Atom.Constant(x)))) 1 else 0))
+      }
+      projections.map(x => Atom.Constant(x._1) -> x._2)
+    } else {
+      val projections = collection.mutable.HashMap.empty[Atom.Constant, IncrementalInt]
+      val it = (headAtom.subject, headAtom.`object`) match {
+        case (sv: Atom.Variable, ov: Atom.Variable) =>
+          tm.subjects.iterator.flatMap(x => x._2.iterator.map(y => Map[Atom.Item, Atom.Constant](sv -> Atom.Constant(x._1), ov -> Atom.Constant(y))))
+        case (sv: Atom.Variable, Atom.Constant(oc)) =>
+          tm.objects.get(oc).iterator.flatten.map(x => Map[Atom.Item, Atom.Constant](sv -> Atom.Constant(x)))
+        case (Atom.Constant(sc), ov: Atom.Variable) =>
+          tm.subjects.get(sc).iterator.flatten.map(x => Map[Atom.Item, Atom.Constant](ov -> Atom.Constant(x)))
+      }
+      it.foreach {
+        variableMap =>
+          val result = collection.mutable.HashSet.empty[Atom.Constant]
+          selectDistinct(body, variableMap)(variable, result)
+          result.foreach(projections.getOrElseUpdate(_, new IncrementalInt).++)
       }
       projections.iterator.map(x => x._1 -> x._2.getValue).filter(_._2 >= minSupport)
     }
@@ -193,7 +368,9 @@ trait Counting {
     val dangling = rule.variables.danglings.head
     if (dangling == rule.body.head.subject || dangling == rule.body.head.`object`) {
       val tm = tripleMap(rule.head.predicate)
-      val sortedRelations = sortRelations(rule.body.tail.toSet, Set(rule.head.subject, rule.head.`object`).collect { case x: Atom.Variable => x }).map(x => x -> tripleMap(x.predicate))
+      val sortedRelations = sortRelations(rule.body.tail.toSet, Set(rule.head.subject, rule.head.`object`).collect {
+        case x: Atom.Variable => x
+      }).map(x => x -> tripleMap(x.predicate))
       val m = collection.mutable.HashMap.empty[String, Int]
       val r = Some(rule.head).collect {
         case Atom(sv: Atom.Variable, _, ov: Atom.Variable) =>
@@ -205,7 +382,9 @@ trait Counting {
           val objects = tm.subjects.getOrElse(sc, Set.empty[String])
           objects.iterator.map(sc -> _).map(x => danglingInstances(sortedRelations, Map(ov -> Atom.Constant(x._2))))
       }
-      for (x <- r; y <- x; i <- y) {
+      for (x <- r;
+           y <- x;
+           i <- y) {
         m += i -> (m.getOrElse(i, 0) + 1)
       }
       val nr = if (rule.body.head.subject == dangling) (x: String) => rule.body.head.copy(subject = Atom.Constant(x)) else (x: String) => rule.body.head.copy(`object` = Atom.Constant(x))
@@ -214,12 +393,13 @@ trait Counting {
         case Rule.TwoDanglings(_, dangling2, others) => x => DanglingRule(nr(x) :: rule.body.tail, rule.head, rule.measures.empty, OneDangling(dangling2, others), rule.maxVariable.--)
       }
       val headSize = rule.measures(Measure.HeadSize).asInstanceOf[Measure.HeadSize]
-      m.iterator.map { x =>
-        val irule = nrule(x._1)
-        irule.measures += headSize
-        irule.measures += Measure.Support(x._2)
-        irule.measures += Measure.HeadCoverage(x._2.toDouble / headSize.value)
-        irule
+      m.iterator.map {
+        x =>
+          val irule = nrule(x._1)
+          irule.measures += headSize
+          irule.measures += Measure.Support(x._2)
+          irule.measures += Measure.HeadCoverage(x._2.toDouble / headSize.value)
+          irule
       }
     } else {
       Iterator.empty
@@ -245,7 +425,9 @@ trait Counting {
     } else {
       val minAtom = if (atoms.size > 1) atoms.minBy(count) else atoms.head
       result += minAtom
-      sortRelations(atoms - minAtom, specifiedVariables ++ List(minAtom.subject, minAtom.`object`).collect { case x: Atom.Variable => x }, result)
+      sortRelations(atoms - minAtom, specifiedVariables ++ List(minAtom.subject, minAtom.`object`).collect {
+        case x: Atom.Variable => x
+      }, result)
     }
   }
 
