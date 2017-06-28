@@ -2,7 +2,7 @@ package eu.easyminer.rdf.algorithm
 
 import java.io.File
 
-import eu.easyminer.rdf.data.{Triple, TripleHashIndex, Tsv2Rdf}
+import eu.easyminer.rdf.data.{Triple, TripleHashIndex}
 import eu.easyminer.rdf.utils.HowLong._
 
 import scala.language.implicitConversions

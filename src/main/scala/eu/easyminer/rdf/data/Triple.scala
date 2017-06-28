@@ -7,6 +7,8 @@ import scala.language.implicitConversions
   */
 case class Triple(subject: String, predicate: String, `object`: TripleObject)
 
+case class CompressedTriple(subject: Int, predicate: Int, `object`: Int)
+
 sealed trait TripleObject {
   def toStringValue: String = this
 }

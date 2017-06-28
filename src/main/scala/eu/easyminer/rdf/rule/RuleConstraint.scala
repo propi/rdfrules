@@ -7,7 +7,7 @@ sealed trait RuleConstraint
 
 object RuleConstraint {
 
-  case class OnlyPredicates(predicates: Set[String]) extends RuleConstraint
+  case class OnlyPredicates(predicates: Set[Int]) extends RuleConstraint
 
   object WithInstances extends RuleConstraint
 

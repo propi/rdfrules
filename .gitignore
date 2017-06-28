@@ -68,3 +68,6 @@ $RECYCLE.BIN/
 *.lnk
 
 .idea
+*.nt
+test.tsv
+*.trig

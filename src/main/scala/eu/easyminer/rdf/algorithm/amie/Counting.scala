@@ -12,7 +12,7 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 19. 6. 2017.
   */
-trait Counting {
+/*trait Counting {
 
   case class Triple(subject: String, predicate: String, `object`: String)
 
@@ -433,4 +433,4 @@ trait Counting {
 
 }
 
-object Counting extends Counting
+object Counting extends Counting*/

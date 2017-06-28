@@ -5,15 +5,17 @@ import eu.easyminer.rdf.utils.HowLong
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
-trait Rule[T <: Iterable[Atom] {def reverse : T}] {
-  val body: T
+trait Rule {
+  val body: IndexedSeq[Atom]
   val head: Atom
-  val headTriples: List[(String, String)]
+  val headTriples: IndexedSeq[(Int, Int)]
   val measures: Measure.Measures
   val ruleLength: Int
   val maxVariable: Atom.Variable
 
   def headSize = headTriples.length
+
+  def isInstanceRule = body.headOption.exists(atom => atom.subject.isInstanceOf[Atom.Constant] || atom.`object`.isInstanceOf[Atom.Constant])
 }
 
 
@@ -33,7 +35,7 @@ object Rule {
     def danglings: List[Atom.Variable] = List(dangling1, dangling2)
   }
 
-  def checkBodyEquality(body1: List[Atom], body2: Set[Atom], variables: Map[Atom.Variable, Atom.Variable] = Map.empty): Boolean = {
+  def checkBodyEquality(body1: IndexedSeq[Atom], body2: Set[Atom], variables: Map[Atom.Variable, Atom.Variable] = Map.empty): Boolean = {
     def checkAtomItemsEquality(atomItem1: Atom.Item, atomItem2: Atom.Item, variables: Map[Atom.Variable, Atom.Variable]) = (atomItem1, atomItem2) match {
       case (Atom.Constant(value1), Atom.Constant(value2)) if value1 == value2 => true -> variables
       case (v1: Atom.Variable, v2: Atom.Variable) =>
@@ -55,7 +57,7 @@ object Rule {
       }
     }
     body1 match {
-      case head :: tail =>
+      case head +: tail =>
         body2.exists { atom =>
           val (eqAtoms, variables) = checkAtomEquality(head, atom)
           eqAtoms && checkBodyEquality(tail, body2 - atom, variables)
@@ -66,12 +68,12 @@ object Rule {
 
 }
 
-case class ClosedRule(body: List[Atom], head: Atom)
+case class ClosedRule(body: IndexedSeq[Atom], head: Atom)
                      (val measures: Measure.Measures,
                       val variables: List[Atom.Variable],
                       val maxVariable: Atom.Variable,
-                      val headTriples: List[(String, String)]) extends Rule[List[Atom]] {
-  lazy val ruleLength: Int = body.length + 1
+                      val headTriples: IndexedSeq[(Int, Int)]) extends Rule {
+  lazy val ruleLength: Int = body.size + 1
 
   override def hashCode(): Int = {
     val support = measures(Measure.Support).asInstanceOf[Measure.Support].value
@@ -87,12 +89,12 @@ case class ClosedRule(body: List[Atom], head: Atom)
   override def toString: String = body.mkString(" ^ ") + " -> " + head + "  :  " + " support:" + measures(Measure.Support).asInstanceOf[Measure.Support].value + ", hc:" + measures(Measure.HeadCoverage).asInstanceOf[Measure.HeadCoverage].value
 }
 
-case class DanglingRule(body: List[Atom], head: Atom)
+case class DanglingRule(body: IndexedSeq[Atom], head: Atom)
                        (val measures: Measure.Measures,
                         val variables: Rule.DanglingVariables,
                         val maxVariable: Atom.Variable,
-                        val headTriples: List[(String, String)]) extends Rule[List[Atom]] {
-  lazy val ruleLength: Int = body.length + 1
+                        val headTriples: IndexedSeq[(Int, Int)]) extends Rule {
+  lazy val ruleLength: Int = body.size + 1
 
   override def hashCode(): Int = {
     val support = measures(Measure.Support).asInstanceOf[Measure.Support].value

@@ -3,7 +3,7 @@ package eu.easyminer.rdf.rule
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
-case class Atom(subject: Atom.Item, predicate: String, `object`: Atom.Item) {
+case class Atom(subject: Atom.Item, predicate: Int, `object`: Atom.Item) {
   override def toString: String = s"<$subject $predicate ${`object`}>"
 }
 
@@ -26,6 +26,6 @@ object Atom {
 
   implicit val variableOrdering = Ordering.by[Variable, Int](_.index)
 
-  case class Constant(value: String) extends Item
+  case class Constant(value: Int) extends Item
 
 }

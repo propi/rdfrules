@@ -22,4 +22,6 @@ class HashQueue[T] {
 
   def isEmpty = queue.isEmpty
 
+  def size = queue.size
+
 }

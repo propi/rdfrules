@@ -6,22 +6,12 @@ import eu.easyminer.rdf.rule._
 import eu.easyminer.rdf.utils.BasicFunctions.Match
 import eu.easyminer.rdf.utils.HowLong
 
-import scala.collection.mutable.ListBuffer
-
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
 class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePattern], constraints: List[RuleConstraint]) {
 
-  import Counting._
-
-  type SearchSpace = HashQueue[Rule[List[Atom]]]
-
-  lazy val isWithInstances = constraints.contains(RuleConstraint.WithInstances)
   lazy val minSupport = thresholds(Threshold.MinSupport).asInstanceOf[Threshold.MinSupport].value
-  lazy val maxRuleLength = thresholds(Threshold.MaxRuleLength).asInstanceOf[Threshold.MaxRuleLength].value
-  lazy val minHeadCoverage = thresholds(Threshold.MinHeadCoverage).asInstanceOf[Threshold.MinHeadCoverage].value
-  lazy val bodyPattern = rulePattern.map(_.antecedent.reverse).getOrElse(Nil)
 
   def addThreshold(threshold: Threshold) = {
     thresholds += (threshold.companion -> threshold)
@@ -32,38 +22,79 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
 
   def setRulePattern(rulePattern: RulePattern) = new Amie(thresholds, Some(rulePattern), constraints)
 
-  private def getHeads(implicit tripleMap: TripleHashIndex.TripleMap) = {
-    val atomIterator = rulePattern.map { x =>
-      x.consequent.predicate
-        .map(Atom(x.consequent.subject, _, x.consequent.`object`))
-        .map(Iterator(_))
-        .getOrElse(tripleMap.keysIterator.map(Atom(x.consequent.subject, _, x.consequent.`object`)))
-    }.getOrElse(tripleMap.keysIterator.map(Atom(Atom.Variable(0), _, Atom.Variable(1))))
-    if (isWithInstances) {
-      atomIterator.flatMap { atom =>
-        if (atom.subject.isInstanceOf[Atom.Variable] && atom.`object`.isInstanceOf[Atom.Variable]) {
-          val it1 = tripleMap(atom.predicate).subjects.keysIterator.map(subject => Atom(Atom.Constant(subject), atom.predicate, atom.`object`))
-          val it2 = tripleMap(atom.predicate).objects.keysIterator.map(`object` => Atom(atom.subject, atom.predicate, Atom.Constant(`object`)))
-          Iterator(atom) ++ it1 ++ it2
-        } else {
-          Iterator(atom)
+  def mine(tripleIndex: TripleHashIndex) = {
+    for (constraint <- constraints) Match(constraint) {
+      case OnlyPredicates(predicates) => tripleIndex.predicates.keySet.iterator.filterNot(predicates.apply).foreach(tripleIndex.predicates -= _)
+    }
+    val process = new AmieProcess(tripleIndex)
+    val heads = process.filterHeadsBySupport(process.getHeads).toList
+    //val head = heads.head
+    //process.searchRules(DanglingRule(Atom(Atom.Variable(0), "<participatedIn>", Atom.Variable(2)) +: head.body, head.head)(head.measures, Rule.TwoDanglings(Atom.Variable(2), Atom.Variable(1), List(Atom.Variable(0))), Atom.Variable(2), head.headTriples))
+    HowLong.howLong("mining")(heads.foreach { head =>
+      println("mining with head: " + head.head)
+      process.searchRules(head)
+      //implicit val result = ListBuffer.empty[ClosedRule]
+      //result.toList
+    })
+  }
+
+  private class AmieProcess(val tripleIndex: TripleHashIndex) extends RuleExpansion with AtomCounting {
+
+    val isWithInstances: Boolean = constraints.contains(RuleConstraint.WithInstances)
+    val minHeadCoverage: Double = thresholds(Threshold.MinHeadCoverage).asInstanceOf[Threshold.MinHeadCoverage].value
+    val maxRuleLength: Int = thresholds(Threshold.MaxRuleLength).asInstanceOf[Threshold.MaxRuleLength].value
+    val bodyPattern: IndexedSeq[AtomPattern] = rulePattern.map(_.antecedent).getOrElse(IndexedSeq.empty)
+
+    def getHeads = {
+      val atomIterator = rulePattern.map { x =>
+        x.consequent.predicate
+          .map(Atom(x.consequent.subject, _, x.consequent.`object`))
+          .map(Iterator(_))
+          .getOrElse(tripleIndex.predicates.keysIterator.map(Atom(x.consequent.subject, _, x.consequent.`object`)))
+      }.getOrElse(tripleIndex.predicates.keysIterator.map(Atom(Atom.Variable(0), _, Atom.Variable(1))))
+      if (isWithInstances) {
+        atomIterator.flatMap { atom =>
+          if (atom.subject.isInstanceOf[Atom.Variable] && atom.`object`.isInstanceOf[Atom.Variable]) {
+            val it1 = tripleIndex.predicates(atom.predicate).subjects.keysIterator.map(subject => Atom(Atom.Constant(subject), atom.predicate, atom.`object`))
+            val it2 = tripleIndex.predicates(atom.predicate).objects.keysIterator.map(`object` => Atom(atom.subject, atom.predicate, Atom.Constant(`object`)))
+            Iterator(atom) ++ it1 ++ it2
+          } else {
+            Iterator(atom)
+          }
+        }
+      } else {
+        atomIterator
+      }
+    }
+
+    def filterHeadsBySupport(atoms: Iterator[Atom]) = atoms.flatMap { atom =>
+      val tm = tripleIndex.predicates(atom.predicate)
+      Some(atom.subject, atom.`object`).collect {
+        case (v1: Atom.Variable, v2: Atom.Variable) => Rule.TwoDanglings(v1, v2, Nil) -> tm.size
+        case (Atom.Constant(c), v1: Atom.Variable) => Rule.OneDangling(v1, Nil) -> tm.subjects.get(c).map(_.size).getOrElse(0)
+        case (v1: Atom.Variable, Atom.Constant(c)) => Rule.OneDangling(v1, Nil) -> tm.objects.get(c).map(_.size).getOrElse(0)
+      }.filter(_._2 >= minSupport).map(x => DanglingRule(Vector.empty, atom)(collection.mutable.HashMap(Measure.HeadSize(x._2), Measure.Support(x._2)), x._1, x._1.danglings.max, getAtomTriples(atom).toIndexedSeq))
+    }
+
+    def searchRules(initRule: Rule): Unit = {
+      val queue = new HashQueue[Rule].add(initRule)
+      while (!queue.isEmpty) {
+        if (queue.size % 500 == 0) println("queue size (" + Thread.currentThread().getName + "): " + queue.size)
+        val rule = queue.poll
+        rule match {
+          case closedRule: ClosedRule => //result += closedRule
+            println(closedRule)
+          case _ =>
+        }
+        if (rule.ruleLength < maxRuleLength) {
+          for (rule <- rule.expand) queue.add(rule)
         }
       }
-    } else {
-      atomIterator
     }
+
   }
 
-  private def filterHeadsBySupport(atoms: Iterator[Atom])(implicit tripleMap: TripleHashIndex.TripleMap) = atoms.flatMap { atom =>
-    val tripleIndex = tripleMap(atom.predicate)
-    Some(atom.subject, atom.`object`).collect {
-      case (v1: Atom.Variable, v2: Atom.Variable) => Rule.TwoDanglings(v1, v2, Nil) -> tripleIndex.size
-      case (Atom.Constant(c), v1: Atom.Variable) => Rule.OneDangling(v1, Nil) -> tripleIndex.subjects.get(c).map(_.size).getOrElse(0)
-      case (v1: Atom.Variable, Atom.Constant(c)) => Rule.OneDangling(v1, Nil) -> tripleIndex.objects.get(c).map(_.size).getOrElse(0)
-    }.filter(_._2 >= minSupport).map(x => DanglingRule(Nil, atom, collection.mutable.HashMap(Measure.HeadSize(x._2), Measure.Support(x._2)), x._1, x._1.danglings.max))
-  }
-
-  private def addDangling(rule: Rule[List[Atom]])(implicit tripleMap: TripleHashIndex.TripleMap) = {
+  /*private def addDangling(rule: Rule[List[Atom]])(implicit tripleMap: TripleHashIndex.TripleMap) = {
     //pridava vzdy novou promennou
     val danglingVariable = rule.maxVariable.++
     //vraci sadu promennych, ktere lze rozsirit
@@ -99,9 +130,9 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
       }
       DanglingRule(r._1 :: rule.body, rule.head, measures, r._2, danglingVariable)
     }
-  }
+  }*/
 
-  private def closeDangling(rule: DanglingRule) = {
+  /*private def closeDangling(rule: DanglingRule) = {
     if (rule.body.nonEmpty) {
       rule.variables match {
         //pokud je jedna dangling variable a uplne nalevo pravidla (odstranuje duplicity)
@@ -132,17 +163,17 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
     } else {
       Iterator.empty
     }
-  }
+  }*/
 
-  private def addInstance(rule: DanglingRule)(implicit tripleMap: TripleHashIndex.TripleMap) = {
+  /*private def addInstance(rule: DanglingRule)(implicit tripleMap: TripleHashIndex.TripleMap) = {
     if (rule.body.nonEmpty) {
       countSupportInstances(rule)
     } else {
       Iterator.empty
     }
-  }
+  }*/
 
-  private def refine(rule: Rule[List[Atom]])(implicit tripleMap: TripleHashIndex.TripleMap): Iterator[Rule[List[Atom]]] = {
+  /*private def refine(rule: Rule[List[Atom]])(implicit tripleMap: TripleHashIndex.TripleMap): Iterator[Rule[List[Atom]]] = {
     val danglingRules = if (rule.ruleLength < maxRuleLength) addDangling(rule) else Iterator.empty
     val closedRules = rule match {
       case danglingRule: DanglingRule => closeDangling(danglingRule)
@@ -166,9 +197,9 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
       }
       rule.measures(Measure.HeadCoverage).asInstanceOf[Measure.HeadCoverage].value >= minHeadCoverage
     }
-  }
+  }*/
 
-  private def amie(implicit queue: SearchSpace, tripleMap: TripleHashIndex.TripleMap /*, result: ListBuffer[ClosedRule]*/): Unit = {
+  /*private def amie(implicit queue: SearchSpace, tripleMap: TripleHashIndex.TripleMap /*, result: ListBuffer[ClosedRule]*/): Unit = {
     while (!queue.isEmpty) {
       val rule = queue.poll
       rule match {
@@ -180,9 +211,9 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
         refine(rule).foreach(queue.add)
       }
     }
-  }
+  }*/
 
-  def mineRules(implicit tripleMap: TripleHashIndex.TripleMap) /*: Seq[ClosedRule]*/ = {
+  /*def mineRules(implicit tripleMap: TripleHashIndex.TripleMap) /*: Seq[ClosedRule]*/ = {
     for (constraint <- constraints) Match(constraint) {
       case OnlyPredicates(predicates) => tripleMap.keySet.iterator.filterNot(predicates.apply).foreach(tripleMap -= _)
     }
@@ -193,7 +224,7 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
       amie
       //result.toList
     })
-  }
+  }*/
 
 }
 
