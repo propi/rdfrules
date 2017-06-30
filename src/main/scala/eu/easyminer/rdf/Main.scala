@@ -1,12 +1,11 @@
 package eu.easyminer.rdf
 
-import java.io.{File, PrintWriter}
+import java.io._
 
 import eu.easyminer.rdf.algorithm.amie.Amie
 import eu.easyminer.rdf.data._
 import eu.easyminer.rdf.rule.{Atom, AtomPattern, RuleConstraint, RulePattern}
 import eu.easyminer.rdf.utils.HowLong
-import org.apache.jena.riot.{Lang, RDFDataMgr}
 
 //import eu.easyminer.rdf.algorithm.Amie
 
@@ -102,26 +101,43 @@ object Main extends App {
   }
   */
 
-  val a = RdfSource.Tsv.fromFile(new File("test.tsv"))(it => it.filterNot(removeTriple).flatMap(triple => Iterator(triple.subject, triple.predicate, triple.`object`.toStringValue)).toSet)
+  /*val a = RdfSource.Tsv.fromFile(new File("test.tsv"))(it => it.filterNot(removeTriple).flatMap(triple => Iterator(triple.subject, triple.predicate, triple.`object`.toStringValue)).toSet)
     .iterator
     .zipWithIndex
-    .toMap
+    .toMap*/
 
-  println(a.size)
+  val a = {
+    val ois = new ObjectInputStream(new FileInputStream("resources"))
+    try {
+      ois.readObject().asInstanceOf[Map[String, Int]]
+    } finally {
+      ois.close()
+    }
+  }
+
+  /*val oos = new ObjectOutputStream(new FileOutputStream("resources"))
+  oos.writeObject(a)
+  oos.close()*/
+
+  //println(a.size)
 
   //println(RdfSource.Tsv.fromFile(new File("test.tsv"))(it => it.filterNot(removeTriple).size))
+
+  /*RdfSource.Tsv.fromFile(new File("test.tsv")) { it =>
+    it.filterNot(removeTriple).map(triple => CompressedTriple(a(triple.subject), a(triple.predicate), a(triple.`object`)))
+  }*/
 
   val tripleIndex = RdfSource.Tsv.fromFile(new File("test.tsv"))(it => TripleHashIndex(it.filterNot(removeTriple).map(triple => CompressedTriple(a(triple.subject), a(triple.predicate), a(triple.`object`)))))
 
   //val tripleIndex = RdfSource.Tsv.fromFile(new File("test.tsv"))(it => TripleHashIndex(it.filterNot(removeTriple)))
 
-  println(tripleIndex.subjects.size)
-  println(tripleIndex.objects.size)
+  //println(tripleIndex.subjects.size)
+  //println(tripleIndex.objects.size)
 
   Amie()
-    //.setRulePattern(RulePattern.apply(AtomPattern(Atom.Variable(0), Some("<influences>"), Atom.Variable(1))))
+    .setRulePattern(RulePattern.apply(AtomPattern(Atom.Variable(0), Some(17392), Atom.Variable(1))) + AtomPattern(Atom.Variable(2), Some(17392), Atom.Variable(1)))
     //.setRulePattern(RulePattern(AtomPattern(Atom.Variable(1), None, Atom.Variable(0))) + AtomPattern(Atom.Constant("<J._R._R._Tolkien>"), Some("<influences>"), Atom.Variable(0)))
-    //.addConstraint(RuleConstraint.WithInstances)
+    .addConstraint(RuleConstraint.WithInstances)
     //.addConstraint(RuleConstraint.OnlyPredicates(Set("<participatedIn>", "<created>")))
     .mine(tripleIndex)
 

@@ -71,3 +71,6 @@ $RECYCLE.BIN/
 *.nt
 test.tsv
 *.trig
+esf.txt
+index
+resources

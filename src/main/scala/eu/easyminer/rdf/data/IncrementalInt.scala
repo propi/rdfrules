@@ -17,3 +17,11 @@ class IncrementalInt {
   def getValue = value
 
 }
+
+object IncrementalInt {
+
+  def apply() = new IncrementalInt
+
+  def apply(value: Int) = apply += value
+
+}
