@@ -11,4 +11,6 @@ object RuleConstraint {
 
   object WithInstances extends RuleConstraint
 
+  object WithoutDuplicitPredicates extends RuleConstraint
+
 }

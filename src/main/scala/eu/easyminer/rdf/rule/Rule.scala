@@ -86,7 +86,7 @@ case class ClosedRule(body: IndexedSeq[Atom], head: Atom)
     case _ => false
   }
 
-  override def toString: String = body.mkString(" ^ ") + " -> " + head + "  :  " + " support:" + measures(Measure.Support).asInstanceOf[Measure.Support].value + ", hc:" + measures(Measure.HeadCoverage).asInstanceOf[Measure.HeadCoverage].value
+  //override def toString: String = body.mkString(" ^ ") + " -> " + head + "  :  " + " support:" + measures(Measure.Support).asInstanceOf[Measure.Support].value + ", hc:" + measures(Measure.HeadCoverage).asInstanceOf[Measure.HeadCoverage].value
 }
 
 case class DanglingRule(body: IndexedSeq[Atom], head: Atom)

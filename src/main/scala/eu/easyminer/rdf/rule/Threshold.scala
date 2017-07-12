@@ -1,5 +1,7 @@
 package eu.easyminer.rdf.rule
 
+import scala.language.implicitConversions
+
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
@@ -30,5 +32,13 @@ object Threshold {
   }
 
   object MaxRuleLength extends Key
+
+  case class MinConfidence(value: Double) extends Threshold {
+    def companion: Key = MinConfidence
+  }
+
+  object MinConfidence extends Key
+
+  implicit def thresholdToKeyValue(threshold: Threshold): (Key, Threshold) = threshold.companion -> threshold
 
 }

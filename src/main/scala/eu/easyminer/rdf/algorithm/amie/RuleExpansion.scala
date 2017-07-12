@@ -1,19 +1,25 @@
 package eu.easyminer.rdf.algorithm.amie
 
-import eu.easyminer.rdf.algorithm.amie.RuleExpansion.FreshAtom
+import com.typesafe.scalalogging.Logger
+import eu.easyminer.rdf.algorithm.amie.RuleExpansion.{FreshAtom, TripleItemPosition}
 import eu.easyminer.rdf.data.{IncrementalInt, TripleHashIndex}
 import eu.easyminer.rdf.rule.Rule.OneDangling
 import eu.easyminer.rdf.rule._
-import eu.easyminer.rdf.utils.HowLong
+import eu.easyminer.rdf.utils.{Debugger, HowLong}
 import eu.easyminer.rdf.utils.IteratorExtensions._
+
+import scala.language.implicitConversions
 
 /**
   * Created by Vaclav Zeman on 23. 6. 2017.
   */
 trait RuleExpansion extends AtomCounting {
 
+  private val logger = Logger[RuleExpansion]
+
   val tripleIndex: TripleHashIndex
   val isWithInstances: Boolean
+  val withDuplicitPredicates: Boolean
   val minHeadCoverage: Double
   val maxRuleLength: Int
   val bodyPattern: IndexedSeq[AtomPattern]
@@ -29,7 +35,26 @@ trait RuleExpansion extends AtomCounting {
     type TripleProjections = collection.mutable.HashSet[Atom]
 
     val dangling = rule.maxVariable.++
-    val patternAtom = bodyPattern.drop(rule.body.size).headOption
+    private val patternAtom = bodyPattern.drop(rule.body.size).headOption
+    private val rulePredicates = rule.body.iterator.map(_.predicate).toSet + rule.head.predicate
+    //private val potentiallyRedundantAtoms =
+
+    /**
+      * Pokud se predikat nevyskytuje v pravidlu vrat true
+      * Pokud se vyskytuje, zkontroluj jestli se freshAtom variable rovna promenne v headu a vyskytuje se na stejne pozici
+      * Pokud ano, vrat false (je jiz spocteno)
+      * Pokud ne, a nejsou povoleny instance, vrat false (je jiz spocteno)
+      * Pokud ne, a nejsou povoleny duplicity, vrat false (nebudeme pocitat duplicity)
+      * V opacnem pripade: jiny predikát NEBO stejný predikát a variable se nerovna head variable a jsou povoleny duplicity a jsou povoleny instance - vrat true (je potreba spocitat)
+      *
+      * @param predicate
+      * @param connectingItem
+      * @return
+      */
+    implicit private def predicateFilter(predicate: Int, connectingItem: TripleItemPosition): Boolean = !rulePredicates(predicate) || (connectingItem match {
+      case TripleItemPosition.Subject(item) => item != rule.head.subject
+      case TripleItemPosition.Object(item) => item != rule.head.`object`
+    }) && isWithInstances && withDuplicitPredicates
 
     private def getPossibleFreshAtoms = rule match {
       case rule: ClosedRule =>
@@ -52,17 +77,21 @@ trait RuleExpansion extends AtomCounting {
     private def countFreshAtom(atom: FreshAtom, variableMap: VariableMap)
                               (implicit projections: TripleProjections): Unit = {
       (variableMap.getOrElse(atom.subject, atom.subject), variableMap.getOrElse(atom.`object`, atom.`object`)) match {
-        case (sv: Atom.Variable, Atom.Constant(oc)) =>
-          for ((predicate, subjects) <- tripleIndex.objects.get(oc).iterator.flatMap(_.predicates)) {
+        case (sv: Atom.Variable, ov@Atom.Constant(oc)) =>
+          for ((predicate, subjects) <- tripleIndex.objects.get(oc).iterator.flatMap(_.predicates) if predicateFilter(predicate, atom.objectPosition)) {
             if (isWithInstances) for (subject <- subjects; newAtom = Atom(Atom.Constant(subject), predicate, atom.`object`) if matchAtom(newAtom)) projections += newAtom
-            val newAtom = Atom(sv, predicate, atom.`object`)
-            if (matchAtom(newAtom)) projections += newAtom
+            if (!rulePredicates(predicate)) {
+              val newAtom = Atom(sv, predicate, atom.`object`)
+              if (matchAtom(newAtom)) projections += newAtom
+            }
           }
-        case (Atom.Constant(sc), ov: Atom.Variable) =>
-          for ((predicate, objects) <- tripleIndex.subjects.get(sc).iterator.flatMap(_.predicates)) {
+        case (sv@Atom.Constant(sc), ov: Atom.Variable) =>
+          for ((predicate, objects) <- tripleIndex.subjects.get(sc).iterator.flatMap(_.predicates) if predicateFilter(predicate, atom.subjectPosition)) {
             if (isWithInstances) for (_object <- objects; newAtom = Atom(atom.subject, predicate, Atom.Constant(_object)) if matchAtom(newAtom)) projections += newAtom
-            val newAtom = Atom(atom.subject, predicate, ov)
-            if (matchAtom(newAtom)) projections += newAtom
+            if (!rulePredicates(predicate)) {
+              val newAtom = Atom(atom.subject, predicate, ov)
+              if (matchAtom(newAtom)) projections += newAtom
+            }
           }
         case (Atom.Constant(sc), Atom.Constant(oc)) =>
           for (predicate <- tripleIndex.subjects.get(sc).iterator.flatMap(_.objects.get(oc).iterator.flatten); newAtom = Atom(atom.subject, predicate, atom.`object`) if matchAtom(newAtom)) {
@@ -100,34 +129,57 @@ trait RuleExpansion extends AtomCounting {
     }*/
 
     private def selectAtomsWithExistingPredicate(freshAtom: FreshAtom)
-                                            (implicit projections: Projections = collection.mutable.HashMap.empty) = {
-      freshAtom match {
-        case FreshAtom(`dangling`, variable) => (Iterator(rule.head) ++ rule.body.iterator).filter(_.`object` == variable).distinctBy(_.predicate).foreach { atom =>
-          projections += (Atom(freshAtom.subject, atom.predicate, freshAtom.`object`) -> IncrementalInt(rule.measures(Measure.Support).asInstanceOf[Measure.Support].value))
-          if (isWithInstances) {
-            if (atom == rule.head) {
-              val bodySet = rule.body.toSet
-              rule.headTriples.iterator
-                .filter(x => exists(bodySet, Map(rule.head.subject -> Atom.Constant(x._1), rule.head.`object` -> Atom.Constant(x._2))))
-                .map(x => Atom(Atom.Constant(x._1), rule.head.predicate, variable))
-                .foreach(atom => projections.getOrElseUpdate(atom, IncrementalInt()).++)
-            } else {
-              //atom je v telu - jiny pristup TODO
-            }
+                                                (implicit projections: Projections = collection.mutable.HashMap.empty) = {
+      lazy val bodySet = rule.body.toSet
+      def countDanglingFreshAtom(variable: Atom.Variable,
+                                 variablePosition: TripleItemPosition
+                                 /*filterAtoms: Atom => Boolean,
+                                 tripleToAtom: (Int, Int) => Atom,
+                                 predicateToItems: Int => collection.Set[Int],
+                                 predicateItemToAtoms: (Int, Int) => Iterator[Atom]*/) = {
+        val filterAtoms: Atom => Boolean = variablePosition match {
+          case TripleItemPosition.Subject(s) => _.subject == s
+          case TripleItemPosition.Object(o) => _.`object` == o
+        }
+        val headTripleToNewAtom: (Int, Int) => Atom = variablePosition match {
+          case _: TripleItemPosition.Subject => (s, o) => Atom(Atom.Constant(s), rule.head.predicate, variable)
+          case _: TripleItemPosition.Object => (s, o) => Atom(variable, rule.head.predicate, Atom.Constant(o))
+        }
+        (Iterator(rule.head) ++ rule.body.iterator).filter(filterAtoms).distinctBy(_.predicate).foreach { atom =>
+          val newGeneralAtom = Atom(freshAtom.subject, atom.predicate, freshAtom.`object`)
+          if (matchAtom(newGeneralAtom)) {
+            projections += (Atom(freshAtom.subject, atom.predicate, freshAtom.`object`) -> IncrementalInt(rule.measures(Measure.Support).asInstanceOf[Measure.Support].value))
+          }
+          if (isWithInstances && atom == rule.head && atom.subject.isInstanceOf[Atom.Variable] && atom.`object`.isInstanceOf[Atom.Variable]) {
+            rule.headTriples.iterator
+              .filter(x => exists(bodySet, Map(rule.head.subject -> Atom.Constant(x._1), rule.head.`object` -> Atom.Constant(x._2))))
+              .map(x => headTripleToNewAtom(x._1, x._2))
+              .filter(matchAtom)
+              .foreach(atom => projections.getOrElseUpdate(atom, IncrementalInt()).++)
+            /* else {
+             val items = predicateToItems(atom.predicate)
+             rule.headTriples.iterator
+               .flatMap(x => items.iterator.filter(y => exists(bodySet, Map(variable -> Atom.Constant(y), rule.head.subject -> Atom.Constant(x._1), rule.head.`object` -> Atom.Constant(x._2)))))
+               .flatMap(x => predicateItemToAtoms(atom.predicate, x))
+               .foreach(atom => projections.getOrElseUpdate(atom, IncrementalInt()).++)
+           }*/
           }
         }
+      }
+      freshAtom match {
+        case FreshAtom(`dangling`, variable) => countDanglingFreshAtom(variable, TripleItemPosition.Object(variable))
+        case FreshAtom(variable, `dangling`) => countDanglingFreshAtom(variable, TripleItemPosition.Subject(variable))
+        case _ =>
       }
     }
 
     private def selectAtoms2(atoms: Set[Atom], possibleFreshAtoms: List[FreshAtom], countableFreshAtoms: List[FreshAtom], variableMap: VariableMap)
                             (implicit projections: TripleProjections = collection.mutable.HashSet.empty): TripleProjections = {
       if (countableFreshAtoms.nonEmpty && exists(atoms, variableMap)) {
-        countableFreshAtoms.foreach { freshAtom =>
-          countFreshAtom(_, variableMap)
-        }
+        countableFreshAtoms.foreach(countFreshAtom(_, variableMap))
       }
-      val bestAtoms = possibleFreshAtoms.map(freshAtom => freshAtom -> bestAtom2(atoms, freshAtom, variableMap))
-      bestAtoms.collectFirst { case (_, Left(bestAtom)) => bestAtom } match {
+      val bestAtoms = possibleFreshAtoms.map(freshAtom => bestAtomWithFresh(atoms, freshAtom, variableMap))
+      bestAtoms.collectFirst { case Left(bestAtom) => bestAtom } match {
         case Some(bestAtom) =>
           val rest = if (atoms.size == 1) Set.empty[Atom] else atoms - bestAtom
           val (countableAtoms, restAtoms) = possibleFreshAtoms.partition(freshAtom => List(freshAtom.subject, freshAtom.`object`).forall(x => x == dangling || x == bestAtom.subject || x == bestAtom.`object` || variableMap.contains(x)))
@@ -137,11 +189,12 @@ trait RuleExpansion extends AtomCounting {
         case None =>
           for (freshAtom <- possibleFreshAtoms) {
             specify2(freshAtom, variableMap).filter { atom =>
-              exists(atoms, variableMap +(freshAtom.subject -> atom.subject.asInstanceOf[Atom.Constant], freshAtom.`object` -> atom.subject.asInstanceOf[Atom.Constant]))
+              matchAtom(atom) &&
+                exists(atoms, variableMap +(freshAtom.subject -> atom.subject.asInstanceOf[Atom.Constant], freshAtom.`object` -> atom.`object`.asInstanceOf[Atom.Constant]))
             }.foreach { atom =>
               if (isWithInstances) {
-                if (freshAtom.subject == dangling) projections += atom.copy(`object` = dangling)
-                else if (freshAtom.`object` == dangling) projections += atom.copy(subject = dangling)
+                if (freshAtom.subject == dangling) projections += atom.copy(`object` = freshAtom.`object`)
+                else if (freshAtom.`object` == dangling) projections += atom.copy(subject = freshAtom.subject)
               }
               projections += Atom(freshAtom.subject, atom.predicate, freshAtom.`object`)
             }
@@ -226,37 +279,33 @@ trait RuleExpansion extends AtomCounting {
       patternAtom.predicate.forall(_ == atom.predicate) &&
         (atom.subject == patternAtom.subject || atom.subject.isInstanceOf[Atom.Constant] && patternAtom.subject.isInstanceOf[Atom.Variable]) &&
         (atom.`object` == patternAtom.`object` || atom.`object`.isInstanceOf[Atom.Constant] && patternAtom.`object`.isInstanceOf[Atom.Variable])
-    }
+    } && (withDuplicitPredicates || !rulePredicates(atom.predicate))
 
-    def expand = {
+    def expand(implicit debugger: Debugger) = {
+      implicit val projections = collection.mutable.HashMap.empty[Atom, IncrementalInt]
       val (countableFreshAtoms, possibleFreshAtoms) = getPossibleFreshAtoms.filter(matchFreshAtom).toList.partition(freshAtom => List(freshAtom.subject, freshAtom.`object`).forall(x => x == rule.head.subject || x == rule.head.`object` || x == dangling))
       val minSupport = rule.headSize * minHeadCoverage
       val bodySet = rule.body.toSet
-      val projections = collection.mutable.HashMap.empty[Atom, IncrementalInt]
       var maxSupport = 0
-      println(rule)
-      println("countable: " + countableFreshAtoms)
-      println("possible: " + possibleFreshAtoms)
-      /*HowLong.howLong("count projections", false)(for ((_subject, _object) <- rule.headTriples) {
-        val selectedAtoms = HowLong.howLong("select one head triple", true)(selectAtoms(bodySet, possibleFreshAtoms, countableFreshAtoms, Map(rule.head.subject -> Atom.Constant(_subject), rule.head.`object` -> Atom.Constant(_object))))
-        HowLong.howLong("sum projections results", true)(for ((atom, support) <- selectedAtoms) {
-          val atomSupports = projections.getOrElseUpdate(atom, new Supports)
-          atomSupports.support.++
-          atomSupports.totalSupport += support.getValue
-        })
-      })*/
       var i = 0
-      HowLong.howLong("count projections", false)(rule.headTriples.iterator.zipWithIndex.takeWhile { x =>
-        val remains = rule.headSize - x._2
-        maxSupport + remains >= minSupport
-      }.foreach { case ((_subject, _object), _) =>
-        i += 1
-        if (i % 500 == 0) println(s"zpracovano: $i z ${rule.headSize}")
-        val selectedAtoms = HowLong.howLong("select one head triple", true)(selectAtoms2(bodySet, possibleFreshAtoms, countableFreshAtoms, Map(rule.head.subject -> Atom.Constant(_subject), rule.head.`object` -> Atom.Constant(_object))))
-        for (atom <- selectedAtoms) {
-          maxSupport = math.max(projections.getOrElseUpdate(atom, IncrementalInt()).++.getValue, maxSupport)
+      debugger.debug("Rule expansion: " + rule, rule.headSize + 1) { ad =>
+        logger.debug("" + rule + "\n" + "countable: " + countableFreshAtoms + "\n" + "possible: " + possibleFreshAtoms)
+        if (withDuplicitPredicates) (countableFreshAtoms ::: possibleFreshAtoms).foreach(selectAtomsWithExistingPredicate)
+        ad.done()
+        rule.headTriples.iterator.zipWithIndex.takeWhile { x =>
+          val remains = rule.headSize - x._2
+          maxSupport + remains >= minSupport
+        }.foreach { case ((_subject, _object), _) =>
+          val selectedAtoms = selectAtoms2(bodySet, possibleFreshAtoms, countableFreshAtoms, Map(rule.head.subject -> Atom.Constant(_subject), rule.head.`object` -> Atom.Constant(_object)))
+          for (atom <- selectedAtoms) {
+            maxSupport = math.max(projections.getOrElseUpdate(atom, IncrementalInt()).++.getValue, maxSupport)
+          }
+          i += 1
+          if (i % 500 == 0) logger.debug(s"Counted projections $i from ${rule.headSize}")
+          ad.done()
         }
-      })
+      }
+      logger.debug("total projections: " + projections.size)
       projections.iterator.filter(x => x._2.getValue >= minSupport && !bodySet(x._1) && x._1 != rule.head).map { case (atom, support) =>
         expandWithAtom(atom, support.getValue)
       }
@@ -268,6 +317,23 @@ trait RuleExpansion extends AtomCounting {
 
 object RuleExpansion {
 
-  case class FreshAtom(subject: Atom.Variable, `object`: Atom.Variable)
+  case class FreshAtom(subject: Atom.Variable, `object`: Atom.Variable) {
+    def subjectPosition = TripleItemPosition.Subject(subject)
+
+    def objectPosition = TripleItemPosition.Object(`object`)
+  }
+
+  sealed trait TripleItemPosition {
+    val item: Atom.Item
+  }
+
+  object TripleItemPosition {
+
+    case class Subject(item: Atom.Item) extends TripleItemPosition
+
+    case class Object(item: Atom.Item) extends TripleItemPosition
+
+  }
+
 
 }

@@ -4,17 +4,17 @@ import eu.easyminer.rdf.data.{HashQueue, TripleHashIndex}
 import eu.easyminer.rdf.rule.RuleConstraint.OnlyPredicates
 import eu.easyminer.rdf.rule._
 import eu.easyminer.rdf.utils.BasicFunctions.Match
-import eu.easyminer.rdf.utils.HowLong
+import eu.easyminer.rdf.utils.{Debugger, HowLong}
 
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
-class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePattern], constraints: List[RuleConstraint]) {
+class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePattern], constraints: List[RuleConstraint])(implicit debugger: Debugger) {
 
   lazy val minSupport = thresholds(Threshold.MinSupport).asInstanceOf[Threshold.MinSupport].value
 
   def addThreshold(threshold: Threshold) = {
-    thresholds += (threshold.companion -> threshold)
+    thresholds += threshold
     this
   }
 
@@ -26,16 +26,30 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
     for (constraint <- constraints) Match(constraint) {
       case OnlyPredicates(predicates) => tripleIndex.predicates.keySet.iterator.filterNot(predicates.apply).foreach(tripleIndex.predicates -= _)
     }
-    val process = new AmieProcess(tripleIndex)
-    val heads = process.filterHeadsBySupport(process.getHeads).toList
-    //val head = heads.head
-    //process.searchRules(DanglingRule(Atom(Atom.Variable(0), "<participatedIn>", Atom.Variable(2)) +: head.body, head.head)(head.measures, Rule.TwoDanglings(Atom.Variable(2), Atom.Variable(1), List(Atom.Variable(0))), Atom.Variable(2), head.headTriples))
-    HowLong.howLong("mining")(heads.foreach { head =>
-      println("mining with head: " + head.head)
-      process.searchRules(head)
-      //implicit val result = ListBuffer.empty[ClosedRule]
-      //result.toList
-    })
+    val rules = {
+      val process = new AmieProcess(tripleIndex)
+      val heads = process.filterHeadsBySupport(process.getHeads).toList
+      debugger.debug("Amie rules mining", heads.length) { ad =>
+        heads.par.flatMap { head =>
+          ad.result()(process.searchRules(head))
+        }
+      }
+    }
+    val confidenceCounting = new AmieConfidenceCounting(tripleIndex)
+    debugger.debug("Rules confidence counting", rules.size) { ad =>
+      rules.filter { rule =>
+        ad.result()(confidenceCounting.filterByConfidence(rule))
+      }
+    }.toList
+  }
+
+  private class AmieConfidenceCounting(val tripleIndex: TripleHashIndex) extends RuleCounting {
+    val minConfidence = thresholds.getOrElse(Threshold.MinConfidence, Threshold.MinConfidence(0.0)).asInstanceOf[Threshold.MinConfidence].value
+
+    def filterByConfidence(rule: ClosedRule) = {
+      rule.withConfidence.measures(Measure.Confidence).asInstanceOf[Measure.Confidence].value >= minConfidence
+    }
+
   }
 
   private class AmieProcess(val tripleIndex: TripleHashIndex) extends RuleExpansion with AtomCounting {
@@ -44,6 +58,7 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
     val minHeadCoverage: Double = thresholds(Threshold.MinHeadCoverage).asInstanceOf[Threshold.MinHeadCoverage].value
     val maxRuleLength: Int = thresholds(Threshold.MaxRuleLength).asInstanceOf[Threshold.MaxRuleLength].value
     val bodyPattern: IndexedSeq[AtomPattern] = rulePattern.map(_.antecedent).getOrElse(IndexedSeq.empty)
+    val withDuplicitPredicates: Boolean = !constraints.contains(RuleConstraint.WithoutDuplicitPredicates)
 
     def getHeads = {
       val atomIterator = rulePattern.map { x =>
@@ -76,20 +91,21 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
       }.filter(_._2 >= minSupport).map(x => DanglingRule(Vector.empty, atom)(collection.mutable.HashMap(Measure.HeadSize(x._2), Measure.Support(x._2)), x._1, x._1.danglings.max, getAtomTriples(atom).toIndexedSeq))
     }
 
-    def searchRules(initRule: Rule): Unit = {
+    def searchRules(initRule: Rule) = {
       val queue = new HashQueue[Rule].add(initRule)
+      val result = collection.mutable.ListBuffer.empty[ClosedRule]
       while (!queue.isEmpty) {
-        if (queue.size % 500 == 0) println("queue size (" + Thread.currentThread().getName + "): " + queue.size)
+        //if (queue.size % 500 == 0) println("queue size (" + Thread.currentThread().getName + "): " + queue.size)
         val rule = queue.poll
         rule match {
-          case closedRule: ClosedRule => //result += closedRule
-            println(closedRule)
+          case closedRule: ClosedRule => result += closedRule
           case _ =>
         }
         if (rule.ruleLength < maxRuleLength) {
-          for (rule <- rule.expand) queue.add(rule)
+          for (rule <- rule.expand(Debugger.EmptyDebugger)) queue.add(rule)
         }
       }
+      result.toList
     }
 
   }
@@ -230,7 +246,7 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
 
 object Amie {
 
-  def apply() = {
+  def apply()(implicit debugger: Debugger) = {
     val defaultThresholds: collection.mutable.Map[Threshold.Key, Threshold] = collection.mutable.HashMap(
       Threshold.MinSupport -> Threshold.MinSupport(100),
       Threshold.MinHeadCoverage -> Threshold.MinHeadCoverage(0.01),

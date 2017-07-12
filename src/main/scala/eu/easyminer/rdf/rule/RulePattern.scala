@@ -17,8 +17,6 @@ case class RulePattern private(antecedent: IndexedSeq[AtomPattern], consequent: 
 
 }
 
-case class AtomPattern(subject: Atom.Item, predicate: Option[Int], `object`: Atom.Item)
-
 object RulePattern {
 
   def apply(consequent: AtomPattern): RulePattern = {
@@ -32,3 +30,5 @@ object RulePattern {
   }
 
 }
+
+case class AtomPattern(subject: Atom.Item, predicate: Option[Int], `object`: Atom.Item)

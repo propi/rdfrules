@@ -20,8 +20,8 @@ class IncrementalInt {
 
 object IncrementalInt {
 
-  def apply() = new IncrementalInt
+  def apply(): IncrementalInt = new IncrementalInt
 
-  def apply(value: Int) = apply += value
+  def apply(value: Int): IncrementalInt = apply += value
 
 }

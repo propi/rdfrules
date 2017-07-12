@@ -12,29 +12,21 @@ trait AtomCounting {
 
   val tripleIndex: TripleHashIndex
 
-  def bestAtom(atoms: Set[Atom], variableMap: Map[Atom.Item, Atom.Constant]) = atoms.minBy { atom =>
+  def bestAtom(atoms: Set[Atom], variableMap: Map[Atom.Item, Atom.Constant]) = atoms.iterator.map { atom =>
     val tm = tripleIndex.predicates(atom.predicate)
-    (variableMap.getOrElse(atom.subject, atom.subject), variableMap.getOrElse(atom.`object`, atom.`object`)) match {
+    val size = (variableMap.getOrElse(atom.subject, atom.subject), variableMap.getOrElse(atom.`object`, atom.`object`)) match {
       case (_: Atom.Variable, _: Atom.Variable) => tm.size
       case (_: Atom.Variable, Atom.Constant(oc)) => tm.objects.get(oc).map(_.size).getOrElse(0)
       case (Atom.Constant(sc), _: Atom.Variable) => tm.subjects.get(sc).map(_.size).getOrElse(0)
       case (_: Atom.Constant, _: Atom.Constant) => 1
     }
-  }
+    atom -> size
+  }.minBy(_._2)
 
-  def bestAtom2(atoms: Set[Atom], freshAtom: RuleExpansion.FreshAtom, variableMap: Map[Atom.Item, Atom.Constant]) = if (atoms.isEmpty) {
+  def bestAtomWithFresh(atoms: Set[Atom], freshAtom: RuleExpansion.FreshAtom, variableMap: Map[Atom.Item, Atom.Constant]) = if (atoms.isEmpty) {
     Right(freshAtom)
   } else {
-    val (minAtom, minAtomSize) = atoms.iterator.map { atom =>
-      val tm = tripleIndex.predicates(atom.predicate)
-      val size = (variableMap.getOrElse(atom.subject, atom.subject), variableMap.getOrElse(atom.`object`, atom.`object`)) match {
-        case (_: Atom.Variable, Atom.Constant(oc)) => tm.objects.get(oc).map(_.size).getOrElse(0)
-        case (Atom.Constant(sc), _: Atom.Variable) => tm.subjects.get(sc).map(_.size).getOrElse(0)
-        case (_: Atom.Constant, _: Atom.Constant) => 1
-        case (_: Atom.Variable, _: Atom.Variable) => tm.size
-      }
-      atom -> size
-    }.minBy(_._2)
+    val (minAtom, minAtomSize) = bestAtom(atoms, variableMap)
     val freshAtomSize = (variableMap.getOrElse(freshAtom.subject, freshAtom.subject), variableMap.getOrElse(freshAtom.`object`, freshAtom.`object`)) match {
       case (_: Atom.Variable, Atom.Constant(oc)) => tripleIndex.objects.get(oc).map(_.size).getOrElse(0)
       case (Atom.Constant(sc), _: Atom.Variable) => tripleIndex.subjects.get(sc).map(_.size).getOrElse(0)
@@ -47,7 +39,7 @@ trait AtomCounting {
   def exists(atoms: Set[Atom], variableMap: VariableMap): Boolean = if (atoms.isEmpty) {
     true
   } else {
-    val atom = if (atoms.size == 1) atoms.head else bestAtom(atoms, variableMap)
+    val atom = if (atoms.size == 1) atoms.head else bestAtom(atoms, variableMap)._1
     val rest = if (atoms.size == 1) Set.empty[Atom] else atoms - atom
     val tm = tripleIndex.predicates(atom.predicate)
     (variableMap.getOrElse(atom.subject, atom.subject), variableMap.getOrElse(atom.`object`, atom.`object`)) match {
@@ -62,6 +54,15 @@ trait AtomCounting {
       case (Atom.Constant(sc), Atom.Constant(oc)) =>
         tm.subjects.get(sc).exists(x => x(oc) && exists(rest, variableMap))
     }
+  }
+
+  def count(atoms: Set[Atom], variableMap: VariableMap = Map.empty): Int = if (atoms.isEmpty) {
+    1
+  } else {
+    val best = bestAtom(atoms, variableMap)._1
+    specify2(best, variableMap)
+      .map(x => count(atoms - best, variableMap +(best.subject -> x.subject.asInstanceOf[Atom.Constant], best.`object` -> x.`object`.asInstanceOf[Atom.Constant])))
+      .sum
   }
 
   def specify(atom: Atom, variableMap: VariableMap) = {
@@ -85,23 +86,23 @@ trait AtomCounting {
       case (sv: Atom.Variable, ov: Atom.Variable) =>
         tm.subjects.iterator
           .flatMap(x => x._2.iterator.map(y => Atom(Atom.Constant(x._1), atom.predicate, Atom.Constant(y))))
-      case (sv: Atom.Variable, Atom.Constant(oc)) =>
-        tm.objects.get(oc).iterator.flatten.map(subject => atom.copy(subject = Atom.Constant(subject)))
-      case (Atom.Constant(sc), ov: Atom.Variable) =>
-        tm.subjects.get(sc).iterator.flatten.map(`object` => atom.copy(`object` = Atom.Constant(`object`)))
-      case (Atom.Constant(sc), Atom.Constant(oc)) =>
-        if (tm.subjects.get(sc).exists(x => x(oc))) Iterator(atom) else Iterator.empty
+      case (sv: Atom.Variable, ov@Atom.Constant(oc)) =>
+        tm.objects.get(oc).iterator.flatten.map(subject => Atom(Atom.Constant(subject), atom.predicate, ov))
+      case (sv@Atom.Constant(sc), ov: Atom.Variable) =>
+        tm.subjects.get(sc).iterator.flatten.map(`object` => Atom(sv, atom.predicate, `object` = Atom.Constant(`object`)))
+      case (sv@Atom.Constant(sc), ov@Atom.Constant(oc)) =>
+        if (tm.subjects.get(sc).exists(x => x(oc))) Iterator(Atom(sv, atom.predicate, ov)) else Iterator.empty
     }
   }
 
-  def specify2(atom: RuleExpansion.FreshAtom, variableMap: VariableMap): Iterator[Atom] = {
+  def specify2(atom: RuleExpansion.FreshAtom, variableMap: VariableMap)(implicit predicateFilter: (Int, RuleExpansion.TripleItemPosition) => Boolean): Iterator[Atom] = {
     (variableMap.getOrElse(atom.subject, atom.subject), variableMap.getOrElse(atom.`object`, atom.`object`)) match {
       case (sv: Atom.Variable, ov: Atom.Variable) =>
         tripleIndex.predicates.keysIterator.flatMap(predicate => specify2(Atom(sv, predicate, ov), variableMap))
       case (sv: Atom.Variable, ov@Atom.Constant(oc)) =>
-        tripleIndex.objects.get(oc).iterator.flatMap(_.predicates.keysIterator.flatMap(predicate => specify2(Atom(sv, predicate, ov), variableMap)))
+        tripleIndex.objects.get(oc).iterator.flatMap(_.predicates.keysIterator.filter(x => predicateFilter(x, atom.objectPosition)).flatMap(predicate => specify2(Atom(sv, predicate, ov), variableMap)))
       case (sv@Atom.Constant(sc), ov: Atom.Variable) =>
-        tripleIndex.subjects.get(sc).iterator.flatMap(_.predicates.keysIterator.flatMap(predicate => specify2(Atom(sv, predicate, ov), variableMap)))
+        tripleIndex.subjects.get(sc).iterator.flatMap(_.predicates.keysIterator.filter(x => predicateFilter(x, atom.subjectPosition)).flatMap(predicate => specify2(Atom(sv, predicate, ov), variableMap)))
       case (sv@Atom.Constant(sc), ov@Atom.Constant(oc)) =>
         tripleIndex.subjects.get(sc).iterator.flatMap(_.objects.get(oc).iterator.flatten.map(predicate => Atom(sv, predicate, ov)))
     }

@@ -4,8 +4,12 @@ import java.io._
 
 import eu.easyminer.rdf.algorithm.amie.Amie
 import eu.easyminer.rdf.data._
-import eu.easyminer.rdf.rule.{Atom, AtomPattern, RuleConstraint, RulePattern}
-import eu.easyminer.rdf.utils.HowLong
+import eu.easyminer.rdf.rule._
+import eu.easyminer.rdf.task.MiningTask
+import eu.easyminer.rdf.task.impl.{FileTaskResultWriter, LineInputTaskParser, SimpleMiningTask}
+import eu.easyminer.rdf.utils.{Debugger, HowLong}
+
+import scala.io.StdIn
 
 //import eu.easyminer.rdf.algorithm.Amie
 
@@ -106,14 +110,6 @@ object Main extends App {
     .zipWithIndex
     .toMap*/
 
-  val a = {
-    val ois = new ObjectInputStream(new FileInputStream("resources"))
-    try {
-      ois.readObject().asInstanceOf[Map[String, Int]]
-    } finally {
-      ois.close()
-    }
-  }
 
   /*val oos = new ObjectOutputStream(new FileOutputStream("resources"))
   oos.writeObject(a)
@@ -127,21 +123,54 @@ object Main extends App {
     it.filterNot(removeTriple).map(triple => CompressedTriple(a(triple.subject), a(triple.predicate), a(triple.`object`)))
   }*/
 
-  val tripleIndex = RdfSource.Tsv.fromFile(new File("test.tsv"))(it => TripleHashIndex(it.filterNot(removeTriple).map(triple => CompressedTriple(a(triple.subject), a(triple.predicate), a(triple.`object`)))))
+  val (tripleIndex, a) = {
+    val ois = new ObjectInputStream(new FileInputStream("resources"))
+    try {
+      val a = ois.readObject().asInstanceOf[Map[String, Int]]
+      val tripleIndex = RdfSource.Tsv.fromFile(new File("test.tsv"))(it => TripleHashIndex(it.filterNot(removeTriple).map(triple => CompressedTriple(a(triple.subject), a(triple.predicate), a(triple.`object`)))))
+      (tripleIndex, a.iterator.map(_.swap).toMap)
+    } finally {
+      ois.close()
+    }
+  }
+
+  /*val (tripleIndex, a) = {
+    val a = RdfSource.Tsv.fromFile(new File("yago2core.10kseedsSample.compressed.notypes.tsv")) { it =>
+      it.flatMap(x => Iterator(x.subject, x.`object`.toStringValue, x.predicate)).toSet.iterator.zipWithIndex.toMap
+    }
+    val tripleIndex = RdfSource.Tsv.fromFile(new File("yago2core.10kseedsSample.compressed.notypes.tsv"))(it => TripleHashIndex(it.map(triple => CompressedTriple(a(triple.subject), a(triple.predicate), a(triple.`object`)))))
+    (tripleIndex, a.iterator.map(_.swap).toMap)
+  }*/
 
   //val tripleIndex = RdfSource.Tsv.fromFile(new File("test.tsv"))(it => TripleHashIndex(it.filterNot(removeTriple)))
 
   //println(tripleIndex.subjects.size)
   //println(tripleIndex.objects.size)
 
-  Amie()
-    .setRulePattern(RulePattern.apply(AtomPattern(Atom.Variable(0), Some(17392), Atom.Variable(1))) + AtomPattern(Atom.Variable(2), Some(17392), Atom.Variable(1)))
-    //.setRulePattern(RulePattern(AtomPattern(Atom.Variable(1), None, Atom.Variable(0))) + AtomPattern(Atom.Constant("<J._R._R._Tolkien>"), Some("<influences>"), Atom.Variable(0)))
-    .addConstraint(RuleConstraint.WithInstances)
-    //.addConstraint(RuleConstraint.OnlyPredicates(Set("<participatedIn>", "<created>")))
-    .mine(tripleIndex)
+  implicit val debugger = Debugger()
+
+  Iterator.continually(StdIn.readLine()).takeWhile(_ != "q").foreach { command =>
+    val smt: MiningTask[String] = new SimpleMiningTask(tripleIndex, a) with LineInputTaskParser with FileTaskResultWriter with RuleStringifier
+    smt.runTask(command)
+    println("write next command: ")
+  }
+
+  //val rules = Amie()
+  //.setRulePattern(RulePattern.apply(AtomPattern(Atom.Variable(0), Some(17392), Atom.Variable(1))))
+  //.setRulePattern(RulePattern(AtomPattern(Atom.Variable(1), None, Atom.Variable(0))) + AtomPattern(Atom.Constant("<J._R._R._Tolkien>"), Some("<influences>"), Atom.Variable(0)))
+  //.addConstraint(RuleConstraint.WithInstances)
+  //.addConstraint(RuleConstraint.WithoutDuplicitPredicates)
+  //.addThreshold(Threshold.MinConfidence(0.9))
+  //.addConstraint(RuleConstraint.OnlyPredicates(Set("<participatedIn>", "<created>")))
+  //.mine(tripleIndex)
+
+  //rules.foreach(println)
 
   HowLong.flushAllResults()
+
+  actorSystem.terminate()
+
+  println("finished")
 
 }
 

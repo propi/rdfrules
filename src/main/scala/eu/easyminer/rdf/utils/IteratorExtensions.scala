@@ -6,7 +6,7 @@ package eu.easyminer.rdf.utils
 object IteratorExtensions {
 
   implicit class PimpedIterator[T](it: Iterator[T]) {
-    def distinctBy[A](f: T => A) = new Iterator[T] {
+    def distinctBy[A](f: T => A): Iterator[T] = new Iterator[T] {
       private val walkedItems = collection.mutable.HashSet.empty[A]
       private var c = Option.empty[T]
 
@@ -19,10 +19,17 @@ object IteratorExtensions {
             c = Some(item)
           }
         }
+        if (c.isEmpty) walkedItems.clear()
         c.isDefined
       }
 
-      def next(): T = if (hasNext) c.get else Iterator.empty.next()
+      def next(): T = if (hasNext) {
+        val x = c.get
+        c = None
+        x
+      } else {
+        Iterator.empty.next()
+      }
     }
   }
 
