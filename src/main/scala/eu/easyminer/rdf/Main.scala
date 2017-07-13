@@ -18,6 +18,10 @@ import scala.io.StdIn
   */
 object Main extends App {
 
+  //i=1 wd=1 rp=->(?0,280303,?1) c=0.2
+  //i=1 wd=1 hc=0.05 c=0.2
+  //docker run -ti --rm -e JAVA_OPTS="-Xmx12000M -Duser.country=US -Duser.language=en -Dfile.encoding=UTF-8" -v "$PWD:/app" -v "$HOME/.ivy2":/root/.ivy2 1science/sbt sbt
+
   //val cmd = "-const -minhc 0.01 -htr <participatedIn> yago2core.10kseedsSample.compressed.notypes.tsv"
   val cmd = "-const -minhc 0.01 -htr <participatedIn> -nc 1 yago2core.10kseedsSample.compressed.notypes.tsv"
   //val cmd = "yago2core.10kseedsSample.compressed.notypes.tsv"
@@ -96,8 +100,8 @@ object Main extends App {
 
   def removeTriple(triple: Triple) = {
     triple.subject == "<esf-czech-projects:>" || triple.`object`.toStringValue == "<esf-czech-projects:>" || triple.predicate == "<schema:description>" ||
-      triple.predicate == "<tems:description>" || triple.subject.startsWith("<id:") || triple.`object`.toStringValue.startsWith("<id:") ||
-      !triple.subject.startsWith("<project:")
+      triple.predicate == "<tems:description>" || triple.subject.startsWith("<id:") || triple.`object`.toStringValue.startsWith("<id:") /* ||
+      !triple.subject.startsWith("<project:")*/
   }
 
   /*val a = RdfSource.Tsv.fromFile(new File("test.tsv")) { it =>
@@ -123,7 +127,28 @@ object Main extends App {
     it.filterNot(removeTriple).map(triple => CompressedTriple(a(triple.subject), a(triple.predicate), a(triple.`object`)))
   }*/
 
-  val (tripleIndex, a) = {
+  println("Input TSV file:")
+
+  val inputFile = new File(StdIn.readLine())
+
+  val (tripleIndex, mapper) = {
+    val a = RdfSource.Tsv.fromFile(inputFile)(it => it.flatMap(triple => Iterator(triple.subject, triple.predicate, triple.`object`.toStringValue)).toSet)
+      .iterator
+      .zipWithIndex
+      .toMap
+    val pw = new PrintWriter("resources-" + System.currentTimeMillis() + ".txt")
+    try {
+      for ((resource, id) <- a) {
+        pw.println(s"$id: $resource")
+      }
+    } finally {
+      pw.close()
+    }
+    val tripleIndex = RdfSource.Tsv.fromFile(inputFile)(it => TripleHashIndex(it.map(triple => CompressedTriple(a(triple.subject), a(triple.predicate), a(triple.`object`)))))
+    (tripleIndex, a.iterator.map(_.swap).toMap)
+  }
+
+  /*val (tripleIndex, a) = {
     val ois = new ObjectInputStream(new FileInputStream("resources"))
     try {
       val a = ois.readObject().asInstanceOf[Map[String, Int]]
@@ -131,8 +156,8 @@ object Main extends App {
       (tripleIndex, a.iterator.map(_.swap).toMap)
     } finally {
       ois.close()
-    }
-  }
+    }(?c <isMarriedTo> ?a) -> (?a <hasChild> ?b)  9666: <isMarriedTo>  5881: <hasChild>
+  }*/
 
   /*val (tripleIndex, a) = {
     val a = RdfSource.Tsv.fromFile(new File("yago2core.10kseedsSample.compressed.notypes.tsv")) { it =>
@@ -149,8 +174,10 @@ object Main extends App {
 
   implicit val debugger = Debugger()
 
+  println("write command: ")
+
   Iterator.continually(StdIn.readLine()).takeWhile(_ != "q").foreach { command =>
-    val smt: MiningTask[String] = new SimpleMiningTask(tripleIndex, a) with LineInputTaskParser with FileTaskResultWriter with RuleStringifier
+    val smt: MiningTask[String] = new SimpleMiningTask(tripleIndex, mapper) with LineInputTaskParser with FileTaskResultWriter with RuleStringifier
     smt.runTask(command)
     println("write next command: ")
   }

@@ -1,5 +1,6 @@
 package eu.easyminer.rdf.algorithm.amie
 
+import com.typesafe.scalalogging.Logger
 import eu.easyminer.rdf.data.TripleHashIndex
 import eu.easyminer.rdf.rule.Atom
 
@@ -10,6 +11,7 @@ trait AtomCounting {
 
   type VariableMap = Map[Atom.Item, Atom.Constant]
 
+  val logger = Logger[AtomCounting]
   val tripleIndex: TripleHashIndex
 
   def bestAtom(atoms: Set[Atom], variableMap: Map[Atom.Item, Atom.Constant]) = atoms.iterator.map { atom =>
@@ -56,13 +58,23 @@ trait AtomCounting {
     }
   }
 
-  def count(atoms: Set[Atom], variableMap: VariableMap = Map.empty): Int = if (atoms.isEmpty) {
+  def count(atoms: Set[Atom], maxCount: Double, variableMap: VariableMap = Map.empty): Int = if (atoms.isEmpty) {
     1
   } else {
     val best = bestAtom(atoms, variableMap)._1
-    specify2(best, variableMap)
-      .map(x => count(atoms - best, variableMap +(best.subject -> x.subject.asInstanceOf[Atom.Constant], best.`object` -> x.`object`.asInstanceOf[Atom.Constant])))
-      .sum
+    val rest = atoms - best
+    var i = 0
+    val it = specify2(best, variableMap).takeWhile { x =>
+      i += count(rest, maxCount, variableMap +(best.subject -> x.subject.asInstanceOf[Atom.Constant], best.`object` -> x.`object`.asInstanceOf[Atom.Constant]))
+      i <= maxCount
+    }
+    var j = 0
+    while (it.hasNext) {
+      it.next()
+      j += 1
+      if (variableMap.isEmpty && j % 500 == 0) logger.debug(s"Atom counting, step $j, body size: $i (max body size: $maxCount)")
+    }
+    i
   }
 
   def specify(atom: Atom, variableMap: VariableMap) = {

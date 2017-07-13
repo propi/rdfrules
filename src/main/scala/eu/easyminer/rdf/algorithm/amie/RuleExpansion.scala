@@ -1,11 +1,10 @@
 package eu.easyminer.rdf.algorithm.amie
 
-import com.typesafe.scalalogging.Logger
 import eu.easyminer.rdf.algorithm.amie.RuleExpansion.{FreshAtom, TripleItemPosition}
 import eu.easyminer.rdf.data.{IncrementalInt, TripleHashIndex}
 import eu.easyminer.rdf.rule.Rule.OneDangling
 import eu.easyminer.rdf.rule._
-import eu.easyminer.rdf.utils.{Debugger, HowLong}
+import eu.easyminer.rdf.utils.Debugger
 import eu.easyminer.rdf.utils.IteratorExtensions._
 
 import scala.language.implicitConversions
@@ -14,8 +13,6 @@ import scala.language.implicitConversions
   * Created by Vaclav Zeman on 23. 6. 2017.
   */
 trait RuleExpansion extends AtomCounting {
-
-  private val logger = Logger[RuleExpansion]
 
   val tripleIndex: TripleHashIndex
   val isWithInstances: Boolean
@@ -301,7 +298,7 @@ trait RuleExpansion extends AtomCounting {
             maxSupport = math.max(projections.getOrElseUpdate(atom, IncrementalInt()).++.getValue, maxSupport)
           }
           i += 1
-          if (i % 500 == 0) logger.debug(s"Counted projections $i from ${rule.headSize}")
+          if (i % 1000 == 0) logger.debug(s"Counted projections $i from ${rule.headSize}")
           ad.done()
         }
       }
