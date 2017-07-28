@@ -27,7 +27,7 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
       case OnlyPredicates(predicates) => tripleIndex.predicates.keySet.iterator.filterNot(predicates.apply).foreach(tripleIndex.predicates -= _)
     }
     val rules = {
-      val process = new AmieProcess(tripleIndex)
+      val process = new AmieProcess(tripleIndex)(Debugger.EmptyDebugger)
       val heads = process.filterHeadsBySupport(process.getHeads).toList
       debugger.debug("Amie rules mining", heads.length) { ad =>
         heads.par.flatMap { head =>
@@ -52,7 +52,7 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
 
   }
 
-  private class AmieProcess(val tripleIndex: TripleHashIndex) extends RuleExpansion with AtomCounting {
+  private class AmieProcess(val tripleIndex: TripleHashIndex)(implicit val debugger: Debugger) extends RuleExpansion with AtomCounting {
 
     val isWithInstances: Boolean = constraints.contains(RuleConstraint.WithInstances)
     val minHeadCoverage: Double = thresholds(Threshold.MinHeadCoverage).asInstanceOf[Threshold.MinHeadCoverage].value
@@ -102,7 +102,7 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
           case _ =>
         }
         if (rule.ruleLength < maxRuleLength) {
-          for (rule <- rule.expand(Debugger.EmptyDebugger)) queue.add(rule)
+          HowLong.howLong("expansion")(for (rule <- rule.expand) queue.add(rule))
         }
       }
       result.toList

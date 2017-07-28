@@ -16,11 +16,13 @@ import scala.io.StdIn
 /**
   * Created by propan on 15. 4. 2017.
   */
-object Main extends App {
+object Main extends App with RuleStringifier {
 
   //i=1 wd=1 rp=->(?0,280303,?1) c=0.2
   //i=1 wd=1 hc=0.05 c=0.2
   //docker run -ti --rm -e JAVA_OPTS="-Xmx12000M -Duser.country=US -Duser.language=en -Dfile.encoding=UTF-8" -v "$PWD:/app" -v "$HOME/.ivy2":/root/.ivy2 1science/sbt sbt
+
+  //c=0.1 rp=(?1,4775,12049)^(?0,33697,?1>->(?0,14358,?1) l=4 i=1
 
   //val cmd = "-const -minhc 0.01 -htr <participatedIn> yago2core.10kseedsSample.compressed.notypes.tsv"
   val cmd = "-const -minhc 0.01 -htr <participatedIn> -nc 1 yago2core.10kseedsSample.compressed.notypes.tsv"
@@ -104,32 +106,9 @@ object Main extends App {
       !triple.subject.startsWith("<project:")*/
   }
 
-  /*val a = RdfSource.Tsv.fromFile(new File("test.tsv")) { it =>
-    it.filterNot(removeTriple)
-  }
-  */
-
-  /*val a = RdfSource.Tsv.fromFile(new File("test.tsv"))(it => it.filterNot(removeTriple).flatMap(triple => Iterator(triple.subject, triple.predicate, triple.`object`.toStringValue)).toSet)
-    .iterator
-    .zipWithIndex
-    .toMap*/
-
-
-  /*val oos = new ObjectOutputStream(new FileOutputStream("resources"))
-  oos.writeObject(a)
-  oos.close()*/
-
-  //println(a.size)
-
-  //println(RdfSource.Tsv.fromFile(new File("test.tsv"))(it => it.filterNot(removeTriple).size))
-
-  /*RdfSource.Tsv.fromFile(new File("test.tsv")) { it =>
-    it.filterNot(removeTriple).map(triple => CompressedTriple(a(triple.subject), a(triple.predicate), a(triple.`object`)))
-  }*/
-
   println("Input TSV file:")
 
-  val inputFile = new File(StdIn.readLine())
+  val inputFile = new File(/*StdIn.readLine()*/"yago.tsv")
 
   val (tripleIndex, mapper) = {
     val a = RdfSource.Tsv.fromFile(inputFile)(it => it.flatMap(triple => Iterator(triple.subject, triple.predicate, triple.`object`.toStringValue)).toSet)
@@ -148,6 +127,19 @@ object Main extends App {
     (tripleIndex, a.iterator.map(_.swap).toMap)
   }
 
+  //(?1,4775,12049)^(?0,33697,?1)->(?0,14358,?1)
+
+  val rules = Amie()(Debugger.EmptyDebugger)
+    .addConstraint(RuleConstraint.WithInstances)
+    .addThreshold(Threshold.MinConfidence(0.1))
+    .addThreshold(Threshold.MaxRuleLength(4))
+    .setRulePattern(RulePattern(AtomPattern(Atom.Variable(0), Some(14358), Atom.Variable(1))) + AtomPattern(Atom.Variable(0), Some(33697), Atom.Variable(1)) + AtomPattern(Atom.Variable(1), Some(4775), Atom.Constant(2215)))
+    .mine(tripleIndex)
+
+  println("///////////////////////////////")
+
+  //rules.foreach(x => println(stringifyRule(x)))
+
   /*val (tripleIndex, a) = {
     val ois = new ObjectInputStream(new FileInputStream("resources"))
     try {
@@ -159,20 +151,17 @@ object Main extends App {
     }(?c <isMarriedTo> ?a) -> (?a <hasChild> ?b)  9666: <isMarriedTo>  5881: <hasChild>
   }*/
 
-  /*val (tripleIndex, a) = {
-    val a = RdfSource.Tsv.fromFile(new File("yago2core.10kseedsSample.compressed.notypes.tsv")) { it =>
+  /*val (tripleIndex, mapper) = {
+    val a = RdfSource.Tsv.fromFile(new File("yago.tsv")) { it =>
       it.flatMap(x => Iterator(x.subject, x.`object`.toStringValue, x.predicate)).toSet.iterator.zipWithIndex.toMap
     }
-    val tripleIndex = RdfSource.Tsv.fromFile(new File("yago2core.10kseedsSample.compressed.notypes.tsv"))(it => TripleHashIndex(it.map(triple => CompressedTriple(a(triple.subject), a(triple.predicate), a(triple.`object`)))))
+    val tripleIndex = RdfSource.Tsv.fromFile(new File("yago.tsv"))(it => TripleHashIndex(it.map(triple => CompressedTriple(a(triple.subject), a(triple.predicate), a(triple.`object`)))))
     (tripleIndex, a.iterator.map(_.swap).toMap)
   }*/
 
   //val tripleIndex = RdfSource.Tsv.fromFile(new File("test.tsv"))(it => TripleHashIndex(it.filterNot(removeTriple)))
 
-  //println(tripleIndex.subjects.size)
-  //println(tripleIndex.objects.size)
-
-  implicit val debugger = Debugger()
+  /*implicit val debugger = Debugger()
 
   println("write command: ")
 
@@ -180,7 +169,7 @@ object Main extends App {
     val smt: MiningTask[String] = new SimpleMiningTask(tripleIndex, mapper) with LineInputTaskParser with FileTaskResultWriter with RuleStringifier
     smt.runTask(command)
     println("write next command: ")
-  }
+  }*/
 
   //val rules = Amie()
   //.setRulePattern(RulePattern.apply(AtomPattern(Atom.Variable(0), Some(17392), Atom.Variable(1))))
@@ -190,8 +179,6 @@ object Main extends App {
   //.addThreshold(Threshold.MinConfidence(0.9))
   //.addConstraint(RuleConstraint.OnlyPredicates(Set("<participatedIn>", "<created>")))
   //.mine(tripleIndex)
-
-  //rules.foreach(println)
 
   HowLong.flushAllResults()
 

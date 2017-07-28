@@ -6,6 +6,7 @@ import eu.easyminer.rdf.utils.HowLong
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
 trait Rule {
+
   val body: IndexedSeq[Atom]
   val head: Atom
   val headTriples: IndexedSeq[(Int, Int)]
@@ -16,8 +17,25 @@ trait Rule {
   def headSize = headTriples.length
 
   def isInstanceRule = body.headOption.exists(atom => atom.subject.isInstanceOf[Atom.Constant] || atom.`object`.isInstanceOf[Atom.Constant])
-}
 
+  override def hashCode(): Int = {
+    val support = measures(Measure.Support).asInstanceOf[Measure.Support].value
+    val headSize = measures(Measure.HeadSize).asInstanceOf[Measure.HeadSize].value
+    val bodyHashCode = body.iterator.map { atom =>
+      atom.predicate +
+        (atom.subject match {
+          case constant: Atom.Constant => constant.value
+          case _ => 0
+        }) +
+        (atom.`object` match {
+          case constant: Atom.Constant => constant.value
+          case _ => 0
+        })
+    }.foldLeft(0)(_ ^ _)
+    bodyHashCode + body.size * headSize + support
+  }
+
+}
 
 object Rule {
 
@@ -75,18 +93,11 @@ case class ClosedRule(body: IndexedSeq[Atom], head: Atom)
                       val headTriples: IndexedSeq[(Int, Int)]) extends Rule {
   lazy val ruleLength: Int = body.size + 1
 
-  override def hashCode(): Int = {
-    val support = measures(Measure.Support).asInstanceOf[Measure.Support].value
-    val headSize = measures(Measure.HeadSize).asInstanceOf[Measure.HeadSize].value
-    body.size * headSize + support
-  }
-
   override def equals(obj: scala.Any): Boolean = obj match {
     case rule: ClosedRule => Rule.checkBodyEquality(body, rule.body.toSet)
     case _ => false
   }
 
-  //override def toString: String = body.mkString(" ^ ") + " -> " + head + "  :  " + " support:" + measures(Measure.Support).asInstanceOf[Measure.Support].value + ", hc:" + measures(Measure.HeadCoverage).asInstanceOf[Measure.HeadCoverage].value
 }
 
 case class DanglingRule(body: IndexedSeq[Atom], head: Atom)
@@ -96,14 +107,9 @@ case class DanglingRule(body: IndexedSeq[Atom], head: Atom)
                         val headTriples: IndexedSeq[(Int, Int)]) extends Rule {
   lazy val ruleLength: Int = body.size + 1
 
-  override def hashCode(): Int = {
-    val support = measures(Measure.Support).asInstanceOf[Measure.Support].value
-    val headSize = measures(Measure.HeadSize).asInstanceOf[Measure.HeadSize].value
-    body.size * headSize + support
-  }
-
   override def equals(obj: scala.Any): Boolean = obj match {
     case rule: DanglingRule => Rule.checkBodyEquality(body, rule.body.toSet)
     case _ => false
   }
+
 }
