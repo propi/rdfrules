@@ -108,7 +108,7 @@ object Main extends App with RuleStringifier {
 
   println("Input TSV file:")
 
-  val inputFile = new File(/*StdIn.readLine()*/"yago.tsv")
+  val inputFile = new File(/*StdIn.readLine()*/ "yago.tsv")
 
   val (tripleIndex, mapper) = {
     val a = RdfSource.Tsv.fromFile(inputFile)(it => it.flatMap(triple => Iterator(triple.subject, triple.predicate, triple.`object`.toStringValue)).toSet)
@@ -130,15 +130,19 @@ object Main extends App with RuleStringifier {
   //(?1,4775,12049)^(?0,33697,?1)->(?0,14358,?1)
 
   val rules = Amie()(Debugger.EmptyDebugger)
-    .addConstraint(RuleConstraint.WithInstances)
-    .addThreshold(Threshold.MinConfidence(0.1))
+    //.addConstraint(RuleConstraint.WithInstances)
+    //.addConstraint(RuleConstraint.WithoutDuplicitPredicates)
+    .addThreshold(Threshold.MinConfidence(0.4))
+    .addThreshold(Threshold.MinHeadCoverage(0.08))
     .addThreshold(Threshold.MaxRuleLength(4))
-    .setRulePattern(RulePattern(AtomPattern(Atom.Variable(0), Some(14358), Atom.Variable(1))) + AtomPattern(Atom.Variable(0), Some(33697), Atom.Variable(1)) + AtomPattern(Atom.Variable(1), Some(4775), Atom.Constant(2215)))
+    //.setRulePattern(RulePattern(AtomPattern(Atom.Variable(0), Some(14358), Atom.Variable(1)))/* + AtomPattern(Atom.Variable(1), Some(260), Atom.Variable(2)) *//* + AtomPattern(Atom.Variable(0), Some(33697), Atom.Variable(1))*//* + AtomPattern(Atom.Variable(1), Some(4775), Atom.Constant(2215))*/)
     .mine(tripleIndex)
 
   println("///////////////////////////////")
 
-  //rules.foreach(x => println(stringifyRule(x)))
+  println(rules.length)
+
+  rules.foreach(x => println(stringifyRule(x)))
 
   /*val (tripleIndex, a) = {
     val ois = new ObjectInputStream(new FileInputStream("resources"))
