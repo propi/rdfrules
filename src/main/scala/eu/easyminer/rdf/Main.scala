@@ -130,12 +130,11 @@ object Main extends App with RuleStringifier {
   //(?1,4775,12049)^(?0,33697,?1)->(?0,14358,?1)
 
   val rules = Amie()(Debugger.EmptyDebugger)
-    //.addConstraint(RuleConstraint.WithInstances)
-    //.addConstraint(RuleConstraint.WithoutDuplicitPredicates)
-    .addThreshold(Threshold.MinConfidence(0.4))
-    .addThreshold(Threshold.MinHeadCoverage(0.08))
-    .addThreshold(Threshold.MaxRuleLength(4))
-    //.setRulePattern(RulePattern(AtomPattern(Atom.Variable(0), Some(14358), Atom.Variable(1)))/* + AtomPattern(Atom.Variable(1), Some(260), Atom.Variable(2)) *//* + AtomPattern(Atom.Variable(0), Some(33697), Atom.Variable(1))*//* + AtomPattern(Atom.Variable(1), Some(4775), Atom.Constant(2215))*/)
+    .addConstraint(RuleConstraint.WithInstances)
+    .addConstraint(RuleConstraint.WithoutDuplicitPredicates)
+    .addThreshold(Threshold.MinConfidence(0.2))
+    .addThreshold(Threshold.MaxRuleLength(3))
+    //.setRulePattern(RulePattern(AtomPattern(Atom.Variable(0), Some(14358), Atom.Variable(1)))/* + AtomPattern(Atom.Variable(1), Some(260), Atom.Variable(2))*//* + AtomPattern(Atom.Variable(0), Some(33697), Atom.Variable(1))*//* + AtomPattern(Atom.Variable(1), Some(4775), Atom.Constant(2215))*/)
     .mine(tripleIndex)
 
   println("///////////////////////////////")

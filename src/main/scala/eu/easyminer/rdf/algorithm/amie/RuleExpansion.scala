@@ -1,8 +1,9 @@
 package eu.easyminer.rdf.algorithm.amie
 
 import eu.easyminer.rdf.algorithm.amie.RuleExpansion._
+import eu.easyminer.rdf.algorithm.amie.RuleFilter.{MinSupportRuleFilter, NoDuplicitRuleFilter, NoRepeatedGroups}
 import eu.easyminer.rdf.data.{IncrementalInt, TripleHashIndex}
-import eu.easyminer.rdf.rule.Rule.OneDangling
+import eu.easyminer.rdf.rule.ExtendedRule.{ClosedRule, DanglingRule}
 import eu.easyminer.rdf.rule._
 import eu.easyminer.rdf.utils.IteratorExtensions._
 import eu.easyminer.rdf.utils.{Debugger, HowLong}
@@ -22,7 +23,7 @@ trait RuleExpansion extends AtomCounting {
   val maxRuleLength: Int
   val bodyPattern: IndexedSeq[AtomPattern]
 
-  implicit class PimpedRule(rule: Rule) {
+  implicit class PimpedRule(rule: ExtendedRule) {
 
     type Projections = collection.mutable.HashMap[Atom, IncrementalInt]
     type TripleProjections = collection.mutable.HashSet[Atom]
@@ -110,7 +111,6 @@ trait RuleExpansion extends AtomCounting {
       // - then we can count all projections for this fresh atom and then only check existence of rest atoms in the rule
       //for other fresh atoms we need to find instances for unknown variables (not for dangling variable)
       val (countableFreshAtoms, possibleFreshAtoms) = getPossibleFreshAtoms.filter(matchFreshAtom).toList.partition(freshAtom => List(freshAtom.subject, freshAtom.`object`).forall(x => x == rule.head.subject || x == rule.head.`object` || x == dangling))
-      //minimal support threshold for this rule
       val minSupport = rule.headSize * minHeadCoverage
       val bodySet = rule.body.toSet
       //maxSupport is variable where the maximal support from all extension rules is saved
@@ -153,7 +153,8 @@ trait RuleExpansion extends AtomCounting {
       logger.debug("total projections: " + projections.size)
       //filter all projections by minimal support and remove all duplicit projections
       //then create new rules from all projections (atoms)
-      projections.iterator.filter(x => x._2.getValue >= minSupport && !bodySet(x._1) && x._1 != rule.head).map { case (atom, support) =>
+      val ruleFilter = new MinSupportRuleFilter(minSupport) & new NoDuplicitRuleFilter(rule.head, bodySet) & new NoRepeatedGroups(withDuplicitPredicates, bodySet + rule.head, rulePredicates)
+      projections.iterator.filter(x => ruleFilter(x._1, x._2.getValue)).map { case (atom, support) =>
         expandWithAtom(atom, support.getValue)
       }
     }
@@ -165,11 +166,11 @@ trait RuleExpansion extends AtomCounting {
         (danglings ++ closed).flatten
       case rule: DanglingRule =>
         rule.variables match {
-          case Rule.OneDangling(dangling1, others) =>
+          case ExtendedRule.OneDangling(dangling1, others) =>
             val danglings = Iterator(FreshAtom(dangling1, dangling), FreshAtom(dangling, dangling1))
             val closed = others.iterator.flatMap(x => Iterator(FreshAtom(dangling1, x), FreshAtom(x, dangling1)))
             danglings ++ closed
-          case Rule.TwoDanglings(dangling1, dangling2, others) =>
+          case ExtendedRule.TwoDanglings(dangling1, dangling2, others) =>
             val danglings = if ((rule.ruleLength + 1) < maxRuleLength) rule.variables.danglings.iterator.flatMap(x => Iterator(FreshAtom(dangling, x), FreshAtom(x, dangling))) else Iterator.empty
             val closed = Iterator(FreshAtom(dangling1, dangling2), FreshAtom(dangling2, dangling1))
             danglings ++ closed
@@ -312,7 +313,7 @@ trait RuleExpansion extends AtomCounting {
       }
     }
 
-    private def expandWithAtom(atom: Atom, support: Int): Rule = {
+    private def expandWithAtom(atom: Atom, support: Int): ExtendedRule = {
       val measures = collection.mutable.HashMap[Measure.Key, Measure](
         Measure.Support(support),
         Measure.HeadCoverage(support / rule.headSize.toDouble),
@@ -322,17 +323,17 @@ trait RuleExpansion extends AtomCounting {
         case (sv: Atom.Variable, ov: Atom.Variable) => if (sv == dangling || ov == dangling) {
           rule match {
             case rule: DanglingRule => rule.variables match {
-              case Rule.OneDangling(originalDangling, others) =>
+              case ExtendedRule.OneDangling(originalDangling, others) =>
                 //(d, c) | (a, c) (a, b) (a, b) => OneDangling(c) -> OneDangling(d)
-                rule.copy(body = atom +: rule.body)(measures, Rule.OneDangling(dangling, originalDangling :: others), dangling, rule.headTriples)
-              case Rule.TwoDanglings(dangling1, dangling2, others) =>
+                rule.copy(body = atom +: rule.body)(measures, ExtendedRule.OneDangling(dangling, originalDangling :: others), dangling, rule.headTriples)
+              case ExtendedRule.TwoDanglings(dangling1, dangling2, others) =>
                 //(d, c) | (a, c) (a, b) => TwoDanglings(c, b) -> TwoDanglings(d, b)
                 val (pastDangling, secondDangling) = if (sv == dangling1 || ov == dangling1) (dangling1, dangling2) else (dangling2, dangling1)
-                rule.copy(body = atom +: rule.body)(measures, Rule.TwoDanglings(dangling, secondDangling, pastDangling :: others), dangling, rule.headTriples)
+                rule.copy(body = atom +: rule.body)(measures, ExtendedRule.TwoDanglings(dangling, secondDangling, pastDangling :: others), dangling, rule.headTriples)
             }
             case rule: ClosedRule =>
               //(c, a) | (a, b) (a, b) => ClosedRule -> OneDangling(c)
-              DanglingRule(atom +: rule.body, rule.head)(measures, OneDangling(dangling, rule.variables), dangling, rule.headTriples)
+              DanglingRule(atom +: rule.body, rule.head)(measures, ExtendedRule.OneDangling(dangling, rule.variables), dangling, rule.headTriples)
           }
         } else {
           rule match {
@@ -350,13 +351,13 @@ trait RuleExpansion extends AtomCounting {
             //(a, C) | (a, b) (a, b) => ClosedRule -> ClosedRule
             rule.copy(atom +: rule.body)(measures, rule.variables, rule.maxVariable, rule.headTriples)
           case rule: DanglingRule => rule.variables match {
-            case Rule.OneDangling(dangling, others) =>
+            case ExtendedRule.OneDangling(dangling, others) =>
               //(c, C) | (a, c) (a, b) (a, b) => OneDangling(c) -> ClosedRule
               ClosedRule(atom +: rule.body, rule.head)(measures, dangling :: others, dangling, rule.headTriples)
-            case Rule.TwoDanglings(dangling1, dangling2, others) =>
+            case ExtendedRule.TwoDanglings(dangling1, dangling2, others) =>
               //(c, C) | (a, c) (a, b) => TwoDanglings(c, b) -> OneDangling(b)
               val (pastDangling, dangling) = if (atom.subject == dangling1 || atom.`object` == dangling1) (dangling1, dangling2) else (dangling2, dangling1)
-              DanglingRule(atom +: rule.body, rule.head)(measures, OneDangling(dangling, pastDangling :: others), rule.maxVariable, rule.headTriples)
+              DanglingRule(atom +: rule.body, rule.head)(measures, ExtendedRule.OneDangling(dangling, pastDangling :: others), rule.maxVariable, rule.headTriples)
           }
         }
         case _ => throw new IllegalStateException

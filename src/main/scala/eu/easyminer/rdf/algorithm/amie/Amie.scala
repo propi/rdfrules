@@ -1,6 +1,7 @@
 package eu.easyminer.rdf.algorithm.amie
 
 import eu.easyminer.rdf.data.{HashQueue, TripleHashIndex}
+import eu.easyminer.rdf.rule.ExtendedRule.{ClosedRule, DanglingRule}
 import eu.easyminer.rdf.rule.RuleConstraint.OnlyPredicates
 import eu.easyminer.rdf.rule._
 import eu.easyminer.rdf.utils.BasicFunctions.Match
@@ -85,14 +86,14 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
     def filterHeadsBySupport(atoms: Iterator[Atom]) = atoms.flatMap { atom =>
       val tm = tripleIndex.predicates(atom.predicate)
       Some(atom.subject, atom.`object`).collect {
-        case (v1: Atom.Variable, v2: Atom.Variable) => Rule.TwoDanglings(v1, v2, Nil) -> tm.size
-        case (Atom.Constant(c), v1: Atom.Variable) => Rule.OneDangling(v1, Nil) -> tm.subjects.get(c).map(_.size).getOrElse(0)
-        case (v1: Atom.Variable, Atom.Constant(c)) => Rule.OneDangling(v1, Nil) -> tm.objects.get(c).map(_.size).getOrElse(0)
+        case (v1: Atom.Variable, v2: Atom.Variable) => ExtendedRule.TwoDanglings(v1, v2, Nil) -> tm.size
+        case (Atom.Constant(c), v1: Atom.Variable) => ExtendedRule.OneDangling(v1, Nil) -> tm.subjects.get(c).map(_.size).getOrElse(0)
+        case (v1: Atom.Variable, Atom.Constant(c)) => ExtendedRule.OneDangling(v1, Nil) -> tm.objects.get(c).map(_.size).getOrElse(0)
       }.filter(_._2 >= minSupport).map(x => DanglingRule(Vector.empty, atom)(collection.mutable.HashMap(Measure.HeadSize(x._2), Measure.Support(x._2)), x._1, x._1.danglings.max, getAtomTriples(atom).toIndexedSeq))
     }
 
-    def searchRules(initRule: Rule) = {
-      val queue = new HashQueue[Rule].add(initRule)
+    def searchRules(initRule: ExtendedRule) = {
+      val queue = new HashQueue[ExtendedRule].add(initRule)
       val result = collection.mutable.ListBuffer.empty[ClosedRule]
       while (!queue.isEmpty) {
         //if (queue.size % 500 == 0) println("queue size (" + Thread.currentThread().getName + "): " + queue.size)

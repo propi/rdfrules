@@ -1,7 +1,7 @@
 package eu.easyminer.rdf.algorithm.amie
 
 import eu.easyminer.rdf.data.TripleHashIndex
-import eu.easyminer.rdf.rule.{Atom, Measure, Rule}
+import eu.easyminer.rdf.rule.{Atom, ExtendedRule, Measure}
 
 /**
   * Created by Vaclav Zeman on 11. 7. 2017.
@@ -11,9 +11,9 @@ trait RuleCounting extends AtomCounting {
   val tripleIndex: TripleHashIndex
   val minConfidence: Double
 
-  implicit class PimpedRule(rule: Rule) {
+  implicit class PimpedRule(rule: ExtendedRule) {
 
-    def withConfidence: Rule = {
+    def withConfidence: ExtendedRule = {
       logger.debug(s"Confidence counting for rule: " + rule)
       val support = rule.measures(Measure.Support).asInstanceOf[Measure.Support].value
       val bodySize = count(rule.body.toSet, support / minConfidence)
@@ -22,7 +22,7 @@ trait RuleCounting extends AtomCounting {
     }
 
     //TODO nepocita s min confidence u count funkce
-    def withPcaConfidence: Rule = {
+    def withPcaConfidence: ExtendedRule = {
       val headInstances: Iterator[VariableMap] = rule.head match {
         case Atom(x: Atom.Variable, predicate, _) => tripleIndex.predicates(predicate).subjects.keysIterator.map(y => Map(x -> Atom.Constant(y)))
         case Atom(_, predicate, x: Atom.Variable) => tripleIndex.predicates(predicate).objects.keysIterator.map(y => Map(x -> Atom.Constant(y)))

@@ -69,9 +69,9 @@ trait AtomCounting {
   }
 
   def specifyVariableMapForAtom(atom: Atom): (Atom, VariableMap) => VariableMap = (atom.subject, atom.`object`) match {
-    case (s: Atom.Variable, o: Atom.Variable) => (specifiedAtom, variableMap) => variableMap +(s -> specifiedAtom.subject.asInstanceOf[Atom.Constant], o -> specifiedAtom.subject.asInstanceOf[Atom.Constant])
+    case (s: Atom.Variable, o: Atom.Variable) => (specifiedAtom, variableMap) => variableMap +(s -> specifiedAtom.subject.asInstanceOf[Atom.Constant], o -> specifiedAtom.`object`.asInstanceOf[Atom.Constant])
     case (s: Atom.Variable, _) => (specifiedAtom, variableMap) => variableMap + (s -> specifiedAtom.subject.asInstanceOf[Atom.Constant])
-    case (_, o: Atom.Variable) => (specifiedAtom, variableMap) => variableMap + (o -> specifiedAtom.subject.asInstanceOf[Atom.Constant])
+    case (_, o: Atom.Variable) => (specifiedAtom, variableMap) => variableMap + (o -> specifiedAtom.`object`.asInstanceOf[Atom.Constant])
     case _ => (_, variableMap) => variableMap
   }
 
