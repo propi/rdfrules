@@ -3,9 +3,9 @@ package eu.easyminer.rdf.clustering
 /**
   * Created by Vaclav Zeman on 31. 7. 2017.
   */
-class DbScan[T] private(minPts: Int, eps: Double, data: Iterable[T])(implicit similarity: (T, T) => Double) {
+class DbScan[T] private(minNeighbours: Int, minSimilarity: Double, data: Iterable[T])(implicit similarity: (T, T) => Double) {
 
-  private def searchReachables(point: T, data: Iterable[T]) = data.partition(similarity(point, _) >= eps)
+  private def searchReachables(point: T, data: Iterable[T]) = data.partition(similarity(point, _) >= minSimilarity)
 
   @scala.annotation.tailrec
   private def makeCluster(remainingPoints: Iterable[T], cluster: Seq[T], nonCluster: Iterable[T]): (Iterable[T], Iterable[T]) = if (remainingPoints.isEmpty) {
@@ -15,7 +15,7 @@ class DbScan[T] private(minPts: Int, eps: Double, data: Iterable[T])(implicit si
   } else {
     val point = remainingPoints.head
     val (nonClusterReachable, nonClusterOthers) = searchReachables(point, nonCluster)
-    if (nonClusterReachable.size >= minPts || (searchReachables(point, cluster ++ remainingPoints.tail)._1.size + nonClusterReachable.size) >= minPts) {
+    if (nonClusterReachable.size >= minNeighbours || (searchReachables(point, cluster ++ remainingPoints.tail)._1.size + nonClusterReachable.size) >= minNeighbours) {
       makeCluster(remainingPoints.tail ++ nonClusterReachable, point +: cluster, nonClusterOthers)
     } else {
       makeCluster(remainingPoints.tail, point +: cluster, nonCluster)
@@ -36,6 +36,6 @@ class DbScan[T] private(minPts: Int, eps: Double, data: Iterable[T])(implicit si
 
 object DbScan {
 
-  def apply[T](minPts: Int, eps: Double, data: Iterable[T])(implicit similarity: (T, T) => Double) = new DbScan(minPts, eps, data).clusters
+  def apply[T](minNeighbours: Int, minSimilarity: Double, data: Iterable[T])(implicit similarity: (T, T) => Double) = new DbScan(minNeighbours, minSimilarity, data).clusters
 
 }

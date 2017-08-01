@@ -14,9 +14,13 @@ trait Deserializer[+T] {
 
 object Deserializer {
 
+  trait Reader[T] {
+    def read(): Option[T]
+  }
+
   def deserialize[T](v: Array[Byte])(implicit deserializer: Deserializer[T]): T = deserializer.deserialize(v)
 
-  def mapInputStream[T](f: InputStream)(implicit deserializer: Deserializer[T], serializationSize: SerializationSize[T]): () => Option[T] = if (serializationSize.size > 0) {
+  def mapInputStream[T](f: InputStream)(implicit deserializer: Deserializer[T], serializationSize: SerializationSize[T]): Reader[T] = if (serializationSize.size > 0) {
     () => {
       val readBytes = new Array[Byte](serializationSize.size)
       if (f.read(readBytes) == -1) None else Some(deserializer.deserialize(readBytes))
@@ -37,8 +41,8 @@ object Deserializer {
 
   implicit def traversableDeserializer[T](implicit deserializer: Deserializer[T], serializationSize: SerializationSize[T]): Deserializer[Traversable[T]] = (v: Array[Byte]) => {
     val bais = new ByteArrayInputStream(v)
-    val read = mapInputStream(bais)
-    Stream.continually(read()).takeWhile(_.nonEmpty).map(_.get).toIndexedSeq
+    val reader: Reader[T] = mapInputStream(bais)
+    Stream.continually(reader.read).takeWhile(_.nonEmpty).map(_.get).toIndexedSeq
   }
 
 }

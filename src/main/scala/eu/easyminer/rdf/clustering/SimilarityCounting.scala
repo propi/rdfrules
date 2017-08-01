@@ -37,8 +37,6 @@ object SimilarityCounting {
     def *(similarityCounting: SimilarityCounting) = WeightedSimilarityCounting(v, similarityCounting)
   }
 
-  (0.5 * AtomsSimilarityCounting) ~ (0.5 * SupportSimilarityCounting) ~ (0.5 * ConfidenceSimilarityCounting)
-
 }
 
 object AtomsSimilarityCounting extends SimilarityCounting {
@@ -51,7 +49,7 @@ object AtomsSimilarityCounting extends SimilarityCounting {
   }
 
   private def atomsSimilarity(atom1: Atom, atom2: Atom) = {
-    val countItemsSimilarity = itemsSimilarity(atom1.predicate, atom2.predicate)
+    val countItemsSimilarity = itemsSimilarity(atom1.predicate, atom2.predicate) _
     (if (atom1.predicate == atom2.predicate) 1.0 else 0.0) + countItemsSimilarity(atom1.subject, atom2.subject) + countItemsSimilarity(atom1.`object`, atom2.`object`)
   }
 
@@ -85,7 +83,7 @@ object SupportSimilarityCounting extends MeasuresSimilarityCounting {
 
 object ConfidenceSimilarityCounting extends MeasuresSimilarityCounting {
 
-  def apply(rule1: Rule, rule2: Rule): Double = relativeNumbersSimilarity(rule1.measures(Measure.Confidence).asInstanceOf[Measure.HeadCoverage].value, rule2.measures(Measure.Confidence).asInstanceOf[Measure.HeadCoverage].value)
+  def apply(rule1: Rule, rule2: Rule): Double = relativeNumbersSimilarity(rule1.measures(Measure.Confidence).asInstanceOf[Measure.Confidence].value, rule2.measures(Measure.Confidence).asInstanceOf[Measure.Confidence].value)
 
 }
 

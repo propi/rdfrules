@@ -7,6 +7,7 @@ version := "1.0"
 scalaVersion := "2.12.2"
 
 scalacOptions += "-feature"
+//scalacOptions += "-Xlog-implicits"
 
 //resolvers ++= Seq("jitpack" at "https://jitpack.io")
 

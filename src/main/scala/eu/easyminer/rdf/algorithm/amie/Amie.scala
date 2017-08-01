@@ -103,7 +103,7 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
           case _ =>
         }
         if (rule.ruleLength < maxRuleLength) {
-          HowLong.howLong("expansion")(for (rule <- rule.expand) queue.add(rule))
+          HowLong.howLong("expansion", true)(for (rule <- rule.expand) queue.add(rule))
         }
       }
       result.toList

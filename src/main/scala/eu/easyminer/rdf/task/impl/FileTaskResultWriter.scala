@@ -3,7 +3,8 @@ package eu.easyminer.rdf.task.impl
 import java.io.PrintWriter
 import java.util.Date
 
-import eu.easyminer.rdf.rule.{ClosedRule, RuleStringifier}
+import eu.easyminer.rdf.rule.ExtendedRule.ClosedRule
+import eu.easyminer.rdf.rule.RuleStringifier
 import eu.easyminer.rdf.task.InputTaskParser.InputTask
 import eu.easyminer.rdf.task.TaskResultWriter
 

@@ -14,12 +14,16 @@ trait Serializer[-T] {
 
 object Serializer {
 
+  trait Writer[T] {
+    def write(v: T)
+  }
+
   def serialize[T](v: T)(implicit serializer: Serializer[T]): Array[Byte] = serializer.serialize(v)
 
-  def mapOutputStream[T](f: OutputStream)(implicit serializer: Serializer[T], serializationSize: SerializationSize[T]): T => Unit = if (serializationSize.size > 0) {
-    v => f.write(serializer.serialize(v))
+  def mapOutputStream[T](f: OutputStream)(implicit serializer: Serializer[T], serializationSize: SerializationSize[T]): Writer[T] = if (serializationSize.size > 0) {
+    (v: T) => f.write(serializer.serialize(v))
   } else {
-    v => {
+    (v: T) => {
       val x = serializer.serialize(v)
       f.write(ByteBuffer.allocate(4 + x.length).putInt(x.length).put(x).array())
     }
@@ -27,8 +31,8 @@ object Serializer {
 
   implicit def traversableSerializer[T](implicit serializer: Serializer[T], serializationSize: SerializationSize[T]): Serializer[Traversable[T]] = (v: Traversable[T]) => {
     val baos = new ByteArrayOutputStream()
-    val write = mapOutputStream(baos)
-    v.foreach(write)
+    val writer: Writer[T] = mapOutputStream(baos)
+    v.foreach(writer.write)
     baos.toByteArray
   }
 

@@ -124,11 +124,11 @@ trait RuleExpansion extends AtomCounting {
         logger.debug("" + rule + "\n" + "countable: " + countableFreshAtoms + "\n" + "possible: " + possibleFreshAtoms)
         //if duplicit predicates are allowed then
         //for all fresh atoms return all extension with duplicit predicates by more efficient way
-        println("****************************************")
-        println("" + rule + "\n" + "countable: " + countableFreshAtoms + "\n" + "possible: " + possibleFreshAtoms)
-        HowLong.howLong("count duplicit")(if (withDuplicitPredicates) (countableFreshAtoms ::: possibleFreshAtoms).foreach(selectAtomsWithExistingPredicate))
+        //println("****************************************")
+        //println("" + rule + "\n" + "countable: " + countableFreshAtoms + "\n" + "possible: " + possibleFreshAtoms)
+        HowLong.howLong("count duplicit", true)(if (withDuplicitPredicates) (countableFreshAtoms ::: possibleFreshAtoms).foreach(selectAtomsWithExistingPredicate))
         ad.done()
-        HowLong.howLong("count propjections") {
+        HowLong.howLong("count propjections", true) {
           rule.headTriples.iterator.zipWithIndex.takeWhile { x =>
             //if max support + remaining steps is lower than min support we can finish "count projection" process
             //example 1: head size is 10, min support is 5. Only 4 steps are remaining and there are no projection found then we can stop "count projection"
@@ -149,8 +149,8 @@ trait RuleExpansion extends AtomCounting {
           }
         }
       }
-      println("total projections: " + projections.size)
-      logger.debug("total projections: " + projections.size)
+      //println("total projections: " + projections.size)
+      //logger.debug("total projections: " + projections.size)
       //filter all projections by minimal support and remove all duplicit projections
       //then create new rules from all projections (atoms)
       val ruleFilter = new MinSupportRuleFilter(minSupport) & new NoDuplicitRuleFilter(rule.head, bodySet) & new NoRepeatedGroups(withDuplicitPredicates, bodySet + rule.head, rulePredicates)

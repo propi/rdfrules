@@ -1,12 +1,5 @@
 package eu.easyminer.rdf.algorithm.amie
 
-import eu.easyminer.rdf.data.TripleHashIndex
-import eu.easyminer.rdf.rule.Atom.Item
-import eu.easyminer.rdf.rule.Rule.OneDangling
-import eu.easyminer.rdf.rule._
-import eu.easyminer.rdf.utils.HowLong
-
-import scala.collection.mutable.ListBuffer
 import scala.language.implicitConversions
 
 /**

@@ -7,6 +7,7 @@ import eu.easyminer.rdf.data._
 import eu.easyminer.rdf.rule._
 import eu.easyminer.rdf.task.MiningTask
 import eu.easyminer.rdf.task.impl.{FileTaskResultWriter, LineInputTaskParser, SimpleMiningTask}
+import eu.easyminer.rdf.utils.serialization.Serializer
 import eu.easyminer.rdf.utils.{Debugger, HowLong}
 
 import scala.io.StdIn
@@ -106,6 +107,8 @@ object Main extends App with RuleStringifier {
       !triple.subject.startsWith("<project:")*/
   }
 
+  implicit val debugger = Debugger()
+
   println("Input TSV file:")
 
   val inputFile = new File(/*StdIn.readLine()*/ "yago.tsv")
@@ -129,9 +132,9 @@ object Main extends App with RuleStringifier {
 
   //(?1,4775,12049)^(?0,33697,?1)->(?0,14358,?1)
 
-  val rules = Amie()(Debugger.EmptyDebugger)
+  val rules = Amie()
     .addConstraint(RuleConstraint.WithInstances)
-    .addConstraint(RuleConstraint.WithoutDuplicitPredicates)
+    //.addConstraint(RuleConstraint.WithoutDuplicitPredicates)
     .addThreshold(Threshold.MinConfidence(0.2))
     .addThreshold(Threshold.MaxRuleLength(3))
     //.setRulePattern(RulePattern(AtomPattern(Atom.Variable(0), Some(14358), Atom.Variable(1)))/* + AtomPattern(Atom.Variable(1), Some(260), Atom.Variable(2))*//* + AtomPattern(Atom.Variable(0), Some(33697), Atom.Variable(1))*//* + AtomPattern(Atom.Variable(1), Some(4775), Atom.Constant(2215))*/)
@@ -141,7 +144,14 @@ object Main extends App with RuleStringifier {
 
   println(rules.length)
 
-  rules.foreach(x => println(stringifyRule(x)))
+  val os = new FileOutputStream("rules.bin")
+  try {
+    import RuleSerialization._
+    val writer = Serializer.mapOutputStream[Rule](os)
+    for (rule <- rules) writer.write(rule)
+  } finally {
+    os.close()
+  }
 
   /*val (tripleIndex, a) = {
     val ois = new ObjectInputStream(new FileInputStream("resources"))
@@ -164,9 +174,7 @@ object Main extends App with RuleStringifier {
 
   //val tripleIndex = RdfSource.Tsv.fromFile(new File("test.tsv"))(it => TripleHashIndex(it.filterNot(removeTriple)))
 
-  /*implicit val debugger = Debugger()
-
-  println("write command: ")
+  /*println("write command: ")
 
   Iterator.continually(StdIn.readLine()).takeWhile(_ != "q").foreach { command =>
     val smt: MiningTask[String] = new SimpleMiningTask(tripleIndex, mapper) with LineInputTaskParser with FileTaskResultWriter with RuleStringifier
