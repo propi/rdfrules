@@ -34,7 +34,7 @@ object RuleFilter {
                          atoms: Set[Atom],
                          rulePredicates: collection.Map[Int, collection.Map[TripleItemPosition, collection.Seq[Atom.Item]]]) extends RuleFilter {
 
-    override def isDefined: Boolean = withDuplicitPredicates & atoms.size >= 3
+    override def isDefined: Boolean = withDuplicitPredicates && atoms.size >= 3
 
     private def replaceItemInAtom(old: Atom.Item, replacement: Atom.Item)(atom: Atom) = {
       if (atom.subject == old) atom.copy(subject = replacement)

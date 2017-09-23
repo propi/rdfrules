@@ -30,5 +30,3 @@ object RulePattern {
   }
 
 }
-
-case class AtomPattern(subject: Atom.Item, predicate: Option[Int], `object`: Atom.Item)

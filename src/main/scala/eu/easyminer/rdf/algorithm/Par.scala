@@ -3,7 +3,7 @@ package eu.easyminer.rdf.algorithm
 import java.util.concurrent.atomic.AtomicInteger
 
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, Future, Promise}
+import scala.concurrent._
 import scala.util.{Failure, Success}
 
 /**
@@ -13,7 +13,7 @@ class Par[A, B] private(it: Iterator[A], fMap: A => B, fReduce: (B, B) => B, fUn
 
   private object ResultLock
 
-  private implicit val ec = ExecutionContext.global
+  private implicit val ec: ExecutionContextExecutor = ExecutionContext.global
 
   private val promisedResult: Promise[B] = Promise()
   private val counter = new AtomicInteger(0)
@@ -25,7 +25,7 @@ class Par[A, B] private(it: Iterator[A], fMap: A => B, fReduce: (B, B) => B, fUn
 
   def until(f: B => Boolean) = new Par(it, fMap, fReduce, f)
 
-  def fire() = {
+  def fire(): B = {
     if (it.isEmpty) Iterator.empty.next()
     val p = Runtime.getRuntime.availableProcessors()
     for (_ <- 0 until p) fireItem()
@@ -66,6 +66,6 @@ class Par[A, B] private(it: Iterator[A], fMap: A => B, fReduce: (B, B) => B, fUn
 
 object Par {
 
-  def apply[A](it: Iterator[A]): Par[A, A] = new Par(it, x => x, (_, x) => x, x => false)
+  def apply[A](it: Iterator[A]): Par[A, A] = new Par(it, x => x, (_, x) => x, _ => false)
 
 }

@@ -19,7 +19,7 @@ trait Debugger {
 
 object Debugger {
 
-  val logger = Logger[Debugger]
+  val logger: Logger = Logger[Debugger]
 
   def apply()(implicit af: ActorRefFactory): Debugger = new ActorDebugger(af.actorOf(DebuggerActor.props))
 
@@ -51,7 +51,7 @@ object Debugger {
   }
 
   private class ActorActionDebugger(name: String, num: Int, debugger: ActorRef) extends ActionDebugger {
-    def done(msg: String = "") = debugger ! Debug(name, msg)
+    def done(msg: String = ""): Unit = debugger ! Debug(name, msg)
   }
 
   private object EmptyActionDebugger extends ActionDebugger {
@@ -60,7 +60,7 @@ object Debugger {
 
   private class DebuggerActor extends Actor {
 
-    val debugClock = 5 seconds
+    val debugClock: FiniteDuration = 5 seconds
     val actions = collection.mutable.Map.empty[String, Action]
     var lastDump = 0L
 
@@ -69,20 +69,20 @@ object Debugger {
       private var num = 0
       private var _state = ""
 
-      def ++ = {
+      def ++ : Action = {
         num += 1
         this
       }
 
-      def state = _state
+      def state: String = _state
 
-      def state_=(value: String) = _state = value
+      def state_=(value: String): Unit = _state = value
 
-      def absoluteProgress = num
+      def absoluteProgress: Int = num
 
-      def relativeProgress = if (maxNum > 0) num.toDouble / maxNum else 0.0
+      def relativeProgress: Double = if (maxNum > 0) num.toDouble / maxNum else 0.0
 
-      def hasProgressBar = maxNum > 0
+      def hasProgressBar: Boolean = maxNum > 0
 
       override def toString: String = if (hasProgressBar) {
         s"Action $name, steps: $num from $maxNum, progress: ${(relativeProgress * 100).round}%"
@@ -92,7 +92,7 @@ object Debugger {
 
     }
 
-    def dump(action: Action, msg: String) = {
+    def dump(action: Action, msg: String): Unit = {
       action.state = msg
       if (lastDump + debugClock.toMillis < System.currentTimeMillis()) {
         for (action <- actions.valuesIterator) {

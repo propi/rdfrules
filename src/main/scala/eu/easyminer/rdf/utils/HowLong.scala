@@ -1,5 +1,7 @@
 package eu.easyminer.rdf.utils
 
+import com.typesafe.scalalogging.Logger
+
 import scala.concurrent.duration.Duration
 
 /**
@@ -7,26 +9,34 @@ import scala.concurrent.duration.Duration
   */
 trait HowLong {
 
-  case class Stats(count: Int, totalTime: Duration) {
-    lazy val averageTime = Duration.fromNanos(totalTime.toNanos / count.toDouble)
+  private val logger = Logger[HowLong]
+
+  case class Stats(count: Int, totalTime: Duration, maxTime: Duration) {
+    lazy val averageTime: Duration = Duration.fromNanos(totalTime.toNanos / count.toDouble)
+
+    def +(time: Duration) = Stats(count + 1, totalTime + time, if (time > maxTime) time else maxTime)
 
     override def toString: String = s"(count: $count, totalTime: $totalTime, averageTime: $averageTime)"
   }
 
   private val times = collection.mutable.HashMap.empty[String, Stats]
 
-  def howLong[T](message: String, silent: Boolean = false)(f: => T): T = {
+  def howLong[T](message: String, silent: Boolean = false)(f: => T): T = if (logger.underlying.isTraceEnabled) {
     val time = System.nanoTime()
     val x = f
     val runningTime = Duration.fromNanos(System.nanoTime() - time)
-    times += (message -> times.get(message).map(x => Stats(x.count + 1, x.totalTime + runningTime)).getOrElse(Stats(1, runningTime)))
-    if (!silent) println(message + ": " + runningTime)
+    times.synchronized {
+      times.update(message, times.getOrElse(message, Stats(0, Duration.Zero, Duration.Zero)) + runningTime)
+    }
+    if (!silent) logger.trace(message + ": " + runningTime)
     x
+  } else {
+    f
   }
 
-  def flushAllResults() = {
+  def flushAllResults(): Unit = {
     for ((message, stats) <- times) {
-      println("TOTAL - " + message + ": " + stats)
+      logger.trace("TOTAL - " + message + ": " + stats)
     }
     times.clear()
   }

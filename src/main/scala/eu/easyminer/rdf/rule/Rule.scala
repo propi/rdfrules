@@ -9,7 +9,7 @@ trait Rule {
   val head: Atom
   val measures: Measure.Measures
 
-  lazy val ruleLength = body.size + 1
+  lazy val ruleLength: Int = body.size + 1
 
   override def hashCode(): Int = {
     val support = measures(Measure.Support).asInstanceOf[Measure.Support].value

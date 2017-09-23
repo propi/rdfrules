@@ -8,7 +8,7 @@ import eu.easyminer.rdf.data.TripleHashIndex.{TripleObjectIndex, TriplePredicate
 class TripleHashIndex(val subjects: collection.mutable.Map[Int, TripleSubjectIndex],
                       val predicates: collection.mutable.Map[Int, TriplePredicateIndex],
                       val objects: collection.mutable.Map[Int, TripleObjectIndex]) {
-  lazy val size = predicates.valuesIterator.map(_.size).sum
+  lazy val size: Int = predicates.valuesIterator.map(_.size).sum
 }
 
 object TripleHashIndex {
@@ -16,22 +16,22 @@ object TripleHashIndex {
   type TripleItemMap = collection.mutable.Map[Int, collection.mutable.Set[Int]]
 
   class TriplePredicateIndex(val subjects: TripleItemMap, val objects: TripleItemMap) {
-    lazy val size = subjects.valuesIterator.map(_.size).sum
+    lazy val size: Int = subjects.valuesIterator.map(_.size).sum
   }
 
   class TripleSubjectIndex(val objects: TripleItemMap, val predicates: TripleItemMap) {
-    lazy val size = predicates.valuesIterator.map(_.size).sum
+    lazy val size: Int = predicates.valuesIterator.map(_.size).sum
   }
 
   class TripleObjectIndex(val subjects: TripleItemMap, val predicates: TripleItemMap) {
-    lazy val size = predicates.valuesIterator.map(_.size).sum
+    lazy val size: Int = predicates.valuesIterator.map(_.size).sum
   }
 
   private def emptyTripleItemMap = collection.mutable.HashMap.empty[Int, collection.mutable.Set[Int]]
 
   private def emptySet = collection.mutable.HashSet.empty[Int]
 
-  def apply(it: Iterator[CompressedTriple]) = {
+  def apply(it: Iterator[CompressedTriple]): TripleHashIndex = {
     val tsi = collection.mutable.HashMap.empty[Int, TripleSubjectIndex]
     val tpi = collection.mutable.HashMap.empty[Int, TriplePredicateIndex]
     val toi = collection.mutable.HashMap.empty[Int, TripleObjectIndex]

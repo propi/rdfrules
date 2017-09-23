@@ -12,7 +12,7 @@ trait AtomCounting {
 
   type VariableMap = Map[Atom.Variable, Atom.Constant]
 
-  val logger = Logger[AtomCounting]
+  val logger: Logger = Logger[AtomCounting]
   val tripleIndex: TripleHashIndex
 
   def specifyItem(item: Atom.Item, variableMap: VariableMap): Atom.Item = item match {
@@ -37,9 +37,9 @@ trait AtomCounting {
     case (_: Atom.Variable, _: Atom.Variable) => tripleIndex.size
   }
 
-  def bestAtom(atoms: Iterable[Atom], variableMap: VariableMap) = atoms.minBy(scoreAtom(_, variableMap))
+  def bestAtom(atoms: Iterable[Atom], variableMap: VariableMap): Atom = atoms.minBy(scoreAtom(_, variableMap))
 
-  def bestFreshAtom(freshAtoms: Iterable[FreshAtom], variableMap: VariableMap) = freshAtoms.minBy(scoreAtom(_, variableMap))
+  def bestFreshAtom(freshAtoms: Iterable[FreshAtom], variableMap: VariableMap): FreshAtom = freshAtoms.minBy(scoreAtom(_, variableMap))
 
   def exists(atoms: Set[Atom], variableMap: VariableMap): Boolean = if (atoms.isEmpty) {
     true
@@ -110,7 +110,7 @@ trait AtomCounting {
     }
   }
 
-  def getAtomTriples(atom: Atom) = specifyAtom(atom, Map.empty[Atom.Variable, Atom.Constant])
+  def getAtomTriples(atom: Atom): Iterator[(Int, Int)] = specifyAtom(atom, Map.empty[Atom.Variable, Atom.Constant])
     .map(x => x.subject.asInstanceOf[Atom.Constant].value -> x.`object`.asInstanceOf[Atom.Constant].value)
 
 }

@@ -8,7 +8,7 @@ sealed trait ExtendedRule extends Rule {
   val headTriples: IndexedSeq[(Int, Int)]
   val maxVariable: Atom.Variable
 
-  def headSize = headTriples.length
+  def headSize: Int = headTriples.length
 
 }
 
@@ -28,6 +28,14 @@ object ExtendedRule {
     def danglings: List[Atom.Variable] = List(dangling1, dangling2)
   }
 
+  /**
+    * Check whether two lists of atoms are isomorphic
+    *
+    * @param body1     first list of atoms
+    * @param body2     second list of atoms
+    * @param variables mapping for variables from body2 which are mapped to variables from body1
+    * @return boolean
+    */
   def checkBodyEquality(body1: IndexedSeq[Atom], body2: Set[Atom], variables: Map[Atom.Variable, Atom.Variable] = Map.empty): Boolean = {
     def checkAtomItemsEquality(atomItem1: Atom.Item, atomItem2: Atom.Item, variables: Map[Atom.Variable, Atom.Variable]) = (atomItem1, atomItem2) match {
       case (Atom.Constant(value1), Atom.Constant(value2)) if value1 == value2 => true -> variables
@@ -36,6 +44,7 @@ object ExtendedRule {
         (nv(v2) == v1) -> nv
       case _ => false -> variables
     }
+
     def checkAtomEquality(atom1: Atom, atom2: Atom) = {
       if (atom1.predicate == atom2.predicate) {
         val (eqSubjects, v1) = checkAtomItemsEquality(atom1.subject, atom2.subject, variables)
@@ -49,6 +58,7 @@ object ExtendedRule {
         false -> variables
       }
     }
+
     body1 match {
       case head +: tail =>
         body2.exists { atom =>
