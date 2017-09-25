@@ -13,11 +13,20 @@ trait RuleCounting extends AtomCounting {
 
   implicit class PimpedRule(rule: ExtendedRule) {
 
+    /**
+      * Count confidence for the rule
+      *
+      * @return New rule with counted confidence
+      */
     def withConfidence: ExtendedRule = {
       logger.debug(s"Confidence counting for rule: " + rule)
       val support = rule.measures(Measure.Support).asInstanceOf[Measure.Support].value
+      //we count body size, it is number of all possible paths for this rule from dataset only for body atoms
+      //first we count body size threshold: support / minConfidence
+      //it counts wanted body site. If the body size is greater than wanted body size then confidence will be always lower than our defined threshold (min confidence)
       val bodySize = count(rule.body.toSet, support / minConfidence)
-      rule.measures +=(Measure.BodySize(bodySize), Measure.Confidence(support.toDouble / bodySize))
+      //confidence is number of head triples which are connected to other atoms in the rule DIVIDED number of all possible paths from body
+      rule.measures += (Measure.BodySize(bodySize), Measure.Confidence(support.toDouble / bodySize))
       rule
     }
 
@@ -31,7 +40,7 @@ trait RuleCounting extends AtomCounting {
       val bodySet = rule.body.toSet
       val support = rule.measures(Measure.Support).asInstanceOf[Measure.Support].value
       val pcaBodySize = headInstances.map(count(bodySet, support / minConfidence, _)).sum
-      rule.measures +=(Measure.PcaBodySize(pcaBodySize), Measure.PcaConfidence(support.toDouble / pcaBodySize))
+      rule.measures += (Measure.PcaBodySize(pcaBodySize), Measure.PcaConfidence(support.toDouble / pcaBodySize))
       rule
     }
 

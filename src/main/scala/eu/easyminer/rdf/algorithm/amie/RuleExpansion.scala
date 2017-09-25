@@ -104,6 +104,7 @@ trait RuleExpansion extends AtomCounting {
     /**
       * Check if a fresh atom is counted for both variable items and dangling constant item.
       * If fresh atom is counted for both variables and dangling constant, then it is counted, otherwise COUNT IT!
+      *
       * @param freshAtom fresh atom
       * @param predicate checking for the predicate
       * @return true = is counted, false = it is not counted
@@ -114,6 +115,7 @@ trait RuleExpansion extends AtomCounting {
 
     /**
       * Check whether a new fresh atom is matching with the current atom pattern
+      *
       * @param freshAtom new fresh atom
       * @return boolean
       */
@@ -124,6 +126,7 @@ trait RuleExpansion extends AtomCounting {
 
     /**
       * Check whether a new atom is matching with the current atom pattern
+      *
       * @param atom new atom
       * @return boolean
       */
@@ -138,6 +141,7 @@ trait RuleExpansion extends AtomCounting {
       * New extended rules needn't be closed but contain maximal two dangling items.
       * One of two possible danglings is always within the last added atom.
       * Extended rules must fulfill all watching threshold conditions, constraints and patterns
+      *
       * @return all extended rules with new atom
       */
     def expand: Iterator[ExtendedRule] = {
@@ -175,7 +179,7 @@ trait RuleExpansion extends AtomCounting {
             maxSupport + remains >= minSupport
           }.foreach { case ((_subject, _object), _) =>
             //for each triple covering head of this rule, find and count all possible projections for all possible fresh atoms
-            val selectedAtoms = selectAtoms2(bodySet, possibleFreshAtoms, countableFreshAtoms, specifyHeadVariableMapWithAtom(_subject, _object))
+            val selectedAtoms = countProjections(bodySet, possibleFreshAtoms, countableFreshAtoms, specifyHeadVariableMapWithAtom(_subject, _object))
             for (atom <- selectedAtoms) {
               //for each found projection increase support by 1 and find max support
               maxSupport = math.max(projections.getOrElseUpdate(atom, IncrementalInt()).++.getValue, maxSupport)
@@ -193,26 +197,57 @@ trait RuleExpansion extends AtomCounting {
       }
     }
 
+    /**
+      * Create all possible combinations of fresh atoms which are connected to other rule atoms
+      * Possible input/output
+      * ClosedRule - result is one dangling atoms and closed atoms
+      * OneDanglingRule - result is one dangling atoms and closed atoms
+      * TwoDanglingsRule - result is two dangling atoms and closed atoms
+      *
+      * @return fresh atoms iterator
+      */
     private def getPossibleFreshAtoms = rule match {
       case rule: ClosedRule =>
+        //if the rule is closed then we connect all items with a new dangling atom
+        // - result is one dangling rule
+        //or we create new closed atoms which are created from all items combinations within this rule
+        // - result is closed rule
         val danglings = rule.variables.iterator.map(x => Iterator(FreshAtom(dangling, x), FreshAtom(x, dangling)))
         val closed = rule.variables.combinations(2).collect { case List(x, y) => Iterator(FreshAtom(x, y), FreshAtom(y, x)) }
         (danglings ++ closed).flatten
       case rule: DanglingRule =>
         rule.variables match {
           case ExtendedRule.OneDangling(dangling1, others) =>
+            //if the rule has one dangling item then we create fresh atoms with this item and with a new dangling item
+            // - result is one dangling rule again
+            //or we create fresh atoms with existing dangling item with combination of other items
+            // - result is closed rule
             val danglings = Iterator(FreshAtom(dangling1, dangling), FreshAtom(dangling, dangling1))
             val closed = others.iterator.flatMap(x => Iterator(FreshAtom(dangling1, x), FreshAtom(x, dangling1)))
             danglings ++ closed
-          case ExtendedRule.TwoDanglings(dangling1, dangling2, others) =>
+          case ExtendedRule.TwoDanglings(dangling1, dangling2, _) =>
+            //if the rule has two dangling items then we create fresh atoms with these items and with a new dangling item
+            // - result is two danglings rule again
+            //or we create fresh atoms only with these dangling items
+            // - result is closed rule
             val danglings = if ((rule.ruleLength + 1) < maxRuleLength) rule.variables.danglings.iterator.flatMap(x => Iterator(FreshAtom(dangling, x), FreshAtom(x, dangling))) else Iterator.empty
             val closed = Iterator(FreshAtom(dangling1, dangling2), FreshAtom(dangling2, dangling1))
             danglings ++ closed
         }
     }
 
+    /**
+      * Create expanded projections from existing atoms in the rule.
+      * There are some fresh atoms which can not decrease support: e.g. p(a, c) -> p(a, b)
+      * -- same predicate AND subject or object within two atoms
+      * For these new atoms we do not need to count support because it will be same
+      * Only new variable atoms are added without counting - not instantiated atoms
+      *
+      * @param freshAtom   any fresh atoms
+      * @param projections map of projections which can be fulfilled if there is some duplicits within this new fresh atom
+      */
     private def selectAtomsWithExistingPredicate(freshAtom: FreshAtom)
-                                                (implicit projections: Projections = collection.mutable.HashMap.empty) = {
+                                                (implicit projections: Projections = collection.mutable.HashMap.empty): Unit = {
 
       /**
         * count all projections for fresh atom which is contained in the rule (only dangling atoms are supposed)
@@ -251,45 +286,65 @@ trait RuleExpansion extends AtomCounting {
     }
 
     /**
-      * Select all projections (atoms) from possible fresh atoms and by instacized variables
+      * Select all projections (atoms) from possible fresh atoms and one head specification (for one head specified atom/triple)
+      * For each head triple we enumerate atoms from possible fresh atoms which are directly connected to this rule and fulfill all constraints
       *
-      * @param atoms
-      * @param possibleFreshAtoms
-      * @param countableFreshAtoms
-      * @param variableMap
-      * @param projections
-      * @return
+      * @param atoms               all body atoms in the rule
+      * @param possibleFreshAtoms  all possible fresh atoms which can be added to the rule and need to specify their variables by other atoms
+      * @param countableFreshAtoms all possible fresh atoms which can be added to the rule and their projections can be counted immediately,
+      *                            because we know all variables (are specified) of this new atom
+      *                            (projected fresh atoms and their specified variables only need to check existence of the rest of other atoms within this rule)
+      * @param variableMap         specified variables - it maps variables to constants
+      * @param projections         set of atoms which are connectable to this rule and fulfill all constraints
+      * @return set of projections/atoms
       */
-    private def selectAtoms2(atoms: Set[Atom], possibleFreshAtoms: List[FreshAtom], countableFreshAtoms: List[FreshAtom], variableMap: VariableMap)
-                            (implicit projections: TripleProjections = collection.mutable.HashSet.empty): TripleProjections = {
+    private def countProjections(atoms: Set[Atom], possibleFreshAtoms: List[FreshAtom], countableFreshAtoms: List[FreshAtom], variableMap: VariableMap)
+                                (implicit projections: TripleProjections = collection.mutable.HashSet.empty): TripleProjections = {
       //if there are some countable fresh atoms and there exists path for rest atoms then we can find all projections for these fresh atoms
       if (countableFreshAtoms.nonEmpty && exists(atoms, variableMap)) {
         countableFreshAtoms.foreach(countFreshAtom(_, variableMap))
       }
-      //for each possible fresh atom select best
+      //for each possible fresh we need to specify their variables
       if (possibleFreshAtoms.nonEmpty) {
+        //select best atom and its score which has minimal projections from other atoms
         val (best, bestScore) = atoms.iterator.map(x => x -> scoreAtom(x, variableMap)).minBy(_._2)
+        //select fresh atoms which have better score (lower) than best atom
         val (bestFreshAtoms, otherFreshAtoms) = possibleFreshAtoms.partition(scoreAtom(_, variableMap) <= bestScore)
+        //for each this best fresh atom we directly specify all variables (enumerate all projections)
+        //then for each projection we check existence of the rest of other atoms within this rule
         for (freshAtom <- bestFreshAtoms) {
-          specifyAtom(freshAtom, variableMap)
-            .filter(atom => !isCounted(freshAtom, atom.predicate))
+          specifyAtom(freshAtom, variableMap) //specify fresh atom
+            .filter(atom => !isCounted(freshAtom, atom.predicate)) //filter only atoms which need to be counted
+            //for each predicate of the fresh atom we specify all variables and we filter projections which satisfy all constraints and are connected with the rest of other atoms
             .map(atom => atom.predicate -> specifyAtom(atom, variableMap).filter(atom => matchAtom(atom) && exists(atoms, variableMap + (freshAtom.subject -> atom.subject.asInstanceOf[Atom.Constant], freshAtom.`object` -> atom.`object`.asInstanceOf[Atom.Constant]))))
             .foreach { case (predicate, atoms) =>
-              val (hasInstancesProjections, hasVariableProjections) = (!isCounted(freshAtom, predicate, true), !isCounted(freshAtom, predicate, false))
+              //check whether a predicate of new variable fresh atoms or instantiated fresh atoms has been counted in past (within duplicit predicates)
+              //if yes we do not need to count projections for this predicate and fresh atom (for variable atoms or for instantiated atoms)
+              val (notCountedInstanceProjections, notCountedVariableProjections) = (!isCounted(freshAtom, predicate, true), !isCounted(freshAtom, predicate, false))
               for (atom <- atoms) {
-                if (isWithInstances && hasInstancesProjections) {
+                if (isWithInstances && notCountedInstanceProjections) {
+                  //if we may to create instantiated atoms for this predicate and fresh atom (it is allowed and not already counted)
+                  //then we add new atom projection to atoms set
                   if (freshAtom.subject == dangling) projections += atom.copy(`object` = freshAtom.`object`)
                   else if (freshAtom.`object` == dangling) projections += atom.copy(subject = freshAtom.subject)
                 }
-                if (hasVariableProjections) projections += Atom(freshAtom.subject, atom.predicate, freshAtom.`object`)
+                //if we may to create variable atoms for this predicate and fresh atom (not already counted)
+                //then we add new atom projection to atoms set
+                if (notCountedVariableProjections) projections += Atom(freshAtom.subject, atom.predicate, freshAtom.`object`)
               }
             }
         }
+        //for other fresh atoms we need to specify best atom and repeat this function with all projections of the specified atom (recursively behaviour)
         if (otherFreshAtoms.nonEmpty) {
+          //body atoms minus best atom are input to the recursive call of this function
           val rest = if (atoms.size == 1) Set.empty[Atom] else atoms - best
+          //if variables of best atom and other specified variables (in variableMap) coverage all variables of any fresh atom,
+          //then this fresh atom will be immediately countable within next iteration
+          //therefore in this step we can separate all fresh atoms to countable and other fresh atoms for next iteration
           val (countableAtoms, restAtoms) = otherFreshAtoms.partition(freshAtom => List(freshAtom.subject, freshAtom.`object`).forall(x => x == dangling || x == best.subject || x == best.`object` || variableMap.contains(x)))
           for (variableMap <- specifyVariableMap(best, variableMap)) {
-            selectAtoms2(rest, restAtoms, countableAtoms, variableMap)
+            //we specify best atom and specified variables (projection) send to the next iteration
+            countProjections(rest, restAtoms, countableAtoms, variableMap)
           }
         }
       }
@@ -297,7 +352,7 @@ trait RuleExpansion extends AtomCounting {
     }
 
     /**
-      * if all variables are known (instead of dangling nodes) we can count all projections
+      * if all variables are known (instead of dangling nodes) we can enumerate all projections
       *
       * @param atom        countable fresh atom
       * @param variableMap variable map to constants
@@ -339,7 +394,7 @@ trait RuleExpansion extends AtomCounting {
           }
         //all variables are constants, there are not any dangling variables - atom is closed; there is only one projection
         case (Atom.Constant(sc), Atom.Constant(oc)) =>
-          //we dont need to skip counted predicate because in this case we count only with closed atom which are not counted for the existing predicate
+          //we skip counted predicate because in this case we count only with closed atom which are not counted for the existing predicate
           //we need to count all closed atoms
           for (predicate <- tripleIndex.subjects.get(sc).iterator.flatMap(_.objects.get(oc).iterator.flatten) if !isCounted(atom, predicate, false); newAtom = Atom(atom.subject, predicate, atom.`object`) if matchAtom(newAtom)) {
             projections += newAtom
@@ -348,6 +403,14 @@ trait RuleExpansion extends AtomCounting {
       }
     }
 
+    /**
+      * Create new rule from this rule with added atom
+      * It creates three variants: ClosedRule, OneDanglingRule, TwoDanglingsRule
+      *
+      * @param atom    new atom which will be added to this rule
+      * @param support support of this rule with new atom
+      * @return extended rule with new atom
+      */
     private def expandWithAtom(atom: Atom, support: Int): ExtendedRule = {
       val measures = collection.mutable.HashMap[Measure.Key, Measure](
         Measure.Support(support),
