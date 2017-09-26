@@ -6,57 +6,76 @@ import scala.language.implicitConversions
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
 sealed trait Measure {
-  def companion: Measure.Key
+  def companion: Measure.Key[Measure]
 }
 
 object Measure {
 
-  type Measures = collection.mutable.Map[Key, Measure]
+  case class Measures(m: collection.mutable.Map[Key[Measure], Measure]) {
+    def apply[A <: Measure](implicit key: Key[A]): A = m(key).asInstanceOf[A]
 
-  sealed trait Key
+    def get[A <: Measure](implicit key: Key[A]): Option[A] = m.get(key).map(_.asInstanceOf[A])
+
+    def +=(measures: (Key[Measure], Measure)*): Measures = {
+      m ++= measures
+      this
+    }
+  }
+
+  object Measures {
+    def apply(measures: (Key[Measure], Measure)*): Measures = Measures(collection.mutable.Map(measures: _*))
+  }
+
+  sealed trait Key[+T <: Measure]
 
   case class Support(value: Int) extends Measure {
-    def companion: Key = Support
+    def companion: Support.type = Support
   }
 
-  object Support extends Key
+  implicit object Support extends Key[Support]
 
   case class HeadCoverage(value: Double) extends Measure {
-    def companion: Key = HeadCoverage
+    def companion: HeadCoverage.type = HeadCoverage
   }
 
-  object HeadCoverage extends Key
+  implicit object HeadCoverage extends Key[HeadCoverage]
 
   case class HeadSize(value: Int) extends Measure {
-    def companion: Key = HeadSize
+    def companion: HeadSize.type = HeadSize
   }
 
-  object HeadSize extends Key
+  implicit object HeadSize extends Key[HeadSize]
 
   case class BodySize(value: Int) extends Measure {
-    def companion: Key = BodySize
+    def companion: BodySize.type = BodySize
   }
 
-  object BodySize extends Key
+  implicit object BodySize extends Key[BodySize]
 
   case class Confidence(value: Double) extends Measure {
-    def companion: Key = Confidence
+    def companion: Confidence.type = Confidence
   }
 
-  object Confidence extends Key
+  implicit object Confidence extends Key[Confidence]
+
+  case class Lift(value: Double) extends Measure {
+    def companion: Lift.type = Lift
+  }
+
+  object Lift extends Key[Lift]
 
   case class PcaBodySize(value: Int) extends Measure {
-    def companion: Key = PcaBodySize
+    def companion: PcaBodySize.type = PcaBodySize
   }
 
-  object PcaBodySize extends Key
+  implicit object PcaBodySize extends Key[PcaBodySize]
 
   case class PcaConfidence(value: Double) extends Measure {
-    def companion: Key = PcaConfidence
+    def companion: PcaConfidence.type = PcaConfidence
   }
 
-  object PcaConfidence extends Key
+  implicit object PcaConfidence extends Key[PcaConfidence]
 
-  implicit def mesureToKeyValue(measure: Measure): (Key, Measure) = measure.companion -> measure
+  implicit def mesureToKeyValue(measure: Measure): (Key[Measure], Measure) = measure.companion -> measure
 
 }

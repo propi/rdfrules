@@ -65,16 +65,16 @@ trait RuleSerialization {
     }
 
     implicit val measuresSerializer: Serializer[Measures] = (v: Measures) => ByteBuffer.allocate(measuresSerializationSize.size)
-      .putInt(v(Measure.HeadSize).asInstanceOf[Measure.HeadSize].value)
-      .putInt(v(Measure.BodySize).asInstanceOf[Measure.BodySize].value)
-      .putInt(v(Measure.Support).asInstanceOf[Measure.Support].value)
-      .putDouble(v(Measure.HeadCoverage).asInstanceOf[Measure.HeadCoverage].value)
-      .putDouble(v(Measure.Confidence).asInstanceOf[Measure.Confidence].value)
+      .putInt(v[Measure.HeadSize].value)
+      .putInt(v[Measure.BodySize].value)
+      .putInt(v[Measure.Support].value)
+      .putDouble(v[Measure.HeadCoverage].value)
+      .putDouble(v[Measure.Confidence].value)
       .array()
 
     implicit val measuresDeserializer: Deserializer[Measures] = (v: Array[Byte]) => {
       val buffer = ByteBuffer.wrap(v)
-      collection.mutable.Map(
+      Measures(
         Measure.HeadSize(buffer.getInt),
         Measure.BodySize(buffer.getInt),
         Measure.Support(buffer.getInt),

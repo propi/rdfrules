@@ -92,7 +92,7 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
         case (v1: Atom.Variable, v2: Atom.Variable) => ExtendedRule.TwoDanglings(v1, v2, Nil) -> tm.size
         case (Atom.Constant(c), v1: Atom.Variable) => ExtendedRule.OneDangling(v1, Nil) -> tm.subjects.get(c).map(_.size).getOrElse(0)
         case (v1: Atom.Variable, Atom.Constant(c)) => ExtendedRule.OneDangling(v1, Nil) -> tm.objects.get(c).map(_.size).getOrElse(0)
-      }.filter(_._2 >= minSupport).map(x => DanglingRule(Vector.empty, atom)(collection.mutable.HashMap(Measure.HeadSize(x._2), Measure.Support(x._2)), x._1, x._1.danglings.max, getAtomTriples(atom).toIndexedSeq))
+      }.filter(_._2 >= minSupport).map(x => DanglingRule(Vector.empty, atom)(Measure.Measures(Measure.HeadSize(x._2), Measure.Support(x._2)), x._1, x._1.danglings.max, getAtomTriples(atom).toIndexedSeq))
     }
 
     def searchRules(initRule: ExtendedRule) = {

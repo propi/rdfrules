@@ -271,7 +271,7 @@ trait RuleExpansion extends AtomCounting {
           // - only p(a, C) -> p(a, B) is allowed - not p(a, C) -> p(a, b), because it is noise = redundant pattern
           // - this phase (for instantioned atoms with existing predicates) is doing during the main count projections process
           if (atom.subject.isInstanceOf[Atom.Variable] && atom.`object`.isInstanceOf[Atom.Variable]) {
-            projections += (Atom(freshAtom.subject, atom.predicate, freshAtom.`object`) -> IncrementalInt(rule.measures(Measure.Support).asInstanceOf[Measure.Support].value))
+            projections += (Atom(freshAtom.subject, atom.predicate, freshAtom.`object`) -> IncrementalInt(rule.measures[Measure.Support].value))
           }
         }
         //we filter such all atoms that satisfy all constraints
@@ -412,7 +412,7 @@ trait RuleExpansion extends AtomCounting {
       * @return extended rule with new atom
       */
     private def expandWithAtom(atom: Atom, support: Int): ExtendedRule = {
-      val measures = collection.mutable.HashMap[Measure.Key, Measure](
+      val measures = Measure.Measures(
         Measure.Support(support),
         Measure.HeadCoverage(support / rule.headSize.toDouble),
         Measure.HeadSize(rule.headSize)

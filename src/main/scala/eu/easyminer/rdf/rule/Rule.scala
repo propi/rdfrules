@@ -12,8 +12,8 @@ trait Rule {
   lazy val ruleLength: Int = body.size + 1
 
   override def hashCode(): Int = {
-    val support = measures(Measure.Support).asInstanceOf[Measure.Support].value
-    val headSize = measures(Measure.HeadSize).asInstanceOf[Measure.HeadSize].value
+    val support = measures[Measure.Support].value
+    val headSize = measures[Measure.HeadSize].value
     val bodyHashCode = body.iterator.map { atom =>
       atom.predicate +
         (atom.subject match {
