@@ -7,14 +7,14 @@ class IncrementalInt {
 
   private var value = 0
 
-  def ++ = this += 1
+  def ++ : IncrementalInt = this += 1
 
-  def +=(x: Int) = {
+  def +=(x: Int): IncrementalInt = {
     value += x
     this
   }
 
-  def getValue = value
+  def getValue: Int = value
 
 }
 

@@ -6,39 +6,58 @@ import scala.language.implicitConversions
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
 sealed trait Threshold {
-  def companion: Threshold.Key
+  def companion: Threshold.Key[Threshold]
 }
 
 object Threshold {
 
-  type Thresholds = collection.mutable.Map[Key, Threshold]
+  case class Thresholds(m: collection.mutable.Map[Key[Threshold], Threshold]) {
+    def apply[A <: Threshold](implicit key: Key[A]): A = m(key).asInstanceOf[A]
 
-  sealed trait Key
+    def get[A <: Threshold](implicit key: Key[A]): Option[A] = m.get(key).map(_.asInstanceOf[A])
+
+    def +=(thresholds: (Key[Threshold], Threshold)*): Thresholds = {
+      m ++= thresholds
+      this
+    }
+  }
+
+  object Thresholds {
+    def apply(thresholds: (Key[Threshold], Threshold)*): Thresholds = Thresholds(collection.mutable.Map(thresholds: _*))
+  }
+
+  sealed trait Key[+T <: Threshold]
 
   case class MinSupport(value: Int) extends Threshold {
-    def companion: Key = MinSupport
+    def companion: MinSupport.type = MinSupport
   }
 
-  object MinSupport extends Key
+  implicit object MinSupport extends Key[MinSupport]
 
   case class MinHeadCoverage(value: Double) extends Threshold {
-    def companion: Key = MinHeadCoverage
+    def companion: MinHeadCoverage.type = MinHeadCoverage
   }
 
-  object MinHeadCoverage extends Key
+  implicit object MinHeadCoverage extends Key[MinHeadCoverage]
 
   case class MaxRuleLength(value: Int) extends Threshold {
-    def companion: Key = MaxRuleLength
+    def companion: MaxRuleLength.type = MaxRuleLength
   }
 
-  object MaxRuleLength extends Key
+  implicit object MaxRuleLength extends Key[MaxRuleLength]
 
   case class MinConfidence(value: Double) extends Threshold {
-    def companion: Key = MinConfidence
+    def companion: MinConfidence.type = MinConfidence
   }
 
-  object MinConfidence extends Key
+  implicit object MinConfidence extends Key[MinConfidence]
 
-  implicit def thresholdToKeyValue(threshold: Threshold): (Key, Threshold) = threshold.companion -> threshold
+  case class MinPcaConfidence(value: Double) extends Threshold {
+    def companion: MinPcaConfidence.type = MinPcaConfidence
+  }
+
+  implicit object MinPcaConfidence extends Key[MinPcaConfidence]
+
+  implicit def thresholdToKeyValue(threshold: Threshold): (Key[Threshold], Threshold) = threshold.companion -> threshold
 
 }

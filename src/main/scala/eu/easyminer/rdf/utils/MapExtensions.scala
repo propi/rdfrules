@@ -6,7 +6,7 @@ package eu.easyminer.rdf.utils
 object MapExtensions {
 
   implicit class PimpedMapChain[A, B](mapChain: Option[Map[A, B]]) {
-    def apply(k: A) = mapChain.flatMap(_.get(k))
+    def apply(k: A): Option[B] = mapChain.flatMap(_.get(k))
   }
 
 }

@@ -30,12 +30,12 @@ class DbScan[T] private(minNeighbours: Int, minSimilarity: Double, data: Iterabl
     makeClusters(others, cluster +: clusters)
   }
 
-  def clusters = makeClusters(data, Nil)
+  def clusters: Iterable[Iterable[T]] = makeClusters(data, Nil)
 
 }
 
 object DbScan {
 
-  def apply[T](minNeighbours: Int, minSimilarity: Double, data: Iterable[T])(implicit similarity: (T, T) => Double) = new DbScan(minNeighbours, minSimilarity, data).clusters
+  def apply[T](minNeighbours: Int, minSimilarity: Double, data: Iterable[T])(implicit similarity: (T, T) => Double): Iterable[Iterable[T]] = new DbScan(minNeighbours, minSimilarity, data).clusters
 
 }

@@ -19,7 +19,7 @@ trait RdfReader[T <: RdfSource] {
 
 object RdfReader {
 
-  implicit val Tsv2Triples = new RdfReader[RdfSource.Tsv.type] {
+  implicit val Tsv2Triples: RdfReader[RdfSource.Tsv.type] = new RdfReader[RdfSource.Tsv.type] {
     def fromInputStream[A](is: InputStream)(f: Iterator[Triple] => A): A = {
       val source = Source.fromInputStream(is)
       try {
@@ -34,9 +34,17 @@ object RdfReader {
     }
   }
 
-  implicit val Nt2Triples = new RdfReader[RdfSource.Nt.type] {
+  sealed trait RdfSourceToLang[T <: RdfSource] {
+    def apply(): Lang
+  }
+
+  implicit val ntToLang: RdfSourceToLang[RdfSource.Nt.type] = new RdfSourceToLang[RdfSource.Nt.type] {
+    def apply(): Lang = Lang.NT
+  }
+
+  implicit def anyForLang2Triples[T <: RdfSource](implicit lang: RdfSourceToLang[T]): RdfReader[T] = new RdfReader[T] {
     def fromInputStream[A](is: InputStream)(f: (Iterator[Triple]) => A): A = try {
-      val it = RDFDataMgr.createIteratorTriples(is, Lang.NT, null).asScala.map { triple =>
+      val it = RDFDataMgr.createIteratorTriples(is, lang(), null).asScala.map { triple =>
         val `object` = triple.getObject match {
           case x: Node_Literal => TripleObject.NominalLiteral(x.getLiteral.getLexicalForm)
           case x: Node_URI => TripleObject.Uri(x.getURI)

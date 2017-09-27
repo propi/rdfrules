@@ -7,9 +7,9 @@ class Stack[T](a: T*) {
 
   private var list: List[T] = a.toList
 
-  def peek = list.head
+  def peek: T = list.head
 
-  def pop = {
+  def pop: T = {
     val head = peek
     list = list.tail
     head
@@ -17,6 +17,6 @@ class Stack[T](a: T*) {
 
   def isEmpty: Boolean = list.isEmpty
 
-  def push(v: T) = list = v :: list
+  def push(v: T): Unit = list = v :: list
 
 }

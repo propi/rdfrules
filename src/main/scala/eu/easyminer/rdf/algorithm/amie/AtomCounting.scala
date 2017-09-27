@@ -109,6 +109,8 @@ trait AtomCounting {
     */
   def count(atoms: Set[Atom], maxCount: Double, variableMap: VariableMap = Map.empty): Int = if (atoms.isEmpty) {
     1
+  } else if (maxCount <= 0) {
+    0
   } else {
     val best = bestAtom(atoms, variableMap)
     val rest = atoms - best

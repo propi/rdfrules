@@ -12,7 +12,7 @@ object Atom {
   sealed trait Item
 
   case class Variable(index: Int) extends Item {
-    def value = "?" + Iterator.iterate(math.floor(index.toDouble / 26) -> (index.toDouble % 26))(x => math.floor(x._1 / 26) -> ((x._1 % 26) - 1))
+    def value: String = "?" + Iterator.iterate(math.floor(index.toDouble / 26) -> (index.toDouble % 26))(x => math.floor(x._1 / 26) -> ((x._1 % 26) - 1))
       .takeWhile(_._2 >= 0)
       .map(x => (97 + x._2).toChar)
       .foldLeft("")((x, y) => y + x)
@@ -24,7 +24,7 @@ object Atom {
     override def toString: String = value
   }
 
-  implicit val variableOrdering = Ordering.by[Variable, Int](_.index)
+  implicit val variableOrdering: Ordering[Variable] = Ordering.by[Variable, Int](_.index)
 
   case class Constant(value: Int) extends Item
 

@@ -6,7 +6,8 @@ import eu.easyminer.rdf.data.{IncrementalInt, TripleHashIndex}
 import eu.easyminer.rdf.rule.ExtendedRule.{ClosedRule, DanglingRule}
 import eu.easyminer.rdf.rule._
 import eu.easyminer.rdf.utils.IteratorExtensions._
-import eu.easyminer.rdf.utils.{Debugger, HowLong}
+import eu.easyminer.rdf.utils.Debugger
+import eu.easyminer.rdf.utils.HowLong._
 
 import scala.collection.mutable
 import scala.language.implicitConversions
@@ -165,11 +166,11 @@ trait RuleExpansion extends AtomCounting {
         logger.trace("Rule expansion - " + rule + "\n" + "countable: " + countableFreshAtoms + "\n" + "possible: " + possibleFreshAtoms)
         //if duplicit predicates are allowed then
         //for all fresh atoms return all extension with duplicit predicates by more efficient way
-        HowLong.howLong("Rule expansion - count duplicit", true) {
+        howLong("Rule expansion - count duplicit", true) {
           if (withDuplicitPredicates) (countableFreshAtoms ::: possibleFreshAtoms).foreach(selectAtomsWithExistingPredicate)
         }
         ad.done()
-        HowLong.howLong("Rule expansion - count projections", true) {
+        howLong("Rule expansion - count projections", true) {
           rule.headTriples.iterator.zipWithIndex.takeWhile { x =>
             //if max support + remaining steps is lower than min support we can finish "count projection" process
             //example 1: head size is 10, min support is 5. Only 4 steps are remaining and there are no projection found then we can stop "count projection"

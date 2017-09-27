@@ -13,7 +13,7 @@ case class RulePattern private(antecedent: IndexedSeq[AtomPattern], consequent: 
     atom.subject != atom.`object` && isConnected && variableComparator.lteq(atomVariables.max, patternVariables.max.++)
   }
 
-  def +(atom: AtomPattern) = if (atomIsValid(atom)) this.copy(antecedent = antecedent :+ atom) else this
+  def +(atom: AtomPattern): RulePattern = if (atomIsValid(atom)) this.copy(antecedent = antecedent :+ atom) else this
 
 }
 
