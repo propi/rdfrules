@@ -29,3 +29,4 @@ trait NumericByteArray {
 
 }
 
+object NumericByteArray extends NumericByteArray

@@ -62,13 +62,13 @@ object Measure {
     def companion: HeadConfidence.type = HeadConfidence
   }
 
-  object HeadConfidence extends Key[HeadConfidence]
+  implicit object HeadConfidence extends Key[HeadConfidence]
 
   case class Lift(value: Double) extends Measure {
     def companion: Lift.type = Lift
   }
 
-  object Lift extends Key[Lift]
+  implicit object Lift extends Key[Lift]
 
   case class PcaBodySize(value: Int) extends Measure {
     def companion: PcaBodySize.type = PcaBodySize
@@ -86,7 +86,7 @@ object Measure {
     def companion: PcaLift.type = PcaLift
   }
 
-  object PcaLift extends Key[PcaLift]
+  implicit object PcaLift extends Key[PcaLift]
 
   implicit def mesureToKeyValue(measure: Measure): (Key[Measure], Measure) = measure.companion -> measure
 

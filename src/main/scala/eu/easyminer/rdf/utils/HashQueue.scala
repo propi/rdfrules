@@ -1,4 +1,4 @@
-package eu.easyminer.rdf.data
+package eu.easyminer.rdf.utils
 
 /**
   * Created by Vaclav Zeman on 20. 6. 2017.

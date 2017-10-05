@@ -3,13 +3,14 @@ package eu.easyminer.rdf.rule
 import java.nio.ByteBuffer
 
 import eu.easyminer.rdf.rule.Measure.Measures
+import eu.easyminer.rdf.utils.serialization.Deserializer.deserialize
 import eu.easyminer.rdf.utils.serialization.{Deserializer, SerializationSize, Serializer}
 
 import scala.language.implicitConversions
 
 trait RuleSerialization {
 
-  implicit private class PimpedBoolean(v: Boolean) {
+  /*implicit private class PimpedBoolean(v: Boolean) {
     def toByte: Byte = if (v) 1 else 0
   }
 
@@ -99,7 +100,7 @@ trait RuleSerialization {
     val measures = Deserializer.deserialize[Measures](v.take(measuresSerializationSize.size))
     val atoms = Deserializer.deserialize(v.drop(measuresSerializationSize.size))(Deserializer.traversableDeserializer[Atom])
     Rule.Simple(atoms.head, atoms.tail.asInstanceOf[IndexedSeq[Atom]])(measures)
-  }
+  }*/
 
 }
 

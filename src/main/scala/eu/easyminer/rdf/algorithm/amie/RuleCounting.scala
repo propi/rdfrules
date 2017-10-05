@@ -1,8 +1,8 @@
 package eu.easyminer.rdf.algorithm.amie
 
-import eu.easyminer.rdf.data.TripleHashIndex
 import eu.easyminer.rdf.rule.{Atom, ExtendedRule, Measure}
 import Measure._
+import eu.easyminer.rdf.index.TripleHashIndex
 
 /**
   * Created by Vaclav Zeman on 11. 7. 2017.

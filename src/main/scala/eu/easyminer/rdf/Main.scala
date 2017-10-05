@@ -1,23 +1,22 @@
 package eu.easyminer.rdf
 
-import java.io._
+import java.io.{File, FileInputStream, FileOutputStream}
 
-import eu.easyminer.rdf.algorithm.amie.Amie
-import eu.easyminer.rdf.data._
-import eu.easyminer.rdf.rule._
-import eu.easyminer.rdf.task.MiningTask
-import eu.easyminer.rdf.task.impl.{FileTaskResultWriter, LineInputTaskParser, SimpleMiningTask}
-import eu.easyminer.rdf.utils.serialization.Serializer
-import eu.easyminer.rdf.utils.{Debugger, HowLong}
-
-import scala.io.StdIn
+import eu.easyminer.rdf.data.{Dataset, Graph}
+import eu.easyminer.rdf.index.PrefixIndex
 
 //import eu.easyminer.rdf.algorithm.Amie
 
 /**
   * Created by propan on 15. 4. 2017.
   */
-object Main extends App with RuleStringifier {
+object Main extends App {
+
+  val graph = Graph("graf", new File("example2.ttl"))
+  val dataset = Dataset(graph)
+
+  PrefixIndex.save(dataset, new FileOutputStream("prefixindex"))
+  PrefixIndex.loadToTraversable(new FileInputStream("prefixindex")).foreach(println)
 
   //i=1 wd=1 rp=->(?0,280303,?1) c=0.2
   //i=1 wd=1 hc=0.05 c=0.2
@@ -26,7 +25,7 @@ object Main extends App with RuleStringifier {
   //c=0.1 rp=(?1,4775,12049)^(?0,33697,?1>->(?0,14358,?1) l=4 i=1
 
   //val cmd = "-const -minhc 0.01 -htr <participatedIn> yago2core.10kseedsSample.compressed.notypes.tsv"
-  val cmd = "-const -minhc 0.01 -htr <participatedIn> -nc 1 yago2core.10kseedsSample.compressed.notypes.tsv"
+  //val cmd = "-const -minhc 0.01 -htr <participatedIn> -nc 1 yago2core.10kseedsSample.compressed.notypes.tsv"
   //val cmd = "yago2core.10kseedsSample.compressed.notypes.tsv"
 
   //AMIE.main(cmd.split(' '))
@@ -42,7 +41,7 @@ object Main extends App with RuleStringifier {
     pw.close()
   }*/
 
-  var i = 0
+  /*var i = 0
 
   val prefixes = List(
     "http://data.openbudgets.eu/resource/dataset/esf-czech-projects/slice/expenditure/" -> "slice",
@@ -195,7 +194,7 @@ object Main extends App with RuleStringifier {
 
   actorSystem.terminate()
 
-  println("finished")
+  println("finished")*/
 
 }
 

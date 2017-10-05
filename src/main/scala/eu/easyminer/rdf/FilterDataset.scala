@@ -11,7 +11,7 @@ import scala.io.StdIn
   */
 object FilterDataset extends App {
 
-  println("Input TSV file:")
+  /*println("Input TSV file:")
   val inputFile = new File(StdIn.readLine())
 
   println("Output TSV file:")
@@ -28,6 +28,6 @@ object FilterDataset extends App {
     RdfSource.Tsv.fromFile(inputFile)(it => it.filterNot(removeTriple).foreach(triple => pw.println(s"${triple.subject}\t${triple.predicate}\t${triple.`object`.toStringValue}.")))
   } finally {
     pw.close()
-  }
+  }*/
 
 }

@@ -1,12 +1,12 @@
 package eu.easyminer.rdf.algorithm.amie
 
 import com.typesafe.scalalogging.Logger
-import eu.easyminer.rdf.data.{HashQueue, TripleHashIndex}
+import eu.easyminer.rdf.index.TripleHashIndex
 import eu.easyminer.rdf.rule.ExtendedRule.{ClosedRule, DanglingRule}
 import eu.easyminer.rdf.rule.RuleConstraint.OnlyPredicates
 import eu.easyminer.rdf.rule._
 import eu.easyminer.rdf.utils.HowLong._
-import eu.easyminer.rdf.utils.{Debugger, FilteredSetView}
+import eu.easyminer.rdf.utils.{Debugger, FilteredSetView, HashQueue}
 
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
@@ -38,7 +38,7 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
     //if we have defined OnlyPredicates constraint we recreate lazy triple index with lazy filters which remove all predicates that are not defined
     val updatedTripleIndex = constraints.collectFirst {
       case OnlyPredicates(predicates) =>
-        val filteredSetView = FilteredSetView(predicates.apply)
+        val filteredSetView = FilteredSetView(predicates.apply) _
         new TripleHashIndex(
           tripleIndex.subjects.mapValues(tsi => new TripleHashIndex.TripleSubjectIndex(tsi.objects.mapValues(filteredSetView), tsi.predicates.filterKeys(predicates.apply))),
           tripleIndex.predicates.filterKeys(predicates.apply),

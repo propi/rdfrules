@@ -1,7 +1,7 @@
 package eu.easyminer.rdf.task
 
 import eu.easyminer.rdf.algorithm.amie.Amie
-import eu.easyminer.rdf.data.TripleHashIndex
+import eu.easyminer.rdf.index.TripleHashIndex
 import eu.easyminer.rdf.rule.{Measure, RuleConstraint, RulePattern, Threshold}
 import eu.easyminer.rdf.utils.Debugger
 
@@ -16,7 +16,7 @@ trait MiningTask[T] {
   protected implicit val debugger: Debugger
 
   private def buildAmie(inputTask: InputTaskParser.InputTask) = {
-    val it: Iterator[Any] = inputTask.thresholds.valuesIterator ++ inputTask.constraints.iterator ++ Iterator(inputTask.rulePattern)
+    val it: Iterator[Any] = inputTask.thresholds.m.valuesIterator ++ inputTask.constraints.iterator ++ Iterator(inputTask.rulePattern)
     it.foldLeft(Amie()) { (amie, x) =>
       x match {
         case x: Threshold => amie.addThreshold(x)

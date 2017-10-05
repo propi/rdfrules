@@ -2,7 +2,7 @@ package eu.easyminer.rdf.task.impl
 
 import java.io.PrintWriter
 
-import eu.easyminer.rdf.data.TripleHashIndex
+import eu.easyminer.rdf.index.TripleHashIndex
 import eu.easyminer.rdf.task.{InputTaskParser, MiningTask, TaskResultWriter}
 import eu.easyminer.rdf.utils.Debugger
 

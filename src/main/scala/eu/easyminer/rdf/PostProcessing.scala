@@ -12,17 +12,17 @@ import scala.util.Random
 /**
   * Created by Vaclav Zeman on 1. 8. 2017.
   */
-object PostProcessing extends App with RuleSerialization with RuleStringifier {
+object PostProcessing extends App {
 
   import eu.easyminer.rdf.clustering.SimilarityCounting._
 
-  val inputFile = new File(/*StdIn.readLine()*/ "yago.tsv")
+  /*val inputFile = new File(/*StdIn.readLine()*/ "yago.tsv")
 
   protected val mapper: Map[Int, String] = RdfSource.Tsv.fromFile(inputFile)(it => it.flatMap(triple => Iterator(triple.subject, triple.predicate, triple.`object`.toStringValue)).toSet)
     .iterator
     .zipWithIndex
     .map(_.swap)
-    .toMap
+    .toMap*/
 
   /*val rules = List(
     Rule.Simple(Atom(Atom.Variable(0), 1334, Atom.Constant(464)), IndexedSeq(Atom(Atom.Constant(4646), 1334, Atom.Constant(464)), Atom(Atom.Variable(0), 4949, Atom.Variable(464))))(collection.mutable.Map(
@@ -38,7 +38,7 @@ object PostProcessing extends App with RuleSerialization with RuleStringifier {
 
   val a = Serializer.serialize(rules)*/
 
-  val is = new FileInputStream("rules.bin")
+  /*val is = new FileInputStream("rules.bin")
   val b = try {
     val reader = Deserializer.mapInputStream[Rule](is)
     Stream.continually(reader.read()).takeWhile(_.nonEmpty).map(_.get).zipWithIndex.filter(_._2 % 100 == 0).map(_._1).toList
@@ -55,6 +55,6 @@ object PostProcessing extends App with RuleSerialization with RuleStringifier {
     for (rule <- cluster) {
       println(stringifyRule(rule))
     }
-  }
+  }*/
 
 }

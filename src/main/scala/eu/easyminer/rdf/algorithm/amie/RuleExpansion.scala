@@ -2,11 +2,11 @@ package eu.easyminer.rdf.algorithm.amie
 
 import eu.easyminer.rdf.algorithm.amie.RuleExpansion._
 import eu.easyminer.rdf.algorithm.amie.RuleFilter.{MinSupportRuleFilter, NoDuplicitRuleFilter, NoRepeatedGroups}
-import eu.easyminer.rdf.data.{IncrementalInt, TripleHashIndex}
+import eu.easyminer.rdf.index.TripleHashIndex
 import eu.easyminer.rdf.rule.ExtendedRule.{ClosedRule, DanglingRule}
 import eu.easyminer.rdf.rule._
 import eu.easyminer.rdf.utils.IteratorExtensions._
-import eu.easyminer.rdf.utils.Debugger
+import eu.easyminer.rdf.utils.{Debugger, IncrementalInt}
 import eu.easyminer.rdf.utils.HowLong._
 
 import scala.collection.mutable

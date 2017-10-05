@@ -2,7 +2,7 @@ package eu.easyminer.rdf.algorithm.amie
 
 import com.typesafe.scalalogging.Logger
 import eu.easyminer.rdf.algorithm.amie.RuleExpansion.FreshAtom
-import eu.easyminer.rdf.data.TripleHashIndex
+import eu.easyminer.rdf.index.TripleHashIndex
 import eu.easyminer.rdf.rule.Atom
 
 /**

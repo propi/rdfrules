@@ -20,7 +20,7 @@ trait FileTaskResultWriter extends TaskResultWriter {
   def writeInputTask(inputTask: InputTask): Unit = {
     writer.println("# Mining task: " + (new Date).toString)
     writer.println("# Task input: " + inputTask.name)
-    writer.println("# Thresholds: " + inputTask.thresholds.valuesIterator.mkString(", "))
+    writer.println("# Thresholds: " + inputTask.thresholds.m.valuesIterator.mkString(", "))
     writer.println("# Constraints: " + inputTask.constraints.mkString(", "))
     inputTask.rulePattern.foreach(rp => writer.println("# Rule pattern: " + rp))
   }

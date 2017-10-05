@@ -14,7 +14,7 @@ trait LineInputTaskParser extends InputTaskParser[String] {
   case class Argument(name: String, value: String)
 
   private def parseThresholds(args: Array[Argument]) = {
-    val thresholds: Thresholds = collection.mutable.Map.empty
+    val thresholds: Thresholds = Thresholds()
     args.foreach {
       case Argument("s", AnyToInt(minSupport)) => thresholds += Threshold.MinSupport(minSupport)
       case Argument("hc", AnyToDouble(minHeadCoverage)) => thresholds += Threshold.MinHeadCoverage(minHeadCoverage)
