@@ -15,6 +15,8 @@ trait Serializer[T] {
 
 object Serializer {
 
+  class SerializationException(msg: String) extends Exception(msg)
+
   trait Writer[T] {
     def write(v: T)
   }
@@ -62,6 +64,20 @@ object Serializer {
     val baos = new ByteArrayOutputStream()
     baos.write(Serializer.serialize(v._1))
     baos.write(Serializer.serialize(v._2))
+    baos.toByteArray
+  }
+
+  implicit def tuple3Serializer[T1, T2, T3](implicit
+                                            serializer1: Serializer[T1],
+                                            serializationSize1: SerializationSize[T1],
+                                            serializer2: Serializer[T2],
+                                            serializationSize2: SerializationSize[T2],
+                                            serializer3: Serializer[T3],
+                                            serializationSize3: SerializationSize[T3]): Serializer[(T1, T2, T3)] = (v: (T1, T2, T3)) => {
+    val baos = new ByteArrayOutputStream()
+    baos.write(Serializer.serialize(v._1))
+    baos.write(Serializer.serialize(v._2))
+    baos.write(Serializer.serialize(v._3))
     baos.toByteArray
   }
 

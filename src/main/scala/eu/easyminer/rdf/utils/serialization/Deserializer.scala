@@ -17,6 +17,8 @@ trait Deserializer[T] {
 
 object Deserializer {
 
+  class DeserializationException(msg: String) extends Exception(msg)
+
   trait Reader[T] {
     def read(): Option[T]
   }

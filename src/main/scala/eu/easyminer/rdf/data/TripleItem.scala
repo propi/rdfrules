@@ -44,7 +44,7 @@ object TripleItem {
   }
 
   case class Number[T](value: T)(implicit val n: Numeric[T]) extends Literal {
-    override def toString: String = value.toString
+    override def toString: String = n.toDouble(value).toString
   }
 
   case class BooleanValue(value: Boolean) extends Literal {

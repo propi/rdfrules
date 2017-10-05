@@ -2,8 +2,10 @@ package eu.easyminer.rdf
 
 import java.io.{File, FileInputStream, FileOutputStream}
 
-import eu.easyminer.rdf.data.{Dataset, Graph}
-import eu.easyminer.rdf.index.PrefixIndex
+import eu.easyminer.rdf.data.{Dataset, Graph, TripleItem}
+import eu.easyminer.rdf.index.{PrefixIndex, TripleHashIndex, TripleIndex, TripleItemIndex}
+
+import eu.easyminer.rdf.data.TripleSerialization._
 
 //import eu.easyminer.rdf.algorithm.Amie
 
@@ -15,8 +17,24 @@ object Main extends App {
   val graph = Graph("graf", new File("example2.ttl"))
   val dataset = Dataset(graph)
 
-  PrefixIndex.save(dataset, new FileOutputStream("prefixindex"))
-  PrefixIndex.loadToTraversable(new FileInputStream("prefixindex")).foreach(println)
+  //PrefixIndex.save(dataset, new FileOutputStream("prefixindex"))
+  //PrefixIndex.loadToTraversable(new FileInputStream("prefixindex")).foreach(println)
+
+  TripleIndex.save(dataset, new FileOutputStream("tripleindex"))
+  val dataset2 = Dataset(Graph("graf", TripleIndex.loadToTraversable(new FileInputStream("tripleindex"))))
+
+  TripleItemIndex.save(dataset2, new FileOutputStream("tripleitems"))
+  implicit val a: collection.Map[TripleItem, Int] = TripleItemIndex.loadToMap(new FileInputStream("tripleitems"))
+
+  a.foreach(println)
+
+  println("*********************")
+
+  dataset2.toTriples.foreach(println)
+
+  val b = TripleHashIndex(dataset2.toTriples)
+  println(b.size)
+
 
   //i=1 wd=1 rp=->(?0,280303,?1) c=0.2
   //i=1 wd=1 hc=0.05 c=0.2
