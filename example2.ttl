@@ -1,0 +1,18 @@
+@prefix ex: <http://example.org/stuff/1.0/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix huhu: <http://huhu.cz/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:a ex:b
+  [ rdf:first "apple";
+    rdf:rest [ rdf:first "banana";
+               rdf:rest rdf:nil ]
+  ] .  
+huhu:rumic rdf:first 12 .
+huhu:rumic rdf:first 12.5 .
+huhu:rumic rdf:first "12.8"^^xsd:decimal .
+huhu:rumic rdf:first false .
+huhu:rumic rdf:first "12.0000"^^xsd:double .
+huhu:rumic rdf:first "15"^^xsd:double .
+<http://huhu.cz/dulak> rdf:first "fugul hukačařea" .
+<http://huhu.cz/dulak/mulak> rdf:first "fugul" .
