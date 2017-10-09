@@ -1,55 +1,33 @@
 package eu.easyminer.rdf.cli
 
-import eu.easyminer.rdf.cli.ConsoleCommand.Argument
-import eu.easyminer.rdf.cli.ConsoleCommandPattern.{ArgumentPattern, RequiredArgument}
+import org.apache.commons.cli
+import org.apache.commons.cli.{CommandLine, DefaultParser, Options}
 
 import scala.util.Try
 
 /**
-  * Created by Vaclav Zeman on 7. 10. 2017.
+  * Created by Vaclav Zeman on 9. 10. 2017.
   */
-case class ConsoleCommand(name: String, arguments: IndexedSeq[Argument], parameters: IndexedSeq[String])
-
 object ConsoleCommand {
 
-  case class Argument(name: String, value: String)
+  type ExecuteConsoleCommand[T] = String => Option[Try[T]]
 
-  def apply(string: String)(implicit commandPatterns: Seq[ConsoleCommandPattern]): Try[ConsoleCommand] = Try {
-    commandPatterns.find(cp => string.startsWith(cp.cmd)).map { cp =>
-      val ArgumentsParameters = "((?:\\s+-\\S+(?:\\s+(?:\".*?\"|\\S+)))*)((?:\\s+(?:\".*?\"|\\S+))*)\\s*".r
-      string.stripPrefix(cp.cmd) match {
-        case ArgumentsParameters(strArguments, strParameters) =>
-          val arguments = "\\s+-(\\S+)(?:\\s+(\".*?\"|\\S+))??(?=\\s+-\\S+|\\s*$)".r
-            .findAllMatchIn(strArguments)
-            .map(m => Argument(m.group(1), if (m.group(2) == null) "" else m.group(2)))
-            .toIndexedSeq
-          val parameters = "(?:\\s+(\".*?\"|\\S+))".r
-            .findAllMatchIn(strParameters)
-            .map(m => m.group(1))
-            .toIndexedSeq
-          val filteredArguments = cp.arguments.iterator.flatMap { ap =>
-            val matchedArguments = arguments.filter(ap.matchArgument)
-            if (matchedArguments.isEmpty && ap.isInstanceOf[RequiredArgument]) {
-              throw new MissingArgumentException(ap)
-            }
-            matchedArguments
-          }.toIndexedSeq
-          if (parameters.size < cp.minParameters || cp.maxParameters.exists(parameters.size > _)) {
-            throw new NumberOfParametersException(cp.minParameters, cp.maxParameters, parameters.size)
-          }
-          ConsoleCommand(cp.cmd, filteredArguments, parameters)
-        case _ =>
-          ConsoleCommand(cp.cmd, IndexedSeq.empty, IndexedSeq.empty)
-      }
-    }.getOrElse(throw new UnknownCommand(string))
+  class UnknownCommandException(cmd: String) extends Exception(s"Unknown command '$cmd'.")
+
+  def apply[T](cmd: String, options: cli.Option*)(f: CommandLine => Try[T]): ExecuteConsoleCommand[T] = { input =>
+    if (input.startsWith(cmd)) {
+      val args = input.stripPrefix(cmd).toArgs
+      val parser = new DefaultParser
+      Some(Try(f(parser.parse(options.foldLeft(new Options)(_.addOption(_)), args))).flatten)
+    } else {
+      None
+    }
   }
 
-  abstract class CommandInputException(msg: String) extends Exception(msg)
+  private implicit class PimpedCommandInput(input: String) {
+    def stripQuotes: String = input.stripPrefix("\"").stripSuffix("\"").replaceAll("\\\\\"", "\"")
 
-  class UnknownCommand(cmd: String) extends CommandInputException(s"Unknown command '$cmd'.")
-
-  class MissingArgumentException(argumentPattern: ArgumentPattern) extends CommandInputException(s"Missing argument '${argumentPattern.name}'.")
-
-  class NumberOfParametersException(min: Int, max: Option[Int], given: Int) extends CommandInputException(s"Invalid number of parameters: expected $min to ${max.map(_.toString).getOrElse("infinity")}, given $given.")
+    def toArgs: Array[String] = "\".+?(?<!\\\\)\"|\\S+".r.findAllMatchIn(input).map(_.matched.stripQuotes).toArray
+  }
 
 }
