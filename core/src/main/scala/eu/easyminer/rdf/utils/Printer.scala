@@ -5,9 +5,9 @@ package eu.easyminer.rdf.utils
   */
 trait Printer[T] {
 
-  def print(v: T): Unit
+  def println(v: T): Unit
 
-  def printBatch(coll: Traversable[T])(offset: Int, limit: Int): Unit = coll.view.slice(offset, offset + limit).foreach(print)
+  def printBatch(coll: Traversable[T])(offset: Int, limit: Int): Unit = coll.view.slice(offset, offset + limit).foreach(println)
 
 }
 

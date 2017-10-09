@@ -7,9 +7,11 @@ import eu.easyminer.rdf.data.RdfReader.TripleTraversableView
   */
 class Dataset private(val graphs: IndexedSeq[Graph]) {
 
-  def +(graph: Graph): Dataset = new Dataset(graphs :+ graph)
+  def +(graph: Graph): Dataset = new Dataset(graphs.filter(_.name != graph.name) :+ graph)
 
-  def withPrefixes(map: scala.collection.Map[String, String]): Dataset = {
+  def withPrefixes(prefixes: Seq[Prefix]): Dataset = {
+    val map = prefixes.iterator.map(x => x.nameSpace -> x.prefix).toMap
+
     def uriToPrefixedUri(uri: TripleItem.Uri) = uri match {
       case x: TripleItem.LongUri =>
         val puri = TripleItem.PrefixedUri(x)

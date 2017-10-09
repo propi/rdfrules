@@ -1,6 +1,6 @@
 name := "core"
 
-organization := "eu.easyminer.rdf"
+organization := "com.github.KIZI.EasyMiner-Rdf"
 
 version := "1.0.0"
 

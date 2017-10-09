@@ -19,7 +19,7 @@ object Main extends App {
   //PrefixIndex.save(dataset, new FileOutputStream("prefixindex"))
   //PrefixIndex.loadToTraversable(new FileInputStream("prefixindex")).foreach(println)
 
-  TripleIndex.save(dataset, new FileOutputStream("tripleindex"))
+  /*TripleIndex.save(dataset, new FileOutputStream("tripleindex"))
   val dataset2 = Dataset(Graph("graf", TripleIndex.loadToTraversable(new FileInputStream("tripleindex"))))
 
   TripleItemIndex.save(dataset2, new FileOutputStream("tripleitems"))
@@ -32,7 +32,7 @@ object Main extends App {
   dataset2.toTriples.foreach(println)
 
   val b = TripleHashIndex(dataset2.toTriples)
-  println(b.size)
+  println(b.size)*/
 
   //RuleIndex.save(Nil, new FileOutputStream("tripleindex"))
 

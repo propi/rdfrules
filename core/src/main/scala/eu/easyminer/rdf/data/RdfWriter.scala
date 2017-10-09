@@ -25,8 +25,8 @@ object RdfWriter {
       val stream = StreamRDFWriter.getWriterStream(os, lang.format(flatAscii._1, flatAscii._2))
       try {
         stream.start()
-        for ((prefix, nameSpace) <- triples.toPrefixes) {
-          stream.prefix(prefix, nameSpace)
+        for (prefix <- triples.toPrefixes) {
+          stream.prefix(prefix.prefix, prefix.nameSpace)
         }
         triples.foreach(triple => stream.triple(triple))
       } finally {

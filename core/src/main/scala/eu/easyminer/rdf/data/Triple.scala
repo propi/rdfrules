@@ -15,7 +15,7 @@ object Triple {
   implicit def tripleToJenaTriple(triple: Triple): graph.Triple = new graph.Triple(triple.subject, triple.predicate, triple.`object`)
 
   implicit class PimpedTraversableTriple(triples: Traversable[Triple]) {
-    def toPrefixes: List[(String, String)] = {
+    def toPrefixes: List[Prefix] = {
       val map = collection.mutable.HashMap.empty[String, String]
       for {
         triple <- triples
@@ -23,7 +23,7 @@ object Triple {
       } {
         map += (prefix -> nameSpace)
       }
-      map.toList
+      map.iterator.map(x => Prefix(x._1, x._2)).toList
     }
   }
 
