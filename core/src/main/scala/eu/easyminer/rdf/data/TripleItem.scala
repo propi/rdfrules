@@ -44,7 +44,7 @@ object TripleItem {
   }
 
   case class Number[T](value: T)(implicit val n: Numeric[T]) extends Literal {
-    override def toString: String = n.toDouble(value).toString
+    override def toString: String = value.toString
   }
 
   case class BooleanValue(value: Boolean) extends Literal {
@@ -52,7 +52,7 @@ object TripleItem {
   }
 
   implicit def numberToRdfDatatype(number: Number[_]): RDFDatatype = number match {
-    case Number(_: Int) => XSDDatatype.XSDinteger
+    case Number(_: Int) => XSDDatatype.XSDint
     case Number(_: Double) => XSDDatatype.XSDdouble
     case Number(_: Float) => XSDDatatype.XSDfloat
     case Number(_: Long) => XSDDatatype.XSDlong

@@ -12,12 +12,14 @@ object TraversableViewExtension {
     def sliceDistinct(from: Int, until: Int): TraversableView[T, Coll] = new coll.Transformed[T] {
       def foreach[U](f: (T) => U): Unit = {
         val set = collection.mutable.Set.empty[T]
-        coll.foreach { x =>
+        for (x <- coll) {
           if (set.size < until) {
             if (!set(x)) {
               set += x
               if (set.size > from) f(x)
             }
+          } else {
+            return
           }
         }
       }

@@ -35,6 +35,8 @@ class Dataset private(val graphs: IndexedSeq[Graph]) {
 
   def withFilter(f: Triple => Boolean): Dataset = new Dataset(graphs.map(graph => graph.copy(triples = graph.triples.filter(f))))
 
+  def withReplace(f: Triple => Triple): Dataset = new Dataset(graphs.map(graph => graph.copy(triples = graph.triples.map(f))))
+
   def toTriples: TripleTraversableView = graphs.iterator.map(_.triples).reduce(_ ++ _)
 
 }

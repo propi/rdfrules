@@ -27,7 +27,7 @@ object RdfReader {
   type TripleTraversableView = TraversableView[Triple, Traversable[_]]
 
   private abstract class TripleTraversableViewImpl extends TripleTraversableView {
-    protected def underlying: Traversable[_] = throw new UnsupportedOperationException("No collection for rdf traversable view")
+    protected def underlying: Traversable[_] = throw new UnsupportedOperationException("No collection for rdf traversable view.")
   }
 
   implicit val Tsv2Triples: RdfReader[RdfSource.Tsv.type] = new RdfReader[RdfSource.Tsv.type] {
