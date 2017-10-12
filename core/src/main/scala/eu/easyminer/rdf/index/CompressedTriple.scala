@@ -11,6 +11,8 @@ case class CompressedTriple(subject: Int, predicate: Int, `object`: Int)
 
 object CompressedTriple {
 
-  implicit def tripleToCompressedTriple(triple: Triple)(implicit map: collection.Map[TripleItem, Int]): CompressedTriple = CompressedTriple(map(triple.subject), map(triple.predicate), map(triple.`object`))
+  def apply(triple: Triple)(implicit map: collection.Map[TripleItem, Int]): CompressedTriple = CompressedTriple(map(triple.subject), map(triple.predicate), map(triple.`object`))
+
+  def toTriple(triple: CompressedTriple)(implicit seq: IndexedSeq[TripleItem]): Triple = Triple(seq(triple.subject - 1).asInstanceOf[TripleItem.Uri], seq(triple.predicate - 1).asInstanceOf[TripleItem.Uri], seq(triple.`object` - 1))
 
 }

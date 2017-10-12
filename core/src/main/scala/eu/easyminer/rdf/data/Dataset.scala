@@ -9,6 +9,8 @@ class Dataset private(val graphs: IndexedSeq[Graph]) {
 
   def +(graph: Graph): Dataset = new Dataset(graphs.filter(_.name != graph.name) :+ graph)
 
+  def -(graphName: String): Dataset = new Dataset(graphs.filter(_.name != graphName))
+
   def withPrefixes(prefixes: Seq[Prefix]): Dataset = {
     val map = prefixes.iterator.map(x => x.nameSpace -> x.prefix).toMap
 
@@ -44,5 +46,7 @@ class Dataset private(val graphs: IndexedSeq[Graph]) {
 object Dataset {
 
   def apply(graph: Graph): Dataset = new Dataset(Vector(graph))
+
+  def apply(): Dataset = new Dataset(Vector.empty)
 
 }

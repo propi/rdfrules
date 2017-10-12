@@ -34,7 +34,7 @@ object DatasetCommands {
     def execute(state: ComplexState): Try[ComplexState] = if (!file.isFile || !file.canRead) {
       Failure(new CommandException(s"File '${file.getAbsolutePath}' is not readable."))
     } else if (state.dataset.isEmpty) {
-      Failure(new CommandException(s"Any graph is not loaded."))
+      Failure(new CommandException("Any graph is not loaded."))
     } else {
       Try {
         val prefixes = Prefix(file)
@@ -54,9 +54,9 @@ object DatasetCommands {
     }
 
     def execute(state: ComplexState): Try[ComplexState] = if (state.dataset.isEmpty) {
-      Failure(new CommandException(s"Any graph is not loaded."))
+      Failure(new CommandException("Any graph is not loaded."))
     } else if (patterns.isEmpty) {
-      Failure(new CommandException(s"Filter patterns are not specified."))
+      Failure(new CommandException("Filter patterns are not specified."))
     } else {
       Try {
         state.withDataset(state.dataset.get.withFilter(isMatched))
@@ -82,11 +82,11 @@ object DatasetCommands {
     }
 
     def execute(state: ComplexState): Try[ComplexState] = if (state.dataset.isEmpty) {
-      Failure(new CommandException(s"Any graph is not loaded."))
+      Failure(new CommandException("Any graph is not loaded."))
     } else if (search.isEmpty) {
-      Failure(new CommandException(s"Search string is empty."))
+      Failure(new CommandException("Search string is empty."))
     } else if (replacement.isEmpty) {
-      Failure(new CommandException(s"Replacement string is empty."))
+      Failure(new CommandException("Replacement string is empty."))
     } else {
       val isMatched: Triple => Boolean = if (patterns.isEmpty) {
         _ => true
@@ -129,7 +129,7 @@ object DatasetCommands {
     }
   }
 
-  class SaveGraph(val name: String, file: File) extends ComplexStateCommand {
+  class Save(name: String, file: File, allGraphs: Boolean) extends ComplexStateCommand {
 
     def getFile: File = if (file.getName.endsWith(".ttl")) {
       file
@@ -138,33 +138,30 @@ object DatasetCommands {
     }
 
     def execute(state: ComplexState): Try[ComplexState] = if (state.dataset.isEmpty) {
-      Failure(new CommandException(s"Any graph is not loaded."))
-    } else if (!state.dataset.get.graphs.exists(_.name == name)) {
+      Failure(new CommandException("Any graph is not loaded."))
+    } else if (name.isEmpty) {
+      Failure(new CommandException("Graph name must not be empty."))
+    } else if (!allGraphs && !state.dataset.get.graphs.exists(_.name == name)) {
       Failure(new CommandException(s"Graph with this name '$name' does not exist."))
     } else {
+      val dataset = if (allGraphs) {
+        Dataset(Graph(name, state.dataset.get.toTriples))
+      } else {
+        state.dataset.get
+      }
       Try {
         val outputFile = getFile
-        RdfSource.Ttl.writeToOutputStream(state.dataset.get.graphs.find(_.name == name).get, new FileOutputStream(outputFile))
-        state.withDataset(state.dataset.get + Graph(name, outputFile))
+        RdfSource.Ttl.writeToOutputStream(dataset.graphs.find(_.name == name).get, new FileOutputStream(outputFile))
+        state.withDataset(dataset + Graph(name, outputFile))
       }
     }
   }
 
-  class Save(name: String, file: File) extends ComplexStateCommand {
-
-    def getFile: File = new SaveGraph(name, file).getFile
-
-    def execute(state: ComplexState): Try[ComplexState] = if (state.dataset.isEmpty) {
-      Failure(new CommandException(s"Any graph is not loaded."))
-    } else if (name.isEmpty) {
-      Failure(new CommandException("Graph name must not be empty."))
-    } else {
-      new SaveGraph(name, file).execute(state.withDataset(Dataset(Graph(name, state.dataset.get.toTriples))))
+  class Clear(graph: Option[String]) extends ComplexStateCommand {
+    def execute(state: ComplexState): Try[ComplexState] = graph match {
+      case Some(graphName) => Success(state.dataset.map(dataset => state.withDataset(dataset - graphName)).getOrElse(state))
+      case None => Success(state.clear)
     }
-  }
-
-  class Clear extends ComplexStateCommand {
-    def execute(state: ComplexState): Try[ComplexState] = Success(state.clear)
   }
 
 }

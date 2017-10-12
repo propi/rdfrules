@@ -1,8 +1,10 @@
 package eu.easyminer.rdf.data
 
+import eu.easyminer.rdf.data.RdfReader.TripleTraversableView
 import eu.easyminer.rdf.utils.{Printer, Stringifier}
 import org.apache.jena.graph
 
+import scala.collection.TraversableView
 import scala.language.implicitConversions
 
 /**
@@ -14,7 +16,7 @@ object Triple {
 
   implicit def tripleToJenaTriple(triple: Triple): graph.Triple = new graph.Triple(triple.subject, triple.predicate, triple.`object`)
 
-  implicit class PimpedTraversableTriple(triples: Traversable[Triple]) {
+  implicit class PimpedTraversableTriple(triples: TripleTraversableView) {
     def toPrefixes: List[Prefix] = {
       val map = collection.mutable.HashMap.empty[String, String]
       for {
@@ -24,6 +26,16 @@ object Triple {
         map += (prefix -> nameSpace)
       }
       map.iterator.map(x => Prefix(x._1, x._2)).toList
+    }
+
+    def zipWithIndex: TraversableView[(Triple, Int), Traversable[_]] = new triples.Transformed[(Triple, Int)] {
+      def foreach[U](f: ((Triple, Int)) => U): Unit = {
+        var i = 0
+        triples.foreach { triple =>
+          f(triple -> i)
+          i = i + 1
+        }
+      }
     }
   }
 

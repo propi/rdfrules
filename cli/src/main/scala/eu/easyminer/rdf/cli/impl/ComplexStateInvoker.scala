@@ -29,8 +29,13 @@ class ComplexStateInvoker private(implicit printer: Printer[String]) extends Con
     Failure[Command[ComplexState]](new MissingArgumentException("Missing required arguments: " + numOfMissingArguments))
   }
 
+  private def strIndexState(x: Boolean) = if (x) "in memory" else "lazy"
+
   private def printState(state: ComplexState): Unit = {
     println("Loaded graphs: " + state.dataset.map(_.graphs.map(_.name).mkString(", ")).getOrElse("NONE"))
+    println("Loaded index: " + state.index.map { index =>
+      s"'${index.directory.getAbsolutePath}', TripleHashIndex: ${strIndexState(index.forcedTripleHashIndex)}, TripleItemToInt: ${strIndexState(index.forcedTripleItemToInt)}, TripleIntToItem: ${strIndexState(index.forcedTripleIntToItem)}"
+    }.getOrElse("NONE"))
   }
 
   implicit private def intToOption(n: Int): Option[Int] = Some(n)
@@ -41,19 +46,18 @@ class ComplexStateInvoker private(implicit printer: Printer[String]) extends Con
 
   override protected def postInvoke(command: Command[ComplexState], state: ComplexState): Unit = command match {
     case x: DatasetCommands.Save =>
-      println(s"All graphs were successfully saved into '${x.getFile.getName}'.")
-      printState(state)
-    case x: DatasetCommands.SaveGraph =>
-      println(s"Graph '${x.name}' was successfully saved into '${x.getFile.getName}'.")
+      println(s"Triples were successfully saved into '${x.getFile.getName}'.")
       printState(state)
     case _: DatasetCommands.Filter =>
       println("Filter was successfully added.")
       printState(state)
-    case _: DatasetCommands.ApplyPrefixes | _: DatasetCommands.LoadGraph | _: DatasetCommands.Clear => printState(state)
+    case _: DatasetCommands.ApplyPrefixes | _: DatasetCommands.LoadGraph | _: DatasetCommands.Clear | _: IndexCommands.Save | _: IndexCommands.Load =>
+      printState(state)
     case _ =>
   }
 
   protected val consoleCommands: Seq[ExecuteConsoleCommand[Command[ComplexState]]] = List(
+    //BASIC COMMANDS
     ConsoleCommand("exit")(_ => Success(new Command[ComplexState] {
       def execute(state: ComplexState): Try[ComplexState] = Success(state.terminate)
     })),
@@ -63,6 +67,7 @@ class ComplexStateInvoker private(implicit printer: Printer[String]) extends Con
         Success(state)
       }
     })),
+    //DATA COMMANDS
     ConsoleCommand("data load")(_.getArgs match {
       case Array(path) => Try {
         val file = new File(path)
@@ -110,12 +115,50 @@ class ComplexStateInvoker private(implicit printer: Printer[String]) extends Con
     ConsoleCommand("data save", "all") { cp =>
       cp.getArgs match {
         case Array(name, path) => Try {
-          if (cp.hasOption("all")) new DatasetCommands.Save(name, new File(path)) else new DatasetCommands.SaveGraph(name, new File(path))
+          new DatasetCommands.Save(name, new File(path), cp.hasOption("all"))
         }
         case _ => missingArguments(2)
       }
     },
-    ConsoleCommand("data clear")(_ => Success[Command[ComplexState]](new DatasetCommands.Clear))
+    ConsoleCommand("data clear", "g".hasArg(true).build()) { cp =>
+      Success(new DatasetCommands.Clear(if (cp.hasOption("g")) Some(cp.getOptionValue("g")) else None))
+    },
+    //INDEX COMMANDS
+    ConsoleCommand("index save")(_.getArgs match {
+      case Array(directory) => Try {
+        new IndexCommands.Save(new File(directory))
+      }
+      case _ => missingArguments(1)
+    }),
+    ConsoleCommand("index load", "fhi", "fti", "fit") { cp =>
+      cp.getArgs match {
+        case Array(directory) => Try {
+          new IndexCommands.Load(new File(directory), cp.hasOption("fhi"), cp.hasOption("fti"), cp.hasOption("fit"))
+        }
+        case _ => missingArguments(1)
+      }
+    },
+    ConsoleCommand("index export", "g".hasArg(true).build()) { cp =>
+      cp.getArgs match {
+        case Array(path) => Try {
+          new IndexCommands.Export(new File(path), if (cp.hasOption("g")) Some(cp.getOptionValue("g")) else None)
+        }
+        case _ => missingArguments(1)
+      }
+    },
+    ConsoleCommand("index print", "i", "s", "p", "o", "f".numberOfArgs(3).build()) { cp =>
+      val args = cp.getArgs
+      val limit = args.lift(0).collect { case AnyToInt(x) => x }.getOrElse(20)
+      val offset = (args.lift(1).collect { case AnyToInt(x) => x }.getOrElse(1) - 1) * limit
+      val triplePatterns = if (cp.hasOption("f")) {
+        cp.getOptionValues("f").grouped(3).map(_.map(x => if (x == "?") None else Some(x))).collect {
+          case Array(s, p, o) => (s, p, o)
+        }.toList
+      } else {
+        Nil
+      }
+      Success(new IndexCommands.Print(cp.hasOption("s"), cp.hasOption("p"), cp.hasOption("o"), offset, limit, triplePatterns, cp.hasOption("i")))
+    }
   )
 
   protected def printError(th: Throwable, state: ComplexState): Unit = th match {
