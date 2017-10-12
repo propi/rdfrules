@@ -2,14 +2,15 @@ package eu.easyminer.rdf.index
 
 import java.io.{InputStream, OutputStream}
 
-import eu.easyminer.rdf.data.{Dataset, TripleItem}
-
 import eu.easyminer.rdf.data.TripleItemSerialization._
+import eu.easyminer.rdf.data.{Dataset, Graph, TripleItem}
 
 /**
   * Created by Vaclav Zeman on 5. 10. 2017.
   */
 object TripleItemIndex extends Index[TripleItem] {
+
+  def save(graph: Graph, buildOutputStream: => OutputStream): Unit = save(Dataset(graph), buildOutputStream)
 
   def save(dataset: Dataset, buildOutputStream: => OutputStream): Unit = save(dataset.toTriples.flatMap(triple => List(triple.subject, triple.predicate, triple.`object`)).toSet, buildOutputStream)
 
