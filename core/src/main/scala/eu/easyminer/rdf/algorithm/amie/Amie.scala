@@ -3,7 +3,7 @@ package eu.easyminer.rdf.algorithm.amie
 import com.typesafe.scalalogging.Logger
 import eu.easyminer.rdf.index.TripleHashIndex
 import eu.easyminer.rdf.rule.ExtendedRule.{ClosedRule, DanglingRule}
-import eu.easyminer.rdf.rule.RuleConstraint.OnlyPredicates
+import eu.easyminer.rdf.rule.RuleConstraint.{OnlyPredicates, WithoutPredicates}
 import eu.easyminer.rdf.rule._
 import eu.easyminer.rdf.utils.HowLong._
 import eu.easyminer.rdf.utils.{Debugger, FilteredSetView, HashQueue}
@@ -11,7 +11,7 @@ import eu.easyminer.rdf.utils.{Debugger, FilteredSetView, HashQueue}
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
-class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePattern], constraints: List[RuleConstraint])(implicit debugger: Debugger) {
+class Amie private(thresholds: Threshold.Thresholds, rulePatterns: List[RulePattern], constraints: List[RuleConstraint])(implicit debugger: Debugger) {
 
   private val logger = Logger[Amie]
 
@@ -22,9 +22,9 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
     this
   }
 
-  def addConstraint(ruleConstraint: RuleConstraint): Amie = new Amie(thresholds, rulePattern, ruleConstraint :: constraints)
+  def addConstraint(ruleConstraint: RuleConstraint): Amie = new Amie(thresholds, rulePatterns, ruleConstraint :: constraints)
 
-  def setRulePattern(rulePattern: RulePattern): Amie = new Amie(thresholds, Some(rulePattern), constraints)
+  def addRulePattern(rulePattern: RulePattern): Amie = new Amie(thresholds, rulePattern :: rulePatterns, constraints)
 
   /**
     * Mine all closed rules from tripleIndex by defined thresholds (hc, support, rule length), optional rule pattern and constraints
@@ -36,15 +36,21 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
     */
   def mine(tripleIndex: TripleHashIndex): List[ClosedRule] = {
     //if we have defined OnlyPredicates constraint we recreate lazy triple index with lazy filters which remove all predicates that are not defined
-    val updatedTripleIndex = constraints.collectFirst {
-      case OnlyPredicates(predicates) =>
-        val filteredSetView = FilteredSetView(predicates.apply) _
+    val updatedTripleIndex = constraints.foldLeft(tripleIndex) { (tripleIndex, constraint) =>
+      val itemFilter = constraint match {
+        case OnlyPredicates(predicates) => Some(predicates.apply _)
+        case WithoutPredicates(predicates) => Some((x: Int) => !predicates(x))
+        case _ => None
+      }
+      itemFilter.map { itemFilter =>
+        val filteredSetView = FilteredSetView(itemFilter) _
         new TripleHashIndex(
-          tripleIndex.subjects.mapValues(tsi => new TripleHashIndex.TripleSubjectIndex(tsi.objects.mapValues(filteredSetView), tsi.predicates.filterKeys(predicates.apply))),
-          tripleIndex.predicates.filterKeys(predicates.apply),
-          tripleIndex.objects.mapValues(toi => new TripleHashIndex.TripleObjectIndex(toi.subjects.mapValues(filteredSetView), toi.predicates.filterKeys(predicates.apply)))
+          tripleIndex.subjects.mapValues(tsi => new TripleHashIndex.TripleSubjectIndex(tsi.objects.mapValues(filteredSetView), tsi.predicates.filterKeys(itemFilter))),
+          tripleIndex.predicates.filterKeys(itemFilter),
+          tripleIndex.objects.mapValues(toi => new TripleHashIndex.TripleObjectIndex(toi.subjects.mapValues(filteredSetView), toi.predicates.filterKeys(itemFilter)))
         )
-    }.getOrElse(tripleIndex)
+      }.getOrElse(tripleIndex)
+    }
     //create amie process with debugger and final triple index
     val process = new AmieProcess(updatedTripleIndex)(if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) debugger else Debugger.EmptyDebugger)
     //get all possible heads and filter them by support threshold
@@ -62,7 +68,7 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
     val isWithInstances: Boolean = constraints.contains(RuleConstraint.WithInstances)
     val minHeadCoverage: Double = thresholds[Threshold.MinHeadCoverage].value
     val maxRuleLength: Int = thresholds[Threshold.MaxRuleLength].value
-    val bodyPattern: IndexedSeq[AtomPattern] = rulePattern.map(_.antecedent).getOrElse(IndexedSeq.empty)
+    val bodyPatterns: Seq[IndexedSeq[AtomPattern]] = rulePatterns.map(_.antecedent)
     val withDuplicitPredicates: Boolean = !constraints.contains(RuleConstraint.WithoutDuplicitPredicates)
 
     /**
@@ -73,12 +79,16 @@ class Amie private(thresholds: Threshold.Thresholds, rulePattern: Option[RulePat
     def getHeads: Iterator[Atom] = {
       //first get all variable atoms which satisfies an optional rule pattern in consequent
       //if there is no rule pattern then get all variable atoms from all predicates
-      val atomIterator = rulePattern.map { x =>
-        x.consequent.predicate
-          .map(Atom(x.consequent.subject, _, x.consequent.`object`))
-          .map(Iterator(_))
-          .getOrElse(tripleIndex.predicates.keysIterator.map(Atom(x.consequent.subject, _, x.consequent.`object`)))
-      }.getOrElse(tripleIndex.predicates.keysIterator.map(Atom(Atom.Variable(0), _, Atom.Variable(1))))
+      val atomIterator = if (rulePatterns.isEmpty) {
+        tripleIndex.predicates.keysIterator.map(Atom(Atom.Variable(0), _, Atom.Variable(1)))
+      } else {
+        rulePatterns.iterator.flatMap { x =>
+          x.consequent.predicate
+            .map(Atom(x.consequent.subject, _, x.consequent.`object`))
+            .map(Iterator(_))
+            .getOrElse(tripleIndex.predicates.keysIterator.map(Atom(x.consequent.subject, _, x.consequent.`object`)))
+        }
+      }
       if (isWithInstances) {
         //if instantiated atoms are allowed then we specify variables by constants only if the atom has two variables
         //only one variable may be replaced by a constant
@@ -154,7 +164,7 @@ object Amie {
       Threshold.MinHeadCoverage -> Threshold.MinHeadCoverage(0.01),
       Threshold.MaxRuleLength -> Threshold.MaxRuleLength(3)
     )
-    new Amie(defaultThresholds, None, Nil)
+    new Amie(defaultThresholds, Nil, Nil)
   }
 
 }

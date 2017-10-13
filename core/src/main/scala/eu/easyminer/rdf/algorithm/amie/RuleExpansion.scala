@@ -23,7 +23,7 @@ trait RuleExpansion extends AtomCounting {
   val withDuplicitPredicates: Boolean
   val minHeadCoverage: Double
   val maxRuleLength: Int
-  val bodyPattern: IndexedSeq[AtomPattern]
+  val bodyPatterns: Seq[IndexedSeq[AtomPattern]]
 
   implicit class PimpedRule(rule: ExtendedRule) {
 
@@ -38,7 +38,9 @@ trait RuleExpansion extends AtomCounting {
     /**
       * Patterns for remaining fresh atoms which can be added to this rule
       */
-    private val patternAtom = bodyPattern.drop(rule.body.size).headOption
+    private val patternAtoms = bodyPatterns.iterator.filter(bodyPattern =>
+      rule.body.iterator.zip(bodyPattern.iterator).forall(x => x._1.matchPattern(x._2))
+    ).flatMap(_.drop(rule.body.size).headOption).toList
 
     /**
       * Map of all rule predicates. Each predicate has subject and object variables.
@@ -120,10 +122,7 @@ trait RuleExpansion extends AtomCounting {
       * @param freshAtom new fresh atom
       * @return boolean
       */
-    private def matchFreshAtom(freshAtom: FreshAtom) = patternAtom.forall { patternAtom =>
-      (patternAtom.subject.isInstanceOf[Atom.Constant] || freshAtom.subject == patternAtom.subject) &&
-        (patternAtom.`object`.isInstanceOf[Atom.Constant] || freshAtom.`object` == patternAtom.`object`)
-    }
+    private def matchFreshAtom(freshAtom: FreshAtom) = patternAtoms.exists(freshAtom.matchPattern)
 
     /**
       * Check whether a new atom is matching with the current atom pattern
@@ -131,11 +130,7 @@ trait RuleExpansion extends AtomCounting {
       * @param atom new atom
       * @return boolean
       */
-    private def matchAtom(atom: Atom) = patternAtom.forall { patternAtom =>
-      patternAtom.predicate.forall(_ == atom.predicate) &&
-        (atom.subject == patternAtom.subject || atom.subject.isInstanceOf[Atom.Constant] && patternAtom.subject.isInstanceOf[Atom.Variable]) &&
-        (atom.`object` == patternAtom.`object` || atom.`object`.isInstanceOf[Atom.Constant] && patternAtom.`object`.isInstanceOf[Atom.Variable])
-    }
+    private def matchAtom(atom: Atom) = patternAtoms.exists(atom.matchPattern)
 
     /**
       * From the current rule create new extended rules with all possible new atoms
@@ -473,12 +468,32 @@ object RuleExpansion {
     def subjectPosition = TripleItemPosition.Subject(subject)
 
     def objectPosition = TripleItemPosition.Object(`object`)
+
+    /**
+      * Check whether a new fresh atom is matching with the current atom pattern
+      *
+      * @param atomPattern atom pattern
+      * @return boolean
+      */
+    def matchPattern(atomPattern: AtomPattern): Boolean = (atomPattern.subject.isInstanceOf[Atom.Constant] || subject == atomPattern.subject) &&
+      (atomPattern.`object`.isInstanceOf[Atom.Constant] || `object` == atomPattern.`object`)
+
   }
 
   implicit class PimpedAtom(atom: Atom) {
     def subjectPosition = TripleItemPosition.Subject(atom.subject)
 
     def objectPosition = TripleItemPosition.Object(atom.`object`)
+
+    /**
+      * Check whether a new atom is matching with the current atom pattern
+      *
+      * @param atomPattern atom pattern
+      * @return boolean
+      */
+    def matchPattern(atomPattern: AtomPattern): Boolean = atomPattern.predicate.forall(_ == atom.predicate) &&
+      (atom.subject == atomPattern.subject || atom.subject.isInstanceOf[Atom.Constant] && atomPattern.subject.isInstanceOf[Atom.Variable]) &&
+      (atom.`object` == atomPattern.`object` || atom.`object`.isInstanceOf[Atom.Constant] && atomPattern.`object`.isInstanceOf[Atom.Variable])
   }
 
   sealed trait TripleItemPosition {

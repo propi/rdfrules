@@ -9,6 +9,8 @@ object RuleConstraint {
 
   case class OnlyPredicates(predicates: Set[Int]) extends RuleConstraint
 
+  case class WithoutPredicates(predicates: Set[Int]) extends RuleConstraint
+
   object WithInstances extends RuleConstraint
 
   object WithoutDuplicitPredicates extends RuleConstraint

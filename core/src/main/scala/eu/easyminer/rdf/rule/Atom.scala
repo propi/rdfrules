@@ -27,6 +27,10 @@ object Atom {
     override def toString: String = value
   }
 
+  object Variable {
+    def apply(index: Char): Variable = Variable(((index.toInt - 97) % 26) + 97)
+  }
+
   case class Constant(value: Int) extends Item
 
   implicit val variableOrdering: Ordering[Variable] = Ordering.by[Variable, Int](_.index)
