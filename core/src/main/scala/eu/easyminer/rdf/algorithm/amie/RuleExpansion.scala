@@ -39,8 +39,8 @@ trait RuleExpansion extends AtomCounting {
       * Patterns for remaining fresh atoms which can be added to this rule
       */
     private val patternAtoms = bodyPatterns.iterator.filter(bodyPattern =>
-      rule.body.iterator.zip(bodyPattern.iterator).forall(x => x._1.matchPattern(x._2))
-    ).flatMap(_.drop(rule.body.size).headOption).toList
+      rule.body.iterator.zip(bodyPattern.takeRight(rule.body.size).iterator).forall(x => x._1.matchPattern(x._2))
+    ).flatMap(_.dropRight(rule.body.size).lastOption).toList
 
     /**
       * Map of all rule predicates. Each predicate has subject and object variables.

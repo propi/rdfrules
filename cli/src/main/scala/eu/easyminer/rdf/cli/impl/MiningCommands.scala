@@ -1,5 +1,6 @@
 package eu.easyminer.rdf.cli.impl
 
+import eu.easyminer.rdf.algorithm.amie.Amie
 import eu.easyminer.rdf.cli.Command.CommandException
 import eu.easyminer.rdf.rule.Threshold
 
@@ -10,12 +11,14 @@ import scala.util.{Failure, Try}
   */
 object MiningCommands {
 
-  class Mine(thresholds: Seq[Threshold], rulePatterns: Seq[String], predicates: Seq[String], predicatesInversed: Boolean, withInstances: Boolean, withoutDuplicitPredicates: Boolean) extends ComplexStateCommand {
+  /*class Mine(thresholds: Seq[Threshold], rulePatterns: Seq[String], predicates: Seq[String], predicatesInversed: Boolean, withInstances: Boolean, withoutDuplicitPredicates: Boolean) extends ComplexStateCommand {
     def execute(state: ComplexState): Try[ComplexState] = if (state.index.isEmpty) {
       Failure(new CommandException("No index was loaded."))
     } else {
+      rulePatterns.map()
+      thresholds.foldLeft(Amie())(_ addThreshold _)
 
     }
-  }
+  }*/
 
 }

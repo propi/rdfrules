@@ -20,7 +20,7 @@ object TripleItemIndex extends Index[TripleItem] {
     val map = collection.mutable.HashMap.empty[TripleItem, Int]
     load(buildInputStream) { reader =>
       for ((tripleItem, i) <- Stream.continually(reader.read()).takeWhile(_.nonEmpty).map(_.get).zipWithIndex)
-        map += (tripleItem -> (i + 1))
+        map += (tripleItem -> i)
       map
     }
   }

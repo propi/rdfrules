@@ -15,7 +15,7 @@ trait MiningTask[T] {
   protected val tripleHashIndex: TripleHashIndex
   protected implicit val debugger: Debugger
 
-  private def buildAmie(inputTask: InputTaskParser.InputTask) = {
+  /*private def buildAmie(inputTask: InputTaskParser.InputTask) = {
     val it: Iterator[Any] = inputTask.thresholds.m.valuesIterator ++ inputTask.constraints.iterator ++ Iterator(inputTask.rulePattern)
     it.foldLeft(Amie()) { (amie, x) =>
       x match {
@@ -25,9 +25,9 @@ trait MiningTask[T] {
         case _ => amie
       }
     }
-  }
+  }*/
 
-  def runTask(inputTask: T) = try {
+  /*def runTask(inputTask: T) = try {
     val input = self.parse(inputTask)
     writeInputTask(input)
     val rules = buildAmie(input)
@@ -36,6 +36,6 @@ trait MiningTask[T] {
     writeRules(rules)
   } finally {
     close()
-  }
+  }*/
 
 }

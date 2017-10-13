@@ -13,9 +13,17 @@ object AtomPattern {
 
   object AtomItemPattern {
 
-    case class Variable(variable: Atom.Variable)
+    case class Variable(variable: Atom.Variable) extends AtomItemPattern
 
-    case class Constant(tripleItem: TripleItem)
+    case class Constant(tripleItem: TripleItem) extends AtomItemPattern
+
+    def apply(s: String)(implicit stringToTripleItem: String => Option[TripleItem]): Option[AtomItemPattern] = {
+      val VariableChar = "\\?(\\w)".r
+      s match {
+        case VariableChar(char) => Some(Variable(Atom.Variable(char.head)))
+        case x => stringToTripleItem(x).map(Constant)
+      }
+    }
 
   }
 
@@ -26,7 +34,7 @@ object AtomPattern {
       case AtomItemPattern.Constant(tripleItem) => Atom.Constant(mapper(tripleItem))
     }
 
-    AtomPattern(aipToAi(subject), predicate.map(x => mapper(x)), aipToAi(`object`))
+    AtomPattern(aipToAi(subject), predicate.map(mapper), aipToAi(`object`))
   }
 
 }

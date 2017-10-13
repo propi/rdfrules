@@ -104,7 +104,7 @@ class ComplexIndex private(val directory: File, val forcedTripleHashIndex: Boole
     }
 
     msgPrinter.println("Triples indexing...")
-    tripleItemToInt { implicit map =>
+    tripleItemToInt { implicit mapper =>
       for ((graph, index) <- dataset.graphs.zipWithIndex) {
         val triplesFile: File = triplesIndexName(index + 1)
         CompressedTripleIndex.save(
