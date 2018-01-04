@@ -1,9 +1,8 @@
 package eu.easyminer.rdf.algorithm.amie
 
 import com.typesafe.scalalogging.Logger
-import eu.easyminer.rdf.algorithm.amie.RuleExpansion.FreshAtom
 import eu.easyminer.rdf.index.TripleHashIndex
-import eu.easyminer.rdf.rule.Atom
+import eu.easyminer.rdf.rule.{Atom, FreshAtom}
 
 /**
   * Created by Vaclav Zeman on 23. 6. 2017.
@@ -186,7 +185,7 @@ trait AtomCounting {
     * @param variableMap constants which will be mapped to variables
     * @return iterator of all predicate projections
     */
-  def specifyAtom(atom: RuleExpansion.FreshAtom, variableMap: VariableMap): Iterator[Atom] = {
+  def specifyAtom(atom: FreshAtom, variableMap: VariableMap): Iterator[Atom] = {
     (variableMap.getOrElse(atom.subject, atom.subject), variableMap.getOrElse(atom.`object`, atom.`object`)) match {
       case (sv: Atom.Variable, ov: Atom.Variable) =>
         tripleIndex.predicates.keysIterator.map(predicate => Atom(sv, predicate, ov))

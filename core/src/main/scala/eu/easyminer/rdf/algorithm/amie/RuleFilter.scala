@@ -1,7 +1,6 @@
 package eu.easyminer.rdf.algorithm.amie
 
-import eu.easyminer.rdf.rule.Atom
-import RuleExpansion._
+import eu.easyminer.rdf.rule.{Atom, TripleItemPosition}
 
 /**
   * Created by Vaclav Zeman on 31. 7. 2017.

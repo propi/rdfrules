@@ -8,6 +8,10 @@ import eu.easyminer.rdf.utils.Stringifier
   */
 case class Atom(subject: Atom.Item, predicate: Int, `object`: Atom.Item) {
   override def toString: String = s"<$subject $predicate ${`object`}>"
+
+  def subjectPosition = TripleItemPosition.Subject(subject)
+
+  def objectPosition = TripleItemPosition.Object(`object`)
 }
 
 object Atom {

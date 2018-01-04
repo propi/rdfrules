@@ -7,6 +7,7 @@ sealed trait ExtendedRule extends Rule {
 
   val headTriples: IndexedSeq[(Int, Int)]
   val maxVariable: Atom.Variable
+  val patterns: Traversable[RulePattern]
 
   def headSize: Int = headTriples.length
 
@@ -71,6 +72,7 @@ object ExtendedRule {
 
   case class ClosedRule(body: IndexedSeq[Atom], head: Atom)
                        (val measures: Measure.Measures,
+                        val patterns: Traversable[RulePattern],
                         val variables: List[Atom.Variable],
                         val maxVariable: Atom.Variable,
                         val headTriples: IndexedSeq[(Int, Int)]) extends ExtendedRule {
@@ -84,6 +86,7 @@ object ExtendedRule {
 
   case class DanglingRule(body: IndexedSeq[Atom], head: Atom)
                          (val measures: Measure.Measures,
+                          val patterns: Traversable[RulePattern],
                           val variables: DanglingVariables,
                           val maxVariable: Atom.Variable,
                           val headTriples: IndexedSeq[(Int, Int)]) extends ExtendedRule {

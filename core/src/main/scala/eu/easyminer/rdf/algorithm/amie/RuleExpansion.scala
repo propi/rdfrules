@@ -1,6 +1,5 @@
 package eu.easyminer.rdf.algorithm.amie
 
-import eu.easyminer.rdf.algorithm.amie.RuleExpansion._
 import eu.easyminer.rdf.algorithm.amie.RuleFilter.{MinSupportRuleFilter, NoDuplicitRuleFilter, NoRepeatedGroups}
 import eu.easyminer.rdf.index.TripleHashIndex
 import eu.easyminer.rdf.rule.ExtendedRule.{ClosedRule, DanglingRule}
@@ -20,10 +19,14 @@ trait RuleExpansion extends AtomCounting {
   implicit val debugger: Debugger
   val tripleIndex: TripleHashIndex
   val isWithInstances: Boolean
+  val onlyObjectInstances: Boolean
   val withDuplicitPredicates: Boolean
   val minHeadCoverage: Double
   val maxRuleLength: Int
-  val bodyPatterns: Seq[IndexedSeq[AtomPattern]]
+  val atomMatcher: AtomPatternMatcher[Atom]
+  val freshAtomMatcher: AtomPatternMatcher[FreshAtom]
+
+  def isValidPredicate(predicate: Int): Boolean
 
   implicit class PimpedRule(rule: ExtendedRule) {
 
@@ -75,9 +78,7 @@ trait RuleExpansion extends AtomCounting {
     /**
       * Patterns for remaining fresh atoms which can be added to this rule
       */
-    private val patternAtoms = bodyPatterns.iterator.filter(bodyPattern =>
-      rule.body.iterator.zip(bodyPattern.takeRight(rule.body.size).iterator).forall(x => x._1.matchPattern(x._2))
-    ).flatMap(_.dropRight(rule.body.size).lastOption).toList
+    private val patternAtoms = rule.patterns.map(x => x -> x.antecedent.lift(x.antecedent.size - rule.body.size - 1))
 
     /**
       * Map of all rule predicates. Each predicate has subject and object variables.
@@ -117,8 +118,8 @@ trait RuleExpansion extends AtomCounting {
       * @return true = fresh atom is counted (DONT COUNT IT!), false = fresh atom is not counted (COUNT IT!)
       */
     private def isCounted(freshAtom: FreshAtom, predicate: Int, instantiated: Boolean): Boolean = {
-      //if the predicate is not contained in the rule then !isCounted (COUNT IT!)
-      rulePredicates.get(predicate).exists { predicate =>
+      //if the predicate is not valid by constraints OR is contained in the rule then the atom is counted (DONT COUNT IT!)
+      !isValidPredicate(predicate) || rulePredicates.get(predicate).exists { predicate =>
         //if duplicit predicates are not allowed then then fresh atom is always counted and we dont count it!
         //we will find whether fresh atom should be counted, if yes then we return false (!isCounted - COUNT IT!)
         !withDuplicitPredicates || !((freshAtom.subject, freshAtom.`object`) match {
@@ -159,7 +160,7 @@ trait RuleExpansion extends AtomCounting {
       * @param freshAtom new fresh atom
       * @return boolean
       */
-    private def matchFreshAtom(freshAtom: FreshAtom) = patternAtoms.exists(freshAtom.matchPattern)
+    private def matchFreshAtom(freshAtom: FreshAtom) = patternAtoms.exists(x => (x._2.isEmpty && !x._1.exact) || x._2.exists(y => freshAtomMatcher.matchPattern(freshAtom, y)))
 
     /**
       * Check whether a new atom is matching with the current atom pattern
@@ -167,7 +168,7 @@ trait RuleExpansion extends AtomCounting {
       * @param atom new atom
       * @return boolean
       */
-    private def matchAtom(atom: Atom) = patternAtoms.exists(atom.matchPattern)
+    private def matchAtom(atom: Atom) = patternAtoms.exists(x => (x._2.isEmpty && !x._1.exact) || x._2.exists(y => atomMatcher.matchPattern(atom, y)))
 
     /**
       * From the current rule create new extended rules with all possible new atoms
@@ -177,7 +178,10 @@ trait RuleExpansion extends AtomCounting {
       *
       * @return all extended rules with new atom
       */
-    def expand: Iterator[ExtendedRule] = {
+    def expand: Iterator[ExtendedRule] = if (rule.patterns.nonEmpty && patternAtoms.forall { case (rp, ap) => rp.exact && ap.isEmpty }) {
+      //if all paterns must be exact and are completely matched then we will not expand this rule
+      Iterator.empty
+    } else {
       implicit val projections: Projections = new Projections
       //first we get all possible fresh atoms for the current rule (with one dangling variable or with two exising variables as closed rule)
       //we separate fresh atoms to two parts: countable and others (possible)
@@ -195,9 +199,9 @@ trait RuleExpansion extends AtomCounting {
         (s, o) => specifyVariableMapWithAtom(rule.head.copy(subject = Atom.Constant(s), `object` = Atom.Constant(o)), Map.empty)
       }
       debugger.debug("Rule expansion: " + rule, rule.headSize + 1) { ad =>
-        logger.trace("Rule expansion - " + rule + "\n" + "countable: " + countableFreshAtoms + "\n" + "possible: " + possibleFreshAtoms)
+        if (logger.underlying.isTraceEnabled) logger.trace("Rule expansion - " + rule + "\n" + "countable: " + countableFreshAtoms + "\n" + "possible: " + possibleFreshAtoms)
         //if duplicit predicates are allowed then
-        //for all fresh atoms return all extension with duplicit predicates by more efficient way
+        //for all fresh atoms return all extensions with duplicit predicates by more efficient way
         howLong("Rule expansion - count duplicit", true) {
           if (withDuplicitPredicates) (countableFreshAtoms ::: possibleFreshAtoms).foreach(selectAtomsWithExistingPredicate)
         }
@@ -221,7 +225,7 @@ trait RuleExpansion extends AtomCounting {
           }
         }
       }
-      logger.trace("Rule expansion - total projections: " + projections.size)
+      if (logger.underlying.isTraceEnabled) logger.trace("Rule expansion - total projections: " + projections.size)
       //filter all projections by minimal support and remove all duplicit projections
       //then create new rules from all projections (atoms)
       val ruleFilter = new MinSupportRuleFilter(minSupport) & new NoDuplicitRuleFilter(rule.head, bodySet) & new NoRepeatedGroups(withDuplicitPredicates, bodySet + rule.head, rulePredicates)
@@ -303,7 +307,7 @@ trait RuleExpansion extends AtomCounting {
           //if we want to create new instantiated atom with existing predicate then we may expand only other instantiated atom (not variable atom)
           // - only p(a, C) -> p(a, B) is allowed - not p(a, C) -> p(a, b), because it is noise = redundant pattern
           // - this phase (for instantioned atoms with existing predicates) is doing during the main count projections process
-          if (atom.subject.isInstanceOf[Atom.Variable] && atom.`object`.isInstanceOf[Atom.Variable]) {
+          if (atom.subject.isInstanceOf[Atom.Variable] && atom.`object`.isInstanceOf[Atom.Variable] && isValidPredicate(atom.predicate)) {
             projections += (Atom(freshAtom.subject, atom.predicate, freshAtom.`object`) -> IncrementalInt(rule.measures[Measure.Support].value))
           }
         }
@@ -357,7 +361,8 @@ trait RuleExpansion extends AtomCounting {
                 if (isWithInstances && notCountedInstanceProjections) {
                   //if we may to create instantiated atoms for this predicate and fresh atom (it is allowed and not already counted)
                   //then we add new atom projection to atoms set
-                  if (freshAtom.subject == dangling) projections += atom.copy(`object` = freshAtom.`object`)
+                  //if onlyObjectInstances is true we do not project instance atom in the subject position
+                  if (freshAtom.subject == dangling && !onlyObjectInstances) projections += atom.copy(`object` = freshAtom.`object`)
                   else if (freshAtom.`object` == dangling) projections += atom.copy(subject = freshAtom.subject)
                 }
                 //if we may to create variable atoms for this predicate and fresh atom (not already counted)
@@ -401,7 +406,7 @@ trait RuleExpansion extends AtomCounting {
           for ((predicate, subjects) <- tripleIndex.objects.get(oc).iterator.flatMap(_.predicates)) {
             //if there exists atom in rule which has same predicate and object variable and is not instationed
             // - then we dont use this fresh atom for this predicate because p(a, B) -> p(a, b) is not allowed (redundant and noisy rule)
-            if (isWithInstances && !isCounted(atom, predicate, true)) {
+            if (isWithInstances && !onlyObjectInstances && !isCounted(atom, predicate, true)) {
               for (subject <- subjects) projections += Atom(Atom.Constant(subject), predicate, atom.`object`)
             }
             //we dont count fresh atom only with variables if there exists atom in rule which has same predicate and object variable
@@ -442,6 +447,7 @@ trait RuleExpansion extends AtomCounting {
       * @return extended rule with new atom
       */
     private def expandWithAtom(atom: Atom, support: Int): ExtendedRule = {
+      val newPatterns = patternAtoms.filter(x => x._2.forall(atomMatcher.matchPattern(atom, _))).map(_._1)
       val measures = Measure.Measures(
         Measure.Support(support),
         Measure.HeadCoverage(support / rule.headSize.toDouble),
@@ -453,92 +459,44 @@ trait RuleExpansion extends AtomCounting {
             case rule: DanglingRule => rule.variables match {
               case ExtendedRule.OneDangling(originalDangling, others) =>
                 //(d, c) | (a, c) (a, b) (a, b) => OneDangling(c) -> OneDangling(d)
-                rule.copy(body = atom +: rule.body)(measures, ExtendedRule.OneDangling(dangling, originalDangling :: others), dangling, rule.headTriples)
+                rule.copy(body = atom +: rule.body)(measures, newPatterns, ExtendedRule.OneDangling(dangling, originalDangling :: others), dangling, rule.headTriples)
               case ExtendedRule.TwoDanglings(dangling1, dangling2, others) =>
                 //(d, c) | (a, c) (a, b) => TwoDanglings(c, b) -> TwoDanglings(d, b)
                 val (pastDangling, secondDangling) = if (sv == dangling1 || ov == dangling1) (dangling1, dangling2) else (dangling2, dangling1)
-                rule.copy(body = atom +: rule.body)(measures, ExtendedRule.TwoDanglings(dangling, secondDangling, pastDangling :: others), dangling, rule.headTriples)
+                rule.copy(body = atom +: rule.body)(measures, newPatterns, ExtendedRule.TwoDanglings(dangling, secondDangling, pastDangling :: others), dangling, rule.headTriples)
             }
             case rule: ClosedRule =>
               //(c, a) | (a, b) (a, b) => ClosedRule -> OneDangling(c)
-              DanglingRule(atom +: rule.body, rule.head)(measures, ExtendedRule.OneDangling(dangling, rule.variables), dangling, rule.headTriples)
+              DanglingRule(atom +: rule.body, rule.head)(measures, newPatterns, ExtendedRule.OneDangling(dangling, rule.variables), dangling, rule.headTriples)
           }
         } else {
           rule match {
             case rule: ClosedRule =>
               //(a, b) | (a, b) (a, b) => ClosedRule -> ClosedRule
-              rule.copy(atom +: rule.body)(measures, rule.variables, rule.maxVariable, rule.headTriples)
+              rule.copy(atom +: rule.body)(measures, newPatterns, rule.variables, rule.maxVariable, rule.headTriples)
             case rule: DanglingRule =>
               //(c, a) | (c, a) (a, b) (a, b) => OneDangling(c) -> ClosedRule
               //(c, b) |(a, c) (a, b) => TwoDanglings(c, b) -> ClosedRule
-              ClosedRule(atom +: rule.body, rule.head)(measures, rule.variables.danglings ::: rule.variables.others, rule.maxVariable, rule.headTriples)
+              ClosedRule(atom +: rule.body, rule.head)(measures, newPatterns, rule.variables.danglings ::: rule.variables.others, rule.maxVariable, rule.headTriples)
           }
         }
         case (_: Atom.Variable, _: Atom.Constant) | (_: Atom.Constant, _: Atom.Variable) => rule match {
           case rule: ClosedRule =>
             //(a, C) | (a, b) (a, b) => ClosedRule -> ClosedRule
-            rule.copy(atom +: rule.body)(measures, rule.variables, rule.maxVariable, rule.headTriples)
+            rule.copy(atom +: rule.body)(measures, newPatterns, rule.variables, rule.maxVariable, rule.headTriples)
           case rule: DanglingRule => rule.variables match {
             case ExtendedRule.OneDangling(dangling, others) =>
               //(c, C) | (a, c) (a, b) (a, b) => OneDangling(c) -> ClosedRule
-              ClosedRule(atom +: rule.body, rule.head)(measures, dangling :: others, dangling, rule.headTriples)
+              ClosedRule(atom +: rule.body, rule.head)(measures, newPatterns, dangling :: others, dangling, rule.headTriples)
             case ExtendedRule.TwoDanglings(dangling1, dangling2, others) =>
               //(c, C) | (a, c) (a, b) => TwoDanglings(c, b) -> OneDangling(b)
               val (pastDangling, dangling) = if (atom.subject == dangling1 || atom.`object` == dangling1) (dangling1, dangling2) else (dangling2, dangling1)
-              DanglingRule(atom +: rule.body, rule.head)(measures, ExtendedRule.OneDangling(dangling, pastDangling :: others), rule.maxVariable, rule.headTriples)
+              DanglingRule(atom +: rule.body, rule.head)(measures, newPatterns, ExtendedRule.OneDangling(dangling, pastDangling :: others), rule.maxVariable, rule.headTriples)
           }
         }
         case _ => throw new IllegalStateException
       }
     }
-
-  }
-
-}
-
-object RuleExpansion {
-
-  case class FreshAtom(subject: Atom.Variable, `object`: Atom.Variable) {
-    def subjectPosition = TripleItemPosition.Subject(subject)
-
-    def objectPosition = TripleItemPosition.Object(`object`)
-
-    /**
-      * Check whether a new fresh atom is matching with the current atom pattern
-      *
-      * @param atomPattern atom pattern
-      * @return boolean
-      */
-    def matchPattern(atomPattern: AtomPattern): Boolean = (atomPattern.subject.isInstanceOf[Atom.Constant] || subject == atomPattern.subject) &&
-      (atomPattern.`object`.isInstanceOf[Atom.Constant] || `object` == atomPattern.`object`)
-
-  }
-
-  implicit class PimpedAtom(atom: Atom) {
-    def subjectPosition = TripleItemPosition.Subject(atom.subject)
-
-    def objectPosition = TripleItemPosition.Object(atom.`object`)
-
-    /**
-      * Check whether a new atom is matching with the current atom pattern
-      *
-      * @param atomPattern atom pattern
-      * @return boolean
-      */
-    def matchPattern(atomPattern: AtomPattern): Boolean = atomPattern.predicate.forall(_ == atom.predicate) &&
-      (atom.subject == atomPattern.subject || atom.subject.isInstanceOf[Atom.Constant] && atomPattern.subject.isInstanceOf[Atom.Variable]) &&
-      (atom.`object` == atomPattern.`object` || atom.`object`.isInstanceOf[Atom.Constant] && atomPattern.`object`.isInstanceOf[Atom.Variable])
-  }
-
-  sealed trait TripleItemPosition {
-    val item: Atom.Item
-  }
-
-  object TripleItemPosition {
-
-    case class Subject(item: Atom.Item) extends TripleItemPosition
-
-    case class Object(item: Atom.Item) extends TripleItemPosition
 
   }
 

@@ -1,8 +1,8 @@
 package eu.easyminer.rdf.algorithm.amie
 
-import eu.easyminer.rdf.rule.{Atom, ExtendedRule, Measure}
-import Measure._
 import eu.easyminer.rdf.index.TripleHashIndex
+import eu.easyminer.rdf.rule.Measure._
+import eu.easyminer.rdf.rule.{Atom, Measure, Rule}
 
 /**
   * Created by Vaclav Zeman on 11. 7. 2017.
@@ -11,7 +11,7 @@ trait RuleCounting extends AtomCounting {
 
   val tripleIndex: TripleHashIndex
 
-  implicit class PimpedRule(rule: ExtendedRule) {
+  implicit class PimpedRule(rule: Rule) {
 
     /**
       * Count confidence for the rule
@@ -20,7 +20,7 @@ trait RuleCounting extends AtomCounting {
       *                      rule with confidence lower than minConfidence will have confidence = minConfidence - 1
       * @return New rule with counted confidence
       */
-    def withConfidence(minConfidence: Double): ExtendedRule = {
+    def withConfidence(minConfidence: Double): Rule = {
       logger.debug(s"Confidence counting for rule: " + rule)
       val support = rule.measures[Measure.Support].value
       //we count body size, it is number of all possible paths for this rule from dataset only for body atoms
@@ -38,7 +38,7 @@ trait RuleCounting extends AtomCounting {
       *
       * @return New rule with counted head confidence
       */
-    def withHeadConfidence: ExtendedRule = {
+    def withHeadConfidence: Rule = {
       logger.debug(s"Head confidence counting for rule: " + rule)
       val average = rule.head match {
         //if head is variables atom then average is number of all subjects with the predicate of the head atom DIVIDED number of all subjects
@@ -58,7 +58,7 @@ trait RuleCounting extends AtomCounting {
       *
       * @return New rule with counted lift
       */
-    def withLift: ExtendedRule = {
+    def withLift: Rule = {
       logger.debug(s"Lift counting for rule: " + rule)
       val confidence = rule.measures[Measure.Confidence].value
       val average = rule.measures[Measure.HeadConfidence].value
@@ -79,7 +79,7 @@ trait RuleCounting extends AtomCounting {
       *                         rule with pca confidence lower than minPcaConfidence will have confidence = minPcaConfidence - 1
       * @return New rule with counted pca confidence
       */
-    def withPcaConfidence(minPcaConfidence: Double): ExtendedRule = {
+    def withPcaConfidence(minPcaConfidence: Double): Rule = {
       logger.debug(s"Pca confidence counting for rule: " + rule)
       //get all subject instances for head atoms
       val headInstances: Iterator[VariableMap] = rule.head match {
@@ -107,7 +107,7 @@ trait RuleCounting extends AtomCounting {
       *
       * @return New rule with counted pca lift
       */
-    def withPcaLift: ExtendedRule = {
+    def withPcaLift: Rule = {
       logger.debug(s"Pca lift counting for rule: " + rule)
       val pcaConfidence = rule.measures[Measure.PcaConfidence].value
       val average = rule.measures[Measure.HeadConfidence].value

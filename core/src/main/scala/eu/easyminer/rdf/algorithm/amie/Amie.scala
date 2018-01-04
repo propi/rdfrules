@@ -35,24 +35,8 @@ class Amie private(thresholds: Threshold.Thresholds, rulePatterns: List[RulePatt
     *         Rules are not ordered
     */
   def mine(tripleIndex: TripleHashIndex): List[ClosedRule] = {
-    //if we have defined OnlyPredicates constraint we recreate lazy triple index with lazy filters which remove all predicates that are not defined
-    val updatedTripleIndex = constraints.foldLeft(tripleIndex) { (tripleIndex, constraint) =>
-      val itemFilter = constraint match {
-        case OnlyPredicates(predicates) => Some(predicates.apply _)
-        case WithoutPredicates(predicates) => Some((x: Int) => !predicates(x))
-        case _ => None
-      }
-      itemFilter.map { itemFilter =>
-        val filteredSetView = FilteredSetView(itemFilter) _
-        new TripleHashIndex(
-          tripleIndex.subjects.mapValues(tsi => new TripleHashIndex.TripleSubjectIndex(tsi.objects.mapValues(filteredSetView), tsi.predicates.filterKeys(itemFilter))),
-          tripleIndex.predicates.filterKeys(itemFilter),
-          tripleIndex.objects.mapValues(toi => new TripleHashIndex.TripleObjectIndex(toi.subjects.mapValues(filteredSetView), toi.predicates.filterKeys(itemFilter)))
-        )
-      }.getOrElse(tripleIndex)
-    }
     //create amie process with debugger and final triple index
-    val process = new AmieProcess(updatedTripleIndex)(if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) debugger else Debugger.EmptyDebugger)
+    val process = new AmieProcess(tripleIndex)(if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) debugger else Debugger.EmptyDebugger)
     //get all possible heads and filter them by support threshold
     val heads = process.filterHeadsBySupport(process.getHeads).toList
     //parallel rule mining: for each head we search rules
