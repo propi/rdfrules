@@ -5,8 +5,8 @@ import java.io.File
 import eu.easyminer.rdf.cli.Command.CommandException
 import eu.easyminer.rdf.cli.ConsoleCommand.{ExecuteConsoleCommand, UnknownCommandException}
 import eu.easyminer.rdf.cli.{Command, ConsoleCommand, ConsoleCommandInvoker}
+import eu.easyminer.rdf.printer.Printer
 import eu.easyminer.rdf.utils.BasicExtractors.AnyToInt
-import eu.easyminer.rdf.utils.Printer
 import org.apache.commons.cli
 import org.apache.commons.cli.{MissingArgumentException, ParseException}
 

@@ -1,7 +1,7 @@
 package eu.easyminer.rdf.rule
 
 import eu.easyminer.rdf.data.TripleItem
-import eu.easyminer.rdf.utils.Stringifier
+import eu.easyminer.rdf.stringifier.Stringifier
 
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.

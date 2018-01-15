@@ -1,4 +1,4 @@
-package eu.easyminer.rdf.utils
+package eu.easyminer.rdf.stringifier
 
 /**
   * Created by Vaclav Zeman on 6. 10. 2017.

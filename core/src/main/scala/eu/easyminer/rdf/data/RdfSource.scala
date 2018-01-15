@@ -13,15 +13,13 @@ object RdfSource {
 
   object Tsv extends RdfSource
 
-  object Nt extends RdfSource
-
-  object Ttl extends RdfSource
+  case class JenaLang(lang: Lang) extends RdfSource
 
   implicit def rdfSourceToRdfReader[T <: RdfSource](rdfSource: T)(implicit rdfReader: RdfReader[T]): RdfReader[T] = rdfReader
 
   implicit def rdfSourceToRdfWriter[T <: RdfSource](rdfSource: T)(implicit rdfWriter: RdfWriter[T]): RdfWriter[T] = rdfWriter
 
-  sealed trait RdfSourceToLang[T <: RdfSource] {
+  /*sealed trait RdfSourceToLang[T <: RdfSource] {
     def apply(): Lang
 
     def format(flat: Boolean = false, ascii: Boolean = false): RDFFormat
@@ -37,6 +35,6 @@ object RdfSource {
     def apply(): Lang = Lang.TTL
 
     def format(flat: Boolean, ascii: Boolean): RDFFormat = if (flat) RDFFormat.TURTLE_FLAT else RDFFormat.TURTLE_BLOCKS
-  }
+  }*/
 
 }

@@ -1,7 +1,5 @@
 package eu.easyminer.rdf.data
 
-import eu.easyminer.rdf.data.RdfReader.TripleTraversableView
-import eu.easyminer.rdf.utils.{Printer, Stringifier}
 import org.apache.jena.graph
 
 import scala.collection.TraversableView
@@ -13,6 +11,8 @@ import scala.language.implicitConversions
 case class Triple(subject: TripleItem.Uri, predicate: TripleItem.Uri, `object`: TripleItem)
 
 object Triple {
+
+  type TripleTraversableView = TraversableView[Triple, Traversable[_]]
 
   implicit def tripleToJenaTriple(triple: Triple): graph.Triple = new graph.Triple(triple.subject, triple.predicate, triple.`object`)
 
@@ -38,9 +38,5 @@ object Triple {
       }
     }
   }
-
-  implicit val tripleStringifier: Stringifier[Triple] = (v: Triple) => v.subject + "  " + v.predicate + "  " + v.`object`
-
-  implicit def tripleDataPrinter(implicit str: Stringifier[Triple]): Printer[Triple] = (v: Triple) => println(str.toStringValue(v))
 
 }

@@ -1,10 +1,10 @@
-package eu.easyminer.rdf.data
+package eu.easyminer.rdf.serialization
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 
+import eu.easyminer.rdf.data.{Triple, TripleItem}
+import eu.easyminer.rdf.serialization.TripleItemSerialization._
 import eu.easyminer.rdf.utils.serialization.{Deserializer, Serializer}
-
-import TripleItemSerialization._
 
 /**
   * Created by Vaclav Zeman on 5. 10. 2017.

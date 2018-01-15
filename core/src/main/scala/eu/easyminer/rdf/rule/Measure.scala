@@ -1,6 +1,6 @@
 package eu.easyminer.rdf.rule
 
-import eu.easyminer.rdf.utils.Stringifier
+import eu.easyminer.rdf.stringifier.Stringifier
 
 import scala.language.implicitConversions
 

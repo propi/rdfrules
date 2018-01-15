@@ -3,7 +3,7 @@ package eu.easyminer.rdf.index
 import java.io.OutputStream
 
 import eu.easyminer.rdf.data.{Dataset, Prefix}
-import eu.easyminer.rdf.data.PrefixSerialization._
+import eu.easyminer.rdf.serialization.PrefixSerialization._
 
 /**
   * Created by Vaclav Zeman on 4. 10. 2017.

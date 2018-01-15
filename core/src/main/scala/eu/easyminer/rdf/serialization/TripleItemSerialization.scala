@@ -1,7 +1,8 @@
-package eu.easyminer.rdf.data
+package eu.easyminer.rdf.serialization
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 
+import eu.easyminer.rdf.data.TripleItem
 import eu.easyminer.rdf.utils.serialization.{Deserializer, Serializer}
 
 /**

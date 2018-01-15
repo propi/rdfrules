@@ -1,5 +1,6 @@
-package eu.easyminer.rdf.data
+package eu.easyminer.rdf.serialization
 
+import eu.easyminer.rdf.data.Prefix
 import eu.easyminer.rdf.utils.serialization.{Deserializer, Serializer}
 
 /**

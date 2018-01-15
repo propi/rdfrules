@@ -3,7 +3,7 @@ package eu.easyminer.rdf.cli.impl
 import java.io.File
 
 import eu.easyminer.rdf.cli.Command.CommandException
-import eu.easyminer.rdf.utils.Printer
+import eu.easyminer.rdf.printer.Printer
 
 import scala.util.{Failure, Success, Try}
 

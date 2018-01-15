@@ -2,7 +2,7 @@ package eu.easyminer.rdf.index
 
 import java.io.{InputStream, OutputStream}
 
-import eu.easyminer.rdf.data.TripleItemSerialization._
+import eu.easyminer.rdf.serialization.TripleItemSerialization._
 import eu.easyminer.rdf.data.{Dataset, Graph, TripleItem}
 
 /**

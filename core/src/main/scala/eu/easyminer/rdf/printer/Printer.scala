@@ -1,4 +1,4 @@
-package eu.easyminer.rdf.utils
+package eu.easyminer.rdf.printer
 
 /**
   * Created by Vaclav Zeman on 4. 10. 2017.

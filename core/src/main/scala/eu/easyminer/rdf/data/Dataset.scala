@@ -1,13 +1,24 @@
 package eu.easyminer.rdf.data
 
-import eu.easyminer.rdf.data.RdfReader.TripleTraversableView
+import eu.easyminer.rdf.data.Triple.TripleTraversableView
 
 /**
   * Created by Vaclav Zeman on 3. 10. 2017.
   */
 class Dataset private(val graphs: IndexedSeq[Graph]) {
 
-  def +(graph: Graph): Dataset = new Dataset(graphs.filter(_.name != graph.name) :+ graph)
+  def +(graph: Graph): Dataset = {
+    var isAdded = false
+    val updatedGraphs = graphs.map { oldGraph =>
+      if (oldGraph.name.hasSameUriAs(graph.name)) {
+        isAdded = true
+        oldGraph.copy(triples = oldGraph.triples ++ graph.triples)
+      } else {
+        oldGraph
+      }
+    }
+    new Dataset(if (isAdded) updatedGraphs else graphs :+ graph)
+  }
 
   def -(graphName: String): Dataset = new Dataset(graphs.filter(_.name != graphName))
 
@@ -16,7 +27,7 @@ class Dataset private(val graphs: IndexedSeq[Graph]) {
 
     def uriToPrefixedUri(uri: TripleItem.Uri) = uri match {
       case x: TripleItem.LongUri =>
-        val puri = TripleItem.PrefixedUri(x)
+        val puri = x.toPrefixedUri
         map.get(puri.nameSpace).map(prefix => puri.copy(prefix = prefix)).getOrElse(x)
       case x => x
     }

@@ -5,11 +5,12 @@ import java.io.{File, FileInputStream, FileOutputStream}
 import eu.easyminer.rdf.cli.Command.CommandException
 import eu.easyminer.rdf.data.{Dataset, Graph, Triple, TripleItem}
 import eu.easyminer.rdf.index._
-import eu.easyminer.rdf.utils.{OptionalLazyVal, Printer}
+import eu.easyminer.rdf.utils.OptionalLazyVal
 
 import scala.language.implicitConversions
 import scala.util.{Failure, Try}
 import CompressedTripleSerialization._
+import eu.easyminer.rdf.printer.Printer
 
 import scala.collection.SeqView
 

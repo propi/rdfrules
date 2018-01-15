@@ -3,10 +3,11 @@ package eu.easyminer.rdf.algorithm.amie
 import com.typesafe.scalalogging.Logger
 import eu.easyminer.rdf.index.TripleHashIndex
 import eu.easyminer.rdf.rule.ExtendedRule.{ClosedRule, DanglingRule}
-import eu.easyminer.rdf.rule.RuleConstraint.{OnlyPredicates, WithoutPredicates}
 import eu.easyminer.rdf.rule._
 import eu.easyminer.rdf.utils.HowLong._
-import eu.easyminer.rdf.utils.{Debugger, FilteredSetView, HashQueue}
+import eu.easyminer.rdf.utils.{Debugger, HashQueue}
+
+import scala.collection.parallel.immutable.ParVector
 
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
@@ -34,76 +35,99 @@ class Amie private(thresholds: Threshold.Thresholds, rulePatterns: List[RulePatt
     *         Rules contains only these measures: head size, head coverage and support
     *         Rules are not ordered
     */
-  def mine(tripleIndex: TripleHashIndex): List[ClosedRule] = {
+  def mine(tripleIndex: TripleHashIndex): Traversable[ClosedRule] = {
     //create amie process with debugger and final triple index
     val process = new AmieProcess(tripleIndex)(if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) debugger else Debugger.EmptyDebugger)
-    //get all possible heads and filter them by support threshold
-    val heads = process.filterHeadsBySupport(process.getHeads).toList
+    //get all possible heads
+    val heads = {
+      val builder = ParVector.newBuilder[DanglingRule]
+      builder ++= process.getHeads
+      builder.result()
+    }
     //parallel rule mining: for each head we search rules
     debugger.debug("Amie rules mining", heads.length) { ad =>
-      heads.par.flatMap { head =>
+      heads.flatMap { head =>
         ad.result()(process.searchRules(head))
-      }
-    }.toList
+      }.seq
+    }
   }
 
   private class AmieProcess(val tripleIndex: TripleHashIndex)(implicit val debugger: Debugger) extends RuleExpansion with AtomCounting {
 
-    val isWithInstances: Boolean = constraints.contains(RuleConstraint.WithInstances)
+    val isWithInstances: Boolean = constraints.exists(_.isInstanceOf[RuleConstraint.WithInstances])
     val minHeadCoverage: Double = thresholds[Threshold.MinHeadCoverage].value
     val maxRuleLength: Int = thresholds[Threshold.MaxRuleLength].value
-    val bodyPatterns: Seq[IndexedSeq[AtomPattern]] = rulePatterns.map(_.antecedent)
+    //val bodyPatterns: Seq[IndexedSeq[AtomPattern]] = rulePatterns.map(_.antecedent)
     val withDuplicitPredicates: Boolean = !constraints.contains(RuleConstraint.WithoutDuplicitPredicates)
+    val onlyObjectInstances: Boolean = constraints.exists {
+      case RuleConstraint.WithInstances(true) => true
+      case _ => false
+    }
+    val atomMatcher: AtomPatternMatcher[Atom] = AtomPatternMatcher.ForAtom
+    val freshAtomMatcher: AtomPatternMatcher[FreshAtom] = AtomPatternMatcher.ForFreshAtom
+
+    private val (onlyPredicates, withoutPredicates) = {
+      val a = constraints.collectFirst { case RuleConstraint.OnlyPredicates(p) => p }
+      val b = constraints.collectFirst { case RuleConstraint.WithoutPredicates(p) => p }
+      a -> b
+    }
+
+    def isValidPredicate(predicate: Int): Boolean = onlyPredicates.forall(_ (predicate)) && withoutPredicates.forall(!_ (predicate))
 
     /**
       * Get all possible heads from triple index
+      * All heads are filtered by constraints, patterns and minimal support
       *
-      * @return possible head atoms
-      */
-    def getHeads: Iterator[Atom] = {
-      //first get all variable atoms which satisfies an optional rule pattern in consequent
-      //if there is no rule pattern then get all variable atoms from all predicates
-      val atomIterator = if (rulePatterns.isEmpty) {
-        tripleIndex.predicates.keysIterator.map(Atom(Atom.Variable(0), _, Atom.Variable(1)))
-      } else {
-        rulePatterns.iterator.flatMap { x =>
-          x.consequent.predicate
-            .map(Atom(x.consequent.subject, _, x.consequent.`object`))
-            .map(Iterator(_))
-            .getOrElse(tripleIndex.predicates.keysIterator.map(Atom(x.consequent.subject, _, x.consequent.`object`)))
-        }
-      }
-      if (isWithInstances) {
-        //if instantiated atoms are allowed then we specify variables by constants only if the atom has two variables
-        //only one variable may be replaced by a constant
-        //result is original variable atoms + instantied atoms with constants in subject + instantied atoms with constants in object
-        atomIterator.flatMap { atom =>
-          if (atom.subject.isInstanceOf[Atom.Variable] && atom.`object`.isInstanceOf[Atom.Variable]) {
-            val it1 = tripleIndex.predicates(atom.predicate).subjects.keysIterator.map(subject => Atom(Atom.Constant(subject), atom.predicate, atom.`object`))
-            val it2 = tripleIndex.predicates(atom.predicate).objects.keysIterator.map(`object` => Atom(atom.subject, atom.predicate, Atom.Constant(`object`)))
-            Iterator(atom) ++ it1 ++ it2
-          } else {
-            Iterator(atom)
-          }
-        }
-      } else {
-        atomIterator
-      }
-    }
-
-    /**
-      * Filter atoms by minimal support
-      *
-      * @param atoms input atoms
       * @return atoms in dangling rule form - DanglingRule(no body, one head, one or two variables in head)
       */
-    def filterHeadsBySupport(atoms: Iterator[Atom]): Iterator[DanglingRule] = atoms.flatMap { atom =>
-      val tm = tripleIndex.predicates(atom.predicate)
-      Some(atom.subject, atom.`object`).collect {
-        case (v1: Atom.Variable, v2: Atom.Variable) => ExtendedRule.TwoDanglings(v1, v2, Nil) -> tm.size
-        case (Atom.Constant(c), v1: Atom.Variable) => ExtendedRule.OneDangling(v1, Nil) -> tm.subjects.get(c).map(_.size).getOrElse(0)
-        case (v1: Atom.Variable, Atom.Constant(c)) => ExtendedRule.OneDangling(v1, Nil) -> tm.objects.get(c).map(_.size).getOrElse(0)
-      }.filter(_._2 >= minSupport).map(x => DanglingRule(Vector.empty, atom)(Measure.Measures(Measure.HeadSize(x._2), Measure.Support(x._2)), x._1, x._1.danglings.max, getAtomTriples(atom).toIndexedSeq))
+    def getHeads: Iterator[DanglingRule] = {
+      //enumerate all possible head atoms with variables and instances
+      //all unsatisfied predicates are filtered by constraints
+      val possibleAtoms = {
+        val it = tripleIndex.predicates.keysIterator.filter(isValidPredicate).map(Atom(Atom.Variable(0), _, Atom.Variable(1)))
+        if (isWithInstances) {
+          //if instantiated atoms are allowed then we specify variables by constants
+          //only one variable may be replaced by a constant
+          //result is original variable atom + instantied atoms with constants in subject + instantied atoms with constants in object
+          //we do not instantient subject variable if onlyObjectInstances is true
+          it.flatMap { atom =>
+            val it1 = if (onlyObjectInstances) {
+              Iterator.empty
+            } else {
+              tripleIndex.predicates(atom.predicate).subjects.keysIterator.map(subject => Atom(Atom.Constant(subject), atom.predicate, Atom.Variable(0)))
+            }
+            val it2 = tripleIndex.predicates(atom.predicate).objects.keysIterator.map(`object` => Atom(Atom.Variable(0), atom.predicate, Atom.Constant(`object`)))
+            Iterator(atom) ++ it1 ++ it2
+          }
+        } else {
+          it
+        }
+      }
+      //filter all atoms by patterns and join all valid patterns to the atom
+      possibleAtoms.flatMap { atom =>
+        val validPatterns = rulePatterns.filter(rp => rp.consequent.forall(atomPattern => atomMatcher.matchPattern(atom, atomPattern)))
+        if (rulePatterns.isEmpty || validPatterns.nonEmpty) {
+          Iterator(atom -> validPatterns)
+        } else {
+          Iterator.empty
+        }
+      }.flatMap { case (atom, patterns) =>
+        //convert all atoms to rules and filter it by min support
+        val tm = tripleIndex.predicates(atom.predicate)
+        Some(atom.subject, atom.`object`).collect {
+          case (v1: Atom.Variable, v2: Atom.Variable) => ExtendedRule.TwoDanglings(v1, v2, Nil) -> tm.size
+          case (Atom.Constant(c), v1: Atom.Variable) => ExtendedRule.OneDangling(v1, Nil) -> tm.subjects.get(c).map(_.size).getOrElse(0)
+          case (v1: Atom.Variable, Atom.Constant(c)) => ExtendedRule.OneDangling(v1, Nil) -> tm.objects.get(c).map(_.size).getOrElse(0)
+        }.filter(_._2 >= minSupport).map(x =>
+          DanglingRule(Vector.empty, atom)(
+            Measure.Measures(Measure.HeadSize(x._2), Measure.Support(x._2)),
+            patterns,
+            x._1,
+            x._1.danglings.max,
+            getAtomTriples(atom).toIndexedSeq
+          )
+        )
+      }
     }
 
     /**

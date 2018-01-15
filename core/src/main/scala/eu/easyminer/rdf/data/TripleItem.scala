@@ -13,28 +13,44 @@ trait TripleItem
 
 object TripleItem {
 
-  sealed trait Uri extends TripleItem
+  sealed trait Uri extends TripleItem {
+    def hasSameUriAs(uri: Uri): Boolean
+  }
 
   case class LongUri(uri: String) extends Uri {
-    override def toString: String = s"<$uri>"
-  }
-
-  case class PrefixedUri(prefix: String, nameSpace: String, localName: String) extends Uri {
-    override def toString: String = prefix + ":" + localName
-  }
-
-  object PrefixedUri {
-    def apply(longUri: LongUri): PrefixedUri = {
+    def toPrefixedUri: PrefixedUri = {
       val PrefixedUriPattern = "(.+)/(.+)".r
-      longUri.uri match {
+      uri match {
         case PrefixedUriPattern(nameSpace, localName) => PrefixedUri("", nameSpace, localName)
         case _ => throw new IllegalArgumentException
       }
     }
+
+    def hasSameUriAs(uri: Uri): Boolean = uri match {
+      case LongUri(uri) => uri == this.uri
+      case x: PrefixedUri => hasSameUriAs(x.toLongUri)
+      case _ => false
+    }
+
+    override def toString: String = s"<$uri>"
+  }
+
+  case class PrefixedUri(prefix: String, nameSpace: String, localName: String) extends Uri {
+    def toLongUri: LongUri = LongUri(nameSpace + "/" + localName)
+
+    def hasSameUriAs(uri: Uri): Boolean = uri match {
+      case PrefixedUri(_, nameSpace2, localName2) => nameSpace == nameSpace2 && localName == localName2
+      case x: LongUri => hasSameUriAs(x.toPrefixedUri)
+      case _ => false
+    }
+
+    override def toString: String = prefix + ":" + localName
   }
 
   case class BlankNode(id: String) extends Uri {
     override def toString: String = "_:" + id
+
+    def hasSameUriAs(uri: Uri): Boolean = this == uri
   }
 
   sealed trait Literal extends TripleItem

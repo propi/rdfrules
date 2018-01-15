@@ -4,7 +4,7 @@ import java.io.{File, FileInputStream, FileOutputStream}
 
 import eu.easyminer.rdf.data.{Dataset, Graph, TripleItem}
 import eu.easyminer.rdf.index._
-import eu.easyminer.rdf.data.TripleSerialization._
+import eu.easyminer.rdf.serialization.TripleSerialization._
 
 //import eu.easyminer.rdf.algorithm.Amie
 
