@@ -8,7 +8,11 @@ import scala.language.implicitConversions
 /**
   * Created by propan on 16. 4. 2017.
   */
-case class Triple(subject: TripleItem.Uri, predicate: TripleItem.Uri, `object`: TripleItem)
+case class Triple(subject: TripleItem.Uri, predicate: TripleItem.Uri, `object`: TripleItem) {
+  def toQuad: Quad = Quad(this)
+
+  def toQuad(graph: TripleItem.Uri): Quad = Quad(this, graph)
+}
 
 object Triple {
 
@@ -16,7 +20,7 @@ object Triple {
 
   implicit def tripleToJenaTriple(triple: Triple): graph.Triple = new graph.Triple(triple.subject, triple.predicate, triple.`object`)
 
-  implicit class PimpedTraversableTriple(triples: TripleTraversableView) {
+  /*implicit class PimpedTraversableTriple(triples: TripleTraversableView) {
     def toPrefixes: List[Prefix] = {
       val map = collection.mutable.HashMap.empty[String, String]
       for {
@@ -37,6 +41,6 @@ object Triple {
         }
       }
     }
-  }
+  }*/
 
 }

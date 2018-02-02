@@ -44,6 +44,8 @@ object TripleItem {
       case _ => false
     }
 
+    def toPrefix: Prefix = Prefix(prefix, nameSpace)
+
     override def toString: String = prefix + ":" + localName
   }
 

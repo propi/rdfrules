@@ -14,33 +14,33 @@ case class Prefix(prefix: String, nameSpace: String)
 
 object Prefix {
 
-  def apply(buildInputStream: => InputStream): List[Prefix] = {
-    val is = buildInputStream
-    try {
-      val prefixes = collection.mutable.Set.empty[Prefix]
-      RDFDataMgr.parse(
-        new StreamRDF {
-          def prefix(prefix: String, iri: String): Unit = prefixes += Prefix(prefix, iri)
+  def apply(buildInputStream: => InputStream): Traversable[Prefix] = new Traversable[Prefix] {
+    def foreach[U](f: Prefix => U): Unit = {
+      val is = buildInputStream
+      try {
+        RDFDataMgr.parse(
+          new StreamRDF {
+            def prefix(prefix: String, iri: String): Unit = f(Prefix(prefix, iri))
 
-          def start(): Unit = {}
+            def start(): Unit = {}
 
-          def quad(quad: core.Quad): Unit = {}
+            def quad(quad: core.Quad): Unit = {}
 
-          def triple(triple: graph.Triple): Unit = {}
+            def triple(triple: graph.Triple): Unit = {}
 
-          def finish(): Unit = {}
+            def finish(): Unit = {}
 
-          def base(base: String): Unit = {}
-        },
-        is,
-        Lang.TTL
-      )
-      prefixes.toList
-    } finally {
-      is.close()
+            def base(base: String): Unit = {}
+          },
+          is,
+          Lang.TTL
+        )
+      } finally {
+        is.close()
+      }
     }
   }
 
-  def apply(file: File): List[Prefix] = apply(new FileInputStream(file))
+  def apply(file: File): Traversable[Prefix] = apply(new FileInputStream(file))
 
 }
