@@ -9,14 +9,16 @@ case class PredicateInfo private(uri: TripleItem.Uri, ranges: collection.Map[Tri
 
 object PredicateInfo {
 
-  def apply(col: TraversableOnce[Triple]): Vector[PredicateInfo] = {
-    val map = collection.mutable.Map.empty[TripleItem.Uri, collection.mutable.Map[TripleItemType, IncrementalInt]]
-    for (triple <- col) {
-      map.getOrElseUpdate(triple.predicate, collection.mutable.Map.empty).getOrElseUpdate(triple.`object`, IncrementalInt()).++
+  def apply(col: Traversable[Triple]): Traversable[PredicateInfo] = new Traversable[PredicateInfo] {
+    def foreach[U](f: PredicateInfo => U): Unit = {
+      val map = collection.mutable.Map.empty[TripleItem.Uri, collection.mutable.Map[TripleItemType, IncrementalInt]]
+      for (triple <- col) {
+        map.getOrElseUpdate(triple.predicate, collection.mutable.Map.empty).getOrElseUpdate(triple.`object`, IncrementalInt()).++
+      }
+      for ((uri, map) <- map) {
+        f(PredicateInfo(uri, map.mapValues(_.getValue)))
+      }
     }
-    map.iterator.map { case (uri, map) =>
-      new PredicateInfo(uri, map.mapValues(_.getValue))
-    }.toVector
   }
 
 }

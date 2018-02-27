@@ -68,10 +68,5 @@ $RECYCLE.BIN/
 *.lnk
 
 .idea
-*.nt
-*.tsv
-*.trig
-*.txt
-*.ttl
 index/
 original-amie

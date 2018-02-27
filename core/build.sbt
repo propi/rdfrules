@@ -23,6 +23,7 @@ libraryDependencies += "org.apache.jena" % "jena-arq" % jenaV
 libraryDependencies += "com.typesafe.akka" %% "akka-actor" % akkaV
 libraryDependencies += "com.typesafe.akka" %% "akka-slf4j" % akkaV
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.7.1"
+libraryDependencies += "com.github.KIZI" %% "easyminer-discretization" % "1.1.0"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
 
 //libraryDependencies += "commons-cli" % "commons-cli" % "1.2"

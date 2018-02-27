@@ -1,5 +1,7 @@
 package eu.easyminer.rdf.data
 
+import eu.easyminer.discretization.impl.{IntervalBound, Interval => DiscretizationInterval}
+import eu.easyminer.rdf.utils.BasicExtractors.AnyToDouble
 import org.apache.jena.datatypes.RDFDatatype
 import org.apache.jena.datatypes.xsd.XSDDatatype
 import org.apache.jena.graph.{Node, NodeFactory}
@@ -9,7 +11,7 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 3. 10. 2017.
   */
-trait TripleItem
+sealed trait TripleItem
 
 object TripleItem {
 
@@ -17,9 +19,13 @@ object TripleItem {
     def hasSameUriAs(uri: Uri): Boolean
   }
 
+  object Uri {
+    implicit def apply(uri: String): Uri = LongUri(uri)
+  }
+
   case class LongUri(uri: String) extends Uri {
     def toPrefixedUri: PrefixedUri = {
-      val PrefixedUriPattern = "(.+)/(.+)".r
+      val PrefixedUriPattern = "(.+/)(.+)".r
       uri match {
         case PrefixedUriPattern(nameSpace, localName) => PrefixedUri("", nameSpace, localName)
         case _ => throw new IllegalArgumentException
@@ -65,6 +71,32 @@ object TripleItem {
     override def toString: String = value.toString
   }
 
+  object NumberDouble {
+    def unapply(arg: TripleItem): Option[Double] = arg match {
+      case x@Number(_: Any) => Some(x.n.toDouble(x.value))
+      case _ => None
+    }
+  }
+
+  case class Interval(interval: DiscretizationInterval) extends Literal {
+    override def toString: String = s"interval ${if (interval.isLeftBoundClosed()) "[" else "("} ${interval.getLeftBoundValue()} ; ${interval.getRightBoundValue()} ${if (interval.isRightBoundClosed()) "]" else ")"}"
+  }
+
+  object Interval {
+    implicit def discretizationIntervalToInterval(interval: DiscretizationInterval): Interval = Interval(interval)
+
+    def apply(text: String): Option[Interval] = {
+      val IntervalPattern = "interval (\\[|\\() (\\d+(?:\\.\\d+)?) ; (\\d+(?:\\.\\d+)?) (\\]|\\))".r
+      text match {
+        case IntervalPattern(lb, AnyToDouble(lv), AnyToDouble(rv), rb) => Some(DiscretizationInterval(
+          if (lb == "[") IntervalBound.Inclusive(lv) else IntervalBound.Exclusive(lv),
+          if (lb == "]") IntervalBound.Inclusive(rv) else IntervalBound.Exclusive(rv)
+        ))
+        case _ => None
+      }
+    }
+  }
+
   case class BooleanValue(value: Boolean) extends Literal {
     override def toString: String = if (value) "true" else "false"
   }
@@ -86,6 +118,7 @@ object TripleItem {
     case Text(value) => NodeFactory.createLiteral(value)
     case number: Number[_] => NodeFactory.createLiteral(number.toString, number: RDFDatatype)
     case boolean: BooleanValue => NodeFactory.createLiteral(boolean.toString, XSDDatatype.XSDboolean)
+    case Interval(interval) => NodeFactory.createLiteral(interval.toString)
   }
 
 }

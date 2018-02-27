@@ -48,7 +48,9 @@ object JenaLang {
             case x: java.lang.Boolean => TripleItem.BooleanValue(x.booleanValue())
             case x: java.math.BigInteger => TripleItem.Number(x.longValueExact())
             case x: java.math.BigDecimal => TripleItem.Number(x.doubleValue())
-            case _ => TripleItem.Text(x.getLiteralLexicalForm)
+            case _ =>
+              val text = x.getLiteralLexicalForm
+              TripleItem.Interval(text).getOrElse(TripleItem.Text(text))
           }
           case x: Node_URI => uriToTripleItem(x)
           case x: Node_Blank => TripleItem.BlankNode(x.getBlankNodeId.getLabelString)

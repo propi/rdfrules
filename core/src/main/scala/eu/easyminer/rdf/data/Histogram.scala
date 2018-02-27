@@ -1,15 +1,19 @@
 package eu.easyminer.rdf.data
 
 import eu.easyminer.rdf.data.Histogram.Key
-import eu.easyminer.rdf.utils.IncrementalInt
+import eu.easyminer.rdf.utils.extensions.TraversableOnceExtension._
 
 /**
   * Created by Vaclav Zeman on 2. 2. 2018.
   */
-class Histogram private(map: collection.Map[Key, Int]) extends Iterable[(Key, Int)] {
-  def iterator: Iterator[(Key, Int)] = map.iterator
+class Histogram private(col: Traversable[Key]) extends Traversable[(Key, Int)] {
+  private lazy val map = col.histogram
 
   def get(key: Key): Option[Int] = map.get(key)
+
+  def foreach[U](f: ((Key, Int)) => U): Unit = map.foreach(f)
+
+  override def toMap[T, U](implicit ev: <:<[(Key, Int), (T, U)]): Map[T, U] = map.toMap
 }
 
 object Histogram {
@@ -26,10 +30,6 @@ object Histogram {
     def apply(): Key = new Key(None, None, None)
   }
 
-  def apply(col: TraversableOnce[Key]): Histogram = {
-    val map = collection.mutable.HashMap.empty[Key, IncrementalInt]
-    col.foreach(map.getOrElseUpdate(_, IncrementalInt()).++)
-    new Histogram(map.mapValues(_.getValue))
-  }
+  def apply(col: Traversable[Key]): Histogram = new Histogram(col)
 
 }

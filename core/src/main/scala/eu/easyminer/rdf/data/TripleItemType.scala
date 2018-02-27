@@ -17,11 +17,14 @@ object TripleItemType {
 
   case object Text extends TripleItemType
 
+  case object Interval extends TripleItemType
+
   implicit def apply(tripleItem: TripleItem): TripleItemType = tripleItem match {
     case _: TripleItem.Uri => Resource
     case _: TripleItem.Text => Text
     case _: TripleItem.BooleanValue => Boolean
     case _: TripleItem.Number[_] => Number
+    case _: TripleItem.Interval => Interval
   }
 
 }

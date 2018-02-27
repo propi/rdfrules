@@ -2,6 +2,7 @@ package eu.easyminer.rdf.serialization
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 
+import eu.easyminer.discretization.impl.{Interval, IntervalBound}
 import eu.easyminer.rdf.data.TripleItem
 import eu.easyminer.rdf.utils.serialization.{Deserializer, Serializer}
 
@@ -22,6 +23,8 @@ object TripleItemSerialization {
     case TripleItem.Number(_: Short) => 9
     case TripleItem.Number(_: Byte) => 10
     case _: TripleItem.BooleanValue => 11
+    case _: TripleItem.Interval => 12
+    case x => throw new Serializer.SerializationException("No serialization index for triple item: " + x.getClass.getName)
   }
 
   /**
@@ -46,6 +49,11 @@ object TripleItemSerialization {
       case TripleItem.Number(x: Short) => baos.write(Serializer.serialize(x))
       case TripleItem.Number(x: Byte) => baos.write(Serializer.serialize(x))
       case TripleItem.BooleanValue(x) => baos.write(Serializer.serialize(x))
+      case TripleItem.Interval(x) =>
+        baos.write(Serializer.serialize(x.isLeftBoundClosed().booleanValue()))
+        baos.write(Serializer.serialize(x.getLeftBoundValue().doubleValue()))
+        baos.write(Serializer.serialize(x.isRightBoundClosed().booleanValue()))
+        baos.write(Serializer.serialize(x.getRightBoundValue().doubleValue()))
       case x => throw new Serializer.SerializationException("No serializer for triple item: " + x.getClass.getName)
     }
     baos.toByteArray
@@ -69,6 +77,15 @@ object TripleItemSerialization {
       case 9 => TripleItem.Number(Deserializer.deserialize[Short](bais))
       case 10 => TripleItem.Number(Deserializer.deserialize[Byte](bais))
       case 11 => TripleItem.BooleanValue(Deserializer.deserialize[Boolean](bais))
+      case 12 =>
+        val isLeftBoundClosed = Deserializer.deserialize[Boolean](bais)
+        val leftBoundValue = Deserializer.deserialize[Double](bais)
+        val isRightBoundClosed = Deserializer.deserialize[Boolean](bais)
+        val rightBoundValue = Deserializer.deserialize[Double](bais)
+        TripleItem.Interval(Interval(
+          if (isLeftBoundClosed) IntervalBound.Inclusive(leftBoundValue) else IntervalBound.Exclusive(leftBoundValue),
+          if (isRightBoundClosed) IntervalBound.Inclusive(rightBoundValue) else IntervalBound.Exclusive(rightBoundValue)
+        ))
       case x => throw new Deserializer.DeserializationException("No deserializer for index: " + x)
     }
   }

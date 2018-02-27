@@ -1,5 +1,7 @@
 package eu.easyminer.rdf.utils.extensions
 
+import eu.easyminer.rdf.utils.IncrementalInt
+
 /**
   * Created by Vaclav Zeman on 2. 2. 2018.
   */
@@ -32,6 +34,12 @@ object TraversableOnceExtension {
         col foreach f
         col2 foreach f
       }
+    }
+
+    def histogram: collection.Map[T, Int] = {
+      val map = collection.mutable.HashMap.empty[T, IncrementalInt]
+      col.foreach(map.getOrElseUpdate(_, IncrementalInt()).++)
+      map.mapValues(_.getValue)
     }
 
   }

@@ -12,7 +12,7 @@ object TripleItemIndex extends Index[TripleItem] {
 
   def save(graph: Graph, buildOutputStream: => OutputStream): Unit = save(Dataset(graph), buildOutputStream)
 
-  def save(dataset: Dataset, buildOutputStream: => OutputStream): Unit = save(dataset.toTriples.flatMap(triple => List(triple.subject, triple.predicate, triple.`object`)).toSet, buildOutputStream)
+  def save(dataset: Dataset, buildOutputStream: => OutputStream): Unit = save(dataset.triples.flatMap(triple => List(triple.subject, triple.predicate, triple.`object`)).toSet, buildOutputStream)
 
   def loadToIndexedSeq(buildInputStream: => InputStream): IndexedSeq[TripleItem] = loadToTraversable(buildInputStream).toIndexedSeq
 
