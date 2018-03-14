@@ -3,33 +3,69 @@ package eu.easyminer.rdf.index
 import java.io.{InputStream, OutputStream}
 
 import eu.easyminer.rdf.data.Dataset
-import eu.easyminer.rdf.utils.serialization.{Deserializer, SerializationSize, Serializer}
-
-import scala.collection.TraversableView
+import eu.easyminer.rdf.index.ops._
 
 /**
-  * Created by Vaclav Zeman on 4. 10. 2017.
+  * Created by Vaclav Zeman on 12. 3. 2018.
   */
-trait Index[T] {
+trait Index {
 
-  def save(buildOutputStream: => OutputStream)(f: Serializer.Writer[T] => Unit)(implicit serializer: Serializer[T], serializationSize: SerializationSize[T]): Unit = {
-    Serializer.serializeToOutputStream[T](buildOutputStream)(f)
+  def tripleMap[T](f: TripleHashIndex => T): T
+
+  def tripleItemMap[T](f: TripleItemHashIndex => T): T
+
+  def toDataset: Dataset
+
+  def cache(os: => OutputStream): Unit
+
+  def newIndex: Index
+
+}
+
+object Index {
+
+  sealed trait Mode
+
+  object Mode {
+
+    case object InUseInMemory extends Mode
+
+    case object PreservedInMemory extends Mode
+
   }
 
-  def save(items: Traversable[T], buildOutputStream: => OutputStream)(implicit serializer: Serializer[T], serializationSize: SerializationSize[T]): Unit = {
-    save(buildOutputStream) { writer =>
-      items.foreach(writer.write)
+  def fromDataset(dataset: Dataset, mode: Mode = Mode.PreservedInMemory): Index = {
+    val _dataset = dataset
+    trait ConcreteIndex extends Index with Cacheable with FromDatasetBuildable {
+      override def toDataset: Dataset = _dataset
+
+      def newIndex: Index = fromDataset(_dataset, mode)
+    }
+    mode match {
+      case Mode.PreservedInMemory => new ConcreteIndex with PreservedInMemory
+      case Mode.InUseInMemory => new ConcreteIndex with InUseInMemory
     }
   }
 
-  def load[R](buildInputStream: => InputStream)(f: Deserializer.Reader[T] => R)(implicit deserializer: Deserializer[T], serializationSize: SerializationSize[T]): R = {
-    Deserializer.deserializeFromInputStream[T, R](buildInputStream)(f)
-  }
+  def fromCache(is: => InputStream, mode: Mode = Mode.PreservedInMemory): Index = {
+    trait ConcreteIndex extends Index with Cacheable with FromCacheBuildable {
+      def newIndex: Index = fromCache(is, mode)
 
-  def loadToTraversable(buildInputStream: => InputStream)(implicit deserializer: Deserializer[T], serializationSize: SerializationSize[T]): TraversableView[T, Traversable[T]] = {
-    new Traversable[T] {
-      def foreach[U](f: (T) => U): Unit = load(buildInputStream)(reader => Stream.continually(reader.read()).takeWhile(_.nonEmpty).map(_.get).foreach(f))
-    }.view
+      protected def useInputStream[T](f: InputStream => T): T = {
+        val _is = is
+        try {
+          f(_is)
+        } finally {
+          _is.close()
+        }
+      }
+
+      override def cache(os: => OutputStream): Unit = super[FromCacheBuildable].cache(os)
+    }
+    mode match {
+      case Mode.PreservedInMemory => new ConcreteIndex with PreservedInMemory
+      case Mode.InUseInMemory => new ConcreteIndex with InUseInMemory
+    }
   }
 
 }

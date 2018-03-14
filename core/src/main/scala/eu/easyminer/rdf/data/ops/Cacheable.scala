@@ -9,13 +9,15 @@ import eu.easyminer.rdf.utils.serialization.{Deserializer, SerializationSize, Se
   */
 trait Cacheable[T, Coll] extends Transformable[T, Coll] {
 
+  self: Coll =>
+
   protected implicit val serializer: Serializer[T]
   protected implicit val deserializer: Deserializer[T]
   protected implicit val serializationSize: SerializationSize[T]
 
   def cache: Coll = transform(coll.toList)
 
-  def cache(os: => OutputStream)(is: => InputStream): Coll = {
+  def cache(os: => OutputStream, is: => InputStream): Coll = {
     Serializer.serializeToOutputStream[T](os) { writer =>
       coll.foreach(writer.write)
     }
@@ -26,6 +28,13 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
         }
       }
     })
+  }
+
+  def cache(os: => OutputStream): Coll = {
+    Serializer.serializeToOutputStream[T](os) { writer =>
+      coll.foreach(writer.write)
+    }
+    this
   }
 
 }

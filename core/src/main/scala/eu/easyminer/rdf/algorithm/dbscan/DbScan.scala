@@ -1,4 +1,4 @@
-package eu.easyminer.rdf.clustering
+package eu.easyminer.rdf.algorithm.dbscan
 
 /**
   * Created by Vaclav Zeman on 31. 7. 2017.

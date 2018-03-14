@@ -32,24 +32,6 @@ object AtomPattern {
       def apply(constant: TripleItem)(implicit mapper: TripleItem => Int): Constant = Constant(Atom.Constant(mapper(constant)))
     }
 
-    /*def apply(s: String)(implicit stringToTripleItem: String => Option[TripleItem]): Option[AtomItemPattern] = {
-      val VariableChar = "\\?(\\w)".r
-      s match {
-        case VariableChar(char) => Some(Variable(Atom.Variable(char.head)))
-        case x => stringToTripleItem(x).map(Constant)
-      }
-    }*/
-
   }
-
-  /*def apply(subject: AtomItemPattern, predicate: Option[TripleItem.Uri], `object`: AtomItemPattern)
-           (implicit mapper: TripleItem => Int): AtomPattern = {
-    def aipToAi(x: AtomItemPattern): Atom.Item = x match {
-      case AtomItemPattern.Variable(v) => v
-      case AtomItemPattern.Constant(tripleItem) => Atom.Constant(mapper(tripleItem))
-    }
-
-    AtomPattern(aipToAi(subject), predicate.map(mapper), aipToAi(`object`))
-  }*/
 
 }

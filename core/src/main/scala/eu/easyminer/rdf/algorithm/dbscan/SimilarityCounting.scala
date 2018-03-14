@@ -1,4 +1,4 @@
-package eu.easyminer.rdf.clustering
+package eu.easyminer.rdf.algorithm.dbscan
 
 import eu.easyminer.rdf.rule.{Atom, Measure, Rule}
 

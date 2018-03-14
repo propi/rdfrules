@@ -7,6 +7,7 @@ import org.apache.jena.datatypes.xsd.XSDDatatype
 import org.apache.jena.graph.{Node, NodeFactory}
 
 import scala.language.implicitConversions
+import scala.util.Try
 
 /**
   * Created by Vaclav Zeman on 3. 10. 2017.
@@ -46,7 +47,7 @@ object TripleItem {
 
     def hasSameUriAs(uri: Uri): Boolean = uri match {
       case PrefixedUri(_, nameSpace2, localName2) => nameSpace == nameSpace2 && localName == localName2
-      case x: LongUri => hasSameUriAs(x.toPrefixedUri)
+      case x: LongUri => Try(hasSameUriAs(x.toPrefixedUri)).getOrElse(false)
       case _ => false
     }
 

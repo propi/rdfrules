@@ -53,6 +53,8 @@ object Dataset {
 
   def apply[T <: RdfSource](file: File)(implicit reader: RdfReader[T]): Dataset = new Dataset(reader.fromFile(file))
 
+  def apply(quads: Traversable[Quad]): Dataset = new Dataset(quads.view)
+
   def fromCache(is: => InputStream): Dataset = new Dataset(
     new Traversable[Quad] {
       def foreach[U](f: Quad => U): Unit = {

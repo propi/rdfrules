@@ -1,8 +1,5 @@
 package eu.easyminer.rdf.rule
 
-import eu.easyminer.rdf.data.TripleItem
-import eu.easyminer.rdf.stringifier.Stringifier
-
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
@@ -38,12 +35,5 @@ object Atom {
   case class Constant(value: Int) extends Item
 
   implicit val variableOrdering: Ordering[Variable] = Ordering.by[Variable, Int](_.index)
-
-  implicit def itemStringifier(implicit item: Int => TripleItem): Stringifier[Item] = {
-    case x: Atom.Variable => x.value
-    case Atom.Constant(x) => item(x).toString
-  }
-
-  implicit def atomStringifier(implicit item: Int => TripleItem): Stringifier[Atom] = (v: Atom) => s"(${Stringifier(v.subject)} ${item(v.predicate).toString} ${Stringifier(v.`object`)})"
 
 }

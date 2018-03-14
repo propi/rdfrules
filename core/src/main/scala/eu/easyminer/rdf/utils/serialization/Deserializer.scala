@@ -66,6 +66,19 @@ object Deserializer {
 
   implicit def numberDeserializer[T](implicit n: Numeric[T]): Deserializer[T] = (v: Array[Byte]) => byteArrayToNumber[T](v)
 
+  implicit def eitherDeserializer[T1, T2](implicit
+                                          deserializer1: Deserializer[T1],
+                                          serializationSize1: SerializationSize[T1],
+                                          deserializer2: Deserializer[T2],
+                                          serializationSize2: SerializationSize[T2]): Deserializer[Either[T1, T2]] = (v: Array[Byte]) => {
+    val bais = new ByteArrayInputStream(v)
+    bais.read() match {
+      case 1 => Left(Deserializer.deserialize[T1](bais))
+      case 2 => Right(Deserializer.deserialize[T2](bais))
+      case x => throw new DeserializationException("No deserializer for index: " + x)
+    }
+  }
+
   implicit def tuple2Deserializer[T1, T2](implicit
                                           deserializer1: Deserializer[T1],
                                           serializationSize1: SerializationSize[T1],

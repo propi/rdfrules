@@ -9,7 +9,6 @@ import eu.easyminer.rdf.utils.OptionalLazyVal
 
 import scala.language.implicitConversions
 import scala.util.{Failure, Try}
-import CompressedTripleSerialization._
 import eu.easyminer.rdf.printer.Printer
 
 import scala.collection.SeqView

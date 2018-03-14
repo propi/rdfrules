@@ -1,9 +1,9 @@
-package eu.easyminer.rdf.utils
+package eu.easyminer.rdf.utils.extensions
 
 /**
   * Created by Vaclav Zeman on 30. 6. 2017.
   */
-object IteratorExtensions {
+object IteratorExtension {
 
   implicit class PimpedIterator[T](it: Iterator[T]) {
     def distinctBy[A](f: T => A): Iterator[T] = new Iterator[T] {

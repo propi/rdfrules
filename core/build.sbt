@@ -13,18 +13,21 @@ parallelExecution in Test := false
 
 testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oF")
 
-val akkaV = "2.5.6"
+resolvers ++= Seq("jitpack" at "https://jitpack.io")
+
+fork in test := true
+
+javaOptions += "-javaagent:tools/object-explorer.jar"
+
 val jenaV = "3.4.0"
 
 libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
-libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.6"
-libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.7.7"
 libraryDependencies += "org.apache.jena" % "jena-arq" % jenaV
-libraryDependencies += "com.typesafe.akka" %% "akka-actor" % akkaV
-libraryDependencies += "com.typesafe.akka" %% "akka-slf4j" % akkaV
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.7.1"
 libraryDependencies += "com.github.KIZI" %% "easyminer-discretization" % "1.1.0"
+libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.6" % "test"
+libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.7.7" % "test"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
+libraryDependencies += "com.github.shihyuho" % "memory-measurer" % "master-SNAPSHOT" % "test"
 
 //libraryDependencies += "commons-cli" % "commons-cli" % "1.2"
-//libraryDependencies += "com.github.shihyuho" % "memory-measurer" % "master-SNAPSHOT"

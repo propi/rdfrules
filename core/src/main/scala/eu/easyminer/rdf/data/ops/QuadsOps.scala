@@ -3,6 +3,8 @@ package eu.easyminer.rdf.data.ops
 import eu.easyminer.rdf.data.{Prefix, Quad, Triple, TripleItem}
 import eu.easyminer.rdf.data.Quad.QuadTraversableView
 
+import scala.util.Try
+
 /**
   * Created by Vaclav Zeman on 16. 2. 2018.
   */
@@ -20,8 +22,9 @@ trait QuadsOps[Coll] {
 
       def tryToPrefix(uri: TripleItem.Uri) = uri match {
         case x: TripleItem.LongUri =>
-          val prefixedUri = x.toPrefixedUri
-          map.get(prefixedUri.nameSpace).map(prefix => prefixedUri.copy(prefix = prefix)).getOrElse(x)
+          Try(x.toPrefixedUri).map { prefixedUri =>
+            map.get(prefixedUri.nameSpace).map(prefix => prefixedUri.copy(prefix = prefix)).getOrElse(x)
+          }.getOrElse(x)
         case x: TripleItem.PrefixedUri =>
           map.get(x.nameSpace).map(prefix => x.copy(prefix = prefix)).getOrElse(x)
         case x => x

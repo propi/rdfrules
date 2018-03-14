@@ -1,34 +1,17 @@
 package eu.easyminer.rdf.rule
 
-import eu.easyminer.rdf.stringifier.Stringifier
+import eu.easyminer.rdf.utils.TypedKeyMap.{Key, Value}
 
 import scala.language.implicitConversions
 
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
-sealed trait Measure {
-  def companion: Measure.Key[Measure]
+sealed trait Measure extends Value {
+  def companion: Key[Measure]
 }
 
 object Measure {
-
-  case class Measures(m: collection.mutable.Map[Key[Measure], Measure]) {
-    def apply[A <: Measure](implicit key: Key[A]): A = m(key).asInstanceOf[A]
-
-    def get[A <: Measure](implicit key: Key[A]): Option[A] = m.get(key).map(_.asInstanceOf[A])
-
-    def +=(measures: (Key[Measure], Measure)*): Measures = {
-      m ++= measures
-      this
-    }
-  }
-
-  object Measures {
-    def apply(measures: (Key[Measure], Measure)*): Measures = Measures(collection.mutable.Map(measures: _*))
-  }
-
-  sealed trait Key[+T <: Measure]
 
   case class Support(value: Int) extends Measure {
     def companion: Support.type = Support
@@ -95,19 +78,6 @@ object Measure {
   implicit val measureKeyOrdering: Ordering[Key[Measure]] = {
     val map = Iterator[Key[Measure]](Support, HeadCoverage, Confidence, Lift, PcaConfidence, PcaLift, HeadConfidence, HeadSize, BodySize, PcaBodySize).zipWithIndex.map(x => x._1 -> (x._2 + 1)).toMap
     Ordering.by[Key[Measure], Int](map.getOrElse(_, 0))
-  }
-
-  implicit val measureStringifier: Stringifier[Measure] = {
-    case Measure.Support(v) => s"support: $v"
-    case Measure.HeadCoverage(v) => s"headCoverage: $v"
-    case Measure.Confidence(v) => s"confidence: $v"
-    case Measure.Lift(v) => s"lift: $v"
-    case Measure.PcaConfidence(v) => s"pcaConfidence: $v"
-    case Measure.PcaLift(v) => s"pcaLift: $v"
-    case Measure.HeadConfidence(v) => s"headConfidence: $v"
-    case Measure.HeadSize(v) => s"headSize: $v"
-    case Measure.BodySize(v) => s"bodySize: $v"
-    case Measure.PcaBodySize(v) => s"pcaBodySize: $v"
   }
 
 }

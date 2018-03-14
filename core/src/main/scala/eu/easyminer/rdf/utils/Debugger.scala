@@ -1,6 +1,5 @@
 package eu.easyminer.rdf.utils
 
-import akka.actor.{Actor, ActorRef, ActorRefFactory, Props}
 import com.typesafe.scalalogging.Logger
 import eu.easyminer.rdf.utils.Debugger.ActionDebugger
 
@@ -18,25 +17,36 @@ trait Debugger {
 
 object Debugger {
 
+  import DebuggerActor.Message
+
   val logger: Logger = Logger[Debugger]
 
-  def apply()(implicit af: ActorRefFactory): Debugger = new ActorDebugger(af.actorOf(DebuggerActor.props))
+  def apply[T](f: Debugger => T): T = {
+    val actor = new DebuggerActor
+    new Thread(actor).start()
+    try {
+      f(new ActorDebugger(actor))
+    } finally {
+      actor ! Message.Stop
+    }
+  }
 
   object EmptyDebugger extends Debugger {
     def debug[T](name: String, num: Int = 0)(f: (ActionDebugger) => T): T = f(EmptyActionDebugger)
   }
 
-  private class ActorDebugger(debugger: ActorRef) extends Debugger {
+  private class ActorDebugger(debugger: DebuggerActor) extends Debugger {
 
     def debug[T](name: String, num: Int = 0)(f: ActionDebugger => T): T = {
       val ad = new ActorActionDebugger(name, num, debugger)
-      debugger ! Messages.NewAction(name, num)
+      debugger ! Message.NewAction(name, num)
       try {
         f(ad)
       } finally {
-        debugger ! Messages.CloseAction(name)
+        debugger ! Message.CloseAction(name)
       }
     }
+
   }
 
   sealed trait ActionDebugger {
@@ -49,19 +59,20 @@ object Debugger {
     }
   }
 
-  private class ActorActionDebugger(name: String, num: Int, debugger: ActorRef) extends ActionDebugger {
-    def done(msg: String = ""): Unit = debugger ! Messages.Debug(name, msg)
+  private class ActorActionDebugger(name: String, num: Int, debugger: DebuggerActor) extends ActionDebugger {
+    def done(msg: String = ""): Unit = debugger ! Message.Debug(name, msg)
   }
 
   private object EmptyActionDebugger extends ActionDebugger {
     def done(msg: String = ""): Unit = {}
   }
 
-  private class DebuggerActor extends Actor {
+  private class DebuggerActor extends Runnable {
 
-    val debugClock: FiniteDuration = 5 seconds
-    val actions = collection.mutable.Map.empty[String, Action]
-    var lastDump = 0L
+    private val messages = collection.mutable.Queue.empty[Message]
+    private val debugClock: FiniteDuration = 5 seconds
+    private val actions = collection.mutable.Map.empty[String, Action]
+    private var lastDump = 0L
 
     class Action(name: String, maxNum: Int) {
 
@@ -91,7 +102,7 @@ object Debugger {
 
     }
 
-    def dump(action: Action, msg: String): Unit = {
+    private def dump(action: Action, msg: String): Unit = {
       action.state = msg
       if (lastDump + debugClock.toMillis < System.currentTimeMillis()) {
         for (action <- actions.valuesIterator) {
@@ -101,36 +112,53 @@ object Debugger {
       }
     }
 
-    def receive: Receive = {
-      case Messages.NewAction(name, num) =>
-        val action = new Action(name, num)
-        actions += (name -> action)
-        dump(action, "started")
-      case Messages.Debug(name, msg) => actions.get(name).foreach { action =>
-        action.++
-        dump(action, msg)
+
+    def run(): Unit = this.synchronized {
+      var stopped = false
+      while (!stopped) {
+        if (messages.isEmpty) this.wait()
+        while (messages.nonEmpty && !stopped) {
+          messages.dequeue() match {
+            case Message.NewAction(name, num) =>
+              val action = new Action(name, num)
+              actions += (name -> action)
+              dump(action, "started")
+            case Message.Debug(name, msg) => actions.get(name).foreach { action =>
+              action.++
+              dump(action, msg)
+            }
+            case Message.CloseAction(name) => actions.get(name).foreach { action =>
+              dump(action, "ended")
+              actions -= name
+            }
+            case Message.Stop => stopped = true
+          }
+        }
       }
-      case Messages.CloseAction(name) => actions.get(name).foreach { action =>
-        dump(action, "ended")
-        actions -= name
-      }
+    }
+
+    def !(message: Message): Unit = this.synchronized {
+      messages.enqueue(message)
+      this.notify()
     }
 
   }
 
   private object DebuggerActor {
 
-    def props = Props(new DebuggerActor)
+    sealed trait Message
 
-  }
+    object Message {
 
-  private object Messages {
+      case class NewAction(name: String, num: Int) extends Message
 
-    case class NewAction(name: String, num: Int)
+      case class Debug(name: String, msg: String = "") extends Message
 
-    case class Debug(name: String, msg: String = "")
+      case class CloseAction(name: String) extends Message
 
-    case class CloseAction(name: String)
+      case object Stop extends Message
+
+    }
 
   }
 

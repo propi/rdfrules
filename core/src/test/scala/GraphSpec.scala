@@ -114,13 +114,13 @@ class GraphSpec extends FlatSpec with Matchers with Inside {
     graphDbpedia.filter(_.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok")).cache.triples should matchPattern {
       case `SeqView[Triple, _]`(_) =>
     }
-    val cached = graphDbpedia.cache(new FileOutputStream("test.cache"))(new FileInputStream("test.cache"))
+    val cached = graphDbpedia.cache(new FileOutputStream("test.cache"), new FileInputStream("test.cache"))
     cached.size shouldBe 50000
     val g2 = Graph.fromCache(new FileInputStream("test.cache"))
     g2.size shouldBe 50000
     g2.name shouldBe Graph.default
     new File("test.cache").delete() shouldBe true
-    graph.cache(new FileOutputStream("test.cache"))(new FileInputStream("test.cache")).size shouldBe 46654
+    graph.cache(new FileOutputStream("test.cache"), new FileInputStream("test.cache")).size shouldBe 46654
     new File("test.cache").delete() shouldBe true
   }
 

@@ -56,6 +56,23 @@ object Serializer {
 
   implicit def numberSerializer[T](implicit n: Numeric[T]): Serializer[T] = (v: T) => v
 
+  implicit def eitherSerializer[T1, T2](implicit
+                                        serializer1: Serializer[T1],
+                                        serializationSize1: SerializationSize[T1],
+                                        serializer2: Serializer[T2],
+                                        serializationSize2: SerializationSize[T2]): Serializer[Either[T1, T2]] = (v: Either[T1, T2]) => {
+    val baos = new ByteArrayOutputStream()
+    v match {
+      case Left(x) =>
+        baos.write(1)
+        baos.write(Serializer.serialize(x))
+      case Right(x) =>
+        baos.write(2)
+        baos.write(Serializer.serialize(x))
+    }
+    baos.toByteArray
+  }
+
   implicit def tuple2Serializer[T1, T2](implicit
                                         serializer1: Serializer[T1],
                                         serializationSize1: SerializationSize[T1],

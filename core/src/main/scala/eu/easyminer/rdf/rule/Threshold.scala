@@ -1,32 +1,17 @@
 package eu.easyminer.rdf.rule
 
+import eu.easyminer.rdf.utils.TypedKeyMap.{Key, Value}
+
 import scala.language.implicitConversions
 
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
-sealed trait Threshold {
-  def companion: Threshold.Key[Threshold]
+sealed trait Threshold extends Value {
+  def companion: Key[Threshold]
 }
 
 object Threshold {
-
-  case class Thresholds(m: collection.mutable.Map[Key[Threshold], Threshold]) {
-    def apply[A <: Threshold](implicit key: Key[A]): A = m(key).asInstanceOf[A]
-
-    def get[A <: Threshold](implicit key: Key[A]): Option[A] = m.get(key).map(_.asInstanceOf[A])
-
-    def +=(thresholds: (Key[Threshold], Threshold)*): Thresholds = {
-      m ++= thresholds
-      this
-    }
-  }
-
-  object Thresholds {
-    def apply(thresholds: (Key[Threshold], Threshold)*): Thresholds = Thresholds(collection.mutable.Map(thresholds: _*))
-  }
-
-  sealed trait Key[+T <: Threshold]
 
   case class MinSupport(value: Int) extends Threshold {
     def companion: MinSupport.type = MinSupport
@@ -57,6 +42,12 @@ object Threshold {
   }
 
   implicit object MinPcaConfidence extends Key[MinPcaConfidence]
+
+  case class TopK(value: Int) extends Threshold {
+    def companion: TopK.type = TopK
+  }
+
+  implicit object TopK extends Key[TopK]
 
   implicit def thresholdToKeyValue(threshold: Threshold): (Key[Threshold], Threshold) = threshold.companion -> threshold
 

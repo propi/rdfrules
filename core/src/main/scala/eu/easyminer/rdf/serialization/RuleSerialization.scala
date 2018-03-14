@@ -1,16 +1,8 @@
-package eu.easyminer.rdf.rule
-
-import java.io.ByteArrayInputStream
-import java.nio.ByteBuffer
-
-import eu.easyminer.rdf.rule.Measure.Measures
-import eu.easyminer.rdf.utils.serialization.{Deserializer, SerializationSize, Serializer}
-
-import scala.language.implicitConversions
+package eu.easyminer.rdf.serialization
 
 trait RuleSerialization {
 
-  implicit private def atomItemToInt(item: Atom.Item): Int = item match {
+  /*implicit private def atomItemToInt(item: Atom.Item): Int = item match {
     case x: Atom.Variable => x.index
     case x: Atom.Constant => x.value
   }
@@ -99,7 +91,6 @@ trait RuleSerialization {
 
   implicit val ruleSerializer: Serializer[Rule] = (v: Rule) => {
     import AtomSerialization._
-    import MeasuresSerialization._
     val measuresBytes = Serializer.serialize(v.measures)
     val atomsBytes = Serializer.serialize((v.head +: v.body).asInstanceOf[Traversable[Atom]])
     measuresBytes ++ atomsBytes
@@ -112,6 +103,6 @@ trait RuleSerialization {
     val measures = Deserializer.deserialize[Measures](bais)
     val atoms = Deserializer.deserialize[Traversable[Atom]](bais)
     Rule.Simple(atoms.head, atoms.tail.toIndexedSeq)(measures)
-  }
+  }*/
 
 }

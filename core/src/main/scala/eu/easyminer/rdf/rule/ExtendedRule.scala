@@ -1,5 +1,7 @@
 package eu.easyminer.rdf.rule
 
+import eu.easyminer.rdf.utils.TypedKeyMap
+
 /**
   * Created by Vaclav Zeman on 31. 7. 2017.
   */
@@ -7,7 +9,7 @@ sealed trait ExtendedRule extends Rule {
 
   val headTriples: IndexedSeq[(Int, Int)]
   val maxVariable: Atom.Variable
-  val patterns: Traversable[RulePattern]
+  val patterns: List[RulePattern]
 
   def headSize: Int = headTriples.length
 
@@ -71,8 +73,8 @@ object ExtendedRule {
   }
 
   case class ClosedRule(body: IndexedSeq[Atom], head: Atom)
-                       (val measures: Measure.Measures,
-                        val patterns: Traversable[RulePattern],
+                       (val measures: TypedKeyMap[Measure],
+                        val patterns: List[RulePattern],
                         val variables: List[Atom.Variable],
                         val maxVariable: Atom.Variable,
                         val headTriples: IndexedSeq[(Int, Int)]) extends ExtendedRule {
@@ -85,8 +87,8 @@ object ExtendedRule {
   }
 
   case class DanglingRule(body: IndexedSeq[Atom], head: Atom)
-                         (val measures: Measure.Measures,
-                          val patterns: Traversable[RulePattern],
+                         (val measures: TypedKeyMap[Measure],
+                          val patterns: List[RulePattern],
                           val variables: DanglingVariables,
                           val maxVariable: Atom.Variable,
                           val headTriples: IndexedSeq[(Int, Int)]) extends ExtendedRule {

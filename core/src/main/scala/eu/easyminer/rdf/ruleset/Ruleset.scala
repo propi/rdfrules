@@ -1,7 +1,8 @@
-package eu.easyminer.rdf.rule
+package eu.easyminer.rdf.ruleset
 
 import eu.easyminer.rdf.data.TripleItem
-import eu.easyminer.rdf.rule.Ruleset.RulesetView
+import eu.easyminer.rdf.rule.Rule
+import eu.easyminer.rdf.ruleset.Ruleset.RulesetView
 
 import scala.collection.TraversableView
 

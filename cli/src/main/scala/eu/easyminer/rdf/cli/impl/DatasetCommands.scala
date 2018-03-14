@@ -6,7 +6,6 @@ import eu.easyminer.rdf.cli.Command.CommandException
 import eu.easyminer.rdf.cli.TripleItemComparator.compare
 import eu.easyminer.rdf.data._
 import eu.easyminer.rdf.printer.Printer
-import eu.easyminer.rdf.utils.TraversableViewExtension._
 
 import scala.util.{Failure, Success, Try}
 
