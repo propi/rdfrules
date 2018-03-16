@@ -1,7 +1,7 @@
 import GraphSpec.dataDbpedia
 import eu.easyminer.rdf.algorithm.RulesMining
 import eu.easyminer.rdf.algorithm.amie.Amie
-import eu.easyminer.rdf.data.{Dataset, Graph, RdfSource}
+import eu.easyminer.rdf.data.{Dataset, Graph, RdfSource, TripleItem}
 import org.apache.jena.riot.Lang
 import org.scalatest.{FlatSpec, Inside, Matchers}
 import eu.easyminer.rdf.data.formats.Tsv._
@@ -47,8 +47,32 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
 
   it should "mine with default params" in {
     Debugger { implicit debugger =>
-      val amie = Amie().addConstraint(RuleConstraint.WithInstances(false)).addThreshold(Threshold.TopK(100))
       val index = Index.fromDataset(dataset.filter(_.graph.hasSameUriAs("yago")))
+      val pattern = index.tripleItemMap { implicit tihi =>
+        AtomPattern(
+          AtomPattern.AtomItemPattern.Variable('c'),
+          AtomPattern.AtomItemPattern.Constant(TripleItem.Uri("exports")),
+          AtomPattern.AtomItemPattern.Variable('b')
+        ) :: AtomPattern(
+          AtomPattern.AtomItemPattern.Variable('a'),
+          AtomPattern.AtomItemPattern.Constant(TripleItem.Uri("dealsWith")),
+          AtomPattern.AtomItemPattern.Constant(TripleItem.Uri("Germany"))
+        ) :: RulePattern(
+          AtomPattern(
+            AtomPattern.AtomItemPattern.Variable('a'),
+            AtomPattern.AtomItemPattern.Constant(TripleItem.Uri("imports")),
+            AtomPattern.AtomItemPattern.Variable('b')
+          ),
+          true
+        )
+      }
+      val amie = Amie()
+        .addConstraint(RuleConstraint.WithoutDuplicitPredicates())
+        .addConstraint(RuleConstraint.WithInstances(true))
+        //.addThreshold(Threshold.MinHeadCoverage(0.001))
+        .addThreshold(Threshold.TopK(100))
+        .addThreshold(Threshold.MaxRuleLength(5))
+      //.addPattern(pattern)
       val rules = index.tripleMap { thi =>
         amie.mine(thi)
       }

@@ -1,12 +1,14 @@
 package eu.easyminer.rdf.rule
 
 import eu.easyminer.rdf.data.TripleItem
+import eu.easyminer.rdf.index.TripleItemHashIndex
 import eu.easyminer.rdf.rule.AtomPattern.AtomItemPattern
+import eu.easyminer.rdf.rule.AtomPattern.AtomItemPattern.Any
 
 /**
   * Created by Vaclav Zeman on 23. 9. 2017.
   */
-case class AtomPattern(subject: AtomItemPattern, predicate: AtomItemPattern, `object`: AtomItemPattern)
+case class AtomPattern(subject: AtomItemPattern = Any, predicate: AtomItemPattern = Any, `object`: AtomItemPattern = Any, graph: AtomItemPattern = Any)
 
 object AtomPattern {
 
@@ -29,7 +31,7 @@ object AtomPattern {
     case class Constant(constant: Atom.Constant) extends AtomItemPattern
 
     object Constant {
-      def apply(constant: TripleItem)(implicit mapper: TripleItem => Int): Constant = Constant(Atom.Constant(mapper(constant)))
+      def apply(constant: TripleItem)(implicit mapper: TripleItemHashIndex): Constant = Constant(Atom.Constant(mapper.getIndex(constant)))
     }
 
   }

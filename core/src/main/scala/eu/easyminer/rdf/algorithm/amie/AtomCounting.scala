@@ -12,7 +12,7 @@ trait AtomCounting {
   type VariableMap = Map[Atom.Variable, Atom.Constant]
 
   val logger: Logger = Logger[AtomCounting]
-  val tripleIndex: TripleHashIndex
+  implicit val tripleIndex: TripleHashIndex
 
   /**
     * Specify item from variableMap.
@@ -155,6 +155,10 @@ trait AtomCounting {
     }
   }
 
+  def specifySubject(atom: Atom): Iterator[Atom] = tripleIndex.predicates(atom.predicate).subjects.keysIterator.map(subject => atom.copy(subject = Atom.Constant(subject)))
+
+  def specifyObject(atom: Atom): Iterator[Atom] = tripleIndex.predicates(atom.predicate).objects.keysIterator.map(`object` => atom.copy(`object` = Atom.Constant(`object`)))
+
   /**
     * Get all specified atoms (projections) for input atom and variableMap
     *
@@ -166,12 +170,11 @@ trait AtomCounting {
     val tm = tripleIndex.predicates(atom.predicate)
     (specifyItem(atom.subject, variableMap), specifyItem(atom.`object`, variableMap)) match {
       case (_: Atom.Variable, _: Atom.Variable) =>
-        tm.subjects.iterator
-          .flatMap(x => x._2.keysIterator.map(y => Atom(Atom.Constant(x._1), atom.predicate, Atom.Constant(y))))
+        tm.subjects.iterator.flatMap(x => x._2.iterator.map(y => Atom(Atom.Constant(x._1), atom.predicate, Atom.Constant(y))))
       case (_: Atom.Variable, ov@Atom.Constant(oc)) =>
-        tm.objects.get(oc).iterator.flatMap(_.keysIterator).map(subject => Atom(Atom.Constant(subject), atom.predicate, ov))
+        tm.objects.get(oc).iterator.flatMap(_.iterator).map(subject => Atom(Atom.Constant(subject), atom.predicate, ov))
       case (sv@Atom.Constant(sc), _: Atom.Variable) =>
-        tm.subjects.get(sc).iterator.flatMap(_.keysIterator).map(`object` => Atom(sv, atom.predicate, `object` = Atom.Constant(`object`)))
+        tm.subjects.get(sc).iterator.flatMap(_.iterator).map(`object` => Atom(sv, atom.predicate, `object` = Atom.Constant(`object`)))
       case (sv@Atom.Constant(sc), ov@Atom.Constant(oc)) =>
         if (tm.subjects.get(sc).exists(x => x.contains(oc))) Iterator(Atom(sv, atom.predicate, ov)) else Iterator.empty
     }
@@ -194,7 +197,7 @@ trait AtomCounting {
       case (sv@Atom.Constant(sc), ov: Atom.Variable) =>
         tripleIndex.subjects.get(sc).iterator.flatMap(_.predicates.keysIterator).map(predicate => Atom(sv, predicate, ov))
       case (sv@Atom.Constant(sc), ov@Atom.Constant(oc)) =>
-        tripleIndex.subjects.get(sc).iterator.flatMap(_.objects.get(oc).iterator.flatMap(_.keysIterator).map(predicate => Atom(sv, predicate, ov)))
+        tripleIndex.subjects.get(sc).iterator.flatMap(_.objects.get(oc).iterator.flatMap(_.iterator).map(predicate => Atom(sv, predicate, ov)))
     }
   }
 

@@ -10,8 +10,11 @@ sealed trait ExtendedRule extends Rule {
   val headTriples: IndexedSeq[(Int, Int)]
   val maxVariable: Atom.Variable
   val patterns: List[RulePattern]
+  val measures: TypedKeyMap[Measure]
 
   def headSize: Int = headTriples.length
+
+  def withPatterns(patterns: List[RulePattern]): ExtendedRule
 
 }
 
@@ -79,6 +82,9 @@ object ExtendedRule {
                         val maxVariable: Atom.Variable,
                         val headTriples: IndexedSeq[(Int, Int)]) extends ExtendedRule {
 
+
+    def withPatterns(patterns: List[RulePattern]): ExtendedRule = this.copy()(measures, patterns, variables, maxVariable, headTriples)
+
     override def equals(obj: scala.Any): Boolean = obj match {
       case rule: ClosedRule => checkBodyEquality(body, rule.body.toSet)
       case _ => false
@@ -92,6 +98,8 @@ object ExtendedRule {
                           val variables: DanglingVariables,
                           val maxVariable: Atom.Variable,
                           val headTriples: IndexedSeq[(Int, Int)]) extends ExtendedRule {
+
+    def withPatterns(patterns: List[RulePattern]): ExtendedRule = this.copy()(measures, patterns, variables, maxVariable, headTriples)
 
     override def equals(obj: scala.Any): Boolean = obj match {
       case rule: DanglingRule => checkBodyEquality(body, rule.body.toSet)

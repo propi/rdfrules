@@ -1,5 +1,6 @@
 package eu.easyminer.rdf.rule
 
+import eu.easyminer.rdf.index.TripleHashIndex
 import eu.easyminer.rdf.rule.AtomPattern.AtomItemPattern
 
 /**
@@ -33,10 +34,11 @@ object AtomPatternMatcher {
     case _ => false
   }
 
-  object ForAtom extends AtomPatternMatcher[Atom] {
+  class ForAtom(implicit thi: TripleHashIndex) extends AtomPatternMatcher[Atom] {
     def matchPattern(x: Atom, pattern: AtomPattern): Boolean = matchAtomItemPattern(x.subject, pattern.subject) &&
       matchAtomItemPattern(Atom.Constant(x.predicate), pattern.predicate) &&
-      matchAtomItemPattern(x.`object`, pattern.`object`)
+      matchAtomItemPattern(x.`object`, pattern.`object`) &&
+      x.graphs.exists(x => matchAtomItemPattern(Atom.Constant(x), pattern.graph))
   }
 
   object ForFreshAtom extends AtomPatternMatcher[FreshAtom] {

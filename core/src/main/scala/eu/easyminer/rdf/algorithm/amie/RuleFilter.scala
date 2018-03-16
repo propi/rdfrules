@@ -1,6 +1,10 @@
 package eu.easyminer.rdf.algorithm.amie
 
-import eu.easyminer.rdf.rule.{Atom, TripleItemPosition}
+import eu.easyminer.rdf.index.TripleHashIndex
+import eu.easyminer.rdf.rule._
+import eu.easyminer.rdf.utils.extensions.EitherExtension._
+
+import scala.language.implicitConversions
 
 /**
   * Created by Vaclav Zeman on 31. 7. 2017.
@@ -18,7 +22,7 @@ trait RuleFilter {
     * @param support new support for the rule with the new atom
     * @return true = atom can be added
     */
-  def apply(newAtom: Atom, support: Int): Boolean
+  def apply(newAtom: Atom, support: Int): RuleFilter.FilterResult
 
   def isDefined = true
 
@@ -28,8 +32,62 @@ trait RuleFilter {
 
 object RuleFilter {
 
+  type FilterResult = (Boolean, Option[ExtendedRule => ExtendedRule])
+
+  private implicit def booleanToFilterResult(bool: Boolean): FilterResult = bool -> None
+
   class And(ruleFilter1: RuleFilter, ruleFilter2: RuleFilter) extends RuleFilter {
-    def apply(newAtom: Atom, support: Int): Boolean = ruleFilter1(newAtom, support) && ruleFilter2(newAtom, support)
+    def apply(newAtom: Atom, support: Int): FilterResult = {
+      val rf1 = ruleFilter1(newAtom, support)
+      val rf2 = ruleFilter2(newAtom, support)
+      val f = (rf1._2, rf2._2) match {
+        case (Some(f), Some(g)) => Some(f.andThen(g))
+        case (x, y) => x.orElse(y)
+      }
+      (rf1._1 && rf2._1) -> f
+    }
+  }
+
+  /**
+    * Filter atoms by rule patterns.
+    * If the rule patterns collections is empty or all paterns all exact and matched then this filter is not defined.
+    * This filter also replace old rule patterns by matched patterns within new rule
+    *
+    * @param rule original rule (without refinement)
+    */
+  class RulePatternFilter(rule: ExtendedRule)(implicit thi: TripleHashIndex) extends RuleFilter {
+
+    private val atomMatcher: AtomPatternMatcher[Atom] = new AtomPatternMatcher.ForAtom
+    private val freshAtomMatcher: AtomPatternMatcher[FreshAtom] = AtomPatternMatcher.ForFreshAtom
+
+    /**
+      * Patterns for remaining fresh atoms which can be added to this rule
+      */
+    private val patternAtoms = rule.patterns.map(x => x -> x.antecedent.lift(x.antecedent.size - rule.body.size - 1))
+
+    /**
+      * Check whether a new atom/fresh atom is matching with the current atom pattern
+      *
+      * @param atom new atom
+      * @return boolean
+      */
+    private def matchAtom(atom: Either[Atom, FreshAtom]): Iterator[RulePattern] = patternAtoms.iterator.filter(x => (x._2.isEmpty && !x._1.exact) || x._2.exists(y => atom.fold(atomMatcher.matchPattern(_, y), freshAtomMatcher.matchPattern(_, y)))).map(_._1)
+
+    /**
+      * this rule is defined only if
+      *  - rule pattern must not be empty and
+      *  - there is any partial pattern or nonEmpty atom pattern (if there are only exact patterns and are completely matched then we will not apply this filter)
+      *
+      * @return boolean
+      */
+    override val isDefined: Boolean = rule.patterns.nonEmpty && patternAtoms.exists { case (rp, ap) => !rp.exact || ap.nonEmpty }
+
+    def apply(newAtom: Atom, support: Int): FilterResult = {
+      val matchedPatterns = matchAtom(newAtom).toList
+      matchedPatterns.nonEmpty -> Some(_.withPatterns(matchedPatterns))
+    }
+
+    def matchFreshAtom(freshAtom: FreshAtom): Boolean = rule.patterns.isEmpty || matchAtom(freshAtom).nonEmpty
   }
 
   /**
@@ -38,7 +96,7 @@ object RuleFilter {
     * @param minSupport min support threshold
     */
   class MinSupportRuleFilter(minSupport: Double) extends RuleFilter {
-    def apply(newAtom: Atom, support: Int): Boolean = support >= minSupport
+    def apply(newAtom: Atom, support: Int): FilterResult = support >= minSupport
   }
 
   /**
@@ -48,7 +106,7 @@ object RuleFilter {
     * @param body body of the rule
     */
   class NoDuplicitRuleFilter(head: Atom, body: Set[Atom]) extends RuleFilter {
-    def apply(newAtom: Atom, support: Int): Boolean = newAtom != head && !body(newAtom)
+    def apply(newAtom: Atom, support: Int): FilterResult = newAtom != head && !body(newAtom)
   }
 
   /**
@@ -87,7 +145,7 @@ object RuleFilter {
       p.get(itemPosition).exists(_.exists(o => atoms.map(replaceItemInAtom(o, replacement)).size < atoms.size))
     }
 
-    def apply(newAtom: Atom, support: Int): Boolean = !(
+    def apply(newAtom: Atom, support: Int): FilterResult = !(
       //we want to detect isomorphic group - if it exists then return true and then negate it - result is false
       //only variable atoms can cause isomorphic problem
       //and only if there is some atom with the same predicate

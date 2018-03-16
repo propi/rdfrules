@@ -2,13 +2,16 @@ package eu.easyminer.rdf.algorithm.amie
 
 import com.typesafe.scalalogging.Logger
 import eu.easyminer.rdf.algorithm.RulesMining
+import eu.easyminer.rdf.algorithm.amie.RuleRefinement._
 import eu.easyminer.rdf.index.TripleHashIndex
 import eu.easyminer.rdf.rule.ExtendedRule.{ClosedRule, DanglingRule}
 import eu.easyminer.rdf.rule._
 import eu.easyminer.rdf.utils.HowLong._
 import eu.easyminer.rdf.utils.{Debugger, HashQueue, TypedKeyMap}
 
+import scala.collection.mutable
 import scala.collection.parallel.immutable.ParVector
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
@@ -27,7 +30,7 @@ class Amie private(implicit debugger: Debugger) extends RulesMining {
     */
   def mine(tripleIndex: TripleHashIndex): IndexedSeq[ClosedRule] = {
     //create amie process with debugger and final triple index
-    val process = new AmieProcess(tripleIndex)(if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) debugger else Debugger.EmptyDebugger)
+    val process = new AmieProcess()(tripleIndex, new Settings(this)(if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) debugger else Debugger.EmptyDebugger))
     //get all possible heads
     val heads = {
       val builder = ParVector.newBuilder[DanglingRule]
@@ -36,31 +39,58 @@ class Amie private(implicit debugger: Debugger) extends RulesMining {
     }
     //parallel rule mining: for each head we search rules
     debugger.debug("Amie rules mining", heads.length) { ad =>
-      heads.flatMap { head =>
-        ad.result()(process.searchRules(head))
-      }.seq
+      heads.foreach(head => ad.result()(process.searchRules(head)))
     }
+    process.result.fold(_.dequeueAll, x => x)
   }
 
-  private class AmieProcess(val tripleIndex: TripleHashIndex)(implicit val debugger: Debugger) extends RuleExpansion with AtomCounting {
+  private class AmieProcess(implicit val tripleIndex: TripleHashIndex, settings: RuleRefinement.Settings) extends AtomCounting {
 
-    private var _minHeadCoverage = thresholds.apply[Threshold.MinHeadCoverage].value
+    private implicit val ec: ExecutionContext = ExecutionContext.global
 
-    def minHeadCoverage: Double = _minHeadCoverage
+    private val topK: Int = thresholds.get[Threshold.TopK].map(_.value).getOrElse(0)
+    private val minSupport: Int = thresholds.apply[Threshold.MinSupport].value
 
-    val minSupport: Int = thresholds.apply[Threshold.MinSupport].value
-    val topK: Int = thresholds.get[Threshold.TopK].map(_.value).getOrElse(0)
-    val isWithInstances: Boolean = constraints.exists[RuleConstraint.WithInstances]
-    val maxRuleLength: Int = thresholds.apply[Threshold.MaxRuleLength].value
-    val withDuplicitPredicates: Boolean = constraints.exists[RuleConstraint.WithoutDuplicitPredicates]
-    val onlyObjectInstances: Boolean = constraints.get[RuleConstraint.WithInstances].exists(_.onlyObjects)
-    val atomMatcher: AtomPatternMatcher[Atom] = AtomPatternMatcher.ForAtom
-    val freshAtomMatcher: AtomPatternMatcher[FreshAtom] = AtomPatternMatcher.ForFreshAtom
+    /**
+      * collection for mined closed rules
+      * there are two collections for two mining approaches: byMinSupport or topK
+      * for topK we need to use priority queue where on the peek there is rule with lowest HC
+      * for byMinSupport we need only a simple buffer
+      */
+    val result: Either[mutable.PriorityQueue[ClosedRule], mutable.ArrayBuffer[ClosedRule]] = if (topK > 0) {
+      Left(mutable.PriorityQueue.empty[ClosedRule](Ordering.by[ClosedRule, Double](_.measures[Measure.HeadCoverage].value).reverse))
+    } else {
+      Right(mutable.ArrayBuffer.empty[ClosedRule])
+    }
 
-    private val onlyPredicates = constraints.get[RuleConstraint.OnlyPredicates].map(_.predicates)
-    private val withoutPredicates = constraints.get[RuleConstraint.WithoutPredicates].map(_.predicates)
-
-    def isValidPredicate(predicate: Int): Boolean = onlyPredicates.forall(_ (predicate)) && withoutPredicates.forall(!_ (predicate))
+    /**
+      * We add rule asynchronously and "thread-safely" into the result set
+      *
+      * when we use the topK approach then we enqueue the closed rule into the queue only if:
+      *  - queue size is lower than topK value
+      *  - queue is full, we replace the rule with lowest HC by this closed rule if this closed rule has higher HC
+      * finally if the queue is full then we rewrite the minHeadCoverage variable in Settings with HC from the peek rule of queue (with lowest HC)
+      *
+      * @param rule closed rule
+      */
+    private def addRule(rule: ClosedRule): Unit = Future {
+      result.synchronized {
+        result match {
+          case Left(result) =>
+            var enqueued = false
+            if (result.size < topK) {
+              result.enqueue(rule)
+              enqueued = true
+            } else if (rule.measures[Measure.HeadCoverage].value > result.head.measures[Measure.HeadCoverage].value) {
+              result.dequeue()
+              result.enqueue(rule)
+              enqueued = true
+            }
+            if (result.size >= topK && enqueued) settings.setMinHeadCoverage(result.head.measures[Measure.HeadCoverage].value)
+          case Right(result) => result += rule
+        }
+      }
+    }
 
     /**
       * Get all possible heads from triple index
@@ -72,28 +102,29 @@ class Amie private(implicit debugger: Debugger) extends RulesMining {
       //enumerate all possible head atoms with variables and instances
       //all unsatisfied predicates are filtered by constraints
       val possibleAtoms = {
-        val it = tripleIndex.predicates.keysIterator.filter(isValidPredicate).map(Atom(Atom.Variable(0), _, Atom.Variable(1)))
-        if (isWithInstances) {
+        val it = tripleIndex.predicates.keysIterator.filter(settings.isValidPredicate).map(Atom(Atom.Variable(0), _, Atom.Variable(1)))
+        if (settings.isWithInstances) {
           //if instantiated atoms are allowed then we specify variables by constants
           //only one variable may be replaced by a constant
           //result is original variable atom + instantied atoms with constants in subject + instantied atoms with constants in object
           //we do not instantient subject variable if onlyObjectInstances is true
           it.flatMap { atom =>
-            val it1 = if (onlyObjectInstances) {
+            val it1 = if (settings.onlyObjectInstances) {
               Iterator.empty
             } else {
-              tripleIndex.predicates(atom.predicate).subjects.keysIterator.map(subject => Atom(Atom.Constant(subject), atom.predicate, Atom.Variable(0)))
+              specifySubject(atom).map(_.copy(`object` = Atom.Variable(0)))
             }
-            val it2 = tripleIndex.predicates(atom.predicate).objects.keysIterator.map(`object` => Atom(Atom.Variable(0), atom.predicate, Atom.Constant(`object`)))
+            val it2 = specifyObject(atom)
             Iterator(atom) ++ it1 ++ it2
           }
         } else {
           it
         }
       }
+      val forAtomMatcher = new AtomPatternMatcher.ForAtom
       //filter all atoms by patterns and join all valid patterns to the atom
       possibleAtoms.flatMap { atom =>
-        val validPatterns = patterns.filter(rp => rp.consequent.forall(atomPattern => atomMatcher.matchPattern(atom, atomPattern)))
+        val validPatterns = patterns.filter(rp => rp.consequent.forall(atomPattern => forAtomMatcher.matchPattern(atom, atomPattern)))
         if (patterns.isEmpty || validPatterns.nonEmpty) {
           Iterator(atom -> validPatterns)
         } else {
@@ -125,52 +156,25 @@ class Amie private(implicit debugger: Debugger) extends RulesMining {
       * @param initRule a rule to be expanded
       * @return expanded closed rules
       */
-    def searchRules(initRule: ExtendedRule): Seq[ClosedRule] = {
+    def searchRules(initRule: ExtendedRule): Unit = {
       //queue for mined rules which can be also expanded
       //in this queue there can not be any duplicit rules (it speed up computation)
       val queue = new HashQueue[ExtendedRule].add(initRule)
-      //collection for mined closed rules
-      //there are two collections for two mining approaches: byMinSupport or topK
-      //for topK we need to use priority queue where on the peek there is rule with lowest HC
-      //for byMinSupport we need only a simple buffer
-      val result = if (topK > 0) {
-        Left(collection.mutable.PriorityQueue.empty[ClosedRule](Ordering.by[ClosedRule, Double](_.measures[Measure.HeadCoverage].value).reverse))
-      } else {
-        Right(collection.mutable.ListBuffer.empty[ClosedRule])
-      }
       //if the queue is not empty, try expand rules
       while (!queue.isEmpty) {
         //get one rule from queue and remove it from that
         val rule = queue.poll
         //if the rule is closed we add it to the result set
         rule match {
-          case closedRule: ClosedRule => result match {
-            //when we use the topK approach then we enqueue the closed rule into the queue only if:
-            // - queue size is lower than topK value
-            // - queue is full, we replace the rule with lowest HC by this closed rule if this closed rule has higher HC
-            //finally if the queue is full then we rewrite the _minHeadCoverage variable with HC from the peek rule of queue (with lowest HC)
-            case Left(result) =>
-              if (result.size < topK) {
-                result.enqueue(closedRule)
-              } else if (closedRule.measures[Measure.HeadCoverage].value > result.head.measures[Measure.HeadCoverage].value) {
-                result.dequeue()
-                result.enqueue(closedRule)
-              }
-              if (result.size >= topK) _minHeadCoverage = result.head.measures[Measure.HeadCoverage].value
-            case Right(result) => result += closedRule
-          }
+          case closedRule: ClosedRule => addRule(closedRule)
           case _ =>
         }
         //if rule length is lower than max rule length we can expand this rule with one atom
-        //if we use the topK approach the _minHeadCoverage may change during mining; therefore we need to check minHC threshold for the current rule
-        if (rule.ruleLength < maxRuleLength && (result.left.forall(_.size < topK) || rule.measures[Measure.HeadCoverage].value > _minHeadCoverage)) {
-          //expand the rule and add all expanded variants into the queue
-          howLong("Rule expansion", true)(for (rule <- rule.expand) queue.add(rule))
+        //if we use the topK approach the minHeadCoverage may change during mining; therefore we need to check minHC threshold for the current rule
+        if (rule.ruleLength < settings.maxRuleLength && (result.left.forall(_.size < topK) || rule.measures[Measure.HeadCoverage].value > settings.minHeadCoverage)) {
+          //refine the rule and add all expanded variants into the queue
+          howLong("Rule expansion", true)(for (rule <- rule.refine) queue.add(rule))
         }
-      }
-      result match {
-        case Left(result) => result.dequeueAll
-        case Right(result) => result
       }
     }
 

@@ -1,9 +1,25 @@
 package eu.easyminer.rdf.rule
 
+import eu.easyminer.rdf.index.TripleHashIndex
+
+import scala.language.implicitConversions
+
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
 case class Atom(subject: Atom.Item, predicate: Int, `object`: Atom.Item) {
+  def graphs(implicit thi: TripleHashIndex): Iterator[Int] = {
+    val itemInstance = if (subject.isInstanceOf[Atom.Constant]) {
+      Some(subjectPosition)
+    } else if (`object`.isInstanceOf[Atom.Constant]) {
+      Some(objectPosition)
+    } else {
+      None
+    }
+    val m = thi.predicates(predicate)
+    itemInstance.map(m.graphs(_)).getOrElse(m.graphs)
+  }
+
   override def toString: String = s"<$subject $predicate ${`object`}>"
 
   def subjectPosition = TripleItemPosition.Subject(subject)
@@ -16,10 +32,13 @@ object Atom {
   sealed trait Item
 
   case class Variable(index: Int) extends Item {
-    def value: String = "?" + Iterator.iterate(math.floor(index.toDouble / 26) -> (index.toDouble % 26))(x => math.floor(x._1 / 26) -> ((x._1 % 26) - 1))
-      .takeWhile(_._2 >= 0)
-      .map(x => (97 + x._2).toChar)
-      .foldLeft("")((x, y) => y + x)
+    def value: String = {
+      val doubleVal = math.abs(index).toDouble
+      "?" + Iterator.iterate(math.floor(doubleVal / 26) -> (doubleVal % 26))(x => math.floor(x._1 / 26) -> ((x._1 % 26) - 1))
+        .takeWhile(_._2 >= 0)
+        .map(x => (97 + x._2).toChar)
+        .foldLeft("")((x, y) => y + x)
+    }
 
     def ++ = Variable(index + 1)
 
@@ -29,7 +48,7 @@ object Atom {
   }
 
   object Variable {
-    def apply(index: Char): Variable = Variable(((index.toInt - 97) % 26) + 97)
+    implicit def apply(index: Char): Variable = Variable(index.toInt - 97)
   }
 
   case class Constant(value: Int) extends Item

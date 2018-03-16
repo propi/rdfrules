@@ -21,7 +21,7 @@ trait HowLong {
 
   private val times = collection.mutable.HashMap.empty[String, Stats]
 
-  def howLong[T](message: String, silent: Boolean = false)(f: => T): T = if (logger.underlying.isTraceEnabled) {
+  def howLong[T](message: String, silent: Boolean = false)(f: => T): T = if (logger.underlying.isDebugEnabled) {
     val time = System.nanoTime()
     val x = f
     val runningTime = Duration.fromNanos(System.nanoTime() - time)
@@ -36,7 +36,7 @@ trait HowLong {
 
   def flushAllResults(): Unit = {
     for ((message, stats) <- times) {
-      logger.trace("TOTAL - " + message + ": " + stats)
+      logger.debug("TOTAL - " + message + ": " + stats)
     }
     times.clear()
   }
