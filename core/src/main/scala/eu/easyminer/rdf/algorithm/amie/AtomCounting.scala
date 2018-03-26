@@ -176,7 +176,7 @@ trait AtomCounting {
       case (sv@Atom.Constant(sc), _: Atom.Variable) =>
         tm.subjects.get(sc).iterator.flatMap(_.iterator).map(`object` => Atom(sv, atom.predicate, `object` = Atom.Constant(`object`)))
       case (sv@Atom.Constant(sc), ov@Atom.Constant(oc)) =>
-        if (tm.subjects.get(sc).exists(x => x.contains(oc))) Iterator(Atom(sv, atom.predicate, ov)) else Iterator.empty
+        if (tm.subjects.get(sc).exists(x => x.apply(oc))) Iterator(Atom(sv, atom.predicate, ov)) else Iterator.empty
     }
   }
 

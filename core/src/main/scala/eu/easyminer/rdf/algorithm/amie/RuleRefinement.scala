@@ -351,7 +351,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       case (sv: Atom.Variable, Atom.Constant(oc)) =>
         //get all predicates for this object constant
         //skip all counted predicates that are included in this rule
-        for ((predicate, subjects) <- tripleIndex.objects.get(oc).iterator.flatMap(_.predicates)) {
+        for ((predicate, subjects) <- tripleIndex.objects.get(oc).iterator.flatMap(_.predicates.iterator)) {
           //if there exists atom in rule which has same predicate and object variable and is not instationed
           // - then we dont use this fresh atom for this predicate because p(a, B) -> p(a, b) is not allowed (redundant and noisy rule)
           if (isWithInstances && !onlyObjectInstances && !isCounted(atom, predicate, true)) {
@@ -367,7 +367,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       case (Atom.Constant(sc), ov: Atom.Variable) =>
         //get all predicates for this subject constant
         //skip all counted predicates that are included in this rule
-        for ((predicate, objects) <- tripleIndex.subjects.get(sc).iterator.flatMap(_.predicates)) {
+        for ((predicate, objects) <- tripleIndex.subjects.get(sc).iterator.flatMap(_.predicates.iterator)) {
           if (isWithInstances && !isCounted(atom, predicate, true)) {
             for (_object <- objects.iterator) projections += Atom(atom.subject, predicate, Atom.Constant(_object))
           }
@@ -393,7 +393,7 @@ object RuleRefinement {
   class Settings(rulesMining: RulesMining)(implicit val debugger: Debugger) {
     private val _minHeadCoverage: AtomicLong = new AtomicLong(java.lang.Double.doubleToLongBits(rulesMining.thresholds.apply[Threshold.MinHeadCoverage].value))
 
-    val minSupport: Int = rulesMining.thresholds.apply[Threshold.MinSupport].value
+    val minSupport: Int = rulesMining.thresholds.apply[Threshold.MinHeadSize].value
     val isWithInstances: Boolean = rulesMining.constraints.exists[RuleConstraint.WithInstances]
     val maxRuleLength: Int = rulesMining.thresholds.apply[Threshold.MaxRuleLength].value
     val withDuplicitPredicates: Boolean = !rulesMining.constraints.exists[RuleConstraint.WithoutDuplicitPredicates]

@@ -2,7 +2,7 @@ package eu.easyminer.rdf.index
 
 import com.typesafe.scalalogging.Logger
 import eu.easyminer.rdf.data.Quad
-import eu.easyminer.rdf.index.TripleHashIndex.{HashMap, TripleObjectIndex, TriplePredicateIndex, TripleSubjectIndex}
+import eu.easyminer.rdf.index.TripleHashIndex._
 import eu.easyminer.rdf.rule.{Atom, TripleItemPosition}
 
 import scala.collection.JavaConverters._
@@ -10,18 +10,100 @@ import scala.collection.JavaConverters._
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
-class TripleHashIndex(val subjects: HashMap[Int, TripleSubjectIndex],
-                      val predicates: HashMap[Int, TriplePredicateIndex],
-                      val objects: HashMap[Int, TripleObjectIndex]) {
+class TripleHashIndex private {
+
+  type M[T] = MutableHashMap[Int, T]
+  type M1 = M[MutableHashSet[Int]]
+
+  val subjects: HashMap[Int, TripleSubjectIndex] = new MutableHashMap[Int, TripleSubjectIndex]
+  val predicates: HashMap[Int, TriplePredicateIndex] = new MutableHashMap[Int, TriplePredicateIndex]
+  val objects: HashMap[Int, TripleObjectIndex] = new MutableHashMap[Int, TripleObjectIndex]
+
+  private var graph: Option[Int] = None
+  private val graphs: HashMap[Int, HashMap[Int, TripleGraphIndex]] = new MutableHashMap[Int, HashMap[Int, TripleGraphIndex]]
+
   lazy val size: Int = predicates.valuesIterator.map(_.size).sum
+
+  private def tripleItemPositionExists(tripleItemPosition: TripleItemPosition)(tgi: TripleGraphIndex): Boolean = tripleItemPosition match {
+    case TripleItemPosition.Subject(x) => x match {
+      case Atom.Constant(x) => tgi.subjects.contains(x)
+      case _ => true
+    }
+    case TripleItemPosition.Object(x) => x match {
+      case Atom.Constant(x) => tgi.objects(x)
+      case _ => true
+    }
+  }
+
+  def isInGraph(graph: Int, predicate: Int): Boolean = (graphs.isEmpty && this.graph.contains(graph)) || graphs.get(graph).exists(_.contains(predicate))
+
+  def getGraphs(predicate: Int): Iterator[Int] = if (graphs.isEmpty) Iterator(graph.get) else graphs.iterator.filter(_._2.contains(predicate)).map(_._1)
+
+  def isInGraph(graph: Int, predicate: Int, tripleItemPosition: TripleItemPosition): Boolean = {
+    val f = tripleItemPositionExists(tripleItemPosition) _
+    (graphs.isEmpty && this.graph.contains(graph)) || graphs.get(graph).exists(_.get(predicate).exists(f))
+  }
+
+  def getGraphs(predicate: Int, tripleItemPosition: TripleItemPosition): Iterator[Int] = {
+    val f = tripleItemPositionExists(tripleItemPosition) _
+    if (graphs.isEmpty) Iterator(graph.get) else graphs.iterator.filter(_._2.get(predicate).exists(f)).map(_._1)
+  }
+
+  def isInGraph(graph: Int, subject: Int, predicate: Int, `object`: Int): Boolean = {
+    (graphs.isEmpty && this.graph.contains(graph)) || graphs.get(graph).exists(_.get(predicate).exists(_.subjects.get(subject).exists(_.apply(`object`))))
+  }
+
+  def getGraphs(subject: Int, predicate: Int, `object`: Int): Iterator[Int] = {
+    if (graphs.isEmpty) Iterator(graph.get) else graphs.iterator.filter(_._2.get(predicate).exists(_.subjects.get(subject).exists(_.apply(`object`)))).map(_._1)
+  }
+
+  private def addGraph(quad: CompressedQuad): Unit = {
+    val gi = graphs.asInstanceOf[M[MutableHashMap[Int, TripleGraphIndex]]]
+      .getOrElseUpdate(quad.graph, new MutableHashMap[Int, TripleGraphIndex])
+      .getOrElseUpdate(quad.predicate, new TripleGraphIndex(emptyTripleItemMap, emptySet))
+    gi.objects.asInstanceOf[MutableHashSet[Int]] += quad.`object`
+    gi.subjects.asInstanceOf[M1].getOrElseUpdate(quad.subject, emptySet) += quad.`object`
+  }
+
+  private def addQuad(quad: CompressedQuad): Unit = {
+    if (graph.isEmpty) {
+      graph = Some(quad.graph)
+    } else if (!graphs.isEmpty) {
+      addGraph(quad)
+    } else if (!graph.contains(quad.graph)) {
+      for {
+        (p, m1) <- predicates.iterator
+        (s, m2) <- m1.subjects.iterator
+        o <- m2.iterator
+        g <- graph
+      } {
+        addGraph(CompressedQuad(s, p, o, g))
+      }
+      addGraph(quad)
+    }
+    val si = subjects.asInstanceOf[M[TripleSubjectIndex]].getOrElseUpdate(quad.subject, new TripleSubjectIndex(emptyTripleItemMap, emptyTripleItemMap))
+    val pi = predicates.asInstanceOf[M[TriplePredicateIndex]].getOrElseUpdate(quad.predicate, new TriplePredicateIndex(emptyTripleItemMap, emptyTripleItemMap))
+    val oi = objects.asInstanceOf[M[TripleObjectIndex]].getOrElseUpdate(quad.`object`, new TripleObjectIndex(emptyTripleItemMap, emptyTripleItemMap))
+    si.predicates.asInstanceOf[M1].getOrElseUpdate(quad.predicate, emptySet) += quad.`object`
+    si.objects.asInstanceOf[M1].getOrElseUpdate(quad.`object`, emptySet) += quad.predicate
+    pi.subjects.asInstanceOf[M1].getOrElseUpdate(quad.subject, emptySet) += quad.`object`
+    pi.objects.asInstanceOf[M1].getOrElseUpdate(quad.`object`, emptySet) += quad.subject
+    oi.predicates.asInstanceOf[M1].getOrElseUpdate(quad.predicate, emptySet) += quad.subject
+    oi.subjects.asInstanceOf[M1].getOrElseUpdate(quad.subject, emptySet) += quad.predicate
+  }
+
 }
 
 object TripleHashIndex {
 
+  private val logger = Logger[TripleHashIndex]
+
+  type TripleItemMap = HashMap[Int, HashSet[Int]]
+
   abstract class HashSet[T](set: java.util.Set[T]) {
     def iterator: Iterator[T] = set.iterator().asScala
 
-    def apply(x: T): Boolean = set.contains(set)
+    def apply(x: T): Boolean = set.contains(x)
 
     def size: Int = set.size()
   }
@@ -31,11 +113,26 @@ object TripleHashIndex {
   }
 
   abstract class HashMap[K, V](map: java.util.Map[K, V]) {
-    def apply(key: K): V = map.get(key)
+    def apply(key: K): V = {
+      val x = map.get(key)
+      if (x == null) throw new NoSuchElementException else x
+    }
 
     def keySet: HashSet[K] = new MutableHashSet(map.keySet())
 
+    def get(key: K): Option[V] = Option(map.get(key))
+
+    def keysIterator: Iterator[K] = map.keySet().iterator().asScala
+
     def valuesIterator: Iterator[V] = map.values().iterator().asScala
+
+    def iterator: Iterator[(K, V)] = map.entrySet().iterator().asScala.map(x => x.getKey -> x.getValue)
+
+    def size: Int = map.size()
+
+    def isEmpty: Boolean = map.isEmpty
+
+    def contains(key: K): Boolean = map.containsKey(key)
   }
 
   class MutableHashMap[K, V](map: java.util.Map[K, V] = new java.util.HashMap[K, V]) extends HashMap(map) {
@@ -49,53 +146,13 @@ object TripleHashIndex {
     }
   }
 
-  private val logger = Logger[TripleHashIndex]
-
-  type TripleItemMap = HashMap[Int, HashSet[Int]]
-
   private def emptySet = new MutableHashSet[Int]
 
   private def emptyTripleItemMap = new MutableHashMap[Int, HashSet[Int]]
 
-  class TripleItemMapWithGraphs(map: collection.Map[Int, TripleItemMap]) extends collection.Map[Int, collection.Set[Int]] {
-    def get(key: Int): Option[collection.Set[Int]] = map.get(key).map(_.keySet)
-
-    def iterator: Iterator[(Int, collection.Set[Int])] = ???
-
-    def +[V1 >: collection.Set[Int]](kv: (Int, V1)): collection.Map[Int, V1] = ???
-
-    def -(key: Int): collection.Map[Int, collection.Set[Int]] = ???
-  }
+  class TripleGraphIndex(val subjects: TripleItemMap, val objects: HashSet[Int])
 
   class TriplePredicateIndex(val subjects: TripleItemMap, val objects: TripleItemMap) {
-    private var graph: Option[Int] = None
-    private val _graphs = emptySet
-    private lazy val deepGraphs = collection.mutable.Map.empty[TripleItemPosition, collection.mutable.Set[Int]]
-
-    private[TripleHashIndex] def addGraph(compressedQuad: CompressedQuad): Unit = if (graph.isEmpty) {
-      graph = Some(compressedQuad.graph)
-    } else {
-      if (!graph.contains(compressedQuad.graph)) {
-        if (_graphs.isEmpty) {
-          val it1 = subjects.keysIterator.map(x => TripleItemPosition.Subject(Atom.Constant(x)))
-          val it2 = objects.keysIterator.map(x => TripleItemPosition.Object(Atom.Constant(x)))
-          for (tip <- it1 ++ it2) {
-            deepGraphs.getOrElseUpdate(tip, emptySet) += graph.get
-          }
-        }
-        _graphs += compressedQuad.graph
-      }
-      if (_graphs.nonEmpty) {
-        for (tip <- Iterator(TripleItemPosition.Subject(Atom.Constant(compressedQuad.subject)), TripleItemPosition.Object(Atom.Constant(compressedQuad.`object`)))) {
-          deepGraphs.getOrElseUpdate(tip, emptySet) += compressedQuad.graph
-        }
-      }
-    }
-
-    def graphs: Iterator[Int] = graph.iterator ++ _graphs.iterator
-
-    def graphs(atomItem: TripleItemPosition): Iterator[Int] = if (_graphs.isEmpty) graph.iterator else deepGraphs(atomItem).iterator
-
     lazy val size: Int = subjects.valuesIterator.map(_.size).sum
   }
 
@@ -108,27 +165,15 @@ object TripleHashIndex {
   }
 
   def apply(quads: Traversable[CompressedQuad]): TripleHashIndex = {
-    type M = MutableHashMap[Int, MutableHashSet[Int]]
-    val tsi = collection.mutable.HashMap.empty[Int, TripleSubjectIndex]
-    val tpi = collection.mutable.HashMap.empty[Int, TriplePredicateIndex]
-    val toi = collection.mutable.HashMap.empty[Int, TripleObjectIndex]
+    val index = new TripleHashIndex
     var i = 0
     for (quad <- quads) {
-      val si = tsi.getOrElseUpdate(quad.subject, new TripleSubjectIndex(emptyTripleItemMap, emptyTripleItemMap))
-      val pi = tpi.getOrElseUpdate(quad.predicate, new TriplePredicateIndex(emptyTripleItemMap, emptyTripleItemMap))
-      val oi = toi.getOrElseUpdate(quad.`object`, new TripleObjectIndex(emptyTripleItemMap, emptyTripleItemMap))
-      si.predicates.asInstanceOf[M].getOrElseUpdate(quad.predicate, emptySet) += quad.`object`
-      si.objects.asInstanceOf[M].getOrElseUpdate(quad.`object`, emptySet) += quad.predicate
-      pi.subjects.asInstanceOf[M].getOrElseUpdate(quad.subject, emptySet) += quad.`object`
-      pi.objects.asInstanceOf[M].getOrElseUpdate(quad.`object`, emptySet) += quad.subject
-      oi.predicates.asInstanceOf[M].getOrElseUpdate(quad.predicate, emptySet) += quad.subject
-      oi.subjects.asInstanceOf[M].getOrElseUpdate(quad.subject, emptySet) += quad.predicate
-      pi.addGraph(quad)
+      index.addQuad(quad)
       i += 1
       if (i % 10000 == 0) logger.info(s"Dataset loading: $i quads")
     }
     logger.info(s"Dataset loaded: $i quads")
-    new TripleHashIndex(tsi, tpi, toi)
+    index
   }
 
   def apply(quads: Traversable[Quad])(implicit mapper: TripleItemHashIndex): TripleHashIndex = apply(quads.view.map(_.toCompressedQuad))

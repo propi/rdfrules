@@ -13,11 +13,11 @@ sealed trait Threshold extends Value {
 
 object Threshold {
 
-  case class MinSupport(value: Int) extends Threshold {
-    def companion: MinSupport.type = MinSupport
+  case class MinHeadSize(value: Int) extends Threshold {
+    def companion: MinHeadSize.type = MinHeadSize
   }
 
-  implicit object MinSupport extends Key[MinSupport]
+  implicit object MinHeadSize extends Key[MinHeadSize]
 
   case class MinHeadCoverage(value: Double) extends Threshold {
     def companion: MinHeadCoverage.type = MinHeadCoverage

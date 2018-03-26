@@ -1,26 +1,12 @@
 package eu.easyminer.rdf.rule
 
-import eu.easyminer.rdf.index.TripleHashIndex
-
 import scala.language.implicitConversions
 
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
 case class Atom(subject: Atom.Item, predicate: Int, `object`: Atom.Item) {
-  def graphs(implicit thi: TripleHashIndex): Iterator[Int] = {
-    val itemInstance = if (subject.isInstanceOf[Atom.Constant]) {
-      Some(subjectPosition)
-    } else if (`object`.isInstanceOf[Atom.Constant]) {
-      Some(objectPosition)
-    } else {
-      None
-    }
-    val m = thi.predicates(predicate)
-    itemInstance.map(m.graphs(_)).getOrElse(m.graphs)
-  }
-
-  override def toString: String = s"<$subject $predicate ${`object`}>"
+    override def toString: String = s"<$subject $predicate ${`object`}>"
 
   def subjectPosition = TripleItemPosition.Subject(subject)
 

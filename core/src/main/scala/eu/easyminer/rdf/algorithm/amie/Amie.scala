@@ -49,7 +49,7 @@ class Amie private(implicit debugger: Debugger) extends RulesMining {
     private implicit val ec: ExecutionContext = ExecutionContext.global
 
     private val topK: Int = thresholds.get[Threshold.TopK].map(_.value).getOrElse(0)
-    private val minSupport: Int = thresholds.apply[Threshold.MinSupport].value
+    private val minSupport: Int = thresholds.apply[Threshold.MinHeadSize].value
 
     /**
       * collection for mined closed rules
@@ -185,7 +185,7 @@ class Amie private(implicit debugger: Debugger) extends RulesMining {
 object Amie {
 
   def apply()(implicit debugger: Debugger = Debugger.EmptyDebugger): RulesMining = (new Amie)
-    .addThreshold(Threshold.MinSupport(100))
+    .addThreshold(Threshold.MinHeadSize(100))
     .addThreshold(Threshold.MinHeadCoverage(0.01))
     .addThreshold(Threshold.MaxRuleLength(3))
 

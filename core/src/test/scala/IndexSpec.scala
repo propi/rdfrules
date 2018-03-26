@@ -7,6 +7,7 @@ import org.scalatest.{FlatSpec, Inside, Matchers}
 import eu.easyminer.rdf.data.formats.Tsv._
 import eu.easyminer.rdf.data.formats.JenaLang._
 import eu.easyminer.rdf.index.Index
+import eu.easyminer.rdf.rule.{Atom, TripleItemPosition}
 import objectexplorer.MemoryMeasurer
 
 /**
@@ -47,12 +48,17 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
       thi.size shouldBe dataset1.size
     }
     val mem = MemoryMeasurer.measureBytes(index)
-    mem should be(121000000L +- 1000000)
+    mem should be(82000000L +- 1000000)
     val cq = index.tripleItemMap { implicit tim =>
       dataset1.quads.head.toCompressedQuad
     }
     index.tripleMap { thi =>
-      thi.subjects(cq.subject).predicates(cq.predicate)(cq.`object`).head shouldBe cq.graph
+      thi.predicates(cq.predicate).subjects(cq.subject)(cq.`object`) shouldBe true
+      thi.predicates(cq.predicate).objects(cq.`object`)(cq.subject) shouldBe true
+      thi.subjects(cq.subject).predicates(cq.predicate)(cq.`object`) shouldBe true
+      thi.subjects(cq.subject).objects(cq.`object`)(cq.predicate) shouldBe true
+      thi.objects(cq.`object`).predicates(cq.predicate)(cq.subject) shouldBe true
+      thi.objects(cq.`object`).subjects(cq.subject)(cq.predicate) shouldBe true
     }
     MemoryMeasurer.measureBytes(index) shouldBe mem
   }
@@ -68,10 +74,54 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
     index.tripleMap { thi =>
       thi.size shouldBe dataset2.size
     }
-    MemoryMeasurer.measureBytes(index) should be(245000000L +- 5000000)
+    MemoryMeasurer.measureBytes(index) should be(180000000L +- 5000000)
   }
 
-  it should "use inUserInMemory mode" in {
+  it should "work with graphs" in {
+    val index = Index.fromDataset(dataset1)
+    val cq = index.tripleItemMap { implicit tim =>
+      dataset1.quads.head.toCompressedQuad
+    }
+    index.tripleMap { thi =>
+      thi.isInGraph(cq.graph, cq.predicate) shouldBe true
+      thi.isInGraph(0, cq.predicate) shouldBe false
+      thi.isInGraph(cq.graph, 0) shouldBe true
+      thi.isInGraph(cq.graph, cq.predicate, TripleItemPosition.Subject(Atom.Constant(cq.subject))) shouldBe true
+      thi.isInGraph(cq.graph, cq.predicate, TripleItemPosition.Object(Atom.Constant(cq.`object`))) shouldBe true
+      thi.isInGraph(cq.graph, cq.predicate, TripleItemPosition.Subject(Atom.Constant(0))) shouldBe true
+      thi.isInGraph(cq.graph, cq.subject, cq.predicate, cq.`object`) shouldBe true
+      thi.isInGraph(cq.graph, cq.subject, cq.predicate, 0) shouldBe true
+      thi.isInGraph(0, cq.subject, cq.predicate, cq.`object`) shouldBe false
+      thi.getGraphs(cq.predicate).toList should contain only cq.graph
+      thi.getGraphs(0).toList should contain only cq.graph
+      thi.getGraphs(cq.subject, cq.predicate, cq.`object`).toList should contain only cq.graph
+      thi.getGraphs(cq.predicate, TripleItemPosition.Subject(Atom.Constant(cq.subject))).toList should contain only cq.graph
+    }
+    val index2 = Index.fromDataset(dataset2)
+    val cq2 = index2.tripleItemMap { implicit tim =>
+      dataset2.toGraphs.map(_.quads.head.toCompressedQuad).toList
+    }
+    cq2.size shouldBe 2
+    for (cq <- cq2) {
+      index2.tripleMap { thi =>
+        thi.isInGraph(cq.graph, cq.predicate) shouldBe true
+        thi.isInGraph(0, cq.predicate) shouldBe false
+        thi.isInGraph(cq.graph, 0) shouldBe false
+        thi.isInGraph(cq.graph, cq.predicate, TripleItemPosition.Subject(Atom.Constant(cq.subject))) shouldBe true
+        thi.isInGraph(cq.graph, cq.predicate, TripleItemPosition.Object(Atom.Constant(cq.`object`))) shouldBe true
+        thi.isInGraph(cq.graph, cq.predicate, TripleItemPosition.Subject(Atom.Constant(0))) shouldBe false
+        thi.isInGraph(cq.graph, cq.subject, cq.predicate, cq.`object`) shouldBe true
+        thi.isInGraph(cq.graph, cq.subject, cq.predicate, 0) shouldBe false
+        thi.isInGraph(0, cq.subject, cq.predicate, cq.`object`) shouldBe false
+        thi.getGraphs(cq.predicate).toList should contain only cq.graph
+        thi.getGraphs(0).toList shouldBe empty
+        thi.getGraphs(cq.subject, cq.predicate, cq.`object`).toList should contain only cq.graph
+        thi.getGraphs(cq.predicate, TripleItemPosition.Subject(Atom.Constant(cq.subject))).toList should contain only cq.graph
+      }
+    }
+  }
+
+  it should "use inUseInMemory mode" in {
     val index = Index.fromDataset(dataset1, Index.Mode.InUseInMemory)
     val mem = MemoryMeasurer.measureBytes(index)
     index.tripleItemMap(_.iterator.size)
