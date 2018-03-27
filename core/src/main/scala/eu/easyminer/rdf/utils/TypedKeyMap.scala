@@ -17,6 +17,8 @@ class TypedKeyMap[T <: Value] private(m: collection.mutable.Map[Key[T], T]) exte
     this
   }
 
+  def ++=(col: TypedKeyMap.Immutable[T]): TypedKeyMap[T] = this += (col.iterator.map(x => x.companion.asInstanceOf[Key[T]] -> x).toSeq: _*)
+
   def iterator: Iterator[T] = m.valuesIterator
 }
 

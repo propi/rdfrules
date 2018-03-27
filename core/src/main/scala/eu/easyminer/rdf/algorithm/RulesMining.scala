@@ -2,7 +2,7 @@ package eu.easyminer.rdf.algorithm
 
 import eu.easyminer.rdf.index.TripleHashIndex
 import eu.easyminer.rdf.rule.ExtendedRule.ClosedRule
-import eu.easyminer.rdf.rule.{RuleConstraint, RulePattern, Threshold}
+import eu.easyminer.rdf.rule.{Rule, RuleConstraint, RulePattern, Threshold}
 import eu.easyminer.rdf.utils.TypedKeyMap
 
 /**
@@ -35,6 +35,6 @@ trait RulesMining {
 
   final def patterns: List[RulePattern] = _rulePatterns.toList
 
-  def mine(tripleIndex: TripleHashIndex): IndexedSeq[ClosedRule]
+  def mine(implicit tripleIndex: TripleHashIndex): IndexedSeq[Rule.Simple]
 
 }

@@ -28,7 +28,7 @@ class Amie private(implicit debugger: Debugger) extends RulesMining {
     *         Rules contains only these measures: head size, head coverage and support
     *         Rules are not ordered
     */
-  def mine(tripleIndex: TripleHashIndex): IndexedSeq[ClosedRule] = {
+  def mine(implicit tripleIndex: TripleHashIndex): IndexedSeq[Rule.Simple] = {
     //create amie process with debugger and final triple index
     val process = new AmieProcess()(tripleIndex, new Settings(this)(if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) debugger else Debugger.EmptyDebugger))
     //get all possible heads
@@ -57,10 +57,10 @@ class Amie private(implicit debugger: Debugger) extends RulesMining {
       * for topK we need to use priority queue where on the peek there is rule with lowest HC
       * for byMinSupport we need only a simple buffer
       */
-    val result: Either[mutable.PriorityQueue[ClosedRule], mutable.ArrayBuffer[ClosedRule]] = if (topK > 0) {
-      Left(mutable.PriorityQueue.empty[ClosedRule](Ordering.by[ClosedRule, Double](_.measures[Measure.HeadCoverage].value).reverse))
+    val result: Either[mutable.PriorityQueue[Rule.Simple], mutable.ArrayBuffer[Rule.Simple]] = if (topK > 0) {
+      Left(mutable.PriorityQueue.empty[Rule.Simple](Ordering.by[Rule.Simple, Double](_.measures[Measure.HeadCoverage].value).reverse))
     } else {
-      Right(mutable.ArrayBuffer.empty[ClosedRule])
+      Right(mutable.ArrayBuffer.empty[Rule.Simple])
     }
 
     /**

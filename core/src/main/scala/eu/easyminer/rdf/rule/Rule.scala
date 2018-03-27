@@ -2,6 +2,8 @@ package eu.easyminer.rdf.rule
 
 import eu.easyminer.rdf.utils.TypedKeyMap
 
+import scala.language.implicitConversions
+
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
@@ -35,6 +37,10 @@ trait Rule {
 object Rule {
 
   case class Simple(head: Atom, body: IndexedSeq[Atom])(val measures: TypedKeyMap.Immutable[Measure]) extends Rule
+
+  object Simple {
+    implicit def apply(extendedRule: ExtendedRule): Simple = new Simple(extendedRule.head, extendedRule.body)(extendedRule.measures)
+  }
 
   //implicit def rulePrinter(implicit str: Stringifier[Rule]): Printer[Rule] = (v: Rule) => println(Stringifier(v))
 
