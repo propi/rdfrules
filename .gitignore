@@ -68,6 +68,6 @@ $RECYCLE.BIN/
 *.lnk
 
 .idea
-index/
-cli/
-original-amie
+/index/
+/cli/
+/original-amie/
