@@ -1,7 +1,7 @@
-name := "easyminer-rdf"
+name := "rdfrules"
 
 val basicSettings = Seq(
-  organization := "com.github.KIZI.EasyMiner-Rdf",
+  organization := "com.github.propi.rdfrules",
   version := "1.0.0",
   scalaVersion := "2.12.3",
   scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-encoding", "utf8")

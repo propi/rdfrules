@@ -1,13 +1,14 @@
 import java.io.{File, FileInputStream, FileOutputStream}
 
 import GraphSpec._
+import com.github.propi.rdfrules.data
+import com.github.propi.rdfrules.data._
 import eu.easyminer.discretization.{RelativeSupport, Support}
 import eu.easyminer.discretization.impl.{Interval, IntervalBound}
 import eu.easyminer.discretization.task.{EquidistanceDiscretizationTask, EquifrequencyDiscretizationTask, EquisizeDiscretizationTask}
-import eu.easyminer.rdf.data.formats.JenaLang._
-import eu.easyminer.rdf.data.formats.Tsv._
-import eu.easyminer.rdf.data.ops.Discretizable
-import eu.easyminer.rdf.data.{Graph, Histogram, PredicateInfo, Prefix, RdfSource, Triple, TripleItem, TripleItemType}
+import com.github.propi.rdfrules.data.formats.JenaLang._
+import com.github.propi.rdfrules.data.formats.Tsv._
+import com.github.propi.rdfrules.data.ops.Discretizable
 import org.apache.jena.riot.{Lang, RDFFormat}
 import org.scalatest.{FlatSpec, Inside, Matchers}
 
@@ -26,13 +27,13 @@ class GraphSpec extends FlatSpec with Matchers with Inside {
     graph.name shouldBe Graph.default
     graph.size shouldBe 46654
     graph.triples.size shouldBe graph.quads.size
-    var first: Option[Triple] = None
+    var first: Option[data.Triple] = None
     var i = 0
     graph.foreach { triple =>
       i += 1
       if (first.isEmpty) first = Some(triple)
     }
-    first shouldBe Some(Triple("Azerbaijan", "hasCapital", TripleItem.LongUri("Baku")))
+    first shouldBe Some(data.Triple("Azerbaijan", "hasCapital", TripleItem.LongUri("Baku")))
     i shouldBe 46654
   }
 
@@ -40,9 +41,9 @@ class GraphSpec extends FlatSpec with Matchers with Inside {
     graph.filter(_.predicate.hasSameUriAs("dealsWith")).size shouldBe 520
     graph.filter(_.predicate.hasSameUriAs("dealsWith")).map(_.copy(predicate = "neco")).triples.forall(_.predicate.hasSameUriAs("neco"))
     graph.take(10).size shouldBe 10
-    graph.take(2).triples.last shouldBe Triple("Azerbaijan", "dealsWith", TripleItem.LongUri("People's_Republic_of_China"))
-    graph.drop(1).triples.head shouldBe Triple("Azerbaijan", "dealsWith", TripleItem.LongUri("People's_Republic_of_China"))
-    graph.slice(1, 2).triples.toList shouldBe List(Triple("Azerbaijan", "dealsWith", TripleItem.LongUri("People's_Republic_of_China")))
+    graph.take(2).triples.last shouldBe data.Triple("Azerbaijan", "dealsWith", TripleItem.LongUri("People's_Republic_of_China"))
+    graph.drop(1).triples.head shouldBe data.Triple("Azerbaijan", "dealsWith", TripleItem.LongUri("People's_Republic_of_China"))
+    graph.slice(1, 2).triples.toList shouldBe List(data.Triple("Azerbaijan", "dealsWith", TripleItem.LongUri("People's_Republic_of_China")))
   }
 
   it should "have triples ops" in {
@@ -110,7 +111,7 @@ class GraphSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "be cacheable" in {
-    val `SeqView[Triple, _]` = implicitly[ClassTag[SeqView[Triple, _]]]
+    val `SeqView[Triple, _]` = implicitly[ClassTag[SeqView[data.Triple, _]]]
     graphDbpedia.filter(_.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok")).cache.triples should matchPattern {
       case `SeqView[Triple, _]`(_) =>
     }

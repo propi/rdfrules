@@ -1,13 +1,13 @@
 import java.io._
 
 import GraphSpec.dataDbpedia
-import eu.easyminer.rdf.data.{Dataset, Graph, RdfSource, TripleItem}
+import com.github.propi.rdfrules.data.{Dataset, Graph, RdfSource, TripleItem}
 import org.apache.jena.riot.Lang
 import org.scalatest.{FlatSpec, Inside, Matchers}
-import eu.easyminer.rdf.data.formats.Tsv._
-import eu.easyminer.rdf.data.formats.JenaLang._
-import eu.easyminer.rdf.index.Index
-import eu.easyminer.rdf.rule.{Atom, TripleItemPosition}
+import com.github.propi.rdfrules.data.formats.Tsv._
+import com.github.propi.rdfrules.data.formats.JenaLang._
+import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.rule.{Atom, TripleItemPosition}
 import objectexplorer.MemoryMeasurer
 
 /**

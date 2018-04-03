@@ -1,13 +1,13 @@
-import eu.easyminer.rdf.algorithm.amie.Amie
-import eu.easyminer.rdf.algorithm.amie.RuleCounting._
-import eu.easyminer.rdf.data.formats.JenaLang._
-import eu.easyminer.rdf.data.formats.Tsv._
-import eu.easyminer.rdf.data.{Dataset, Graph, RdfSource, TripleItem}
-import eu.easyminer.rdf.index.Index
-import eu.easyminer.rdf.rule._
-import eu.easyminer.rdf.stringifier.CommonStringifiers._
-import eu.easyminer.rdf.stringifier.Stringifier
-import eu.easyminer.rdf.utils.{Debugger, HowLong}
+import com.github.propi.rdfrules.algorithm.amie.Amie
+import com.github.propi.rdfrules.data.{Dataset, Graph, RdfSource, TripleItem}
+import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
+import com.github.propi.rdfrules.data.formats.JenaLang._
+import com.github.propi.rdfrules.data.formats.Tsv._
+import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.rule._
+import com.github.propi.rdfrules.stringifier.CommonStringifiers._
+import com.github.propi.rdfrules.stringifier.Stringifier
+import com.github.propi.rdfrules.utils.{Debugger, HowLong}
 import org.apache.jena.riot.Lang
 import org.scalatest.{FlatSpec, Inside, Matchers}
 

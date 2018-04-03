@@ -1,10 +1,10 @@
 import java.io.{File, FileInputStream, FileOutputStream}
 
 import GraphSpec.dataDbpedia
+import com.github.propi.rdfrules.data._
 import eu.easyminer.discretization.task.EquifrequencyDiscretizationTask
-import eu.easyminer.rdf.data._
-import eu.easyminer.rdf.data.formats.JenaLang._
-import eu.easyminer.rdf.data.formats.Tsv._
+import com.github.propi.rdfrules.data.formats.JenaLang._
+import com.github.propi.rdfrules.data.formats.Tsv._
 import org.apache.jena.riot.{Lang, RDFFormat}
 import org.scalatest.{FlatSpec, Inside, Matchers}
 
