@@ -17,9 +17,7 @@ import scala.concurrent.{ExecutionContext, Future}
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
-class Amie private(implicit debugger: Debugger) extends RulesMining {
-
-  private val logger = Logger[Amie]
+class Amie private(logger: Logger)(implicit debugger: Debugger) extends RulesMining {
 
   /**
     * Mine all closed rules from tripleIndex by defined thresholds (hc, support, rule length), optional rule pattern and constraints
@@ -42,7 +40,11 @@ class Amie private(implicit debugger: Debugger) extends RulesMining {
     debugger.debug("Amie rules mining", heads.length) { ad =>
       heads.foreach(head => ad.result()(process.searchRules(head)))
     }
-    process.result.fold(_.dequeueAll, x => x)
+    val rules = process.result.fold(_.dequeueAll, x => x)
+    if (process.timeout.exists(process.currentDuration >= _)) {
+      logger.warn(s"The timeout limit '${thresholds.apply[Threshold.Timeout].duration.toMinutes} minutes' has been exceeded during mining. The miner returns ${rules.size} rules which need not be complete.")
+    }
+    rules
   }
 
   private class AmieProcess(implicit val tripleIndex: TripleHashIndex, settings: RuleRefinement.Settings) extends AtomCounting {
@@ -51,6 +53,10 @@ class Amie private(implicit debugger: Debugger) extends RulesMining {
 
     private val topK: Int = thresholds.get[Threshold.TopK].map(_.value).getOrElse(0)
     private val minSupport: Int = thresholds.apply[Threshold.MinHeadSize].value
+    private val startTime = System.currentTimeMillis()
+    val timeout: Option[Long] = thresholds.get[Threshold.Timeout].map(_.duration.toMillis)
+
+    def currentDuration: Long = System.currentTimeMillis() - startTime
 
     /**
       * collection for mined closed rules
@@ -162,7 +168,7 @@ class Amie private(implicit debugger: Debugger) extends RulesMining {
       //in this queue there can not be any duplicit rules (it speed up computation)
       val queue = new HashQueue[ExtendedRule].add(initRule)
       //if the queue is not empty, try expand rules
-      while (!queue.isEmpty) {
+      while (!queue.isEmpty && timeout.forall(_ > currentDuration)) {
         //get one rule from queue and remove it from that
         val rule = queue.poll
         //if the rule is closed we add it to the result set
@@ -185,7 +191,7 @@ class Amie private(implicit debugger: Debugger) extends RulesMining {
 
 object Amie {
 
-  def apply()(implicit debugger: Debugger = Debugger.EmptyDebugger): RulesMining = (new Amie)
+  def apply(logger: Logger = Logger[Amie])(implicit debugger: Debugger = Debugger.EmptyDebugger): RulesMining = new Amie(logger)
     .addThreshold(Threshold.MinHeadSize(100))
     .addThreshold(Threshold.MinHeadCoverage(0.01))
     .addThreshold(Threshold.MaxRuleLength(3))

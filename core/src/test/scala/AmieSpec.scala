@@ -1,8 +1,11 @@
+import java.io.{ByteArrayOutputStream, PrintStream, PrintWriter}
+import java.util.concurrent.atomic.AtomicBoolean
+
 import com.github.propi.rdfrules.algorithm.amie.Amie
-import com.github.propi.rdfrules.data.{Dataset, Graph, RdfSource, TripleItem}
 import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
 import com.github.propi.rdfrules.data.formats.JenaLang._
 import com.github.propi.rdfrules.data.formats.Tsv._
+import com.github.propi.rdfrules.data.{Dataset, Graph, RdfSource, TripleItem}
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.stringifier.CommonStringifiers._
@@ -10,6 +13,8 @@ import com.github.propi.rdfrules.stringifier.Stringifier
 import com.github.propi.rdfrules.utils.{Debugger, HowLong}
 import org.apache.jena.riot.Lang
 import org.scalatest.{FlatSpec, Inside, Matchers}
+import org.slf4j.event.Level
+import org.slf4j.impl.SimpleLogger
 
 /**
   * Created by Vaclav Zeman on 14. 3. 2018.
@@ -163,8 +168,21 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     rules.forall(_.measures[Measure.Confidence].value >= 0.2) shouldBe true
   }
 
+  it should "mine with timemout" in {
+    val timeoutPrinted = new AtomicBoolean(false)
+    val customLogger = CustomLogger("test") { (msg, _) =>
+      if (msg.contains("timeout limit")) timeoutPrinted.set(true)
+    }
+    val index = Index.fromDataset(dataset1)
+    val amie = Amie(customLogger).addThreshold(Threshold.MaxRuleLength(5)).addThreshold(Threshold.Timeout(1)).addConstraint(RuleConstraint.WithInstances(false))
+    index.tripleMap { implicit thi =>
+      amie.mine
+    }
+    timeoutPrinted.get() shouldBe true
+  }
+
   it should "test" ignore {
-    Debugger { implicit debugger =>
+    Debugger() { implicit debugger =>
       val index = Index.fromDataset(dataset1)
       val pattern = index.tripleItemMap { implicit tihi =>
         AtomPattern(

@@ -19,10 +19,8 @@ object Debugger {
 
   import DebuggerActor.Message
 
-  val logger: Logger = Logger[Debugger]
-
-  def apply[T](f: Debugger => T): T = {
-    val actor = new DebuggerActor
+  def apply[T](logger: Logger = Logger[Debugger])(f: Debugger => T): T = {
+    val actor = new DebuggerActor(logger)
     new Thread(actor).start()
     try {
       f(new ActorDebugger(actor))
@@ -67,7 +65,7 @@ object Debugger {
     def done(msg: String = ""): Unit = {}
   }
 
-  private class DebuggerActor extends Runnable {
+  private class DebuggerActor(logger: Logger) extends Runnable {
 
     private val messages = collection.mutable.Queue.empty[Message]
     private val debugClock: FiniteDuration = 5 seconds

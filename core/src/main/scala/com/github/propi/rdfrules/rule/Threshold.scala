@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.rule
 
 import com.github.propi.rdfrules.utils.TypedKeyMap.{Key, Value}
 
+import scala.concurrent.duration._
 import scala.language.implicitConversions
 
 /**
@@ -48,6 +49,15 @@ object Threshold {
   }
 
   implicit object TopK extends Key[TopK]
+
+  case class Timeout(value: Int) extends Threshold {
+    lazy val duration = Duration(value, MINUTES)
+
+    def companion: Timeout.type = Timeout
+  }
+
+  implicit object Timeout extends Key[Timeout]
+
 
   implicit def thresholdToKeyValue(threshold: Threshold): (Key[Threshold], Threshold) = threshold.companion -> threshold
 
