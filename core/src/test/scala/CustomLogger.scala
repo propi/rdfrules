@@ -9,7 +9,7 @@ import org.slf4j.{Logger, LoggerFactory, Marker}
 class CustomLogger(logger: Logger)(log: (String, Level) => Unit) extends Logger {
   def getName: String = logger.getName
 
-  def isTraceEnabled: Boolean = logger.isDebugEnabled
+  def isTraceEnabled: Boolean = logger.isTraceEnabled
 
   def trace(msg: String): Unit = {
     log(msg, Level.TRACE)
@@ -33,7 +33,7 @@ class CustomLogger(logger: Logger)(log: (String, Level) => Unit) extends Logger 
     logger.trace(msg, t)
   }
 
-  def isTraceEnabled(marker: Marker): Boolean = logger.isDebugEnabled(marker)
+  def isTraceEnabled(marker: Marker): Boolean = logger.isTraceEnabled(marker)
 
   def trace(marker: Marker, msg: String): Unit = {
     log(msg, Level.TRACE)
@@ -105,7 +105,7 @@ class CustomLogger(logger: Logger)(log: (String, Level) => Unit) extends Logger 
     logger.debug(marker, msg, t)
   }
 
-  def isInfoEnabled: Boolean = logger.isDebugEnabled
+  def isInfoEnabled: Boolean = logger.isInfoEnabled
 
   def info(msg: String): Unit = {
     log(msg, Level.INFO)
@@ -129,7 +129,7 @@ class CustomLogger(logger: Logger)(log: (String, Level) => Unit) extends Logger 
     logger.info(msg, t)
   }
 
-  def isInfoEnabled(marker: Marker): Boolean = logger.isDebugEnabled(marker)
+  def isInfoEnabled(marker: Marker): Boolean = logger.isInfoEnabled(marker)
 
   def info(marker: Marker, msg: String): Unit = {
     log(msg, Level.INFO)
@@ -153,7 +153,7 @@ class CustomLogger(logger: Logger)(log: (String, Level) => Unit) extends Logger 
     logger.info(marker, msg, t)
   }
 
-  def isWarnEnabled: Boolean = logger.isDebugEnabled
+  def isWarnEnabled: Boolean = logger.isWarnEnabled
 
   def warn(msg: String): Unit = {
     log(msg, Level.WARN)
@@ -177,7 +177,7 @@ class CustomLogger(logger: Logger)(log: (String, Level) => Unit) extends Logger 
     logger.warn(msg, t)
   }
 
-  def isWarnEnabled(marker: Marker): Boolean = logger.isDebugEnabled(marker)
+  def isWarnEnabled(marker: Marker): Boolean = logger.isWarnEnabled(marker)
 
   def warn(marker: Marker, msg: String): Unit = {
     log(msg, Level.WARN)
@@ -201,7 +201,7 @@ class CustomLogger(logger: Logger)(log: (String, Level) => Unit) extends Logger 
     logger.warn(marker, msg, t)
   }
 
-  def isErrorEnabled: Boolean = logger.isDebugEnabled
+  def isErrorEnabled: Boolean = logger.isErrorEnabled
 
   def error(msg: String): Unit = {
     log(msg, Level.ERROR)
@@ -225,7 +225,7 @@ class CustomLogger(logger: Logger)(log: (String, Level) => Unit) extends Logger 
     logger.error(msg, t)
   }
 
-  def isErrorEnabled(marker: Marker): Boolean = logger.isDebugEnabled(marker)
+  def isErrorEnabled(marker: Marker): Boolean = logger.isErrorEnabled(marker)
 
   def error(marker: Marker, msg: String): Unit = {
     log(msg, Level.ERROR)

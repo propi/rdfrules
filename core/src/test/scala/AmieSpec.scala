@@ -1,4 +1,3 @@
-import java.io.{ByteArrayOutputStream, PrintStream, PrintWriter}
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.github.propi.rdfrules.algorithm.amie.Amie
@@ -13,8 +12,6 @@ import com.github.propi.rdfrules.stringifier.Stringifier
 import com.github.propi.rdfrules.utils.{Debugger, HowLong}
 import org.apache.jena.riot.Lang
 import org.scalatest.{FlatSpec, Inside, Matchers}
-import org.slf4j.event.Level
-import org.slf4j.impl.SimpleLogger
 
 /**
   * Created by Vaclav Zeman on 14. 3. 2018.
@@ -205,6 +202,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
       val constraint = index.tripleItemMap { implicit tihi =>
         RuleConstraint.WithoutPredicates("imports", "exports", "dealsWith")
       }
+
       val amie = Amie().addConstraint(RuleConstraint.WithoutDuplicitPredicates())
       //.addConstraint(RuleConstraint.WithoutDuplicitPredicates())
       //.addConstraint(RuleConstraint.WithInstances(true))
@@ -221,7 +219,6 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
         rules.foreach(x => println(Stringifier(x.asInstanceOf[Rule])))
       }
       println(rules.size)
-
     }
     HowLong.flushAllResults()
   }

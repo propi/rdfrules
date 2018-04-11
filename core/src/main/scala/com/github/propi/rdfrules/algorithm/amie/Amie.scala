@@ -1,18 +1,17 @@
 package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.algorithm.RulesMining
-import com.github.propi.rdfrules.algorithm.amie.RuleRefinement.Settings
+import com.github.propi.rdfrules.algorithm.amie.RuleRefinement.{Settings, _}
 import com.github.propi.rdfrules.index.TripleHashIndex
 import com.github.propi.rdfrules.rule.ExtendedRule.{ClosedRule, DanglingRule}
 import com.github.propi.rdfrules.rule._
+import com.github.propi.rdfrules.utils.HowLong._
 import com.github.propi.rdfrules.utils.{Debugger, HashQueue, TypedKeyMap}
 import com.typesafe.scalalogging.Logger
-import com.github.propi.rdfrules.utils.HowLong._
-import RuleRefinement._
 
 import scala.collection.mutable
 import scala.collection.parallel.immutable.ParVector
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
@@ -40,7 +39,7 @@ class Amie private(logger: Logger)(implicit debugger: Debugger) extends RulesMin
     debugger.debug("Amie rules mining", heads.length) { ad =>
       heads.foreach(head => ad.result()(process.searchRules(head)))
     }
-    val rules = process.result.fold(_.dequeueAll, x => x)
+    val rules = process.getResult
     if (process.timeout.exists(process.currentDuration >= _)) {
       logger.warn(s"The timeout limit '${thresholds.apply[Threshold.Timeout].duration.toMinutes} minutes' has been exceeded during mining. The miner returns ${rules.size} rules which need not be complete.")
     }
@@ -64,14 +63,21 @@ class Amie private(logger: Logger)(implicit debugger: Debugger) extends RulesMin
       * for topK we need to use priority queue where on the peek there is rule with lowest HC
       * for byMinSupport we need only a simple buffer
       */
-    val result: Either[mutable.PriorityQueue[Rule.Simple], mutable.ArrayBuffer[Rule.Simple]] = if (topK > 0) {
+    private val result: Either[mutable.PriorityQueue[Rule.Simple], mutable.ArrayBuffer[Rule.Simple]] = if (topK > 0) {
       Left(mutable.PriorityQueue.empty[Rule.Simple](Ordering.by[Rule.Simple, Double](_.measures[Measure.HeadCoverage].value).reverse))
     } else {
       Right(mutable.ArrayBuffer.empty[Rule.Simple])
     }
 
     /**
-      * We add rule asynchronously and "thread-safely" into the result set
+      * Thread safe method for getting result
+      *
+      * @return indexed seq of rules
+      */
+    def getResult: IndexedSeq[Rule.Simple] = result.synchronized(result.fold(_.dequeueAll, x => x))
+
+    /**
+      * We add rule synchronously and "thread-safely" into the result set
       *
       * when we use the topK approach then we enqueue the closed rule into the queue only if:
       *  - queue size is lower than topK value
@@ -80,22 +86,22 @@ class Amie private(logger: Logger)(implicit debugger: Debugger) extends RulesMin
       *
       * @param rule closed rule
       */
-    private def addRule(rule: ClosedRule): Unit = Future {
-      result.synchronized {
-        result match {
-          case Left(result) =>
-            var enqueued = false
-            if (result.size < topK) {
-              result.enqueue(rule)
-              enqueued = true
-            } else if (rule.measures[Measure.HeadCoverage].value > result.head.measures[Measure.HeadCoverage].value) {
-              result.dequeue()
-              result.enqueue(rule)
-              enqueued = true
-            }
-            if (result.size >= topK && enqueued) settings.setMinHeadCoverage(result.head.measures[Measure.HeadCoverage].value)
-          case Right(result) => result += rule
-        }
+    private def addRule(rule: ClosedRule): Unit = result.synchronized {
+      //TODO how to do it asynchronously
+      //- it is not possible to use Future in this function because locks are queued. Mining is end but rules are still adding...
+      result match {
+        case Left(result) =>
+          var enqueued = false
+          if (result.size < topK) {
+            result.enqueue(rule)
+            enqueued = true
+          } else if (rule.measures[Measure.HeadCoverage].value > result.head.measures[Measure.HeadCoverage].value) {
+            result.dequeue()
+            result.enqueue(rule)
+            enqueued = true
+          }
+          if (result.size >= topK && enqueued) settings.setMinHeadCoverage(result.head.measures[Measure.HeadCoverage].value)
+        case Right(result) => result += rule
       }
     }
 

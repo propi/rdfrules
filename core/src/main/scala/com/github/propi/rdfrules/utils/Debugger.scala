@@ -110,7 +110,6 @@ object Debugger {
       }
     }
 
-
     def run(): Unit = this.synchronized {
       var stopped = false
       while (!stopped) {

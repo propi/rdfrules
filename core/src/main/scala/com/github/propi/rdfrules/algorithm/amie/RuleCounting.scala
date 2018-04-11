@@ -19,6 +19,12 @@ trait RuleCounting extends AtomCounting {
     * @return New rule with counted confidence
     */
   def withConfidence(minConfidence: Double): Rule.Simple = {
+    /*TODO: Check confidence counting - it may be wrong, e.g.: p(c, b) & p(c, a) => p(a, b)
+    A -> C1 -> B
+    A -> C2 -> B
+    both are valid paths for the rule, but for (A, B) support = 1 and bodysize = 2; confidence = 0.5 - but it should be 1
+    because C1 and C2 are connectable with A and B
+    */
     logger.debug(s"Confidence counting for rule: " + rule)
     val support = rule.measures[Measure.Support].value
     //we count body size, it is number of all possible paths for this rule from dataset only for body atoms
