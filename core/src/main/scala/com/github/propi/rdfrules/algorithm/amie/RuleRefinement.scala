@@ -1,15 +1,13 @@
 package com.github.propi.rdfrules.algorithm.amie
 
-import java.util.concurrent.atomic.AtomicLong
-
 import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.algorithm.amie.RuleFilter.{MinSupportRuleFilter, NoDuplicitRuleFilter, NoRepeatedGroups, RulePatternFilter}
 import com.github.propi.rdfrules.index.TripleHashIndex
 import com.github.propi.rdfrules.rule.ExtendedRule.{ClosedRule, DanglingRule}
 import com.github.propi.rdfrules.rule._
-import com.github.propi.rdfrules.utils.{Debugger, IncrementalInt}
 import com.github.propi.rdfrules.utils.HowLong._
 import com.github.propi.rdfrules.utils.extensions.IteratorExtension._
+import com.github.propi.rdfrules.utils.{Debugger, IncrementalInt}
 
 import scala.collection.mutable
 import scala.language.implicitConversions
@@ -390,7 +388,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
 object RuleRefinement {
 
   class Settings(rulesMining: RulesMining)(implicit val debugger: Debugger) {
-    private val _minHeadCoverage: AtomicLong = new AtomicLong(java.lang.Double.doubleToLongBits(rulesMining.thresholds.apply[Threshold.MinHeadCoverage].value))
+    @volatile private var _minHeadCoverage: Double = rulesMining.thresholds.apply[Threshold.MinHeadCoverage].value
 
     val minSupport: Int = rulesMining.thresholds.apply[Threshold.MinHeadSize].value
     val isWithInstances: Boolean = rulesMining.constraints.exists[RuleConstraint.WithInstances]
@@ -403,9 +401,9 @@ object RuleRefinement {
 
     def isValidPredicate(predicate: Int): Boolean = onlyPredicates.forall(_ (predicate)) && withoutPredicates.forall(!_ (predicate))
 
-    def minHeadCoverage: Double = java.lang.Double.longBitsToDouble(_minHeadCoverage.get())
+    def minHeadCoverage: Double = _minHeadCoverage
 
-    def setMinHeadCoverage(value: Double): Unit = _minHeadCoverage.set(java.lang.Double.doubleToLongBits(value))
+    def setMinHeadCoverage(value: Double): Unit = _minHeadCoverage = value
   }
 
   implicit class PimpedRule(extendedRule: ExtendedRule)(implicit tripleHashIndex: TripleHashIndex, settings: Settings) {

@@ -13,7 +13,7 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 3. 10. 2017.
   */
-class Graph(val name: TripleItem.Uri, val triples: TripleTraversableView)
+class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView)
   extends Transformable[Triple, Graph]
     with TriplesOps
     with QuadsOps[Graph]
@@ -41,6 +41,10 @@ class Graph(val name: TripleItem.Uri, val triples: TripleTraversableView)
 object Graph {
 
   val default: TripleItem.Uri = TripleItem.LongUri("")
+
+  def apply(triples: Traversable[Triple]): Graph = new Graph(default, triples.view)
+
+  def apply(name: TripleItem.Uri, triples: Traversable[Triple]): Graph = new Graph(name, triples.view)
 
   def apply[T <: RdfSource](name: TripleItem.Uri, is: => InputStream)(implicit reader: RdfReader[T]): Graph = new Graph(name, reader.fromInputStream(is).map(_.triple))
 

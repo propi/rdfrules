@@ -42,6 +42,12 @@ object Rule {
     implicit def apply(extendedRule: ExtendedRule): Simple = new Simple(extendedRule.head, extendedRule.body)(extendedRule.measures)
   }
 
+  implicit val ruleOrdering: Ordering[Rule] = Ordering.by[Rule, (Measure, Measure)] { rule =>
+    rule.measures(Measure.HeadCoverage) -> rule.measures.get(Measure.Confidence).getOrElse(Measure.Confidence(0))
+  }
+
+  implicit val ruleSimpleOrdering: Ordering[Rule.Simple] = Ordering.by[Rule.Simple, Rule](_.asInstanceOf[Rule])
+
   //implicit def rulePrinter(implicit str: Stringifier[Rule]): Printer[Rule] = (v: Rule) => println(Stringifier(v))
 
 }

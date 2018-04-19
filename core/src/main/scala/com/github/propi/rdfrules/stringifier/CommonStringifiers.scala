@@ -2,8 +2,8 @@ package com.github.propi.rdfrules.stringifier
 
 import com.github.propi.rdfrules.data.Triple
 import com.github.propi.rdfrules.index.TripleItemHashIndex
-import com.github.propi.rdfrules.rule.{Atom, Measure, Rule}
-import com.github.propi.rdfrules.rule.Atom.Item
+import com.github.propi.rdfrules.rule.{Measure, Rule}
+import com.github.propi.rdfrules.ruleset.ResolvedRule
 
 /**
   * Created by Vaclav Zeman on 15. 1. 2018.
@@ -11,18 +11,6 @@ import com.github.propi.rdfrules.rule.Atom.Item
 object CommonStringifiers {
 
   implicit val tripleStringifier: Stringifier[Triple] = (v: Triple) => v.subject + "  " + v.predicate + "  " + v.`object`
-
-  implicit def itemStringifier(implicit mapper: TripleItemHashIndex): Stringifier[Item] = {
-    case x: Atom.Variable => x.value
-    case Atom.Constant(x) => mapper.getTripleItem(x).toString
-  }
-
-  implicit def atomStringifier(implicit mapper: TripleItemHashIndex): Stringifier[Atom] = (v: Atom) => s"(${Stringifier(v.subject)} ${mapper.getTripleItem(v.predicate).toString} ${Stringifier(v.`object`)})"
-
-  implicit def ruleStringifier(implicit mapper: TripleItemHashIndex): Stringifier[Rule] = (v: Rule) => v.body.map(x => Stringifier(x)).mkString(" ^ ") +
-    " -> " +
-    Stringifier(v.head) + " | " +
-    v.measures.iterator.toList.sortBy(_.companion).iterator.map(x => Stringifier(x)).mkString(", ")
 
   implicit val measureStringifier: Stringifier[Measure] = {
     case Measure.Support(v) => s"support: $v"
@@ -35,6 +23,23 @@ object CommonStringifiers {
     case Measure.HeadSize(v) => s"headSize: $v"
     case Measure.BodySize(v) => s"bodySize: $v"
     case Measure.PcaBodySize(v) => s"pcaBodySize: $v"
+    case Measure.Cluster(v) => s"cluster: $v"
   }
+
+  implicit val itemStringifier: Stringifier[ResolvedRule.Atom.Item] = {
+    case ResolvedRule.Atom.Item.Variable(x) => x.value
+    case ResolvedRule.Atom.Item.Constant(x) => x.toString
+  }
+
+  implicit val atomStringifier: Stringifier[ResolvedRule.Atom] = (v: ResolvedRule.Atom) => s"(${Stringifier(v.subject)} ${v.predicate.toString} ${Stringifier(v.`object`)})"
+
+  implicit val resolvedRuleStringifier: Stringifier[ResolvedRule] = (v: ResolvedRule) => v.body.map(x => Stringifier(x)).mkString(" ^ ") +
+    " -> " +
+    Stringifier(v.head) + " | " +
+    v.measures.iterator.toList.sortBy(_.companion).iterator.map(x => Stringifier(x)).mkString(", ")
+
+  implicit def ruleStringifier(implicit resolvedRuleStringifier: Stringifier[ResolvedRule], mapper: TripleItemHashIndex): Stringifier[Rule] = (v: Rule) => resolvedRuleStringifier.toStringValue(v)
+
+  implicit def ruleSimpleStringifier(implicit ruleStringifier: Stringifier[Rule]): Stringifier[Rule.Simple] = (v: Rule.Simple) => ruleStringifier.toStringValue(v)
 
 }

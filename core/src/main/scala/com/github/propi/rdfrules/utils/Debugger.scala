@@ -1,5 +1,7 @@
 package com.github.propi.rdfrules.utils
 
+import java.util.concurrent.LinkedBlockingQueue
+
 import com.github.propi.rdfrules.utils.Debugger.ActionDebugger
 import com.typesafe.scalalogging.Logger
 
@@ -67,7 +69,7 @@ object Debugger {
 
   private class DebuggerActor(logger: Logger) extends Runnable {
 
-    private val messages = collection.mutable.Queue.empty[Message]
+    private val messages = new LinkedBlockingQueue[Message]
     private val debugClock: FiniteDuration = 5 seconds
     private val actions = collection.mutable.Map.empty[String, Action]
     private var lastDump = 0L
@@ -110,34 +112,28 @@ object Debugger {
       }
     }
 
-    def run(): Unit = this.synchronized {
+    def run(): Unit = {
       var stopped = false
       while (!stopped) {
-        if (messages.isEmpty) this.wait()
-        while (messages.nonEmpty && !stopped) {
-          messages.dequeue() match {
-            case Message.NewAction(name, num) =>
-              val action = new Action(name, num)
-              actions += (name -> action)
-              dump(action, "started")
-            case Message.Debug(name, msg) => actions.get(name).foreach { action =>
-              action.++
-              dump(action, msg)
-            }
-            case Message.CloseAction(name) => actions.get(name).foreach { action =>
-              dump(action, "ended")
-              actions -= name
-            }
-            case Message.Stop => stopped = true
+        messages.take() match {
+          case Message.NewAction(name, num) =>
+            val action = new Action(name, num)
+            actions += (name -> action)
+            dump(action, "started")
+          case Message.Debug(name, msg) => actions.get(name).foreach { action =>
+            action.++
+            dump(action, msg)
           }
+          case Message.CloseAction(name) => actions.get(name).foreach { action =>
+            dump(action, "ended")
+            actions -= name
+          }
+          case Message.Stop => stopped = true
         }
       }
     }
 
-    def !(message: Message): Unit = this.synchronized {
-      messages.enqueue(message)
-      this.notify()
-    }
+    def !(message: Message): Unit = messages.put(message)
 
   }
 

@@ -3,12 +3,12 @@ package com.github.propi.rdfrules.algorithm.dbscan
 /**
   * Created by Vaclav Zeman on 31. 7. 2017.
   */
-class DbScan[T] private(minNeighbours: Int, minSimilarity: Double, data: Iterable[T])(implicit similarity: (T, T) => Double) {
+class DbScan[T] private(minNeighbours: Int, minSimilarity: Double, data: Seq[T])(implicit similarity: (T, T) => Double) {
 
-  private def searchReachables(point: T, data: Iterable[T]) = data.partition(similarity(point, _) >= minSimilarity)
+  private def searchReachables(point: T, data: Seq[T]) = data.partition(similarity(point, _) >= minSimilarity)
 
   @scala.annotation.tailrec
-  private def makeCluster(remainingPoints: Iterable[T], cluster: Seq[T], nonCluster: Iterable[T]): (Iterable[T], Iterable[T]) = if (remainingPoints.isEmpty) {
+  private def makeCluster(remainingPoints: Seq[T], cluster: Seq[T], nonCluster: Seq[T]): (Seq[T], Seq[T]) = if (remainingPoints.isEmpty) {
     (cluster, nonCluster)
   } else if (nonCluster.isEmpty) {
     (cluster ++ remainingPoints, nonCluster)
@@ -23,19 +23,19 @@ class DbScan[T] private(minNeighbours: Int, minSimilarity: Double, data: Iterabl
   }
 
   @scala.annotation.tailrec
-  private def makeClusters(nonCluster: Iterable[T], clusters: Seq[Iterable[T]]): Iterable[Iterable[T]] = if (nonCluster.isEmpty) {
+  private def makeClusters(nonCluster: Seq[T], clusters: Seq[Seq[T]]): Seq[Seq[T]] = if (nonCluster.isEmpty) {
     clusters
   } else {
     val (cluster, others) = makeCluster(List(nonCluster.head), Nil, nonCluster.tail)
     makeClusters(others, cluster +: clusters)
   }
 
-  def clusters: Iterable[Iterable[T]] = makeClusters(data, Nil)
+  def clusters: Seq[Seq[T]] = makeClusters(data, Nil)
 
 }
 
 object DbScan {
 
-  def apply[T](minNeighbours: Int, minSimilarity: Double, data: Iterable[T])(implicit similarity: (T, T) => Double): Iterable[Iterable[T]] = new DbScan(minNeighbours, minSimilarity, data).clusters
+  def apply[T](minNeighbours: Int, minSimilarity: Double, data: Seq[T])(implicit similarity: (T, T) => Double): Seq[Seq[T]] = new DbScan(minNeighbours, minSimilarity, data).clusters
 
 }

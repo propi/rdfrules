@@ -2,8 +2,10 @@ package com.github.propi.rdfrules.index
 
 import java.io.{InputStream, OutputStream}
 
+import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.data.Dataset
 import com.github.propi.rdfrules.index.ops._
+import com.github.propi.rdfrules.ruleset.Ruleset
 
 /**
   * Created by Vaclav Zeman on 12. 3. 2018.
@@ -20,6 +22,10 @@ trait Index {
 
   def newIndex: Index
 
+  def mine(miner: RulesMining): Ruleset = tripleMap { implicit thi =>
+    Ruleset(miner.mine, this)
+  }
+
 }
 
 object Index {
@@ -34,12 +40,12 @@ object Index {
 
   }
 
-  def fromDataset(dataset: Dataset, mode: Mode = Mode.PreservedInMemory): Index = {
+  def apply(dataset: Dataset, mode: Mode = Mode.PreservedInMemory): Index = {
     val _dataset = dataset
     trait ConcreteIndex extends Index with Cacheable with FromDatasetBuildable {
       override def toDataset: Dataset = _dataset
 
-      def newIndex: Index = fromDataset(_dataset, mode)
+      def newIndex: Index = apply(_dataset, mode)
     }
     mode match {
       case Mode.PreservedInMemory => new ConcreteIndex with PreservedInMemory

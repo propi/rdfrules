@@ -20,7 +20,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
   private lazy val dataset2 = Dataset() + Graph[RdfSource.Tsv.type]("yago", GraphSpec.dataYago) + Graph("dbpedia", dataDbpedia)(RdfSource.JenaLang(Lang.TTL))
 
   "Index" should "create from dataset and load items" in {
-    val index = Index.fromDataset(dataset1)
+    val index = Index.apply(dataset1)
     index.toDataset shouldBe dataset1
     index.newIndex.toDataset shouldBe dataset1
     MemoryMeasurer.measureBytes(index) should be(500L +- 50)
@@ -42,7 +42,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "create from dataset and load index" in {
-    val index = Index.fromDataset(dataset1)
+    val index = Index.apply(dataset1)
     MemoryMeasurer.measureBytes(index) should be(500L +- 50)
     index.tripleMap { thi =>
       thi.size shouldBe dataset1.size
@@ -64,7 +64,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "load dataset with more graphs" in {
-    val index = Index.fromDataset(dataset2)
+    val index = Index.apply(dataset2)
     MemoryMeasurer.measureBytes(index) should be(2500L +- 500)
     index.tripleItemMap { tihi =>
       tihi.iterator.size shouldBe 72263
@@ -78,7 +78,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "work with graphs" in {
-    val index = Index.fromDataset(dataset1)
+    val index = Index.apply(dataset1)
     val cq = index.tripleItemMap { implicit tim =>
       dataset1.quads.head.toCompressedQuad
     }
@@ -97,7 +97,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
       thi.getGraphs(cq.subject, cq.predicate, cq.`object`).toList should contain only cq.graph
       thi.getGraphs(cq.predicate, TripleItemPosition.Subject(Atom.Constant(cq.subject))).toList should contain only cq.graph
     }
-    val index2 = Index.fromDataset(dataset2)
+    val index2 = Index.apply(dataset2)
     val cq2 = index2.tripleItemMap { implicit tim =>
       dataset2.toGraphs.map(_.quads.head.toCompressedQuad).toList
     }
@@ -122,7 +122,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "use inUseInMemory mode" in {
-    val index = Index.fromDataset(dataset1, Index.Mode.InUseInMemory)
+    val index = Index.apply(dataset1, Index.Mode.InUseInMemory)
     val mem = MemoryMeasurer.measureBytes(index)
     index.tripleItemMap(_.iterator.size)
     MemoryMeasurer.measureBytes(index) shouldBe mem
@@ -131,7 +131,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "cache" in {
-    val index = Index.fromDataset(dataset2)
+    val index = Index.apply(dataset2)
     index.cache(new FileOutputStream("test.index"))
     val file = new File("test.index")
     file.exists() shouldBe true

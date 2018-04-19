@@ -1,5 +1,7 @@
 package com.github.propi.rdfrules.algorithm.amie
 
+import java.util.concurrent.LinkedBlockingQueue
+
 import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.algorithm.amie.RuleRefinement.{Settings, _}
 import com.github.propi.rdfrules.index.TripleHashIndex
@@ -46,6 +48,22 @@ class Amie private(logger: Logger)(implicit debugger: Debugger) extends RulesMin
     rules
   }
 
+  private class AmieResult extends Runnable {
+    private val messages = new LinkedBlockingQueue[Option[ClosedRule]]
+
+    def run(): Unit = {
+      var stopped = false
+      while (!stopped) {
+        messages.take() match {
+          case Some(rule) => 
+          case None => stopped = true
+        }
+      }
+    }
+
+    def addRule(rule: ClosedRule): Unit = messages.put(Some(rule))
+  }
+
   private class AmieProcess(implicit val tripleIndex: TripleHashIndex, settings: RuleRefinement.Settings) extends AtomCounting {
 
     private implicit val ec: ExecutionContext = ExecutionContext.global
@@ -68,6 +86,7 @@ class Amie private(logger: Logger)(implicit debugger: Debugger) extends RulesMin
     } else {
       Right(mutable.ArrayBuffer.empty[Rule.Simple])
     }
+
 
     /**
       * Thread safe method for getting result

@@ -2,9 +2,12 @@ package com.github.propi.rdfrules.data
 
 import java.io.{File, InputStream, OutputStream}
 
+import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.data.Triple.TripleTraversableView
 import com.github.propi.rdfrules.data.ops._
+import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.serialization.QuadSerialization._
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension._
@@ -12,7 +15,7 @@ import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension._
 /**
   * Created by Vaclav Zeman on 3. 10. 2017.
   */
-class Dataset(val quads: QuadTraversableView)
+class Dataset private(val quads: QuadTraversableView)
   extends Transformable[Quad, Dataset]
     with TriplesOps
     with QuadsOps[Dataset]
@@ -35,11 +38,13 @@ class Dataset(val quads: QuadTraversableView)
 
   def triples: TripleTraversableView = quads.map(_.triple)
 
-  def toGraphs: Traversable[Graph] = quads.map(_.graph).distinct.view.map(x => new Graph(x, quads.filter(_.graph == x).map(_.triple)))
+  def toGraphs: Traversable[Graph] = quads.map(_.graph).distinct.view.map(x => Graph(x, quads.filter(_.graph == x).map(_.triple)))
 
   def foreach(f: Quad => Unit): Unit = quads.foreach(f)
 
   def export[T <: RdfSource](os: => OutputStream)(implicit writer: RdfWriter[T]): Unit = writer.writeToOutputStream(this, os)
+
+  def mine(miner: RulesMining): Ruleset = Index(this).mine(miner)
 
 }
 

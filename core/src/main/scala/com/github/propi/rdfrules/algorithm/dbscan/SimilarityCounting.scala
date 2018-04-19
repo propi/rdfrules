@@ -81,7 +81,7 @@ object SimilarityCounting {
 
   object ConfidenceSimilarityCounting extends MeasuresSimilarityCounting {
 
-    def apply(rule1: Rule, rule2: Rule): Double = relativeNumbersSimilarity(rule1.measures[Measure.Confidence].value, rule2.measures[Measure.Confidence].value)
+    def apply(rule1: Rule, rule2: Rule): Double = relativeNumbersSimilarity(rule1.measures.get[Measure.Confidence].map(_.value).getOrElse(0), rule2.measures.get[Measure.Confidence].map(_.value).getOrElse(0))
 
   }
 
