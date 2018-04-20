@@ -14,15 +14,13 @@ import com.typesafe.scalalogging.Logger
 import scala.collection.mutable
 import scala.collection.parallel.immutable.ParVector
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future, Promise}
+import scala.concurrent.{Await, Future, Promise}
 import scala.language.postfixOps
 
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
 class Amie private(logger: Logger)(implicit debugger: Debugger) extends RulesMining {
-
-  private implicit val ec: ExecutionContext = ExecutionContext.global
 
   /**
     * Mine all closed rules from tripleIndex by defined thresholds (hc, support, rule length), optional rule pattern and constraints
@@ -46,13 +44,12 @@ class Amie private(logger: Logger)(implicit debugger: Debugger) extends RulesMin
       debugger.debug("Amie rules mining", heads.length) { ad =>
         heads.foreach(head => ad.result()(process.searchRules(head)))
       }
-      val rules = process.result.getResult
-      if (process.timeout.exists(process.currentDuration >= _)) {
-        rules.foreach { rules =>
-          logger.warn(s"The timeout limit '${thresholds.apply[Threshold.Timeout].duration.toMinutes} minutes' has been exceeded during mining. The miner returns ${rules.size} rules which need not be complete.")
-        }
+      val timeoutReached = process.timeout.exists(process.currentDuration >= _)
+      val rules = Await.result(process.result.getResult, 1 minute)
+      if (timeoutReached) {
+        logger.warn(s"The timeout limit '${thresholds.apply[Threshold.Timeout].duration.toMinutes} minutes' has been exceeded during mining. The miner returns ${rules.size} rules which need not be complete.")
       }
-      Await.result(rules, 1 minute)
+      rules
     } finally {
       process.result.close()
     }

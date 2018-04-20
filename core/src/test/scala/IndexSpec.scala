@@ -138,7 +138,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
     file.length() should be > 5000000L
   }
 
-  it should "loaded from cache" in {
+  it should "be loaded from cache" in {
     val index = Index.fromCache(new BufferedInputStream(new FileInputStream("test.index")))
     index.tripleItemMap { tihi =>
       tihi.iterator.size shouldBe 72263
@@ -154,7 +154,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
     new File("test2.index").delete() shouldBe true
   }
 
-  it should "loaded from cache with inUseInMemory mode" in {
+  it should "be loaded from cache with inUseInMemory mode" in {
     val index = Index.fromCache(new BufferedInputStream(new FileInputStream("test.index")), Index.Mode.InUseInMemory)
     val mem = MemoryMeasurer.measureBytes(index)
     mem should be(55L +- 10)
