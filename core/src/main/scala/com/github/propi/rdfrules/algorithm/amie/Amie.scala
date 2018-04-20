@@ -13,12 +13,16 @@ import com.typesafe.scalalogging.Logger
 
 import scala.collection.mutable
 import scala.collection.parallel.immutable.ParVector
-import scala.concurrent.ExecutionContext
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Future, Promise}
+import scala.language.postfixOps
 
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
 class Amie private(logger: Logger)(implicit debugger: Debugger) extends RulesMining {
+
+  private implicit val ec: ExecutionContext = ExecutionContext.global
 
   /**
     * Mine all closed rules from tripleIndex by defined thresholds (hc, support, rule length), optional rule pattern and constraints
@@ -31,72 +35,110 @@ class Amie private(logger: Logger)(implicit debugger: Debugger) extends RulesMin
   def mine(implicit tripleIndex: TripleHashIndex): IndexedSeq[Rule.Simple] = {
     //create amie process with debugger and final triple index
     val process = new AmieProcess()(tripleIndex, new Settings(this)(if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) debugger else Debugger.EmptyDebugger))
-    //get all possible heads
-    val heads = {
-      val builder = ParVector.newBuilder[DanglingRule]
-      builder ++= process.getHeads
-      builder.result()
+    try {
+      //get all possible heads
+      val heads = {
+        val builder = ParVector.newBuilder[DanglingRule]
+        builder ++= process.getHeads
+        builder.result()
+      }
+      //parallel rule mining: for each head we search rules
+      debugger.debug("Amie rules mining", heads.length) { ad =>
+        heads.foreach(head => ad.result()(process.searchRules(head)))
+      }
+      val rules = process.result.getResult
+      if (process.timeout.exists(process.currentDuration >= _)) {
+        rules.foreach { rules =>
+          logger.warn(s"The timeout limit '${thresholds.apply[Threshold.Timeout].duration.toMinutes} minutes' has been exceeded during mining. The miner returns ${rules.size} rules which need not be complete.")
+        }
+      }
+      Await.result(rules, 1 minute)
+    } finally {
+      process.result.close()
     }
-    //parallel rule mining: for each head we search rules
-    debugger.debug("Amie rules mining", heads.length) { ad =>
-      heads.foreach(head => ad.result()(process.searchRules(head)))
-    }
-    val rules = process.getResult
-    if (process.timeout.exists(process.currentDuration >= _)) {
-      logger.warn(s"The timeout limit '${thresholds.apply[Threshold.Timeout].duration.toMinutes} minutes' has been exceeded during mining. The miner returns ${rules.size} rules which need not be complete.")
-    }
-    rules
   }
 
-  private class AmieResult extends Runnable {
-    private val messages = new LinkedBlockingQueue[Option[ClosedRule]]
+  private class AmieResult(settings: RuleRefinement.Settings) extends Runnable {
 
-    def run(): Unit = {
+    private val messages = new LinkedBlockingQueue[Option[ClosedRule]]
+    private val topK: Int = thresholds.get[Threshold.TopK].map(_.value).getOrElse(0)
+    private val result = Promise[IndexedSeq[Rule.Simple]]
+    private val thread = {
+      val x = new Thread(this)
+      x.start()
+      x
+    }
+
+    def run(): Unit = try {
       var stopped = false
+      /**
+        * collection for mined closed rules
+        * there are two collections for two mining approaches: byMinSupport or topK
+        * for topK we need to use priority queue where on the peek there is rule with lowest HC
+        * for byMinSupport we need only a simple buffer
+        */
+      val result = if (topK > 0) {
+        Left(mutable.PriorityQueue.empty[Rule.Simple](Ordering.by[Rule.Simple, Double](_.measures[Measure.HeadCoverage].value).reverse))
+      } else {
+        Right(mutable.ArrayBuffer.empty[Rule.Simple])
+      }
+      val addRule: ClosedRule => Unit = result match {
+        case Left(queue) => rule => {
+          var enqueued = false
+          if (queue.size < topK) {
+            queue.enqueue(rule)
+            enqueued = true
+          } else if (rule.measures[Measure.HeadCoverage].value > queue.head.measures[Measure.HeadCoverage].value) {
+            queue.dequeue()
+            queue.enqueue(rule)
+            enqueued = true
+          }
+          if (queue.size >= topK && enqueued) settings.setMinHeadCoverage(queue.head.measures[Measure.HeadCoverage].value)
+        }
+        case Right(buffer) => rule => buffer += rule
+      }
       while (!stopped) {
         messages.take() match {
-          case Some(rule) => 
+          case Some(rule) => addRule(rule)
           case None => stopped = true
         }
       }
+      this.result.success(result.fold(_.dequeueAll, x => x))
+    } catch {
+      case th: Throwable => this.result.failure(th)
     }
 
-    def addRule(rule: ClosedRule): Unit = messages.put(Some(rule))
-  }
-
-  private class AmieProcess(implicit val tripleIndex: TripleHashIndex, settings: RuleRefinement.Settings) extends AtomCounting {
-
-    private implicit val ec: ExecutionContext = ExecutionContext.global
-
-    private val topK: Int = thresholds.get[Threshold.TopK].map(_.value).getOrElse(0)
-    private val minSupport: Int = thresholds.apply[Threshold.MinHeadSize].value
-    private val startTime = System.currentTimeMillis()
-    val timeout: Option[Long] = thresholds.get[Threshold.Timeout].map(_.duration.toMillis)
-
-    def currentDuration: Long = System.currentTimeMillis() - startTime
-
     /**
-      * collection for mined closed rules
-      * there are two collections for two mining approaches: byMinSupport or topK
-      * for topK we need to use priority queue where on the peek there is rule with lowest HC
-      * for byMinSupport we need only a simple buffer
+      * Kill the consumer thread.
       */
-    private val result: Either[mutable.PriorityQueue[Rule.Simple], mutable.ArrayBuffer[Rule.Simple]] = if (topK > 0) {
-      Left(mutable.PriorityQueue.empty[Rule.Simple](Ordering.by[Rule.Simple, Double](_.measures[Measure.HeadCoverage].value).reverse))
-    } else {
-      Right(mutable.ArrayBuffer.empty[Rule.Simple])
-    }
-
+    def close(): Unit = thread.interrupt()
 
     /**
-      * Thread safe method for getting result
+      * Stop consuming of messages and return future with result.
+      * It sends a stop message into the message queue.
+      * After the consumer process this message the consumer thread will stop and a result will be passed into the future object.
       *
       * @return indexed seq of rules
       */
-    def getResult: IndexedSeq[Rule.Simple] = result.synchronized(result.fold(_.dequeueAll, x => x))
+    def getResult: Future[IndexedSeq[Rule.Simple]] = {
+      messages.put(None)
+      result.future
+    }
 
     /**
-      * We add rule synchronously and "thread-safely" into the result set
+      * It checks whether a rule may be refinable by topK approach.
+      * If the topK is turned off then the rule is always refinable.
+      * If the topK is turned on and the rule has reached the minimal head coverage (by the lowest entity in the queue), then it is refinable.
+      *
+      * @param rule a rule to be refinable
+      * @return true = is refinable, false = do not refine it!
+      */
+    def isRefinable(rule: Rule): Boolean = topK <= 0 || rule.measures[Measure.HeadCoverage].value >= settings.minHeadCoverage
+
+    /**
+      * We add rule synchronously and "thread-safely" into the result set.
+      * The rule is safely and quickly added into the message buffer.
+      * Another thread manages messages and constructs a final rules buffer or priority queue.
       *
       * when we use the topK approach then we enqueue the closed rule into the queue only if:
       *  - queue size is lower than topK value
@@ -105,24 +147,18 @@ class Amie private(logger: Logger)(implicit debugger: Debugger) extends RulesMin
       *
       * @param rule closed rule
       */
-    private def addRule(rule: ClosedRule): Unit = result.synchronized {
-      //TODO how to do it asynchronously
-      //- it is not possible to use Future in this function because locks are queued. Mining is end but rules are still adding...
-      result match {
-        case Left(result) =>
-          var enqueued = false
-          if (result.size < topK) {
-            result.enqueue(rule)
-            enqueued = true
-          } else if (rule.measures[Measure.HeadCoverage].value > result.head.measures[Measure.HeadCoverage].value) {
-            result.dequeue()
-            result.enqueue(rule)
-            enqueued = true
-          }
-          if (result.size >= topK && enqueued) settings.setMinHeadCoverage(result.head.measures[Measure.HeadCoverage].value)
-        case Right(result) => result += rule
-      }
-    }
+    def addRule(rule: ClosedRule): Unit = messages.put(Some(rule))
+
+  }
+
+  private class AmieProcess(implicit val tripleIndex: TripleHashIndex, settings: RuleRefinement.Settings) extends AtomCounting {
+
+    private val minSupport: Int = thresholds.apply[Threshold.MinHeadSize].value
+    private val startTime = System.currentTimeMillis()
+    val timeout: Option[Long] = thresholds.get[Threshold.Timeout].map(_.duration.toMillis)
+    val result: AmieResult = new AmieResult(settings)
+
+    def currentDuration: Long = System.currentTimeMillis() - startTime
 
     /**
       * Get all possible heads from triple index
@@ -198,12 +234,12 @@ class Amie private(logger: Logger)(implicit debugger: Debugger) extends RulesMin
         val rule = queue.poll
         //if the rule is closed we add it to the result set
         rule match {
-          case closedRule: ClosedRule => addRule(closedRule)
+          case closedRule: ClosedRule => result.addRule(closedRule)
           case _ =>
         }
         //if rule length is lower than max rule length we can expand this rule with one atom
         //if we use the topK approach the minHeadCoverage may change during mining; therefore we need to check minHC threshold for the current rule
-        if (rule.ruleLength < settings.maxRuleLength && (result.left.forall(_.size < topK) || rule.measures[Measure.HeadCoverage].value > settings.minHeadCoverage)) {
+        if (rule.ruleLength < settings.maxRuleLength && result.isRefinable(rule)) {
           //refine the rule and add all expanded variants into the queue
           howLong("Rule expansion", true)(for (rule <- rule.refine) queue.add(rule))
         }
