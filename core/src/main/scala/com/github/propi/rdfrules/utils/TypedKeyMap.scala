@@ -20,11 +20,15 @@ class TypedKeyMap[T <: Value] private(m: collection.mutable.Map[Key[T], T]) exte
   def ++=(col: TypedKeyMap.Immutable[T]): TypedKeyMap[T] = this += (col.iterator.map(x => x.companion.asInstanceOf[Key[T]] -> x).toSeq: _*)
 
   def iterator: Iterator[T] = m.valuesIterator
+
+  def +(keyValue: (Key[T], T)): TypedKeyMap[T] = new TypedKeyMap(m + keyValue)
 }
 
 object TypedKeyMap {
 
   trait Immutable[T <: Value] {
+    self =>
+
     def apply[A <: T](implicit key: Key[A]): A
 
     def get[A <: T](implicit key: Key[A]): Option[A]
@@ -32,6 +36,8 @@ object TypedKeyMap {
     def exists[A <: T](implicit key: Key[A]): Boolean
 
     def iterator: Iterator[T]
+
+    def +(keyValue: (Key[T], T)): Immutable[T]
   }
 
   trait Value {

@@ -5,6 +5,8 @@ import com.github.propi.rdfrules.index.TripleItemHashIndex
 import com.github.propi.rdfrules.rule.AtomPattern.AtomItemPattern
 import com.github.propi.rdfrules.rule.AtomPattern.AtomItemPattern.Any
 
+import scala.language.implicitConversions
+
 /**
   * Created by Vaclav Zeman on 23. 9. 2017.
   */
@@ -20,7 +22,15 @@ object AtomPattern {
 
     case class OneOf(col: Traversable[AtomItemPattern]) extends AtomItemPattern
 
+    object OneOf {
+      def apply(atomItemPattern: AtomItemPattern, atomItemPatterns: AtomItemPattern*): OneOf = new OneOf(atomItemPattern +: atomItemPatterns)
+    }
+
     case class NoneOf(col: Traversable[AtomItemPattern]) extends AtomItemPattern
+
+    object NoneOf {
+      def apply(atomItemPattern: AtomItemPattern, atomItemPatterns: AtomItemPattern*): NoneOf = new NoneOf(atomItemPattern +: atomItemPatterns)
+    }
 
     case object AnyVariable extends AtomItemPattern
 
@@ -33,6 +43,10 @@ object AtomPattern {
     object Constant {
       def apply(constant: TripleItem)(implicit mapper: TripleItemHashIndex): Constant = Constant(Atom.Constant(mapper.getIndex(constant)))
     }
+
+    implicit def apply(tripleItem: TripleItem)(implicit mapper: TripleItemHashIndex): AtomItemPattern = Constant(tripleItem)
+
+    implicit def apply(variable: Char): AtomItemPattern = Variable(variable)
 
   }
 

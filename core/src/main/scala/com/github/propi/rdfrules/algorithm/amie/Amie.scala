@@ -20,7 +20,15 @@ import scala.language.postfixOps
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
-class Amie private(logger: Logger)(implicit debugger: Debugger) extends RulesMining {
+class Amie private(logger: Logger,
+                   _thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
+                   _constraints: TypedKeyMap[RuleConstraint] = TypedKeyMap(),
+                   _patterns: List[RulePattern] = Nil)
+                  (implicit debugger: Debugger) extends RulesMining(_thresholds, _constraints, _patterns) {
+
+  protected def transform(thresholds: TypedKeyMap[Threshold],
+                          constraints: TypedKeyMap[RuleConstraint],
+                          patterns: List[RulePattern]): RulesMining = new Amie(logger, thresholds, constraints, patterns)
 
   /**
     * Mine all closed rules from tripleIndex by defined thresholds (hc, support, rule length), optional rule pattern and constraints
@@ -244,6 +252,7 @@ class Amie private(logger: Logger)(implicit debugger: Debugger) extends RulesMin
     }
 
   }
+
 
 }
 
