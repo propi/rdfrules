@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.stringifier
 
-import com.github.propi.rdfrules.data.Triple
+import com.github.propi.rdfrules.data.{Quad, Triple}
 import com.github.propi.rdfrules.index.TripleItemHashIndex
 import com.github.propi.rdfrules.rule.{Measure, Rule}
 import com.github.propi.rdfrules.ruleset.ResolvedRule
@@ -11,6 +11,8 @@ import com.github.propi.rdfrules.ruleset.ResolvedRule
 object CommonStringifiers {
 
   implicit val tripleStringifier: Stringifier[Triple] = (v: Triple) => v.subject + "  " + v.predicate + "  " + v.`object`
+
+  implicit val quadStringifier: Stringifier[Quad] = (v: Quad) => Stringifier(v.triple) + " " + v.graph
 
   implicit val measureStringifier: Stringifier[Measure] = {
     case Measure.Support(v) => s"support: $v"

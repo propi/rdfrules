@@ -294,53 +294,65 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
       rules.map(_.body.last.predicate).map(mapper.getTripleItem) should contain noneOf(TripleItem.Uri("participatedIn"), TripleItem.Uri("imports"))
       rules.size shouldBe 6786
     }
+    //several patterns
+    val amie2 = index.tripleItemMap { implicit mapper =>
+      Amie()
+        .addConstraint(RuleConstraint.WithoutDuplicitPredicates())
+        .addPattern(AtomPattern(predicate = TripleItem.Uri("actedIn")))
+        .addPattern(AtomPattern(predicate = TripleItem.Uri("directed")))
+    }
+    rules = index.tripleMap { implicit thi =>
+      amie2.mine
+    }
+    index.tripleItemMap { implicit mapper =>
+      rules.map(_.head.predicate).map(mapper.getTripleItem) should contain only(TripleItem.Uri("actedIn"), TripleItem.Uri("directed"))
+      rules.size shouldBe 11
+    }
+  }
+
+  it should "mine across two graphs" in {
+    val index = Index.apply(dataset2)
+    val amie = Amie().addConstraint(RuleConstraint.WithoutDuplicitPredicates())
+    val rules = index.tripleMap { implicit thi =>
+      amie.mine
+    }
+    index.tripleItemMap { implicit mapper =>
+      rules.map(_.head.predicate).map(mapper.getTripleItem) should contain allOf(TripleItem.Uri("http://cs.dbpedia.org/property/hudba"), TripleItem.Uri("hasCapital"))
+    }
+    rules.size shouldBe 391
+  }
+
+  it should "mine across two graphs with pattern" in {
+    val index = Index.apply(dataset2)
+    val pattern: RulePattern = index.tripleItemMap { implicit mapper =>
+      AtomPattern(graph = TripleItem.Uri("yago"))
+    }
+    val amie = Amie().addConstraint(RuleConstraint.WithoutDuplicitPredicates()).addPattern(pattern)
+    val rules = index.tripleMap { implicit thi =>
+      amie.mine.map(_.head.predicate).map(thi.getGraphs).map(_.toSeq)
+    }
+    index.tripleItemMap { implicit mapper =>
+      rules.flatten.map(mapper.getTripleItem) should contain only TripleItem.Uri("yago")
+    }
+    rules.size shouldBe 67
   }
 
   it should "test" ignore {
     Debugger() { implicit debugger =>
       val index = Index.apply(dataset1)
-      val amie = Amie().addConstraint(RuleConstraint.WithoutDuplicitPredicates()).addConstraint(RuleConstraint.WithInstances(true))
-      val pattern = index.tripleItemMap { implicit tihi =>
-        AtomPattern(predicate = NoneOf(TripleItem.Uri("participatedIn"), TripleItem.Uri("imports"))) =>: None
+      val amie = index.tripleItemMap { implicit mapper =>
+        Amie()
+          .addConstraint(RuleConstraint.WithoutDuplicitPredicates())
+          .addPattern(AtomPattern(predicate = TripleItem.Uri("actedIn")))
+          .addPattern(AtomPattern(predicate = TripleItem.Uri("directed")))
       }
       val rules = index.tripleMap { implicit thi =>
-        amie.addPattern(pattern).mine
+        amie.mine
       }
       index.tripleItemMap { implicit tihi =>
         rules.foreach(x => println(Stringifier(x)))
       }
       println(rules.size)
-      /*val pattern = index.tripleItemMap { implicit tihi =>
-        AtomPattern(
-          AtomPattern.AtomItemPattern.Variable('c'),
-          AtomPattern.AtomItemPattern.Constant(TripleItem.Uri("exports")),
-          AtomPattern.AtomItemPattern.Variable('b')
-        ) :: AtomPattern(
-          AtomPattern.AtomItemPattern.Variable('a'),
-          AtomPattern.AtomItemPattern.Constant(TripleItem.Uri("dealsWith")),
-          AtomPattern.AtomItemPattern.Constant(TripleItem.Uri("Germany"))
-        ) :: RulePattern(None)
-      }*/
-      val constraint = index.tripleItemMap { implicit tihi =>
-        RuleConstraint.WithoutPredicates("imports", "exports", "dealsWith")
-      }
-
-
-      //.addConstraint(RuleConstraint.WithoutDuplicitPredicates())
-      //.addConstraint(RuleConstraint.WithInstances(true))
-      //.addThreshold(Threshold.MinHeadCoverage(0.001))
-      //.addThreshold(Threshold.TopK(100))
-      //.addThreshold(Threshold.MaxRuleLength(5))
-      //.addPattern(pattern)
-      /*val rules = index.tripleMap { implicit thi =>
-        val rules = amie.mine.sortBy(_.measures[Measure.HeadCoverage])(Ordering.by[Measure.HeadCoverage, Double](_.value).reverse)
-        println(rules.size)
-        rules
-      }
-      index.tripleItemMap { implicit tihi =>
-        rules.foreach(x => println(Stringifier(x.asInstanceOf[Rule])))
-      }
-      println(rules.size)*/
     }
     HowLong.flushAllResults()
   }

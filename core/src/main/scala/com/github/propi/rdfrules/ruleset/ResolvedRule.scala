@@ -5,7 +5,9 @@ import com.github.propi.rdfrules.index.TripleItemHashIndex
 import com.github.propi.rdfrules.rule
 import com.github.propi.rdfrules.rule.{Measure, Rule}
 import com.github.propi.rdfrules.ruleset.ResolvedRule.Atom
+import com.github.propi.rdfrules.stringifier.Stringifier
 import com.github.propi.rdfrules.utils.TypedKeyMap
+import com.github.propi.rdfrules.stringifier.CommonStringifiers._
 
 import scala.language.implicitConversions
 
@@ -14,6 +16,8 @@ import scala.language.implicitConversions
   */
 case class ResolvedRule(body: IndexedSeq[Atom], head: Atom)(val measures: TypedKeyMap.Immutable[Measure]) {
   def ruleLength: Int = body.length + 1
+
+  override def toString: String = Stringifier(this)
 }
 
 object ResolvedRule {

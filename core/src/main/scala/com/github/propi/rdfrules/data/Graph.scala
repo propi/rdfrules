@@ -35,6 +35,8 @@ class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView
   def export[T <: RdfSource](os: => OutputStream)(implicit writer: RdfWriter[T]): Unit = writer.writeToOutputStream(this, os)
 
   def quads: QuadTraversableView = triples.map(_.toQuad(name))
+  
+  def withName(name: TripleItem.Uri): Graph = new Graph(name, triples)
 
 }
 

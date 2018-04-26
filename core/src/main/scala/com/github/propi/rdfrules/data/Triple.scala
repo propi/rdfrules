@@ -1,6 +1,8 @@
 package com.github.propi.rdfrules.data
 
+import com.github.propi.rdfrules.stringifier.Stringifier
 import org.apache.jena.graph
+import com.github.propi.rdfrules.stringifier.CommonStringifiers._
 
 import scala.collection.TraversableView
 import scala.language.implicitConversions
@@ -12,6 +14,8 @@ case class Triple(subject: TripleItem.Uri, predicate: TripleItem.Uri, `object`: 
   def toQuad: Quad = Quad(this)
 
   def toQuad(graph: TripleItem.Uri): Quad = Quad(this, graph)
+
+  override def toString: String = Stringifier(this)
 }
 
 object Triple {

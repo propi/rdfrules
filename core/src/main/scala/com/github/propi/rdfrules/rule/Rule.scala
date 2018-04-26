@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.rule
 
+import com.github.propi.rdfrules.stringifier.Stringifier
 import com.github.propi.rdfrules.utils.TypedKeyMap
 
 import scala.language.implicitConversions

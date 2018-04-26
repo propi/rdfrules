@@ -7,14 +7,14 @@ import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting._
 import com.github.propi.rdfrules.algorithm.dbscan.{DbScan, SimilarityCounting}
 import com.github.propi.rdfrules.data.ops.{Cacheable, Transformable}
 import com.github.propi.rdfrules.index.{Index, TripleHashIndex, TripleItemHashIndex}
-import com.github.propi.rdfrules.rule.{Measure, Rule, Threshold}
+import com.github.propi.rdfrules.rule.{Measure, Rule, RulePattern}
 import com.github.propi.rdfrules.ruleset.ops.Sortable
 import com.github.propi.rdfrules.serialization.RuleSerialization._
-import com.github.propi.rdfrules.stringifier.CommonStringifiers._
 import com.github.propi.rdfrules.stringifier.Stringifier
 import com.github.propi.rdfrules.utils.TypedKeyMap
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
+import com.github.propi.rdfrules.stringifier.CommonStringifiers._
 
 import scala.collection.GenSeq
 
@@ -30,12 +30,25 @@ class Ruleset private(val rules: Seq[Rule.Simple], val index: Index)
 
   protected def coll: Traversable[Rule.Simple] = seqColl
 
-  protected def transform(col: Traversable[Rule.Simple]): Ruleset = new Ruleset(col.asInstanceOf[Seq[Rule.Simple]], index)
+  protected def transform(col: Traversable[Rule.Simple]): Ruleset = col match {
+    case simples: Seq[Rule.Simple] => new Ruleset(simples, index)
+    case _ => new Ruleset(col.toVector, index)
+  }
 
   protected val ordering: Ordering[Rule.Simple] = implicitly[Ordering[Rule.Simple]]
   protected val serializer: Serializer[Rule.Simple] = implicitly[Serializer[Rule.Simple]]
   protected val deserializer: Deserializer[Rule.Simple] = implicitly[Deserializer[Rule.Simple]]
   protected val serializationSize: SerializationSize[Rule.Simple] = implicitly[SerializationSize[Rule.Simple]]
+
+  def filterByPatterns(pattern: RulePattern, patterns: RulePattern*): Ruleset = {
+    val ruleView = rules.view
+    val newRules = new ruleView.Filtered {
+      protected[this] val pred: A => Boolean = _
+    }
+    index.tripleMap { implicit thi =>
+      (pattern +: patterns).exists(rulePattern => )
+    }
+  }
 
   def sortBy(measure: Key[Measure], measures: Key[Measure]*): Ruleset = sortBy { rule =>
     (rule.measures(measure) +: measures.map(rule.measures(_))).asInstanceOf[Iterable[Measure]]
@@ -69,34 +82,34 @@ class Ruleset private(val rules: Seq[Rule.Simple], val index: Index)
     new Ruleset(newRules, index)
   }
 
-  def countConfidence(threshold: Threshold.MinConfidence): Ruleset = extendRuleset { implicit thi =>
-    _.withConfidence(threshold.value)
-  }.filter(_.measures.get[Measure.Confidence].exists(_.value >= threshold.value))
+  def countConfidence(minConfidence: Double): Ruleset = extendRuleset { implicit thi =>
+    _.withConfidence(minConfidence)
+  }.filter(_.measures.get[Measure.Confidence].exists(_.value >= minConfidence))
 
-  def countPcaConfidence(threshold: Threshold.MinPcaConfidence): Ruleset = extendRuleset { implicit thi =>
-    _.withPcaConfidence(threshold.value)
-  }.filter(_.measures.get[Measure.PcaConfidence].exists(_.value >= threshold.value))
+  def countPcaConfidence(minPcaConfidence: Double): Ruleset = extendRuleset { implicit thi =>
+    _.withPcaConfidence(minPcaConfidence)
+  }.filter(_.measures.get[Measure.PcaConfidence].exists(_.value >= minPcaConfidence))
 
-  def countLift(threshold: Threshold.MinConfidence = Threshold.MinConfidence(0.5)): Ruleset = extendRuleset { implicit thi =>
+  def countLift(minConfidence: Double = 0.5): Ruleset = extendRuleset { implicit thi =>
     Function.chain[Rule.Simple](List(
-      rule => if (rule.measures.exists[Measure.Confidence]) rule else rule.withConfidence(threshold.value),
+      rule => if (rule.measures.exists[Measure.Confidence]) rule else rule.withConfidence(minConfidence),
       rule => if (rule.measures.exists[Measure.HeadConfidence]) rule else rule.withHeadConfidence,
       rule => rule.withLift
     ))
-  }
+  }.filter(_.measures.exists[Measure.Lift])
 
-  def countPcaLift(threshold: Threshold.MinPcaConfidence = Threshold.MinPcaConfidence(0.5)): Ruleset = extendRuleset { implicit thi =>
+  def countPcaLift(minPcaConfidence: Double = 0.5): Ruleset = extendRuleset { implicit thi =>
     Function.chain[Rule.Simple](List(
-      rule => if (rule.measures.exists[Measure.PcaConfidence]) rule else rule.withPcaConfidence(threshold.value),
+      rule => if (rule.measures.exists[Measure.PcaConfidence]) rule else rule.withPcaConfidence(minPcaConfidence),
       rule => if (rule.measures.exists[Measure.HeadConfidence]) rule else rule.withHeadConfidence,
       rule => rule.withPcaLift
     ))
-  }
+  }.filter(_.measures.exists[Measure.PcaLift])
 
   def countClusters(minNeighbours: Int = 5,
-                    minSimilarity: Double = 0.7,
-                    similarityCounting: SimilarityCounting = (0.4 * AtomsSimilarityCounting) ~ (0.3 * LengthSimilarityCounting) ~ (0.15 * SupportSimilarityCounting) ~ (0.15 * ConfidenceSimilarityCounting)): Ruleset = {
-    val rules = DbScan(minNeighbours, minSimilarity, seqColl)(similarityCounting.apply).view.zipWithIndex.flatMap { case (cluster, index) =>
+                    minSimilarity: Double = 0.9,
+                    similarityCounting: SimilarityCounting = (0.6 * AtomsSimilarityCounting) ~ (0.1 * LengthSimilarityCounting) ~ (0.15 * SupportSimilarityCounting) ~ (0.15 * ConfidenceSimilarityCounting)): Ruleset = {
+    val rules = DbScan(minNeighbours, minSimilarity, this.rules.toIndexedSeq)(similarityCounting.apply).view.zipWithIndex.flatMap { case (cluster, index) =>
       cluster.map(x => x.copy()(TypedKeyMap(Measure.Cluster(index)) ++= x.measures))
     }
     transform(rules)

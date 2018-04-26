@@ -79,7 +79,7 @@ object RuleSerialization {
 
   implicit val measureDeserializer: Deserializer[Measure] = (v: Array[Byte]) => {
     val bais = new ByteArrayInputStream(v)
-    val mtype = Deserializer.deserialize[Byte](bais).toInt
+    val mtype = bais.read()
     val value = Deserializer.deserialize[Double](bais)
     mtype match {
       case 1 => Measure.BodySize(value.toInt)

@@ -67,10 +67,13 @@ trait RuleCounting extends AtomCounting {
     */
   def withLift: Rule.Simple = {
     logger.debug(s"Lift counting for rule: " + rule)
-    val confidence = rule.measures[Measure.Confidence].value
-    val average = rule.measures[Measure.HeadConfidence].value
-    //lift is confidence DIVIDED average confidence for the head atom
-    rule.copy()(TypedKeyMap(Measure.Lift(confidence / average)) ++= rule.measures)
+    val confidence = rule.measures.get[Measure.Confidence]
+    val average = rule.measures.get[Measure.HeadConfidence]
+    (confidence, average) match {
+      //lift is confidence DIVIDED average confidence for the head atom
+      case (Some(confidence), Some(average)) => rule.copy()(TypedKeyMap(Measure.Lift(confidence.value / average.value)) ++= rule.measures)
+      case _ => rule
+    }
   }
 
   /**
@@ -119,10 +122,13 @@ trait RuleCounting extends AtomCounting {
     */
   def withPcaLift: Rule.Simple = {
     logger.debug(s"Pca lift counting for rule: " + rule)
-    val pcaConfidence = rule.measures[Measure.PcaConfidence].value
-    val average = rule.measures[Measure.HeadConfidence].value
-    //lift is confidence DIVIDED average confidence for the head atom
-    rule.copy()(TypedKeyMap(Measure.PcaLift(pcaConfidence / average)) ++= rule.measures)
+    val pcaConfidence = rule.measures.get[Measure.PcaConfidence]
+    val average = rule.measures.get[Measure.HeadConfidence]
+    (pcaConfidence, average) match {
+      //lift is confidence DIVIDED average confidence for the head atom
+      case (Some(pcaConfidence), Some(average)) => rule.copy()(TypedKeyMap(Measure.PcaLift(pcaConfidence.value / average.value)) ++= rule.measures)
+      case _ => rule
+    }
   }
 
 }

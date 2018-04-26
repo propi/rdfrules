@@ -1,9 +1,11 @@
 package com.github.propi.rdfrules.data
 
 import com.github.propi.rdfrules.index.{CompressedQuad, TripleItemHashIndex}
+import com.github.propi.rdfrules.stringifier.Stringifier
 import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension._
 import org.apache.jena.graph.Node
 import org.apache.jena.sparql.core
+import com.github.propi.rdfrules.stringifier.CommonStringifiers._
 
 import scala.collection.TraversableView
 import scala.language.implicitConversions
@@ -11,7 +13,9 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 15. 1. 2018.
   */
-case class Quad(triple: Triple, graph: TripleItem.Uri)
+case class Quad(triple: Triple, graph: TripleItem.Uri) {
+  override def toString: String = Stringifier(this)
+}
 
 object Quad {
 

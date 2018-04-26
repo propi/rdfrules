@@ -10,13 +10,13 @@ trait TriplesOps {
 
   def triples: TripleTraversableView
 
-  def histogram(s: Boolean, p: Boolean, o: Boolean): Histogram = {
+  def histogram(subject: Boolean = false, predicate: Boolean = false, `object`: Boolean = false): Histogram = {
     def boolToOpt[T](x: T, bool: Boolean) = if (bool) Some(x) else None
 
     def tripleToKey(triple: Triple) = Histogram.Key(
-      boolToOpt(triple.subject, s),
-      boolToOpt(triple.predicate, p),
-      boolToOpt(triple.`object`, o)
+      boolToOpt(triple.subject, subject),
+      boolToOpt(triple.predicate, predicate),
+      boolToOpt(triple.`object`, `object`)
     )
 
     Histogram(triples.map(tripleToKey))
