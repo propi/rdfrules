@@ -19,7 +19,9 @@ trait Transformable[T, Coll] {
 
   def drop(n: Int): Coll = transform(coll.view.drop(n))
 
-  lazy val size: Int = {
+  lazy val size: Int = if (coll.isInstanceOf[IndexedSeq[_]]) {
+    coll.size
+  } else {
     var i = 0
     for (_ <- coll) i += 1
     i

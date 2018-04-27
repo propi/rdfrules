@@ -47,16 +47,12 @@ object AtomPatternMatcher {
   }
 
   //TODO: support variables for predicates and graphs
-  class ForAtom(implicit thi: TripleHashIndex) extends AtomPatternMatcher[Atom] {
-    def matchPattern(x: Atom, pattern: AtomPattern): Boolean = matchAtomItemPattern(x.subject, pattern.subject) &&
-      matchAtomItemPattern(Atom.Constant(x.predicate), pattern.predicate) &&
-      matchAtomItemPattern(x.`object`, pattern.`object`) &&
-      matchGraphPattern(x, pattern.graph)
-  }
+  implicit def forAtom(implicit thi: TripleHashIndex): AtomPatternMatcher[Atom] = (x: Atom, pattern: AtomPattern) => matchAtomItemPattern(x.subject, pattern.subject) &&
+    matchAtomItemPattern(Atom.Constant(x.predicate), pattern.predicate) &&
+    matchAtomItemPattern(x.`object`, pattern.`object`) &&
+    matchGraphPattern(x, pattern.graph)
 
-  object ForFreshAtom extends AtomPatternMatcher[FreshAtom] {
-    def matchPattern(x: FreshAtom, pattern: AtomPattern): Boolean = (mayBeConstant(pattern.subject) || matchAtomItemPattern(x.subject, pattern.subject)) &&
-      (mayBeConstant(pattern.`object`) || matchAtomItemPattern(x.`object`, pattern.`object`))
-  }
+  implicit val forFreshAtom: AtomPatternMatcher[FreshAtom] = (x: FreshAtom, pattern: AtomPattern) => (mayBeConstant(pattern.subject) || matchAtomItemPattern(x.subject, pattern.subject)) &&
+    (mayBeConstant(pattern.`object`) || matchAtomItemPattern(x.`object`, pattern.`object`))
 
 }

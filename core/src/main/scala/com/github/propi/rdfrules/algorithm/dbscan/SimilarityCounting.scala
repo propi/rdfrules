@@ -7,37 +7,37 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 31. 7. 2017.
   */
-trait SimilarityCounting {
+trait SimilarityCounting[-T] {
 
-  def apply(rule1: Rule, rule2: Rule): Double
+  def apply(v1: T, v2: T): Double
 
 }
 
 object SimilarityCounting {
 
-  case class WeightedSimilarityCounting(w: Double, similarityCounting: SimilarityCounting)
+  case class WeightedSimilarityCounting[T](w: Double, similarityCounting: SimilarityCounting[T])
 
-  class Comb(similarityCountings: Vector[WeightedSimilarityCounting]) extends SimilarityCounting {
+  class Comb[T](similarityCountings: Vector[WeightedSimilarityCounting[T]]) extends SimilarityCounting[T] {
 
-    private lazy val combSimilarities: (Rule, Rule) => Double = if (similarityCountings.iterator.map(_.w).sum == 1) {
-      (rule1, rule2) => similarityCountings.iterator.map(x => x.w * x.similarityCounting(rule1, rule2)).sum
+    private lazy val combSimilarities: (T, T) => Double = if (similarityCountings.iterator.map(_.w).sum == 1) {
+      (v1, v2) => similarityCountings.iterator.map(x => x.w * x.similarityCounting(v1, v2)).sum
     } else {
-      (rule1, rule2) => similarityCountings.iterator.map(_.similarityCounting(rule1, rule2)).sum / similarityCountings.size
+      (v1, v2) => similarityCountings.iterator.map(_.similarityCounting(v1, v2)).sum / similarityCountings.size
     }
 
-    def ~(weightedSimilarityCounting: WeightedSimilarityCounting) = new Comb(similarityCountings :+ weightedSimilarityCounting)
+    def ~(weightedSimilarityCounting: WeightedSimilarityCounting[T]) = new Comb(similarityCountings :+ weightedSimilarityCounting)
 
-    def apply(rule1: Rule, rule2: Rule): Double = combSimilarities(rule1, rule2)
+    def apply(v1: T, v2: T): Double = combSimilarities(v1, v2)
 
   }
 
-  implicit def weightedSimilarityCountingToComb(weightedSimilarityCounting: WeightedSimilarityCounting): Comb = new Comb(Vector(weightedSimilarityCounting))
+  implicit def weightedSimilarityCountingToComb[T](weightedSimilarityCounting: WeightedSimilarityCounting[T]): Comb[T] = new Comb(Vector(weightedSimilarityCounting))
 
   implicit class PimpedDouble(v: Double) {
-    def *(similarityCounting: SimilarityCounting) = WeightedSimilarityCounting(v, similarityCounting)
+    def *[T](similarityCounting: SimilarityCounting[T]): WeightedSimilarityCounting[T] = WeightedSimilarityCounting(v, similarityCounting)
   }
 
-  object AtomsSimilarityCounting extends SimilarityCounting {
+  object AtomsSimilarityCounting extends SimilarityCounting[Rule] {
 
     private def itemsSimilarity(p1: Int, p2: Int)(item1: Atom.Item, item2: Atom.Item) = (item1, item2) match {
       case (x: Atom.Variable, y: Atom.Variable) => if (x.index == y.index) 1.0 else if (p1 == p2) 0.5 else 0.0
@@ -62,7 +62,7 @@ object SimilarityCounting {
 
   }
 
-  trait MeasuresSimilarityCounting extends SimilarityCounting {
+  trait MeasuresSimilarityCounting extends SimilarityCounting[Rule] {
 
     protected def relativeNumbersSimilarity(v1: Double, v2: Double): Double = 1 - math.abs(v1 - v2)
 

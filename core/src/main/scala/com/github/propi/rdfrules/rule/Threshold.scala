@@ -32,18 +32,6 @@ object Threshold {
 
   implicit object MaxRuleLength extends Key[MaxRuleLength]
 
-  case class MinConfidence(value: Double) extends Threshold {
-    def companion: MinConfidence.type = MinConfidence
-  }
-
-  implicit object MinConfidence extends Key[MinConfidence]
-
-  case class MinPcaConfidence(value: Double) extends Threshold {
-    def companion: MinPcaConfidence.type = MinPcaConfidence
-  }
-
-  implicit object MinPcaConfidence extends Key[MinPcaConfidence]
-
   case class TopK(value: Int) extends Threshold {
     def companion: TopK.type = TopK
   }
@@ -57,7 +45,6 @@ object Threshold {
   }
 
   implicit object Timeout extends Key[Timeout]
-
 
   implicit def thresholdToKeyValue(threshold: Threshold): (Key[Threshold], Threshold) = threshold.companion -> threshold
 

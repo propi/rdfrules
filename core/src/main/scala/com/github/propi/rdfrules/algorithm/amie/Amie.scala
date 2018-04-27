@@ -40,7 +40,8 @@ class Amie private(logger: Logger,
     */
   def mine(implicit tripleIndex: TripleHashIndex): IndexedSeq[Rule.Simple] = {
     //create amie process with debugger and final triple index
-    val process = new AmieProcess()(tripleIndex, new Settings(this)(if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) debugger else Debugger.EmptyDebugger))
+    implicit val settings: RuleRefinement.Settings = new Settings(this)(if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) debugger else Debugger.EmptyDebugger)
+    val process = new AmieProcess()
     try {
       //get all possible heads
       val heads = {
@@ -156,7 +157,7 @@ class Amie private(logger: Logger,
 
   }
 
-  private class AmieProcess(implicit val tripleIndex: TripleHashIndex, settings: RuleRefinement.Settings) extends AtomCounting {
+  private class AmieProcess(implicit val tripleIndex: TripleHashIndex, settings: RuleRefinement.Settings, forAtomMatcher: AtomPatternMatcher[Atom]) extends AtomCounting {
 
     private val minSupport: Int = thresholds.apply[Threshold.MinHeadSize].value
     private val startTime = System.currentTimeMillis()
@@ -194,7 +195,6 @@ class Amie private(logger: Logger,
           it
         }
       }
-      val forAtomMatcher = new AtomPatternMatcher.ForAtom
       //filter all atoms by patterns and join all valid patterns to the atom
       possibleAtoms.flatMap { atom =>
         val validPatterns = patterns.filter(rp => rp.consequent.forall(atomPattern => forAtomMatcher.matchPattern(atom, atomPattern)))

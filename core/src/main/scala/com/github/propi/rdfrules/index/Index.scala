@@ -26,6 +26,10 @@ trait Index {
     Ruleset(miner.mine, this)
   }
 
+  def useMapper(f: TripleItemHashIndex => Index => Unit): Unit = {
+    tripleItemMap(mapper => f(mapper)(this))
+  }
+
 }
 
 object Index {

@@ -1,18 +1,23 @@
 package com.github.propi.rdfrules.algorithm.dbscan
 
+import com.github.propi.rdfrules.algorithm.Clustering
+import com.github.propi.rdfrules.utils.Debugger
+import com.github.propi.rdfrules.utils.Debugger.ActionDebugger
+
 /**
   * Created by Vaclav Zeman on 31. 7. 2017.
   */
-class DbScan[T] private(minNeighbours: Int, minSimilarity: Double, data: Seq[T])(implicit similarity: (T, T) => Double) {
+class DbScan[T] private(minNeighbours: Int, minSimilarity: Double)(implicit similarity: SimilarityCounting[T], debugger: Debugger) extends Clustering[T] {
 
   private def searchReachables(point: T, data: Seq[T]) = data.par.partition(similarity(point, _) >= minSimilarity)
 
   @scala.annotation.tailrec
-  private def makeCluster(remainingPoints: Seq[T], cluster: Seq[T], nonCluster: Seq[T]): (Seq[T], Seq[T]) = if (remainingPoints.isEmpty) {
+  private def makeCluster(remainingPoints: IndexedSeq[T], cluster: IndexedSeq[T], nonCluster: Seq[T])(implicit ad: ActionDebugger): (IndexedSeq[T], Seq[T]) = if (remainingPoints.isEmpty) {
     (cluster, nonCluster)
   } else if (nonCluster.isEmpty) {
     (cluster ++ remainingPoints, nonCluster)
   } else {
+    ad.done()
     val point = remainingPoints.head
     val (nonClusterReachable, nonClusterOthers) = searchReachables(point, nonCluster)
     if (nonClusterReachable.size >= minNeighbours || (searchReachables(point, cluster ++ remainingPoints.tail)._1.size + nonClusterReachable.size) >= minNeighbours) {
@@ -23,7 +28,7 @@ class DbScan[T] private(minNeighbours: Int, minSimilarity: Double, data: Seq[T])
   }
 
   @scala.annotation.tailrec
-  private def makeClusters(nonCluster: Seq[T], clusters: Seq[Seq[T]]): Seq[Seq[T]] = if (nonCluster.isEmpty) {
+  private def makeClusters(nonCluster: Seq[T], clusters: IndexedSeq[IndexedSeq[T]])(implicit ad: ActionDebugger): IndexedSeq[IndexedSeq[T]] = if (nonCluster.isEmpty) {
     clusters
   } else {
     val (cluster, others) = makeCluster(Vector(nonCluster.head), Vector.empty, nonCluster.tail)
@@ -31,11 +36,15 @@ class DbScan[T] private(minNeighbours: Int, minSimilarity: Double, data: Seq[T])
   }
 
   /**
+    * Make clusters from indexed sequence
     * TODO - make it faster!
     *
-    * @return
+    * @param data indexed sequence of data
+    * @return clustered data
     */
-  def clusters: Seq[Seq[T]] = makeClusters(data.toVector, Vector.empty)
+  def clusters(data: IndexedSeq[T]): IndexedSeq[IndexedSeq[T]] = debugger.debug("DBscan clustering process", data.size) { implicit ad =>
+    makeClusters(data, Vector.empty)
+  }
 
   //it is slower than immutable version!
   /*def mutableClusters: Seq[collection.Set[T]] = {
@@ -64,6 +73,6 @@ class DbScan[T] private(minNeighbours: Int, minSimilarity: Double, data: Seq[T])
 
 object DbScan {
 
-  def apply[T](minNeighbours: Int, minSimilarity: Double, data: Seq[T])(implicit similarity: (T, T) => Double): Seq[Seq[T]] = new DbScan(minNeighbours, minSimilarity, data).clusters
+  def apply[T](minNeighbours: Int = 5, minSimilarity: Double = 0.9)(implicit similarity: SimilarityCounting[T], debugger: Debugger = Debugger.EmptyDebugger): Clustering[T] = new DbScan(minNeighbours, minSimilarity)
 
 }

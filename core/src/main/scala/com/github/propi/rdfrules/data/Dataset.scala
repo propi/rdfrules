@@ -6,7 +6,7 @@ import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.data.Triple.TripleTraversableView
 import com.github.propi.rdfrules.data.ops._
-import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.index.{Index, TripleItemHashIndex}
 import com.github.propi.rdfrules.index.Index.Mode
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.serialization.QuadSerialization._
@@ -48,6 +48,11 @@ class Dataset private(val quads: QuadTraversableView)
   def mine(miner: RulesMining): Ruleset = Index(this).mine(miner)
 
   def index(mode: Mode = Mode.PreservedInMemory): Index = Index(this, mode)
+
+  def useMapper(mode: Mode = Mode.PreservedInMemory)(f: TripleItemHashIndex => Index => Unit): Unit = {
+    val _index = index(mode)
+    _index.tripleItemMap(mapper => f(mapper)(_index))
+  }
 
 }
 

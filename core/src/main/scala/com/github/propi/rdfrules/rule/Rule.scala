@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.rule
 
-import com.github.propi.rdfrules.stringifier.Stringifier
+import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
+import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting._
 import com.github.propi.rdfrules.utils.TypedKeyMap
 
 import scala.language.implicitConversions
@@ -49,6 +50,6 @@ object Rule {
 
   implicit val ruleSimpleOrdering: Ordering[Rule.Simple] = Ordering.by[Rule.Simple, Rule](_.asInstanceOf[Rule])
 
-  //implicit def rulePrinter(implicit str: Stringifier[Rule]): Printer[Rule] = (v: Rule) => println(Stringifier(v))
+  implicit val ruleSimilarityCounting: SimilarityCounting[Rule.Simple] = (0.6 * AtomsSimilarityCounting) ~ (0.1 * LengthSimilarityCounting) ~ (0.15 * SupportSimilarityCounting) ~ (0.15 * ConfidenceSimilarityCounting)
 
 }

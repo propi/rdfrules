@@ -125,9 +125,9 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
     val index = Index.apply(dataset1, Index.Mode.InUseInMemory)
     val mem = MemoryMeasurer.measureBytes(index)
     index.tripleItemMap(_.iterator.size)
-    MemoryMeasurer.measureBytes(index) shouldBe mem
+    MemoryMeasurer.measureBytes(index) should be(mem +- 150)
     index.tripleMap(_.size)
-    MemoryMeasurer.measureBytes(index) shouldBe mem
+    MemoryMeasurer.measureBytes(index) should be(mem +- 300)
   }
 
   it should "cache" in {
@@ -160,9 +160,9 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
     mem should be(55L +- 10)
     val dsize = dataset2.size
     index.toDataset.size shouldBe dsize
-    MemoryMeasurer.measureBytes(index) shouldBe mem
+    MemoryMeasurer.measureBytes(index) should be(mem +- 150)
     index.toDataset.size shouldBe dsize
-    MemoryMeasurer.measureBytes(index) shouldBe mem
+    MemoryMeasurer.measureBytes(index) should be(mem +- 300)
     new File("test.index").delete() shouldBe true
   }
 

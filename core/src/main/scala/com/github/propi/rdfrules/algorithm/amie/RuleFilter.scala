@@ -55,11 +55,7 @@ object RuleFilter {
     *
     * @param rule original rule (without refinement)
     */
-  class RulePatternFilter(rule: ExtendedRule)(implicit thi: TripleHashIndex) extends RuleFilter {
-
-    private val atomMatcher: AtomPatternMatcher[Atom] = new AtomPatternMatcher.ForAtom
-    private val freshAtomMatcher: AtomPatternMatcher[FreshAtom] = AtomPatternMatcher.ForFreshAtom
-
+  class RulePatternFilter(rule: ExtendedRule)(implicit thi: TripleHashIndex, atomMatcher: AtomPatternMatcher[Atom], freshAtomMatcher: AtomPatternMatcher[FreshAtom]) extends RuleFilter {
     /**
       * Patterns for remaining fresh atoms which can be added to this rule
       */
