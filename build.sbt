@@ -10,11 +10,11 @@ val basicSettings = Seq(
 lazy val root = project
   .in(file("."))
   .settings(basicSettings: _*)
-  .aggregate(core/*, cli*/)
+  .aggregate(core, java)
 
 lazy val core = project
   .in(file("core"))
 
-/*lazy val cli = project
-  .in(file("cli"))
-  .dependsOn(core)*/
+lazy val java = project
+  .in(file("java"))
+  .dependsOn(core)

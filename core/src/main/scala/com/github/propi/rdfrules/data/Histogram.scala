@@ -13,6 +13,8 @@ class Histogram private(col: Traversable[Key]) extends Traversable[(Key, Int)] {
 
   def foreach[U](f: ((Key, Int)) => U): Unit = map.foreach(f)
 
+  def getMap: collection.Map[Key, Int] = map
+
   override def toMap[T, U](implicit ev: <:<[(Key, Int), (T, U)]): Map[T, U] = map.toMap
 }
 
