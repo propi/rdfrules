@@ -48,17 +48,17 @@ class GraphSpec extends FlatSpec with Matchers with Inside {
 
   it should "have triples ops" in {
     graph.types().size shouldBe 33
-    val info = graph.types().head
-    info.uri shouldBe TripleItem.LongUri("hasWonPrize")
-    info.ranges.get(TripleItemType.Resource) shouldBe Some(1110)
+    val (uri, ranges) = graph.types().head
+    uri shouldBe TripleItem.LongUri("hasWonPrize")
+    ranges.get(TripleItemType.Resource) shouldBe Some(1110)
     graphDbpedia.types().size shouldBe 1717
-    inside(graphDbpedia.types().find(_.uri.hasSameUriAs("http://cs.dbpedia.org/property/rok"))) {
-      case Some(PredicateInfo(uri, ranges)) =>
+    inside(graphDbpedia.types().find(_._1.hasSameUriAs("http://cs.dbpedia.org/property/rok"))) {
+      case Some((uri, ranges)) =>
         uri shouldBe TripleItem.LongUri("http://cs.dbpedia.org/property/rok")
         ranges.get(TripleItemType.Text) shouldBe Some(13)
         ranges.get(TripleItemType.Number) shouldBe Some(2340)
     }
-    val histogram = graph.histogram(false, true, false)
+    val histogram = graph.histogram(false, true)
     histogram.size shouldBe 33
     histogram.get(Histogram.Key().withPredicate("hasGeonamesId")) shouldBe Some(2103)
     val histogram2 = graph.filter(_.predicate.hasSameUriAs("hasOfficialLanguage")).histogram(false, true, true)
@@ -104,10 +104,10 @@ class GraphSpec extends FlatSpec with Matchers with Inside {
       def getBufferSize: Int = 1000000
     })(quad => quad.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
     dg.size shouldBe 50000
-    dg.types().find(_.uri.hasSameUriAs("http://cs.dbpedia.org/property/rok")).get.ranges.get(TripleItemType.Interval) shouldBe Some(2340)
+    dg.types().find(_._1.hasSameUriAs("http://cs.dbpedia.org/property/rok")).get._2.get(TripleItemType.Interval) shouldBe Some(2340)
     val histogram = dg.filter(_.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok")).histogram(false, false, true)
     histogram.filter(_._1.o.exists(_.isInstanceOf[TripleItem.Interval])).foreach(x => x._2 shouldBe 450 +- 60)
-    histogram.filter(_._1.o.exists(_.isInstanceOf[TripleItem.Interval])).map(_._2).sum shouldBe 2340
+    histogram.filter(_._1.o.exists(_.isInstanceOf[TripleItem.Interval])).values.sum shouldBe 2340
   }
 
   it should "be cacheable" in {

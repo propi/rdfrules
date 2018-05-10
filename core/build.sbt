@@ -15,9 +15,9 @@ testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oF")
 
 resolvers ++= Seq("jitpack" at "https://jitpack.io")
 
-fork in test := true
+fork in Test := true
 
-javaOptions += "-javaagent:tools/object-explorer.jar"
+javaOptions in Test += "-javaagent:../tools/object-explorer.jar"
 
 val jenaV = "3.4.0"
 

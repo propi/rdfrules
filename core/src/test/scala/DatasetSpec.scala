@@ -31,7 +31,7 @@ class DatasetSpec extends FlatSpec with Matchers with Inside {
     dataset.quads.size shouldBe dataset.triples.size
     dataset.prefixes.size shouldBe 0
     dataset.addPrefixes(Prefix(getClass.getResourceAsStream("/prefixes.ttl"))).prefixes.size shouldBe 2
-    dataset.histogram(false, true, false).size shouldBe 1750
+    dataset.histogram(false, true).size shouldBe 1750
     val intervals = dataset.discretizeAndGetIntervals(new EquifrequencyDiscretizationTask {
       def getNumberOfBins: Int = 5
 

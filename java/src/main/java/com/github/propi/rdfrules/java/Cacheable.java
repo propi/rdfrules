@@ -7,9 +7,11 @@ import java.util.function.Supplier;
 /**
  * Created by Vaclav Zeman on 3. 5. 2018.
  */
-public interface Cacheable<T, SColl, JColl> extends Transformable<T, SColl, JColl> {
+public interface Cacheable<ST, SColl, JColl>{
 
-    com.github.propi.rdfrules.data.ops.Cacheable<T, SColl> asScala();
+    com.github.propi.rdfrules.data.ops.Cacheable<ST, SColl> asScala();
+
+    JColl asJava(SColl scala);
 
     default JColl cache() {
         return asJava(asScala().cache());

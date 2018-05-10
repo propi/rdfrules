@@ -1,7 +1,6 @@
 package com.github.propi.rdfrules.java;
 
 import com.github.propi.rdfrules.data.Histogram;
-import com.github.propi.rdfrules.data.TripleItem;
 import scala.Option;
 
 import java.util.Objects;
@@ -13,28 +12,28 @@ public class HistogramKey {
 
     private final Histogram.Key key;
 
-    public HistogramKey(Histogram.Key key) {
+    HistogramKey(Histogram.Key key) {
         this.key = key;
     }
 
     public HistogramKey(TripleItem.Uri subject, TripleItem.Uri predicate, TripleItem object) {
         this(new Histogram.Key(
-                subject == null ? Option.empty() : Option.apply(subject),
-                predicate == null ? Option.empty() : Option.apply(predicate),
-                object == null ? Option.empty() : Option.apply(object)
+                subject == null ? Option.empty() : Option.apply(subject.getTripleItem()),
+                predicate == null ? Option.empty() : Option.apply(predicate.getTripleItem()),
+                object == null ? Option.empty() : Option.apply(object.getTripleItem())
         ));
     }
 
     public TripleItem.Uri getSubject() {
-        return key.s().isEmpty() ? null : key.s().get();
+        return key.s().isEmpty() ? null : TripleItemConverters.toJavaUri(key.s().get());
     }
 
     public TripleItem.Uri getPredicate() {
-        return key.p().isEmpty() ? null : key.p().get();
+        return key.p().isEmpty() ? null : TripleItemConverters.toJavaUri(key.p().get());
     }
 
     public TripleItem getObject() {
-        return key.o().isEmpty() ? null : key.o().get();
+        return key.o().isEmpty() ? null : TripleItemConverters.toJavaTripleItem(key.o().get());
     }
 
     public Histogram.Key asScala() {

@@ -1,8 +1,5 @@
 package com.github.propi.rdfrules.java;
 
-import com.github.propi.rdfrules.data.Prefix;
-import scala.collection.JavaConverters;
-
 import java.util.function.Consumer;
 
 /**
@@ -16,13 +13,13 @@ public interface QuadsOps<SColl, JColl> {
 
     default void prefixes(Consumer<Prefix> consumer) {
         asScala().prefixes().foreach(v1 -> {
-            consumer.accept(v1);
+            consumer.accept(new Prefix(v1));
             return null;
         });
     }
 
     default JColl addPrefixes(Iterable<Prefix> prefixes) {
-        return asJava(asScala().addPrefixes(JavaConverters.iterableAsScalaIterable(prefixes)));
+        return asJava(asScala().addPrefixes(ScalaConverters.toIterable(prefixes, Prefix::asScala)));
     }
 
 }

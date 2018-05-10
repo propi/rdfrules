@@ -6,18 +6,22 @@ import java.util.function.UnaryOperator;
 /**
  * Created by Vaclav Zeman on 2. 5. 2018.
  */
-public interface Transformable<T, SColl, JColl> {
+public interface Transformable<ST, JT, SColl, JColl> {
 
-    com.github.propi.rdfrules.data.ops.Transformable<T, SColl> asScala();
+    com.github.propi.rdfrules.data.ops.Transformable<ST, SColl> asScala();
+
+    JT asJavaItem(ST x);
+
+    ST asScalaItem(JT x);
 
     JColl asJava(SColl scala);
 
-    default JColl map(UnaryOperator<T> f) {
-        return asJava(asScala().map(f::apply));
+    default JColl map(UnaryOperator<JT> f) {
+        return asJava(asScala().map(x -> asScalaItem(f.apply(asJavaItem(x)))));
     }
 
-    default JColl filter(Predicate<T> f) {
-        return asJava(asScala().filter(f::test));
+    default JColl filter(Predicate<JT> f) {
+        return asJava(asScala().filter(x -> f.test(asJavaItem(x))));
     }
 
     default JColl slice(int from, int until) {

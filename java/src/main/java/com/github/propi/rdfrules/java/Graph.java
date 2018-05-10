@@ -1,15 +1,11 @@
 package com.github.propi.rdfrules.java;
 
 import com.github.propi.rdfrules.data.RdfSource;
-import com.github.propi.rdfrules.data.Triple;
-import com.github.propi.rdfrules.data.TripleItem;
-import com.github.propi.rdfrules.data.TripleItem$;
 import com.github.propi.rdfrules.data.formats.JenaLang;
 import com.github.propi.rdfrules.data.formats.JenaLang$;
 import com.github.propi.rdfrules.data.formats.Tsv;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFFormat;
-import scala.collection.JavaConverters;
 
 import java.io.File;
 import java.io.InputStream;
@@ -21,15 +17,15 @@ import java.util.function.Supplier;
  * Created by Vaclav Zeman on 3. 5. 2018.
  */
 public class Graph implements
-        Transformable<Triple, com.github.propi.rdfrules.data.Graph, Graph>,
-        Cacheable<Triple, com.github.propi.rdfrules.data.Graph, Graph>,
+        Transformable<com.github.propi.rdfrules.data.Triple, Triple, com.github.propi.rdfrules.data.Graph, Graph>,
+        Cacheable<com.github.propi.rdfrules.data.Triple, com.github.propi.rdfrules.data.Graph, Graph>,
         QuadsOps<com.github.propi.rdfrules.data.Graph, Graph>,
         Discretizable<com.github.propi.rdfrules.data.Graph, Graph>,
         TriplesOps {
 
     final private com.github.propi.rdfrules.data.Graph graph;
 
-    private Graph(com.github.propi.rdfrules.data.Graph graph) {
+    Graph(com.github.propi.rdfrules.data.Graph graph) {
         this.graph = graph;
     }
 
@@ -40,7 +36,7 @@ public class Graph implements
     }
 
     public static Graph fromTsv(TripleItem.Uri name, Supplier<InputStream> isb) {
-        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name, isb::get, Tsv.tsvReader()));
+        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.getTripleItem(), isb::get, Tsv.tsvReader()));
     }
 
     public static Graph fromTsv(File file) {
@@ -48,7 +44,7 @@ public class Graph implements
     }
 
     public static Graph fromTsv(TripleItem.Uri name, File file) {
-        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name, file, Tsv.tsvReader()));
+        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.getTripleItem(), file, Tsv.tsvReader()));
     }
 
     public static Graph fromRdfLang(Supplier<InputStream> isb, Lang lang) {
@@ -56,7 +52,7 @@ public class Graph implements
     }
 
     public static Graph fromRdfLang(TripleItem.Uri name, Supplier<InputStream> isb, Lang lang) {
-        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name, isb::get, JenaLang.jenaLangToRdfReader(new RdfSource.JenaLang(lang))));
+        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.getTripleItem(), isb::get, JenaLang.jenaLangToRdfReader(new RdfSource.JenaLang(lang))));
     }
 
     public static Graph fromRdfLang(File file, Lang lang) {
@@ -64,15 +60,15 @@ public class Graph implements
     }
 
     public static Graph fromRdfLang(TripleItem.Uri name, File file, Lang lang) {
-        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name, file, JenaLang.jenaLangToRdfReader(new RdfSource.JenaLang(lang))));
+        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.getTripleItem(), file, JenaLang.jenaLangToRdfReader(new RdfSource.JenaLang(lang))));
     }
 
     public static Graph fromTriples(Iterable<Triple> triples) {
-        return new Graph(com.github.propi.rdfrules.data.Graph.apply(JavaConverters.iterableAsScalaIterable(triples)));
+        return new Graph(com.github.propi.rdfrules.data.Graph.apply(ScalaConverters.toIterable(triples, Triple::asScala)));
     }
 
     public static Graph fromTriples(TripleItem.Uri name, Iterable<Triple> triples) {
-        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name, JavaConverters.iterableAsScalaIterable(triples)));
+        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.getTripleItem(), ScalaConverters.toIterable(triples, Triple::asScala)));
     }
 
     public static Graph fromCache(Supplier<InputStream> isb) {
@@ -80,7 +76,7 @@ public class Graph implements
     }
 
     public static Graph fromCache(TripleItem.Uri name, Supplier<InputStream> isb) {
-        return new Graph(com.github.propi.rdfrules.data.Graph.fromCache(name, isb::get));
+        return new Graph(com.github.propi.rdfrules.data.Graph.fromCache(name.getTripleItem(), isb::get));
     }
 
     @Override
@@ -90,12 +86,26 @@ public class Graph implements
 
     @Override
     public Graph asJava(com.github.propi.rdfrules.data.Graph scala) {
-        return new Graph(graph);
+        return new Graph(scala);
+    }
+
+    @Override
+    public Triple asJavaItem(com.github.propi.rdfrules.data.Triple x) {
+        return new Triple(x);
+    }
+
+    @Override
+    public com.github.propi.rdfrules.data.Triple asScalaItem(Triple x) {
+        return x.asScala();
+    }
+
+    public TripleItem.Uri getName() {
+        return TripleItemConverters.toJavaUri(asScala().name());
     }
 
     public void forEach(Consumer<Triple> consumer) {
         asScala().triples().foreach(v1 -> {
-            consumer.accept(v1);
+            consumer.accept(asJavaItem(v1));
             return null;
         });
     }
@@ -105,7 +115,7 @@ public class Graph implements
     }
 
     public Graph withName(TripleItem.Uri name) {
-        return asJava(asScala().withName(name));
+        return asJava(asScala().withName(name.getTripleItem()));
     }
 
 }
