@@ -1,4 +1,4 @@
-package com.github.propi.rdfrules.java;
+package com.github.propi.rdfrules.java.data;
 
 import com.github.propi.rdfrules.data.Prefix;
 import eu.easyminer.discretization.impl.IntervalBound;
@@ -8,16 +8,16 @@ import eu.easyminer.discretization.impl.IntervalBound;
  */
 abstract public class TripleItem {
 
-    abstract com.github.propi.rdfrules.data.TripleItem getTripleItem();
+    abstract public com.github.propi.rdfrules.data.TripleItem asScala();
 
     @Override
     public String toString() {
-        return getTripleItem().toString();
+        return asScala().toString();
     }
 
     @Override
     public int hashCode() {
-        return getTripleItem().hashCode();
+        return asScala().hashCode();
     }
 
     @Override
@@ -25,27 +25,27 @@ abstract public class TripleItem {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         TripleItem that = (TripleItem) obj;
-        return getTripleItem().equals(that.getTripleItem());
+        return asScala().equals(that.asScala());
     }
 
     abstract public static class Uri extends TripleItem {
         @Override
-        abstract com.github.propi.rdfrules.data.TripleItem.Uri getTripleItem();
+        abstract public com.github.propi.rdfrules.data.TripleItem.Uri asScala();
 
         public boolean hasSameUriAs(Uri uri) {
-            return this.getTripleItem().hasSameUriAs(uri.getTripleItem());
+            return this.asScala().hasSameUriAs(uri.asScala());
         }
     }
 
     abstract public static class Literal extends TripleItem {
         @Override
-        abstract com.github.propi.rdfrules.data.TripleItem.Literal getTripleItem();
+        abstract public com.github.propi.rdfrules.data.TripleItem.Literal asScala();
     }
 
     public static class LongUri extends Uri {
         final com.github.propi.rdfrules.data.TripleItem.LongUri tripleItem;
 
-        LongUri(com.github.propi.rdfrules.data.TripleItem.LongUri tripleItem) {
+        public LongUri(com.github.propi.rdfrules.data.TripleItem.LongUri tripleItem) {
             this.tripleItem = tripleItem;
         }
 
@@ -54,7 +54,7 @@ abstract public class TripleItem {
         }
 
         @Override
-        com.github.propi.rdfrules.data.TripleItem.LongUri getTripleItem() {
+        public com.github.propi.rdfrules.data.TripleItem.LongUri asScala() {
             return this.tripleItem;
         }
 
@@ -70,7 +70,7 @@ abstract public class TripleItem {
     public static class PrefixedUri extends Uri {
         final com.github.propi.rdfrules.data.TripleItem.PrefixedUri tripleItem;
 
-        PrefixedUri(com.github.propi.rdfrules.data.TripleItem.PrefixedUri tripleItem) {
+        public PrefixedUri(com.github.propi.rdfrules.data.TripleItem.PrefixedUri tripleItem) {
             this.tripleItem = tripleItem;
         }
 
@@ -79,7 +79,7 @@ abstract public class TripleItem {
         }
 
         @Override
-        com.github.propi.rdfrules.data.TripleItem.PrefixedUri getTripleItem() {
+        public com.github.propi.rdfrules.data.TripleItem.PrefixedUri asScala() {
             return this.tripleItem;
         }
 
@@ -107,7 +107,7 @@ abstract public class TripleItem {
     public static class BlankNode extends Uri {
         final com.github.propi.rdfrules.data.TripleItem.BlankNode tripleItem;
 
-        BlankNode(com.github.propi.rdfrules.data.TripleItem.BlankNode tripleItem) {
+        public BlankNode(com.github.propi.rdfrules.data.TripleItem.BlankNode tripleItem) {
             this.tripleItem = tripleItem;
         }
 
@@ -116,7 +116,7 @@ abstract public class TripleItem {
         }
 
         @Override
-        com.github.propi.rdfrules.data.TripleItem.BlankNode getTripleItem() {
+        public com.github.propi.rdfrules.data.TripleItem.BlankNode asScala() {
             return this.tripleItem;
         }
 
@@ -128,7 +128,7 @@ abstract public class TripleItem {
     public static class Text extends Literal {
         final com.github.propi.rdfrules.data.TripleItem.Text tripleItem;
 
-        Text(com.github.propi.rdfrules.data.TripleItem.Text tripleItem) {
+        public Text(com.github.propi.rdfrules.data.TripleItem.Text tripleItem) {
             this.tripleItem = tripleItem;
         }
 
@@ -137,7 +137,7 @@ abstract public class TripleItem {
         }
 
         @Override
-        com.github.propi.rdfrules.data.TripleItem.Text getTripleItem() {
+        public com.github.propi.rdfrules.data.TripleItem.Text asScala() {
             return this.tripleItem;
         }
 
@@ -149,7 +149,7 @@ abstract public class TripleItem {
     public static class BooleanValue extends Literal {
         final com.github.propi.rdfrules.data.TripleItem.BooleanValue tripleItem;
 
-        BooleanValue(com.github.propi.rdfrules.data.TripleItem.BooleanValue tripleItem) {
+        public BooleanValue(com.github.propi.rdfrules.data.TripleItem.BooleanValue tripleItem) {
             this.tripleItem = tripleItem;
         }
 
@@ -158,7 +158,7 @@ abstract public class TripleItem {
         }
 
         @Override
-        com.github.propi.rdfrules.data.TripleItem.BooleanValue getTripleItem() {
+        public com.github.propi.rdfrules.data.TripleItem.BooleanValue asScala() {
             return this.tripleItem;
         }
 
@@ -170,7 +170,7 @@ abstract public class TripleItem {
     public static class Interval extends Literal {
         final com.github.propi.rdfrules.data.TripleItem.Interval tripleItem;
 
-        Interval(com.github.propi.rdfrules.data.TripleItem.Interval tripleItem) {
+        public Interval(com.github.propi.rdfrules.data.TripleItem.Interval tripleItem) {
             this.tripleItem = tripleItem;
         }
 
@@ -184,7 +184,7 @@ abstract public class TripleItem {
         }
 
         @Override
-        com.github.propi.rdfrules.data.TripleItem.Interval getTripleItem() {
+        public com.github.propi.rdfrules.data.TripleItem.Interval asScala() {
             return this.tripleItem;
         }
 
@@ -196,7 +196,7 @@ abstract public class TripleItem {
     public static class Number extends Literal {
         final com.github.propi.rdfrules.data.TripleItem.Number tripleItem;
 
-        Number(com.github.propi.rdfrules.data.TripleItem.Number tripleItem) {
+        public Number(com.github.propi.rdfrules.data.TripleItem.Number tripleItem) {
             this.tripleItem = tripleItem;
         }
 
@@ -229,7 +229,7 @@ abstract public class TripleItem {
         }
 
         @Override
-        com.github.propi.rdfrules.data.TripleItem.Number getTripleItem() {
+        public com.github.propi.rdfrules.data.TripleItem.Number asScala() {
             return this.tripleItem;
         }
 

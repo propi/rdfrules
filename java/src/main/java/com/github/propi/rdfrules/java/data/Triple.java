@@ -1,4 +1,6 @@
-package com.github.propi.rdfrules.java;
+package com.github.propi.rdfrules.java.data;
+
+import com.github.propi.rdfrules.java.TripleItemConverters;
 
 import java.util.Objects;
 
@@ -9,12 +11,12 @@ public class Triple {
 
     final private com.github.propi.rdfrules.data.Triple triple;
 
-    Triple(com.github.propi.rdfrules.data.Triple triple) {
+    public Triple(com.github.propi.rdfrules.data.Triple triple) {
         this.triple = triple;
     }
 
     public Triple(TripleItem.Uri subject, TripleItem.Uri predicate, TripleItem object) {
-        this(new com.github.propi.rdfrules.data.Triple(subject.getTripleItem(), predicate.getTripleItem(), object.getTripleItem()));
+        this(new com.github.propi.rdfrules.data.Triple(subject.asScala(), predicate.asScala(), object.asScala()));
     }
 
     public com.github.propi.rdfrules.data.Triple asScala() {
@@ -44,6 +46,11 @@ public class Triple {
     @Override
     public int hashCode() {
         return triple.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return triple.toString();
     }
 
 }

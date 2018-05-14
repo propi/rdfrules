@@ -1,9 +1,11 @@
-package com.github.propi.rdfrules.java;
+package com.github.propi.rdfrules.java.data;
 
 import com.github.propi.rdfrules.data.RdfSource;
 import com.github.propi.rdfrules.data.formats.JenaLang;
 import com.github.propi.rdfrules.data.formats.JenaLang$;
 import com.github.propi.rdfrules.data.formats.Tsv;
+import com.github.propi.rdfrules.java.ScalaConverters;
+import com.github.propi.rdfrules.java.TripleItemConverters;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFFormat;
 
@@ -25,7 +27,7 @@ public class Graph implements
 
     final private com.github.propi.rdfrules.data.Graph graph;
 
-    Graph(com.github.propi.rdfrules.data.Graph graph) {
+    public Graph(com.github.propi.rdfrules.data.Graph graph) {
         this.graph = graph;
     }
 
@@ -36,7 +38,7 @@ public class Graph implements
     }
 
     public static Graph fromTsv(TripleItem.Uri name, Supplier<InputStream> isb) {
-        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.getTripleItem(), isb::get, Tsv.tsvReader()));
+        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.asScala(), isb::get, Tsv.tsvReader()));
     }
 
     public static Graph fromTsv(File file) {
@@ -44,7 +46,7 @@ public class Graph implements
     }
 
     public static Graph fromTsv(TripleItem.Uri name, File file) {
-        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.getTripleItem(), file, Tsv.tsvReader()));
+        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.asScala(), file, Tsv.tsvReader()));
     }
 
     public static Graph fromRdfLang(Supplier<InputStream> isb, Lang lang) {
@@ -52,7 +54,7 @@ public class Graph implements
     }
 
     public static Graph fromRdfLang(TripleItem.Uri name, Supplier<InputStream> isb, Lang lang) {
-        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.getTripleItem(), isb::get, JenaLang.jenaLangToRdfReader(new RdfSource.JenaLang(lang))));
+        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.asScala(), isb::get, JenaLang.jenaLangToRdfReader(new RdfSource.JenaLang(lang))));
     }
 
     public static Graph fromRdfLang(File file, Lang lang) {
@@ -60,7 +62,7 @@ public class Graph implements
     }
 
     public static Graph fromRdfLang(TripleItem.Uri name, File file, Lang lang) {
-        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.getTripleItem(), file, JenaLang.jenaLangToRdfReader(new RdfSource.JenaLang(lang))));
+        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.asScala(), file, JenaLang.jenaLangToRdfReader(new RdfSource.JenaLang(lang))));
     }
 
     public static Graph fromTriples(Iterable<Triple> triples) {
@@ -68,7 +70,7 @@ public class Graph implements
     }
 
     public static Graph fromTriples(TripleItem.Uri name, Iterable<Triple> triples) {
-        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.getTripleItem(), ScalaConverters.toIterable(triples, Triple::asScala)));
+        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.asScala(), ScalaConverters.toIterable(triples, Triple::asScala)));
     }
 
     public static Graph fromCache(Supplier<InputStream> isb) {
@@ -76,7 +78,7 @@ public class Graph implements
     }
 
     public static Graph fromCache(TripleItem.Uri name, Supplier<InputStream> isb) {
-        return new Graph(com.github.propi.rdfrules.data.Graph.fromCache(name.getTripleItem(), isb::get));
+        return new Graph(com.github.propi.rdfrules.data.Graph.fromCache(name.asScala(), isb::get));
     }
 
     @Override
@@ -115,7 +117,7 @@ public class Graph implements
     }
 
     public Graph withName(TripleItem.Uri name) {
-        return asJava(asScala().withName(name.getTripleItem()));
+        return asJava(asScala().withName(name.asScala()));
     }
 
 }

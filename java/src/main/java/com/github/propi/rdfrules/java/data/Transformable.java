@@ -1,4 +1,4 @@
-package com.github.propi.rdfrules.java;
+package com.github.propi.rdfrules.java.data;
 
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;

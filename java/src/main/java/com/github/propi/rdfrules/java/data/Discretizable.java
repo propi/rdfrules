@@ -1,5 +1,6 @@
-package com.github.propi.rdfrules.java;
+package com.github.propi.rdfrules.java.data;
 
+import com.github.propi.rdfrules.java.DiscretizationMode;
 import eu.easyminer.discretization.DiscretizationTask;
 import eu.easyminer.discretization.Interval;
 

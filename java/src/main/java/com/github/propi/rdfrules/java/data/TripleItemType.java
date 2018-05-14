@@ -1,4 +1,4 @@
-package com.github.propi.rdfrules.java;
+package com.github.propi.rdfrules.java.data;
 
 /**
  * Created by Vaclav Zeman on 10. 5. 2018.

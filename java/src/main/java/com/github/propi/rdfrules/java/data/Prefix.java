@@ -1,7 +1,10 @@
-package com.github.propi.rdfrules.java;
+package com.github.propi.rdfrules.java.data;
+
+import com.github.propi.rdfrules.java.IterableWrapper;
 
 import java.io.File;
 import java.io.InputStream;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 /**
@@ -11,7 +14,7 @@ public class Prefix {
 
     final private com.github.propi.rdfrules.data.Prefix prefix;
 
-    Prefix(com.github.propi.rdfrules.data.Prefix prefix) {
+    public Prefix(com.github.propi.rdfrules.data.Prefix prefix) {
         this.prefix = prefix;
     }
 
@@ -37,6 +40,24 @@ public class Prefix {
 
     public String getNameSpace() {
         return prefix.nameSpace();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Prefix prefix1 = (Prefix) o;
+        return Objects.equals(prefix, prefix1.prefix);
+    }
+
+    @Override
+    public int hashCode() {
+        return prefix.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return prefix.toString();
     }
 
 }

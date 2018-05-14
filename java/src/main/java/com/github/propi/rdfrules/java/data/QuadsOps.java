@@ -1,4 +1,6 @@
-package com.github.propi.rdfrules.java;
+package com.github.propi.rdfrules.java.data;
+
+import com.github.propi.rdfrules.java.ScalaConverters;
 
 import java.util.function.Consumer;
 

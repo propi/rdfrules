@@ -1,9 +1,14 @@
-package com.github.propi.rdfrules.java;
+package com.github.propi.rdfrules.java.data;
 
 import com.github.propi.rdfrules.data.RdfSource;
 import com.github.propi.rdfrules.data.formats.JenaLang;
 import com.github.propi.rdfrules.data.formats.JenaLang$;
 import com.github.propi.rdfrules.data.formats.Tsv;
+import com.github.propi.rdfrules.java.algorithm.RulesMining;
+import com.github.propi.rdfrules.java.index.Index;
+import com.github.propi.rdfrules.java.ScalaConverters;
+import com.github.propi.rdfrules.java.index.TripleItemHashIndex;
+import com.github.propi.rdfrules.java.ruleset.Ruleset;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFFormat;
 import scala.collection.JavaConverters;
@@ -12,6 +17,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -26,7 +32,7 @@ public class Dataset implements
 
     final private com.github.propi.rdfrules.data.Dataset dataset;
 
-    private Dataset(com.github.propi.rdfrules.data.Dataset dataset) {
+    public Dataset(com.github.propi.rdfrules.data.Dataset dataset) {
         this.dataset = dataset;
     }
 
@@ -103,6 +109,28 @@ public class Dataset implements
 
     public void export(Supplier<OutputStream> osb, RDFFormat rdfFormat) {
         asScala().export(osb::get, JenaLang$.MODULE$.jenaFormatToRdfWriter(rdfFormat));
+    }
+
+    public Index index(Index.Mode mode) {
+        return Index.fromDataset(this, mode);
+    }
+
+    public Index index() {
+        return Index.fromDataset(this);
+    }
+
+    public void useMapper(Index.Mode mode, Function<TripleItemHashIndex, Consumer<Index>> f) {
+        Index index = index(mode);
+        index.useMapper(f);
+    }
+
+    public void useMapper(Function<TripleItemHashIndex, Consumer<Index>> f) {
+        Index index = index();
+        index.useMapper(f);
+    }
+
+    public Ruleset mine(RulesMining rulesMining) {
+        return new Ruleset(asScala().mine(rulesMining.asScala()));
     }
 
 }

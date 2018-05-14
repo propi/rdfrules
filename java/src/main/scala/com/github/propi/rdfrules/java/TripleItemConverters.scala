@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.java
 
-import scala.reflect.ClassTag
+import com.github.propi.rdfrules.java.data.TripleItem
 
 /**
   * Created by Vaclav Zeman on 10. 5. 2018.

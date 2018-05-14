@@ -1,4 +1,6 @@
-package com.github.propi.rdfrules.java;
+package com.github.propi.rdfrules.java.data;
+
+import com.github.propi.rdfrules.java.TripleItemConverters;
 
 import java.util.Objects;
 
@@ -9,12 +11,12 @@ public class Quad {
 
     final private com.github.propi.rdfrules.data.Quad quad;
 
-    Quad(com.github.propi.rdfrules.data.Quad quad) {
+    public Quad(com.github.propi.rdfrules.data.Quad quad) {
         this.quad = quad;
     }
 
     public Quad(Triple triple, TripleItem.Uri graph) {
-        this(new com.github.propi.rdfrules.data.Quad(triple.asScala(), graph.getTripleItem()));
+        this(new com.github.propi.rdfrules.data.Quad(triple.asScala(), graph.asScala()));
     }
 
     public com.github.propi.rdfrules.data.Quad asScala() {
@@ -42,4 +44,8 @@ public class Quad {
         return quad.hashCode();
     }
 
+    @Override
+    public String toString() {
+        return quad.toString();
+    }
 }

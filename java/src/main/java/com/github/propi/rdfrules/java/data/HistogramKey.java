@@ -1,6 +1,7 @@
-package com.github.propi.rdfrules.java;
+package com.github.propi.rdfrules.java.data;
 
 import com.github.propi.rdfrules.data.Histogram;
+import com.github.propi.rdfrules.java.TripleItemConverters;
 import scala.Option;
 
 import java.util.Objects;
@@ -12,15 +13,15 @@ public class HistogramKey {
 
     private final Histogram.Key key;
 
-    HistogramKey(Histogram.Key key) {
+    public HistogramKey(Histogram.Key key) {
         this.key = key;
     }
 
     public HistogramKey(TripleItem.Uri subject, TripleItem.Uri predicate, TripleItem object) {
         this(new Histogram.Key(
-                subject == null ? Option.empty() : Option.apply(subject.getTripleItem()),
-                predicate == null ? Option.empty() : Option.apply(predicate.getTripleItem()),
-                object == null ? Option.empty() : Option.apply(object.getTripleItem())
+                subject == null ? Option.empty() : Option.apply(subject.asScala()),
+                predicate == null ? Option.empty() : Option.apply(predicate.asScala()),
+                object == null ? Option.empty() : Option.apply(object.asScala())
         ));
     }
 
@@ -51,6 +52,11 @@ public class HistogramKey {
     @Override
     public int hashCode() {
         return key.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return key.toString();
     }
 
 }

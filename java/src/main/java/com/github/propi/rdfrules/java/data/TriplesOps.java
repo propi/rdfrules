@@ -1,4 +1,6 @@
-package com.github.propi.rdfrules.java;
+package com.github.propi.rdfrules.java.data;
+
+import com.github.propi.rdfrules.java.*;
 
 import java.util.Map;
 
@@ -23,7 +25,7 @@ public interface TriplesOps {
                         .mapKeys(TripleItemType::tripleItemTypeToEnum, TripleItemType::getTripleItemType)
                         .mapValues(y -> (Integer) y).asJava()
                 )
-        ).mapKeys(TripleItemConverters::toJavaUri, TripleItem.Uri::getTripleItem).asJava();
+        ).mapKeys(TripleItemConverters::toJavaUri, TripleItem.Uri::asScala).asJava();
     }
 
 }
