@@ -77,6 +77,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
     dataset.toGraphs.asScala.map(_.getName).toList should contain only(new TripleItem.LongUri("yago"), new TripleItem.LongUri("dbpedia"))
     index.cache(() => new BufferedOutputStream(new FileOutputStream("test2.index")))
     new File("test.index").length() shouldBe new File("test2.index").length()
+    new File("test.index").delete() shouldBe true
     new File("test2.index").delete() shouldBe true
   }
 
