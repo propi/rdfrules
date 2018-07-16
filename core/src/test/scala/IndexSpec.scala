@@ -1,14 +1,14 @@
 import java.io._
 
 import GraphSpec.dataDbpedia
-import com.github.propi.rdfrules.data.{Dataset, Graph, RdfSource, TripleItem}
-import org.apache.jena.riot.Lang
-import org.scalatest.{FlatSpec, Inside, Matchers}
-import com.github.propi.rdfrules.data.formats.Tsv._
 import com.github.propi.rdfrules.data.formats.JenaLang._
+import com.github.propi.rdfrules.data.formats.Tsv._
+import com.github.propi.rdfrules.data.{Dataset, Graph, RdfSource, TripleItem}
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.rule.{Atom, TripleItemPosition}
 import objectexplorer.MemoryMeasurer
+import org.apache.jena.riot.Lang
+import org.scalatest.{FlatSpec, Inside, Matchers}
 
 /**
   * Created by Vaclav Zeman on 13. 3. 2018.
