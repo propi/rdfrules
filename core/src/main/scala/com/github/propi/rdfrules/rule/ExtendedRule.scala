@@ -6,7 +6,6 @@ import com.github.propi.rdfrules.utils.TypedKeyMap
   * Created by Vaclav Zeman on 31. 7. 2017.
   */
 sealed trait ExtendedRule extends Rule {
-
   val headTriples: IndexedSeq[(Int, Int)]
   val maxVariable: Atom.Variable
   val patterns: List[RulePattern]
@@ -15,7 +14,6 @@ sealed trait ExtendedRule extends Rule {
   def headSize: Int = headTriples.length
 
   def withPatterns(patterns: List[RulePattern]): ExtendedRule
-
 }
 
 object ExtendedRule {
@@ -81,7 +79,6 @@ object ExtendedRule {
                         val variables: List[Atom.Variable],
                         val maxVariable: Atom.Variable,
                         val headTriples: IndexedSeq[(Int, Int)]) extends ExtendedRule {
-
 
     def withPatterns(patterns: List[RulePattern]): ExtendedRule = this.copy()(measures, patterns, variables, maxVariable, headTriples)
 

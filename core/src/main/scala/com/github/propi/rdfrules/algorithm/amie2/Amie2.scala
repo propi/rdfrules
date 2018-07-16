@@ -1,9 +1,10 @@
-package com.github.propi.rdfrules.algorithm.amie
+package com.github.propi.rdfrules.algorithm.amie2
 
 import java.util.concurrent.LinkedBlockingQueue
 
 import com.github.propi.rdfrules.algorithm.RulesMining
-import com.github.propi.rdfrules.algorithm.amie.RuleRefinement.{Settings, _}
+import com.github.propi.rdfrules.algorithm.amie.AtomCounting
+import com.github.propi.rdfrules.algorithm.amie2.RuleRefinement2.{Settings, _}
 import com.github.propi.rdfrules.index.TripleHashIndex
 import com.github.propi.rdfrules.rule.ExtendedRule.{ClosedRule, DanglingRule}
 import com.github.propi.rdfrules.rule._
@@ -20,7 +21,7 @@ import scala.language.postfixOps
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
-class Amie private(logger: Logger,
+class Amie2 private(logger: Logger,
                    _thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
                    _constraints: TypedKeyMap[RuleConstraint] = TypedKeyMap(),
                    _patterns: List[RulePattern] = Nil)
@@ -28,7 +29,7 @@ class Amie private(logger: Logger,
 
   protected def transform(thresholds: TypedKeyMap[Threshold],
                           constraints: TypedKeyMap[RuleConstraint],
-                          patterns: List[RulePattern]): RulesMining = new Amie(logger, thresholds, constraints, patterns)
+                          patterns: List[RulePattern]): RulesMining = new Amie2(logger, thresholds, constraints, patterns)
 
   /**
     * Mine all closed rules from tripleIndex by defined thresholds (hc, support, rule length), optional rule pattern and constraints
@@ -40,7 +41,7 @@ class Amie private(logger: Logger,
     */
   def mine(implicit tripleIndex: TripleHashIndex): IndexedSeq[Rule.Simple] = {
     //create amie process with debugger and final triple index
-    implicit val settings: RuleRefinement.Settings = new Settings(this)(if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) debugger else Debugger.EmptyDebugger)
+    implicit val settings: RuleRefinement2.Settings = new Settings(this)(if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) debugger else Debugger.EmptyDebugger)
     val process = new AmieProcess()
     try {
       //get all possible heads
@@ -64,7 +65,7 @@ class Amie private(logger: Logger,
     }
   }
 
-  private class AmieResult(settings: RuleRefinement.Settings) extends Runnable {
+  private class AmieResult(settings: RuleRefinement2.Settings) extends Runnable {
 
     private val messages = new LinkedBlockingQueue[Option[ClosedRule]]
     private val topK: Int = thresholds.get[Threshold.TopK].map(_.value).getOrElse(0)
@@ -157,7 +158,7 @@ class Amie private(logger: Logger,
 
   }
 
-  private class AmieProcess(implicit val tripleIndex: TripleHashIndex, settings: RuleRefinement.Settings, forAtomMatcher: AtomPatternMatcher[Atom]) extends AtomCounting {
+  private class AmieProcess(implicit val tripleIndex: TripleHashIndex, settings: RuleRefinement2.Settings, forAtomMatcher: AtomPatternMatcher[Atom]) extends AtomCounting {
 
     private val minSupport: Int = thresholds.apply[Threshold.MinHeadSize].value
     private val startTime = System.currentTimeMillis()
@@ -246,7 +247,7 @@ class Amie private(logger: Logger,
         //if we use the topK approach the minHeadCoverage may change during mining; therefore we need to check minHC threshold for the current rule
         if (rule.ruleLength < settings.maxRuleLength && result.isRefinable(rule)) {
           //refine the rule and add all expanded variants into the queue
-          howLong("Rule expansion", true)(for (rule <- rule.refine) queue.add(rule))
+          howLong("Rule expansion old", true)(for (rule <- rule.refine) queue.add(rule))
         }
       }
     }
@@ -255,9 +256,9 @@ class Amie private(logger: Logger,
 
 }
 
-object Amie {
+object Amie2 {
 
-  def apply(logger: Logger = Logger[Amie])(implicit debugger: Debugger = Debugger.EmptyDebugger): RulesMining = new Amie(logger)
+  def apply(logger: Logger = Logger[Amie2])(implicit debugger: Debugger = Debugger.EmptyDebugger): RulesMining = new Amie2(logger)
     .addThreshold(Threshold.MinHeadSize(100))
     .addThreshold(Threshold.MinHeadCoverage(0.01))
     .addThreshold(Threshold.MaxRuleLength(3))

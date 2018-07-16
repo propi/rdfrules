@@ -2,11 +2,13 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
+import com.github.propi.rdfrules.algorithm.amie2.Amie2
 import com.github.propi.rdfrules.data.formats.JenaLang._
 import com.github.propi.rdfrules.data.formats.Tsv._
 import com.github.propi.rdfrules.data.{Dataset, Graph, RdfSource, TripleItem}
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.rule.AtomPattern.AtomItemPattern.{AnyConstant, AnyVariable, NoneOf, OneOf}
+import com.github.propi.rdfrules.rule.RuleConstraint.WithInstances
 import com.github.propi.rdfrules.rule.RulePattern._
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.stringifier.CommonStringifiers._
@@ -24,7 +26,27 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
 
   private lazy val dataset2 = Dataset() + Graph[RdfSource.Tsv.type]("yago", GraphSpec.dataYago) + Graph("dbpedia", GraphSpec.dataDbpedia)(RdfSource.JenaLang(Lang.TTL))
 
-  "Amie" should "be created" in {
+  "huhu" should "mine with default params" in {
+    val index = Index.apply(dataset1)
+    /*val amieStart = Amie2().addConstraint(WithInstances(false))
+    index.mine(amieStart)
+    val amieStart2 = Amie().addConstraint(WithInstances(false))
+    index.mine(amieStart2)
+    HowLong.flushAllResults()*/
+    val amie2 = Amie2().addConstraint(WithInstances(false)).addThreshold(Threshold.MinHeadCoverage(0.2))
+    val rules2 = index.mine(amie2)
+    val amie = Amie().addConstraint(WithInstances(false)).addThreshold(Threshold.MinHeadCoverage(0.2))
+    val rules1 = index.mine(amie)
+    println(rules1.size)
+    rules1.sorted.resolvedRules.foreach(println)
+    println("*************************")
+    println(rules2.size)
+    rules2.sorted.resolvedRules.foreach(println)
+    //rules2.resolvedRules.foreach(println)
+    HowLong.flushAllResults()
+  }
+
+  "Amie" should "be created" ignore {
     var amie = Amie()
     amie.thresholds.get[Threshold.MinHeadSize] shouldBe Some(Threshold.MinHeadSize(100))
     amie.thresholds.apply[Threshold.MinHeadSize].value shouldBe 100
@@ -43,7 +65,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     amie.patterns.head.antecedent shouldBe empty
   }
 
-  it should "mine with default params" in {
+  it should "mine with default params" ignore {
     val index = Index.apply(dataset1)
     val amie = Amie()
     val rules = index.tripleMap { implicit thi =>
@@ -52,7 +74,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     rules.size shouldBe 116
   }
 
-  it should "mine without duplicit predicates" in {
+  it should "mine without duplicit predicates" ignore {
     val index = Index.apply(dataset1)
     val amie = Amie().addConstraint(RuleConstraint.WithoutDuplicitPredicates())
     val rules = index.tripleMap { implicit thi =>
@@ -63,7 +85,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     rules(2).measures[Measure.HeadCoverage].value shouldBe 0.16033755274261605
   }
 
-  it should "mine with only specified predicates" in {
+  it should "mine with only specified predicates" ignore {
     val index = Index.apply(dataset1)
     val onlyPredicates = index.tripleItemMap { implicit tihi =>
       RuleConstraint.OnlyPredicates("imports", "exports", "dealsWith")
@@ -80,7 +102,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     }
   }
 
-  it should "mine without specified predicates" in {
+  it should "mine without specified predicates" ignore {
     val index = Index.apply(dataset1)
     val onlyPredicates = index.tripleItemMap { implicit tihi =>
       RuleConstraint.WithoutPredicates("imports", "exports", "dealsWith")
@@ -95,7 +117,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     }
   }
 
-  it should "mine with instances" in {
+  it should "mine with instances" ignore {
     val index = Index.apply(dataset1)
     val amie = Amie().addConstraint(RuleConstraint.WithoutDuplicitPredicates()).addConstraint(RuleConstraint.WithInstances(false))
     val rules = index.tripleMap { implicit thi =>
@@ -104,7 +126,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     rules.size shouldBe 20634
   }
 
-  it should "mine with instances and with duplicit predicates" in {
+  it should "mine with instances and with duplicit predicates" ignore {
     val index = Index.apply(dataset1)
     val amie = Amie().addConstraint(RuleConstraint.WithInstances(false))
     val rules = index.tripleMap { implicit thi =>
@@ -113,7 +135,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     rules.size shouldBe 21674
   }
 
-  it should "mine only with object instances" in {
+  it should "mine only with object instances" ignore {
     val index = Index.apply(dataset1)
     val amie = Amie().addConstraint(RuleConstraint.WithoutDuplicitPredicates()).addConstraint(RuleConstraint.WithInstances(true))
     val rules = index.tripleMap { implicit thi =>
@@ -123,7 +145,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     rules(1).measures[Measure.HeadCoverage].value shouldBe 0.22784810126582278
   }
 
-  it should "mine with min length" in {
+  it should "mine with min length" ignore {
     val index = Index.apply(dataset1)
     var amie = Amie().addConstraint(RuleConstraint.WithoutDuplicitPredicates()).addThreshold(Threshold.MaxRuleLength(2))
     var rules = index.tripleMap { implicit thi =>
@@ -137,7 +159,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     rules.size shouldBe 127
   }
 
-  it should "mine with min head size" in {
+  it should "mine with min head size" ignore {
     val index = Index.apply(dataset1)
     val amie = Amie().addConstraint(RuleConstraint.WithoutDuplicitPredicates()).addThreshold(Threshold.MinHeadSize(1000))
     val rules = index.tripleMap { implicit thi =>
@@ -147,7 +169,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     rules.forall(_.measures[Measure.HeadSize].value >= 1000) shouldBe true
   }
 
-  it should "mine with topK threshold" in {
+  it should "mine with topK threshold" ignore {
     val index = Index.apply(dataset1)
     val amie = Amie().addConstraint(RuleConstraint.WithoutDuplicitPredicates()).addConstraint(RuleConstraint.WithInstances(false)).addThreshold(Threshold.TopK(10))
     val rules = index.tripleMap { implicit thi =>
@@ -157,7 +179,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     rules(1).measures[Measure.HeadCoverage].value shouldBe 0.22784810126582278
   }
 
-  it should "count confidence" in {
+  it should "count confidence" ignore {
     val index = Index.apply(dataset1)
     val amie = Amie().addConstraint(RuleConstraint.WithoutDuplicitPredicates())
     val rules = index.tripleMap { implicit thi =>
@@ -167,7 +189,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     rules.forall(_.measures[Measure.Confidence].value >= 0.2) shouldBe true
   }
 
-  it should "mine with timemout" in {
+  it should "mine with timemout" ignore {
     val timeoutPrinted = new AtomicBoolean(false)
     val customLogger = CustomLogger("test") { (msg, _) =>
       if (msg.contains("timeout limit")) timeoutPrinted.set(true)
@@ -180,7 +202,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     timeoutPrinted.get() shouldBe true
   }
 
-  it should "mine with a rule pattern" in {
+  it should "mine with a rule pattern" ignore {
     val index = Index.apply(dataset1)
     val amie = Amie().addConstraint(RuleConstraint.WithoutDuplicitPredicates()).addConstraint(RuleConstraint.WithInstances(true))
     //livesIn antecedent
@@ -310,7 +332,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     }
   }
 
-  it should "mine across two graphs" in {
+  it should "mine across two graphs" ignore {
     val index = Index.apply(dataset2)
     val amie = Amie().addConstraint(RuleConstraint.WithoutDuplicitPredicates())
     val rules = index.tripleMap { implicit thi =>
@@ -322,7 +344,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     rules.size shouldBe 391
   }
 
-  it should "mine across two graphs with pattern" in {
+  it should "mine across two graphs with pattern" ignore {
     val index = Index.apply(dataset2)
     val pattern: RulePattern = index.tripleItemMap { implicit mapper =>
       AtomPattern(graph = TripleItem.Uri("yago"))
