@@ -78,15 +78,23 @@ trait RuleRefinement2 extends AtomCounting with RuleExpansion2 {
         // - for each these atoms all subject must be constants
         // - then we must count this atom; p(a, B) -> p(a, C) we count it; p(a, B) -> p(a, b) we dont count it (redundant noisy atom)
         //same case if subject is connector
-        case (`dangling`, _) => instantiated && predicate.get(freshAtom.objectPosition).exists(_.forall(_.isInstanceOf[Atom.Constant]))
-        case (_, `dangling`) => instantiated && predicate.get(freshAtom.subjectPosition).exists(_.forall(_.isInstanceOf[Atom.Constant]))
+        case (`dangling`, _) => if (instantiated) {
+          predicate.get(freshAtom.objectPosition).forall(_.forall(_.isInstanceOf[Atom.Constant]))
+        } else {
+          !predicate.contains(freshAtom.objectPosition)
+        }
+        case (_, `dangling`) => if (instantiated) {
+          predicate.get(freshAtom.subjectPosition).forall(_.forall(_.isInstanceOf[Atom.Constant]))
+        } else {
+          !predicate.contains(freshAtom.subjectPosition)
+        }
         //fresh atom is closed then we count this fresh atom only if:
         // - we dont want to create instantiated atom (instantiated atom is possible only for dangling fresh atom)
         // - for this predicate there is an atom which has same subject as this fresh atom
         // - for each these atoms all objets must not equal fresh atom object
         // - OR for this predicate there is an atom which has same object...same bahaviour
         //shortly, if fresh atom is closed and has shared item with other atom in the rule in the same position then we count it unless there is a duplicit atom
-        case _ => !instantiated && (predicate.get(freshAtom.subjectPosition).exists(_.forall(_ != freshAtom.`object`)) || predicate.get(freshAtom.objectPosition).exists(_.forall(_ != freshAtom.subject)))
+        case _ => !instantiated && predicate.get(freshAtom.subjectPosition).forall(_.forall(_ != freshAtom.`object`)) // || predicate.get(freshAtom.objectPosition).exists(_.forall(_ != freshAtom.subject)))
       })
     }
   }

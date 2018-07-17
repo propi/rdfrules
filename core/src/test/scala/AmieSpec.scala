@@ -1,5 +1,6 @@
 import java.util.concurrent.atomic.AtomicBoolean
 
+import amie.mining.AMIE
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
 import com.github.propi.rdfrules.algorithm.amie2.Amie2
@@ -28,20 +29,21 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
 
   "huhu" should "mine with default params" in {
     val index = Index.apply(dataset1)
-    /*val amieStart = Amie2().addConstraint(WithInstances(false))
+    /*val amieStart = Amie2().addConstraint(WithInstances(false))//.addThreshold(Threshold.MinHeadCoverage(0.2))
     index.mine(amieStart)
-    val amieStart2 = Amie().addConstraint(WithInstances(false))
+    val amieStart2 = Amie().addConstraint(WithInstances(false))//.addThreshold(Threshold.MinHeadCoverage(0.2))
     index.mine(amieStart2)
     HowLong.flushAllResults()*/
-    val amie2 = Amie2().addConstraint(WithInstances(false)).addThreshold(Threshold.MinHeadCoverage(0.2))
+    val amie2 = Amie2().addConstraint(WithInstances(false))// .addThreshold(Threshold.MinHeadCoverage(0.2))
     val rules2 = index.mine(amie2)
-    val amie = Amie().addConstraint(WithInstances(false)).addThreshold(Threshold.MinHeadCoverage(0.2))
+    /*val amie = Amie().addConstraint(WithInstances(false))//.addThreshold(Threshold.MinHeadCoverage(0.2))
     val rules1 = index.mine(amie)
     println(rules1.size)
     rules1.sorted.resolvedRules.foreach(println)
-    println("*************************")
+    println("*************************")*/
     println(rules2.size)
     rules2.sorted.resolvedRules.foreach(println)
+    //AMIE.main("datasets/yago.tsv -const -minhc 0.01".split(' '))
     //rules2.resolvedRules.foreach(println)
     HowLong.flushAllResults()
   }

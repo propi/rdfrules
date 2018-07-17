@@ -65,21 +65,27 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
     * @param predicate    check for this predicate
     * @return true = fresh atom is counted (DONT COUNT IT!), false = fresh atom is not counted (COUNT IT!)
     */
-  private def countIt(freshAtom: FreshAtom, predicate: Int, instantiated: Boolean): Boolean = {
+  private def shouldBeCounted(freshAtom: FreshAtom, predicate: Int, instantiated: Option[Boolean] = None): Boolean = {
     if (isValidPredicate(predicate)) {
       rulePredicates.get(predicate).forall { predicate =>
         if (withDuplicitPredicates) {
-          if (!instantiated) {
+          if (instantiated.isEmpty) {
             (freshAtom.subject, freshAtom.`object`) match {
               case (`dangling`, _) => !predicate.contains(freshAtom.objectPosition)
               case (_, `dangling`) => !predicate.contains(freshAtom.subjectPosition)
-              case _ => !predicate.get(freshAtom.subjectPosition).exists(_.contains(freshAtom.`object`))
+              case _ => predicate.get(freshAtom.subjectPosition).forall(_.forall(_ != freshAtom.`object`))
+            }
+          } else if (instantiated.contains(true)) {
+            (freshAtom.subject, freshAtom.`object`) match {
+              case (`dangling`, _) => predicate.get(freshAtom.objectPosition).forall(_.forall(_.isInstanceOf[Atom.Constant]))
+              case (_, `dangling`) => predicate.get(freshAtom.subjectPosition).forall(_.forall(_.isInstanceOf[Atom.Constant]))
+              case _ => false
             }
           } else {
             (freshAtom.subject, freshAtom.`object`) match {
-              case (`dangling`, _) => !predicate.contains(freshAtom.objectPosition)
-              case (_, `dangling`) => !predicate.contains(freshAtom.subjectPosition)
-              case _ => !predicate.get(freshAtom.subjectPosition).exists(_.contains(freshAtom.`object`))
+              case (`dangling`, _) => predicate.get(freshAtom.objectPosition).forall(_.forall(_.isInstanceOf[Atom.Variable]))
+              case (_, `dangling`) => predicate.get(freshAtom.subjectPosition).forall(_.forall(_.isInstanceOf[Atom.Variable]))
+              case _ => predicate.get(freshAtom.subjectPosition).forall(_.forall(_ != freshAtom.`object`))
             }
           }
         } else {
@@ -89,45 +95,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
     } else {
       false
     }
-    //if the predicate is not valid by constraints OR is contained in the rule then the atom is counted (DONT COUNT IT!)
-    !isValidPredicate(predicate) || rulePredicates.get(predicate).exists { predicate =>
-      //if duplicit predicates are not allowed then then fresh atom is always counted and we dont count it!
-      //we will find whether fresh atom should be counted, if yes then we return false (!isCounted - COUNT IT!)
-      !withDuplicitPredicates || ((freshAtom.subject, freshAtom.`object`) match {
-        case (`dangling`, _) => predicate.contains(freshAtom.objectPosition)
-        case (_, `dangling`) => predicate.contains(freshAtom.subjectPosition)
-        case _ => predicate.get(freshAtom.subjectPosition).exists(_.contains(freshAtom.`object`))
-        //fresh atom is dangling and object is connector then we count this fresh atom only if:
-        // - we want to create instantiated atom
-        // - for this predicate there is an atom which has same object as this fresh atom
-        // - for each these atoms all subject must be constants
-        // - then we must count this atom; p(a, B) -> p(a, C) we count it; p(a, B) -> p(a, b) we dont count it (redundant noisy atom)
-        //same case if subject is connector
-        //case (`dangling`, _) => instantiated && predicate.get(freshAtom.objectPosition).exists(_.forall(_.isInstanceOf[Atom.Constant]))
-        //case (_, `dangling`) => instantiated && predicate.get(freshAtom.subjectPosition).exists(_.forall(_.isInstanceOf[Atom.Constant]))
-        //fresh atom is closed then we count this fresh atom only if:
-        // - we dont want to create instantiated atom (instantiated atom is possible only for dangling fresh atom)
-        // - for this predicate there is an atom which has same subject as this fresh atom
-        // - for each these atoms all objets must not equal fresh atom object
-        // - OR for this predicate there is an atom which has same object...same bahaviour
-        //shortly, if fresh atom is closed and has shared item with other atom in the rule in the same position then we count it unless there is a duplicit atom
-        //case _ => !instantiated && (predicate.get(freshAtom.subjectPosition).exists(_.forall(_ != freshAtom.`object`)) || predicate.get(freshAtom.objectPosition).exists(_.forall(_ != freshAtom.subject)))
-      })
-    }
   }
-
-  /**
-    * Check if a fresh atom is counted for both variable items and dangling constant item.
-    * If fresh atom is counted for both variables and dangling constant, then it is counted, otherwise COUNT IT!
-    *
-    * @param freshAtom fresh atom
-    * @param predicate checking for the predicate
-    * @return true = is counted, false = it is not counted
-    */
-  private def isCounted(freshAtom: FreshAtom, predicate: Int): Boolean = {
-    countIt(freshAtom, predicate, false) && (!isWithInstances || countIt(freshAtom, predicate, true))
-  }
-
 
   /**
     * From the current rule create new extended rules with all possible new atoms
@@ -179,8 +147,10 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
             maxSupport = math.max(projections.getOrElseUpdate(atom, IncrementalInt()).++.getValue, maxSupport)
           }
         }
+        var c = 0
         val atomsToBeInstantiate = projections.iterator.map(x => x -> ruleFilter(x._1, x._2.getValue)).filter(_._2._1)
           .map { case ((atom, support), _) =>
+            val freshAtom = FreshAtom(atom.subject.asInstanceOf[Atom.Variable], atom.`object`.asInstanceOf[Atom.Variable])
             /*if (patternFilter.isDefined) {
               val (b, fMap) = patternFilter(atom, support.getValue)
               if (b) {
@@ -188,16 +158,21 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
                 f(fMap.map(_ (newRule)).getOrElse(newRule))
               }
             } else {*/
-            val newRule = expand(atom, support.getValue)
-            f(newRule)
+            if (shouldBeCounted(freshAtom, atom.predicate, Some(false))) {
+              val newRule = expand(atom, support.getValue)
+              f(newRule)
+            }
+            c += 1
             //}
-            atom
+            freshAtom -> atom.predicate
           }
         if (isWithInstances) {
           val freshAtoms = atomsToBeInstantiate
-            .map(atom => FreshAtom(atom.subject.asInstanceOf[Atom.Variable], atom.`object`.asInstanceOf[Atom.Variable]) -> atom.predicate)
-            .filter(x => (x._1.subject == dangling || x._1.`object` == dangling) && (!onlyObjectInstances || x._1.`object` == dangling))
-            .toList
+            .filter(x => (x._1.subject == dangling || x._1.`object` == dangling)
+              && (!onlyObjectInstances || x._1.`object` == dangling)
+              && shouldBeCounted(x._1, x._2, Some(true))
+            ).toList
+
           /*if (rule.head.predicate == -949381308 && rule.head.subject == Atom.Constant(2000385868)) {
             println("****************")
             projections.iterator.map(x => x._1 -> x._2.getValue).foreach(println)
@@ -358,7 +333,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
         freshAtom <- bestFreshAtoms
         //specify fresh atom only with predicate
         //filter only atoms which need to be counted
-        atom <- specifyAtom(freshAtom, variableMap) if !countIt(freshAtom, atom.predicate, false) && (
+        atom <- specifyAtom(freshAtom, variableMap) if shouldBeCounted(freshAtom, atom.predicate) && (
           (atom.subject == dangling && specifyObject(atom).exists(x => exists(atoms, variableMap + (freshAtom.`object` -> x.`object`.asInstanceOf[Atom.Constant]))))
             || (atom.`object` == dangling && specifySubject(atom).exists(x => exists(atoms, variableMap + (freshAtom.subject -> x.subject.asInstanceOf[Atom.Constant]))))
             || (atom.subject != dangling && atom.`object` != dangling && specifyVariableMap(atom, variableMap).exists(x => exists(atoms, x)))
@@ -446,7 +421,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
         for ((predicate, _) <- tripleIndex.objects.get(oc).iterator.flatMap(_.predicates.iterator)) {
           //we dont count fresh atom only with variables if there exists atom in rule which has same predicate and object variable
           // - because for p(a, c) -> p(a, b) it is counted AND for p(a, c) -> p(a, B) it is forbidden combination (redundant and noisy rule)
-          if (!countIt(atom, predicate, false)) {
+          if (shouldBeCounted(atom, predicate)) {
             projections += Atom(sv, predicate, atom.`object`)
           }
         }
@@ -455,7 +430,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
         //get all predicates for this subject constant
         //skip all counted predicates that are included in this rule
         for ((predicate, _) <- tripleIndex.subjects.get(sc).iterator.flatMap(_.predicates.iterator)) {
-          if (!countIt(atom, predicate, false)) {
+          if (shouldBeCounted(atom, predicate)) {
             projections += Atom(atom.subject, predicate, ov)
           }
         }
@@ -463,7 +438,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       case (Atom.Constant(sc), Atom.Constant(oc)) =>
         //we skip counted predicate because in this case we count only with closed atom which are not counted for the existing predicate
         //we need to count all closed atoms
-        for (predicate <- tripleIndex.subjects.get(sc).iterator.flatMap(_.objects.get(oc).iterator.flatMap(_.iterator)) if !countIt(atom, predicate, false)) {
+        for (predicate <- tripleIndex.subjects.get(sc).iterator.flatMap(_.objects.get(oc).iterator.flatMap(_.iterator)) if shouldBeCounted(atom, predicate)) {
           projections += Atom(atom.subject, predicate, atom.`object`)
         }
       case _ => throw new IllegalStateException
