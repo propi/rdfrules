@@ -8,6 +8,7 @@ import com.github.propi.rdfrules.ruleset.ResolvedRule.Atom
 import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetSource, RulesetWriter}
 import com.github.propi.rdfrules.utils.OutputStreamBuilder
 import spray.json._
+import DefaultJsonProtocol._
 
 /**
   * Created by Vaclav Zeman on 18. 4. 2018.
@@ -27,11 +28,19 @@ object Json {
     case Atom.Item.Constant(x) => JsObject("type" -> JsString("constant"), "value" -> x.toJson)
   }
 
-  implicit val mappedAtomJsonWriter: RootJsonWriter[Atom] = (obj: Atom) => JsObject(
-    "subject" -> obj.subject.toJson,
-    "predicate" -> obj.predicate.asInstanceOf[TripleItem].toJson,
-    "object" -> obj.`object`.toJson
-  )
+  implicit val mappedAtomJsonWriter: RootJsonWriter[Atom] = {
+    case ResolvedRule.Atom.Basic(s, p, o) => JsObject(
+      "subject" -> s.toJson,
+      "predicate" -> p.asInstanceOf[TripleItem].toJson,
+      "object" -> o.toJson
+    )
+    case v@ResolvedRule.Atom.GraphBased(s, p, o) => JsObject(
+      "subject" -> s.toJson,
+      "predicate" -> p.asInstanceOf[TripleItem].toJson,
+      "object" -> o.toJson,
+      "graphs" -> v.graphs.map(_.asInstanceOf[TripleItem].toJson).toJson
+    )
+  }
 
   implicit val measureJsonWriter: RootJsonWriter[Measure] = {
     case Measure.BodySize(x) => JsObject("name" -> JsString("bodySize"), "value" -> JsNumber(x))

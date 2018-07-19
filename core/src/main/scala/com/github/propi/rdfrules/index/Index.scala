@@ -22,6 +22,8 @@ trait Index {
 
   def newIndex: Index
 
+  def withEvaluatedLazyVals: Index
+
   def mine(miner: RulesMining): Ruleset = tripleMap { implicit thi =>
     Ruleset(miner.mine, this)
   }

@@ -48,4 +48,14 @@ object Threshold {
 
   implicit def thresholdToKeyValue(threshold: Threshold): (Key[Threshold], Threshold) = threshold.companion -> threshold
 
+  def validate(threshold: Threshold): Threshold = threshold match {
+    case MinHeadSize(x) if x < 1 => MinHeadSize(1)
+    case MaxRuleLength(x) if x < 2 => MaxRuleLength(2)
+    case MinHeadCoverage(x) if x < 0.001 => MinHeadCoverage(0.001)
+    case MinHeadCoverage(x) if x > 1 => MinHeadCoverage(1)
+    case TopK(x) if x < 1 => TopK(1)
+    case Timeout(x) if x < 1 => Timeout(1)
+    case x => x
+  }
+
 }

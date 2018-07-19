@@ -28,15 +28,18 @@ object AtomPatternMatcher {
     case AtomItemPattern.NoneOf(x) => !x.exists(matchAtomItemPattern(item, _))
   }
 
-  def matchGraphPattern(atom: Atom, graphPattern: AtomItemPattern)(implicit thi: TripleHashIndex): Boolean = graphPattern match {
-    case AtomItemPattern.Constant(x) => (atom.subject, atom.`object`) match {
-      case (_: Atom.Variable, _: Atom.Variable) => thi.isInGraph(x.value, atom.predicate)
-      case (_: Atom.Constant, _: Atom.Variable) => thi.isInGraph(x.value, atom.predicate, atom.subjectPosition)
-      case (_: Atom.Variable, _: Atom.Constant) => thi.isInGraph(x.value, atom.predicate, atom.objectPosition)
-      case (Atom.Constant(s), Atom.Constant(o)) => thi.isInGraph(x.value, s, atom.predicate, o)
-    }
+  def matchGraphPattern(atom: Atom.GraphBased, graphPattern: AtomItemPattern): Boolean = graphPattern match {
+    case AtomItemPattern.Constant(x) => atom.containsGraph(x.value)
     case AtomItemPattern.OneOf(x) => x.exists(matchGraphPattern(atom, _))
     case AtomItemPattern.NoneOf(x) => !x.exists(matchGraphPattern(atom, _))
+    case _ => true
+  }
+
+  def matchGraphPattern(atom: Atom, graphPattern: AtomItemPattern)(implicit thi: TripleHashIndex): Boolean = graphPattern match {
+    case _: AtomItemPattern.Constant | _: AtomItemPattern.OneOf | _: AtomItemPattern.NoneOf => atom match {
+      case atom: Atom.Basic => matchGraphPattern(atom.toGraphBasedAtom, graphPattern)
+      case atom: Atom.GraphBased => matchGraphPattern(atom, graphPattern)
+    }
     case _ => true
   }
 

@@ -186,7 +186,7 @@ class Amie private(logger: Logger,
             val it1 = if (settings.onlyObjectInstances) {
               Iterator.empty
             } else {
-              specifySubject(atom).map(_.copy(`object` = Atom.Variable(0)))
+              specifySubject(atom).map(_.transform(`object` = Atom.Variable(0)))
             }
             val it2 = specifyObject(atom)
             Iterator(atom) ++ it1 ++ it2

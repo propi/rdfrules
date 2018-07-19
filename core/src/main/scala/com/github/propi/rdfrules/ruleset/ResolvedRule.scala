@@ -22,7 +22,11 @@ case class ResolvedRule(body: IndexedSeq[Atom], head: Atom)(val measures: TypedK
 
 object ResolvedRule {
 
-  case class Atom(subject: Atom.Item, predicate: TripleItem.Uri, `object`: Atom.Item)
+  sealed trait Atom {
+    val subject: Atom.Item
+    val predicate: TripleItem.Uri
+    val `object`: Atom.Item
+  }
 
   object Atom {
 
@@ -41,11 +45,16 @@ object ResolvedRule {
 
     }
 
-    implicit def apply(atom: rule.Atom)(implicit mapper: TripleItemHashIndex): Atom = Atom(
-      atom.subject,
-      mapper.getTripleItem(atom.predicate).asInstanceOf[TripleItem.Uri],
-      atom.`object`
-    )
+    case class Basic(subject: Item, predicate: TripleItem.Uri, `object`: Item) extends Atom
+
+    case class GraphBased(subject: Item, predicate: TripleItem.Uri, `object`: Item)(val graphs: Set[TripleItem.Uri]) extends Atom
+
+    implicit def apply(atom: rule.Atom)(implicit mapper: TripleItemHashIndex): Atom = atom match {
+      case _: rule.Atom.Basic =>
+        Basic(atom.subject, mapper.getTripleItem(atom.predicate).asInstanceOf[TripleItem.Uri], atom.`object`)
+      case x: rule.Atom.GraphBased =>
+        GraphBased(atom.subject, mapper.getTripleItem(atom.predicate).asInstanceOf[TripleItem.Uri], atom.`object`)(x.graphsIterator.map(mapper.getTripleItem(_).asInstanceOf[TripleItem.Uri]).toSet)
+    }
 
   }
 

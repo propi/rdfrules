@@ -6,6 +6,7 @@ import com.github.propi.rdfrules.rule.{Atom, TripleItemPosition}
 import com.typesafe.scalalogging.Logger
 
 import scala.collection.JavaConverters._
+import scala.language.implicitConversions
 
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
@@ -20,76 +21,97 @@ class TripleHashIndex private {
   val objects: HashMap[Int, TripleObjectIndex] = new MutableHashMap[Int, TripleObjectIndex]
 
   private var graph: Option[Int] = None
-  private val graphs: HashMap[Int, HashMap[Int, TripleGraphIndex]] = new MutableHashMap[Int, HashMap[Int, TripleGraphIndex]]
+  private var severalGraphs: Boolean = false
 
   lazy val size: Int = predicates.valuesIterator.map(_.size).sum
 
-  private def tripleItemPositionExists(tripleItemPosition: TripleItemPosition)(tgi: TripleGraphIndex): Boolean = tripleItemPosition match {
-    case TripleItemPosition.Subject(x) => x match {
-      case Atom.Constant(x) => tgi.subjects.contains(x)
-      case _ => true
-    }
-    case TripleItemPosition.Object(x) => x match {
-      case Atom.Constant(x) => tgi.objects(x)
-      case _ => true
+  def evaluateAllLazyVals(): Unit = {
+    size
+    subjects.valuesIterator.foreach(_.size)
+    objects.valuesIterator.foreach(_.size)
+    if (graph.isEmpty) {
+      predicates.valuesIterator.foreach(_.graphs)
     }
   }
 
-  def isInGraph(graph: Int, predicate: Int): Boolean = (graphs.isEmpty && this.graph.contains(graph)) || graphs.get(graph).exists(_.contains(predicate))
-
-  def getGraphs(predicate: Int): Iterator[Int] = if (graphs.isEmpty) Iterator(graph.get) else graphs.iterator.filter(_._2.contains(predicate)).map(_._1)
-
-  def isInGraph(graph: Int, predicate: Int, tripleItemPosition: TripleItemPosition): Boolean = {
-    val f = tripleItemPositionExists(tripleItemPosition) _
-    (graphs.isEmpty && this.graph.contains(graph)) || graphs.get(graph).exists(_.get(predicate).exists(f))
+  def getGraphs(predicate: Int): HashSet[Int] = if (graph.nonEmpty) {
+    val set = new MutableHashSet[Int]
+    set += graph.get
+    set
+  } else {
+    predicates(predicate).graphs
   }
 
-  def getGraphs(predicate: Int, tripleItemPosition: TripleItemPosition): Iterator[Int] = {
-    val f = tripleItemPositionExists(tripleItemPosition) _
-    if (graphs.isEmpty) Iterator(graph.get) else graphs.iterator.filter(_._2.get(predicate).exists(f)).map(_._1)
+  def getGraphs(predicate: Int, tripleItemPosition: TripleItemPosition): HashSet[Int] = if (graph.nonEmpty) {
+    val set = new MutableHashSet[Int]
+    set += graph.get
+    set
+  } else {
+    val pi = predicates(predicate)
+    tripleItemPosition match {
+      case TripleItemPosition.Subject(Atom.Constant(x)) => pi.subjects(x).graphs
+      case TripleItemPosition.Object(Atom.Constant(x)) => pi.objects(x).graphs
+      case _ => pi.graphs
+    }
   }
 
-  def isInGraph(graph: Int, subject: Int, predicate: Int, `object`: Int): Boolean = {
-    (graphs.isEmpty && this.graph.contains(graph)) || graphs.get(graph).exists(_.get(predicate).exists(_.subjects.get(subject).exists(_.apply(`object`))))
-  }
-
-  def getGraphs(subject: Int, predicate: Int, `object`: Int): Iterator[Int] = {
-    if (graphs.isEmpty) Iterator(graph.get) else graphs.iterator.filter(_._2.get(predicate).exists(_.subjects.get(subject).exists(_.apply(`object`)))).map(_._1)
+  def getGraphs(subject: Int, predicate: Int, `object`: Int): HashSet[Int] = if (graph.nonEmpty) {
+    val set = new MutableHashSet[Int]
+    set += graph.get
+    set
+  } else {
+    predicates(predicate).subjects(subject).apply(`object`)
   }
 
   private def addGraph(quad: CompressedQuad): Unit = {
-    val gi = graphs.asInstanceOf[M[MutableHashMap[Int, TripleGraphIndex]]]
-      .getOrElseUpdate(quad.graph, new MutableHashMap[Int, TripleGraphIndex])
-      .getOrElseUpdate(quad.predicate, new TripleGraphIndex(emptyTripleItemMap, emptySet))
-    gi.objects.asInstanceOf[MutableHashSet[Int]] += quad.`object`
-    gi.subjects.asInstanceOf[M1].getOrElseUpdate(quad.subject, emptySet) += quad.`object`
+    //get predicate index by a specific predicate
+    val pi = predicates.asInstanceOf[M[TriplePredicateIndex]]
+      .getOrElseUpdate(quad.predicate, new TriplePredicateIndex(emptyTripleItemMapWithGraphs, emptyTripleItemMapWithGraphs))
+    //get predicate-subject index by a specific subject
+    val psi = pi.subjects.asInstanceOf[M[AnyWithGraphs[TripleItemMap]]].getOrElseUpdate(quad.subject, emptyMapWithGraphs).asInstanceOf[MutableAnyWithGraphs[TripleItemMap]]
+    //add graph to this predicate-subject index - it is suitable for atom p(A, b) to enumerate all graphs
+    psi.addGraph(quad.graph)
+    //get predicate-subject-object index by a specific object and add the graph
+    // - it is suitable for enumerate all quads with graphs
+    // - then construct Dataset from Index
+    psi.value.asInstanceOf[M1].getOrElseUpdate(quad.`object`, emptySet) += quad.graph
+    //get predicate-object index by a specific object and add the graph - it is suitable for atom p(a, B) to enumerate all graphs
+    pi.objects.asInstanceOf[M[AnyWithGraphs[HashSet[Int]]]].getOrElseUpdate(quad.`object`, emptySetWithGraphs).asInstanceOf[MutableAnyWithGraphs[HashSet[Int]]].addGraph(quad.graph)
   }
 
   private def addQuad(quad: CompressedQuad): Unit = {
     if (graph.isEmpty) {
-      graph = Some(quad.graph)
-    } else if (!graphs.isEmpty) {
-      addGraph(quad)
+      if (severalGraphs) {
+        addGraph(quad)
+      } else {
+        graph = Some(quad.graph)
+      }
     } else if (!graph.contains(quad.graph)) {
       for {
         (p, m1) <- predicates.iterator
-        (s, m2) <- m1.subjects.iterator
-        o <- m2.iterator
+        (o, m2) <- m1.objects.iterator
+        s <- m2.iterator
         g <- graph
       } {
         addGraph(CompressedQuad(s, p, o, g))
       }
       addGraph(quad)
+      severalGraphs = true
+      graph = None
     }
     val si = subjects.asInstanceOf[M[TripleSubjectIndex]].getOrElseUpdate(quad.subject, new TripleSubjectIndex(emptyTripleItemMap, emptyTripleItemMap))
-    val pi = predicates.asInstanceOf[M[TriplePredicateIndex]].getOrElseUpdate(quad.predicate, new TriplePredicateIndex(emptyTripleItemMap, emptyTripleItemMap))
     val oi = objects.asInstanceOf[M[TripleObjectIndex]].getOrElseUpdate(quad.`object`, new TripleObjectIndex(emptyTripleItemMap, emptyTripleItemMap))
     si.predicates.asInstanceOf[M1].getOrElseUpdate(quad.predicate, emptySet) += quad.`object`
     si.objects.asInstanceOf[M1].getOrElseUpdate(quad.`object`, emptySet) += quad.predicate
-    pi.subjects.asInstanceOf[M1].getOrElseUpdate(quad.subject, emptySet) += quad.`object`
-    pi.objects.asInstanceOf[M1].getOrElseUpdate(quad.`object`, emptySet) += quad.subject
     oi.predicates.asInstanceOf[M1].getOrElseUpdate(quad.predicate, emptySet) += quad.subject
     oi.subjects.asInstanceOf[M1].getOrElseUpdate(quad.subject, emptySet) += quad.predicate
+    val pi = predicates.asInstanceOf[M[TriplePredicateIndex]].getOrElseUpdate(quad.predicate, new TriplePredicateIndex(emptyTripleItemMapWithGraphs[TripleItemMap], emptyTripleItemMapWithGraphs[HashSet[Int]]))
+    if (!severalGraphs) {
+      pi.subjects.asInstanceOf[M[AnyWithGraphs[TripleItemMap]]]
+        .getOrElseUpdate(quad.subject, emptyMapWithGraphs).value.asInstanceOf[M1]
+        .getOrElseUpdate(quad.`object`, emptySet)
+    }
+    pi.objects.asInstanceOf[M[AnyWithGraphs[HashSet[Int]]]].getOrElseUpdate(quad.`object`, emptySetWithGraphs).value.asInstanceOf[MutableHashSet[Int]] += quad.subject
   }
 
 }
@@ -99,6 +121,8 @@ object TripleHashIndex {
   private val logger = Logger[TripleHashIndex]
 
   type TripleItemMap = HashMap[Int, HashSet[Int]]
+  type TripleItemMapWithGraphsAndSet = HashMap[Int, AnyWithGraphs[HashSet[Int]]]
+  type TripleItemMapWithGraphsAndMap = HashMap[Int, AnyWithGraphs[TripleItemMap]]
 
   abstract class HashSet[T](set: java.util.Set[T]) {
     def iterator: Iterator[T] = set.iterator().asScala
@@ -111,6 +135,14 @@ object TripleHashIndex {
   class MutableHashSet[T](set: java.util.Set[T] = new java.util.HashSet[T]) extends HashSet(set) {
     def +=(x: T): Unit = set.add(x)
   }
+
+  class AnyWithGraphs[T](val value: T, val graphs: HashSet[Int])
+
+  class MutableAnyWithGraphs[T](value: T, graphs: MutableHashSet[Int]) extends AnyWithGraphs[T](value, graphs) {
+    def addGraph(g: Int): Unit = graphs += g
+  }
+
+  implicit def anyWithGraphsTo[T](hashSetWithGraphs: AnyWithGraphs[T]): T = hashSetWithGraphs.value
 
   abstract class HashMap[K, V](map: java.util.Map[K, V]) {
     def apply(key: K): V = {
@@ -148,12 +180,23 @@ object TripleHashIndex {
 
   private def emptySet = new MutableHashSet[Int]
 
+  private def emptySetWithGraphs = new MutableAnyWithGraphs[HashSet[Int]](emptySet, emptySet)
+
+  private def emptyMapWithGraphs = new MutableAnyWithGraphs[TripleItemMap](emptyTripleItemMap, emptySet)
+
   private def emptyTripleItemMap = new MutableHashMap[Int, HashSet[Int]]
 
-  class TripleGraphIndex(val subjects: TripleItemMap, val objects: HashSet[Int])
+  private def emptyTripleItemMapWithGraphs[T] = new MutableHashMap[Int, AnyWithGraphs[T]]
 
-  class TriplePredicateIndex(val subjects: TripleItemMap, val objects: TripleItemMap) {
+  class TriplePredicateIndex(val subjects: TripleItemMapWithGraphsAndMap, val objects: TripleItemMapWithGraphsAndSet) {
     lazy val size: Int = subjects.valuesIterator.map(_.size).sum
+    //add all graphs to this predicate index - it is suitable for atom p(a, b) to enumerate all graphs
+    //it is contructed from all predicate-subject graphs
+    lazy val graphs: HashSet[Int] = {
+      val set = emptySet
+      subjects.valuesIterator.flatMap(_.graphs.iterator).foreach(set += _)
+      set
+    }
   }
 
   class TripleSubjectIndex(val objects: TripleItemMap, val predicates: TripleItemMap) {

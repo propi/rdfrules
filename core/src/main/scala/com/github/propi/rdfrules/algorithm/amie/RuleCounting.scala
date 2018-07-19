@@ -25,18 +25,23 @@ trait RuleCounting extends AtomCounting {
     both are valid paths for the rule, but for (A, B) support = 1 and bodysize = 2; confidence = 0.5 - but it should be 1
     because C1 and C2 are connectable with A and B
     */
-    logger.debug(s"Confidence counting for rule: " + rule)
-    val support = rule.measures[Measure.Support].value
-    //we count body size, it is number of all possible paths for this rule from dataset only for body atoms
-    //first we count body size threshold: support / minConfidence
-    //it counts wanted body site. If the body size is greater than wanted body size then confidence will be always lower than our defined threshold (min confidence)
-    val bodySize = count(rule.body.toSet, (support / minConfidence) + 1)
-    //confidence is number of head triples which are connected to other atoms in the rule DIVIDED number of all possible paths from body
-    val confidence = support.toDouble / bodySize
-    if (confidence >= minConfidence) {
-      rule.copy()(TypedKeyMap(Measure.BodySize(bodySize), Measure.Confidence(confidence)) ++= rule.measures)
+    //minimal allowed confidence is 1%
+    if (minConfidence < 0.01) {
+      withConfidence(0.01)
     } else {
-      rule
+      logger.debug(s"Confidence counting for rule: " + rule)
+      val support = rule.measures[Measure.Support].value
+      //we count body size, it is number of all possible paths for this rule from dataset only for body atoms
+      //first we count body size threshold: support / minConfidence
+      //it counts wanted body site. If the body size is greater than wanted body size then confidence will be always lower than our defined threshold (min confidence)
+      val bodySize = count(rule.body.toSet, (support / minConfidence) + 1)
+      //confidence is number of head triples which are connected to other atoms in the rule DIVIDED number of all possible paths from body
+      val confidence = support.toDouble / bodySize
+      if (confidence >= minConfidence) {
+        rule.copy()(TypedKeyMap(Measure.BodySize(bodySize), Measure.Confidence(confidence)) ++= rule.measures)
+      } else {
+        rule
+      }
     }
   }
 
@@ -48,12 +53,12 @@ trait RuleCounting extends AtomCounting {
     */
   def withHeadConfidence: Rule.Simple = {
     logger.debug(s"Head confidence counting for rule: " + rule)
-    val average = rule.head match {
+    val average = (rule.head.subject, rule.head.`object`) match {
       //if head is variables atom then average is number of all subjects with the predicate of the head atom DIVIDED number of all subjects
-      case Atom(_: Atom.Variable, p, _: Atom.Variable) => tripleIndex.predicates(p).subjects.size.toDouble / tripleIndex.subjects.size
+      case (_: Atom.Variable, _: Atom.Variable) => tripleIndex.predicates(rule.head.predicate).subjects.size.toDouble / tripleIndex.subjects.size
       //if head is instance atom then average is number of all possible triples for the head atom DIVIDED number of all subjects with the predicate of the head atom
-      case Atom(_: Atom.Variable, p, Atom.Constant(b)) => tripleIndex.predicates(p).objects.get(b).map(_.size).getOrElse(0).toDouble / tripleIndex.predicates(p).subjects.size
-      case Atom(Atom.Constant(a), p, _: Atom.Variable) => tripleIndex.predicates(p).subjects.get(a).map(_.size).getOrElse(0).toDouble / tripleIndex.predicates(p).objects.size
+      case (_: Atom.Variable, Atom.Constant(b)) => tripleIndex.predicates(rule.head.predicate).objects.get(b).map(_.size).getOrElse(0).toDouble / tripleIndex.predicates(rule.head.predicate).subjects.size
+      case (Atom.Constant(a), _: Atom.Variable) => tripleIndex.predicates(rule.head.predicate).subjects.get(a).map(_.size).getOrElse(0).toDouble / tripleIndex.predicates(rule.head.predicate).objects.size
       case _ => 0
     }
     rule.copy()(TypedKeyMap(Measure.HeadConfidence(average)) ++= rule.measures)
@@ -89,28 +94,33 @@ trait RuleCounting extends AtomCounting {
     * @return New rule with counted pca confidence
     */
   def withPcaConfidence(minPcaConfidence: Double): Rule.Simple = {
-    logger.debug(s"Pca confidence counting for rule: " + rule)
-    //get all subject instances for head atoms
-    val headInstances: Iterator[VariableMap] = rule.head match {
-      //if subject is variable then we return all subjects for the head atom predicate
-      case Atom(x: Atom.Variable, predicate, _) => tripleIndex.predicates(predicate).subjects.keysIterator.map(y => Map(x -> Atom.Constant(y)))
-      //if subject is constant then we will search negative examples for object variable, we return all object instances for the atom predicate
-      case Atom(_, predicate, x: Atom.Variable) => tripleIndex.predicates(predicate).objects.keysIterator.map(y => Map(x -> Atom.Constant(y)))
-      case _ => Iterator.empty
-    }
-    val bodySet = rule.body.toSet
-    val support = rule.measures[Measure.Support].value
-    val maxPcaBodySize = (support / minPcaConfidence) + 1
-    val pcaBodySize = headInstances.foldLeft(0) { (pcaBodySize, variableMap) =>
-      //for each head instance we compute body size and sum it with previously counted body size
-      //within each iteration we need to subtract the current pcaBodySize from maxPcaBodySize due to preservation of global threshold for summed paths (body sizes)
-      pcaBodySize + count(bodySet, maxPcaBodySize - pcaBodySize, variableMap)
-    }
-    val pcaConfidence = support.toDouble / pcaBodySize
-    if (pcaConfidence >= minPcaConfidence) {
-      rule.copy()(TypedKeyMap(Measure.PcaBodySize(pcaBodySize), Measure.PcaConfidence(pcaConfidence)) ++= rule.measures)
+    //minimal allowed confidence is 1%
+    if (minPcaConfidence < 0.01) {
+      withPcaConfidence(0.01)
     } else {
-      rule
+      logger.debug(s"Pca confidence counting for rule: " + rule)
+      //get all subject instances for head atoms
+      val headInstances: Iterator[VariableMap] = (rule.head.subject, rule.head.`object`) match {
+        //if subject is variable then we return all subjects for the head atom predicate
+        case (x: Atom.Variable, _) => tripleIndex.predicates(rule.head.predicate).subjects.keysIterator.map(y => Map(x -> Atom.Constant(y)))
+        //if subject is constant then we will search negative examples for object variable, we return all object instances for the atom predicate
+        case (_, x: Atom.Variable) => tripleIndex.predicates(rule.head.predicate).objects.keysIterator.map(y => Map(x -> Atom.Constant(y)))
+        case _ => Iterator.empty
+      }
+      val bodySet = rule.body.toSet
+      val support = rule.measures[Measure.Support].value
+      val maxPcaBodySize = (support / minPcaConfidence) + 1
+      val pcaBodySize = headInstances.foldLeft(0) { (pcaBodySize, variableMap) =>
+        //for each head instance we compute body size and sum it with previously counted body size
+        //within each iteration we need to subtract the current pcaBodySize from maxPcaBodySize due to preservation of global threshold for summed paths (body sizes)
+        pcaBodySize + count(bodySet, maxPcaBodySize - pcaBodySize, variableMap)
+      }
+      val pcaConfidence = support.toDouble / pcaBodySize
+      if (pcaConfidence >= minPcaConfidence) {
+        rule.copy()(TypedKeyMap(Measure.PcaBodySize(pcaBodySize), Measure.PcaConfidence(pcaConfidence)) ++= rule.measures)
+      } else {
+        rule
+      }
     }
   }
 

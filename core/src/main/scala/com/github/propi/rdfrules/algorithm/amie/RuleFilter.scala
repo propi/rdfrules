@@ -97,6 +97,7 @@ object RuleFilter {
 
   /**
     * Filter all atoms which are already contained in the rule
+    * TODO - check if it is ever used
     *
     * @param head head of the rule
     * @param body body of the rule
@@ -128,8 +129,8 @@ object RuleFilter {
     override def isDefined: Boolean = withDuplicitPredicates && atoms.size >= 3
 
     private def replaceItemInAtom(old: Atom.Item, replacement: Atom.Item)(atom: Atom) = {
-      if (atom.subject == old) atom.copy(subject = replacement)
-      else if (atom.`object` == old) atom.copy(`object` = replacement)
+      if (atom.subject == old) atom.transform(subject = replacement)
+      else if (atom.`object` == old) atom.transform(`object` = replacement)
       else atom
     }
 

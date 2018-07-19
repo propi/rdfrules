@@ -4,6 +4,7 @@ import java.io.{InputStream, OutputStream}
 
 import com.github.propi.rdfrules.algorithm.Clustering
 import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
+import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
 import com.github.propi.rdfrules.data.ops.{Cacheable, Transformable}
 import com.github.propi.rdfrules.index.{Index, TripleHashIndex, TripleItemHashIndex}
 import com.github.propi.rdfrules.rule.{Measure, Rule, RulePattern, RulePatternMatcher}
@@ -14,6 +15,8 @@ import com.github.propi.rdfrules.stringifier.Stringifier
 import com.github.propi.rdfrules.utils.TypedKeyMap
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
+
+import scala.collection.mutable
 
 /**
   * Created by Vaclav Zeman on 6. 10. 2017.
@@ -67,6 +70,10 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index)
     }
   })
 
+  def withGraphBasedRules: Ruleset = extendRuleset { implicit thi =>
+    rule => Rule.Simple(rule.head.toGraphBasedAtom, rule.body.map(_.toGraphBasedAtom))(rule.measures)
+  }
+
   def countConfidence(minConfidence: Double): Ruleset = extendRuleset { implicit thi =>
     _.withConfidence(minConfidence)
   }.filter(_.measures.get[Measure.Confidence].exists(_.value >= minConfidence))
@@ -96,6 +103,29 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index)
       cluster.map(x => x.copy()(TypedKeyMap(Measure.Cluster(index)) ++= x.measures))
     }.foreach(f)
   })
+
+  def findSimilar(rule: Rule.Simple, k: Int, dissimilar: Boolean = false)(implicit simf: SimilarityCounting[Rule.Simple]): Ruleset = if (k < 1) {
+    findSimilar(rule, 1, dissimilar)
+  } else {
+    transform(new Traversable[Rule.Simple] {
+      def foreach[U](f: Rule.Simple => U): Unit = {
+        val ordering = Ordering.by[(Double, Rule.Simple), Double](_._1)
+        val queue = mutable.PriorityQueue.empty(if (dissimilar) ordering else ordering.reverse)
+        for (rule2 <- rules) {
+          val sim = simf(rule, rule2)
+          if (queue.size < k) {
+            queue.enqueue(sim -> rule2)
+          } else if ((!dissimilar && sim > queue.head._1) || (dissimilar && sim < queue.head._1)) {
+            queue.dequeue()
+            queue.enqueue(sim -> rule2)
+          }
+        }
+        queue.dequeueAll.reverseIterator.map(_._2).foreach(f)
+      }
+    })
+  }
+
+  def findDissimilar(rule: Rule.Simple, k: Int)(implicit simf: SimilarityCounting[Rule.Simple]): Ruleset = findSimilar(rule, k, true)
 
   def export[T <: RulesetSource](os: => OutputStream)(implicit writer: RulesetWriter[T]): Unit = writer.writeToOutputStream(this, os)
 

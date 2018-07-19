@@ -155,9 +155,9 @@ trait AtomCounting {
     }
   }
 
-  def specifySubject(atom: Atom): Iterator[Atom] = tripleIndex.predicates(atom.predicate).subjects.keysIterator.map(subject => atom.copy(subject = Atom.Constant(subject)))
+  def specifySubject(atom: Atom): Iterator[Atom] = tripleIndex.predicates(atom.predicate).subjects.keysIterator.map(subject => atom.transform(subject = Atom.Constant(subject)))
 
-  def specifyObject(atom: Atom): Iterator[Atom] = tripleIndex.predicates(atom.predicate).objects.keysIterator.map(`object` => atom.copy(`object` = Atom.Constant(`object`)))
+  def specifyObject(atom: Atom): Iterator[Atom] = tripleIndex.predicates(atom.predicate).objects.keysIterator.map(`object` => atom.transform(`object` = Atom.Constant(`object`)))
 
   /**
     * Get all specified atoms (projections) for input atom and variableMap
@@ -170,13 +170,13 @@ trait AtomCounting {
     val tm = tripleIndex.predicates(atom.predicate)
     (specifyItem(atom.subject, variableMap), specifyItem(atom.`object`, variableMap)) match {
       case (_: Atom.Variable, _: Atom.Variable) =>
-        tm.subjects.iterator.flatMap(x => x._2.iterator.map(y => Atom(Atom.Constant(x._1), atom.predicate, Atom.Constant(y))))
+        tm.subjects.iterator.flatMap(x => x._2.iterator.map(y => Atom(Atom.Constant(x._1), atom.predicate, Atom.Constant(y._1))))
       case (_: Atom.Variable, ov@Atom.Constant(oc)) =>
         tm.objects.get(oc).iterator.flatMap(_.iterator).map(subject => Atom(Atom.Constant(subject), atom.predicate, ov))
       case (sv@Atom.Constant(sc), _: Atom.Variable) =>
-        tm.subjects.get(sc).iterator.flatMap(_.iterator).map(`object` => Atom(sv, atom.predicate, `object` = Atom.Constant(`object`)))
+        tm.subjects.get(sc).iterator.flatMap(_.iterator.map(_._1)).map(`object` => Atom(sv, atom.predicate, `object` = Atom.Constant(`object`)))
       case (sv@Atom.Constant(sc), ov@Atom.Constant(oc)) =>
-        if (tm.subjects.get(sc).exists(x => x.apply(oc))) Iterator(Atom(sv, atom.predicate, ov)) else Iterator.empty
+        if (tm.subjects.get(sc).exists(x => x.contains(oc))) Iterator(Atom(sv, atom.predicate, ov)) else Iterator.empty
     }
   }
 

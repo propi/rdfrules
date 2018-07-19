@@ -33,7 +33,13 @@ object CommonStringifiers {
     case ResolvedRule.Atom.Item.Constant(x) => x.toString
   }
 
-  implicit val atomStringifier: Stringifier[ResolvedRule.Atom] = (v: ResolvedRule.Atom) => s"(${Stringifier(v.subject)} ${v.predicate.toString} ${Stringifier(v.`object`)})"
+  implicit val atomStringifier: Stringifier[ResolvedRule.Atom] = {
+    case ResolvedRule.Atom.Basic(s, p, o) => s"(${Stringifier(s)} ${p.toString} ${Stringifier(o)})"
+    case v@ResolvedRule.Atom.GraphBased(s, p, o) =>
+      def bracketGraphs(strGraphs: String): String = if (v.graphs.size == 1) strGraphs else s"[$strGraphs]"
+
+      s"(${Stringifier(s)} ${p.toString} ${Stringifier(o)} ${bracketGraphs(v.graphs.iterator.map(_.toString).mkString(", "))})"
+  }
 
   implicit val resolvedRuleStringifier: Stringifier[ResolvedRule] = (v: ResolvedRule) => v.body.map(x => Stringifier(x)).mkString(" ^ ") +
     " -> " +

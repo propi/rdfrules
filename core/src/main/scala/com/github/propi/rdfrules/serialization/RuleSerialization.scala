@@ -3,6 +3,7 @@ package com.github.propi.rdfrules.serialization
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 
+import com.github.propi.rdfrules.index.TripleHashIndex.MutableHashSet
 import com.github.propi.rdfrules.rule.{Atom, Measure, Rule}
 import com.github.propi.rdfrules.utils.TypedKeyMap
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
@@ -26,12 +27,12 @@ object RuleSerialization {
     * - 1: true/false - is object variable
     * - 4: object int
     */
-  implicit val atomSerializationSize: SerializationSize[Atom] = new SerializationSize[Atom] {
+  implicit val atomBasicSerializationSize: SerializationSize[Atom.Basic] = new SerializationSize[Atom.Basic] {
     val size: Int = 14
   }
 
-  implicit val atomSerializer: Serializer[Atom] = (v: Atom) => {
-    ByteBuffer.allocate(atomSerializationSize.size)
+  implicit val atomBasicSerializer: Serializer[Atom.Basic] = (v: Atom.Basic) => {
+    ByteBuffer.allocate(atomBasicSerializationSize.size)
       .put(Serializer.serialize(v.predicate))
       .put(Serializer.serialize(v.subject.isInstanceOf[Atom.Variable]))
       .put(Serializer.serialize[Int](v.subject))
@@ -40,12 +41,38 @@ object RuleSerialization {
       .array()
   }
 
-  implicit val atomDeserializer: Deserializer[Atom] = (v: Array[Byte]) => {
+  implicit val atomBasicDeserializer: Deserializer[Atom.Basic] = (v: Array[Byte]) => {
     val bais = new ByteArrayInputStream(v)
     val predicate = Deserializer.deserialize[Int](bais)
     val subject: Atom.Item = if (Deserializer.deserialize[Boolean](bais)) Atom.Variable(Deserializer.deserialize[Int](bais)) else Atom.Constant(Deserializer.deserialize[Int](bais))
     val `object`: Atom.Item = if (Deserializer.deserialize[Boolean](bais)) Atom.Variable(Deserializer.deserialize[Int](bais)) else Atom.Constant(Deserializer.deserialize[Int](bais))
-    Atom(subject, predicate, `object`)
+    Atom.Basic(subject, predicate, `object`)
+  }
+
+  implicit val atomGraphBasedSerializer: Serializer[Atom.GraphBased] = (v: Atom.GraphBased) => {
+    Serializer.serialize(Atom.Basic(v.subject, v.predicate, v.`object`) -> v.graphsIterator.toTraversable)
+  }
+
+  implicit val atomGraphBasedDeserializer: Deserializer[Atom.GraphBased] = (v: Array[Byte]) => {
+    val bais = new ByteArrayInputStream(v)
+    val (atom, graphs) = Deserializer.deserialize[(Atom.Basic, Traversable[Int])](bais)
+    val graphsSet = new MutableHashSet[Int]
+    graphs.foreach(graphsSet += _)
+    Atom.GraphBased(atom.subject, atom.predicate, atom.`object`)(graphsSet)
+  }
+
+  implicit val atomSerializer: Serializer[Atom] = {
+    case x: Atom.Basic => Serializer.serialize(x)
+    case x: Atom.GraphBased => Serializer.serialize(x)
+  }
+
+  implicit val atomDeserializer: Deserializer[Atom] = (v: Array[Byte]) => {
+    val bais = new ByteArrayInputStream(v)
+    if (v.length == atomBasicSerializationSize.size) {
+      Deserializer.deserialize[Atom.Basic](bais)
+    } else {
+      Deserializer.deserialize[Atom.GraphBased](bais)
+    }
   }
 
   /**

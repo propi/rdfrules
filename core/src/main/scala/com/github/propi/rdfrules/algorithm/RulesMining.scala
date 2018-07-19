@@ -13,7 +13,7 @@ abstract class RulesMining(_thresholds: TypedKeyMap[Threshold], _constraints: Ty
                           constraints: TypedKeyMap[RuleConstraint] = _constraints,
                           patterns: List[RulePattern] = _patterns): RulesMining
 
-  final def addThreshold(threshold: Threshold): RulesMining = transform(thresholds = _thresholds + threshold)
+  final def addThreshold(threshold: Threshold): RulesMining = transform(thresholds = _thresholds + Threshold.validate(threshold))
 
   final def addConstraint(ruleConstraint: RuleConstraint): RulesMining = transform(constraints = _constraints + ruleConstraint)
 

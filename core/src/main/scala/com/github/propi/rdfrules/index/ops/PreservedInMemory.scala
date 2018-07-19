@@ -16,4 +16,18 @@ trait PreservedInMemory extends Buildable {
 
   def tripleItemMap[T](f: TripleItemHashIndex => T): T = f(tihi)
 
+  def withEvaluatedLazyVals: Index = new IndexDecorator(this) {
+    private var thiEvaluated = false
+
+    override def tripleMap[T](f: TripleHashIndex => T): T = super.tripleMap { thi =>
+      if (!thiEvaluated) {
+        thi.evaluateAllLazyVals()
+        thiEvaluated = true
+      }
+      f(thi)
+    }
+
+    override def withEvaluatedLazyVals: Index = this
+  }
+
 }

@@ -28,4 +28,19 @@ trait InUseInMemory extends Buildable {
       tihi.withValue(Some(x))(f(x))
   }
 
+  def withEvaluatedLazyVals: Index = new IndexDecorator(this) {
+    private lazy val thiEvaluated = new DynamicVariable[Boolean](false)
+
+    override def tripleMap[T](f: TripleHashIndex => T): T = super.tripleMap { thi =>
+      if (!thiEvaluated.value) {
+        thi.evaluateAllLazyVals()
+        thiEvaluated.withValue(true)(f(thi))
+      } else {
+        f(thi)
+      }
+    }
+
+    override def withEvaluatedLazyVals: Index = this
+  }
+
 }

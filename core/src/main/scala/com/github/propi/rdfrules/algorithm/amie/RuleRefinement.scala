@@ -140,7 +140,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       //this function creates variable map with specified head variables
       val specifyHeadVariableMapWithAtom: (Int, Int) => VariableMap = {
         val specifyVariableMapWithAtom = specifyVariableMapForAtom(rule.head)
-        (s, o) => specifyVariableMapWithAtom(rule.head.copy(subject = Atom.Constant(s), `object` = Atom.Constant(o)), Map.empty)
+        (s, o) => specifyVariableMapWithAtom(rule.head.transform(subject = Atom.Constant(s), `object` = Atom.Constant(o)), Map.empty)
       }
       debugger.debug("Rule expansion: " + rule, rule.headSize + 1) { ad =>
         if (logger.underlying.isTraceEnabled) logger.trace("Rule expansion - " + rule + "\n" + "countable: " + countableFreshAtoms + "\n" + "possible: " + possibleFreshAtoms)
@@ -310,8 +310,8 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
           //if we may to create instantiated atoms for this predicate and fresh atom (it is allowed and not already counted)
           //then we add new atom projection to atoms set
           //if onlyObjectInstances is true we do not project instance atom in the subject position
-          if (freshAtom.subject == dangling && !onlyObjectInstances) projections += atom.copy(`object` = freshAtom.`object`)
-          else if (freshAtom.`object` == dangling) projections += atom.copy(subject = freshAtom.subject)
+          if (freshAtom.subject == dangling && !onlyObjectInstances) projections += atom.transform(`object` = freshAtom.`object`)
+          else if (freshAtom.`object` == dangling) projections += atom.transform(subject = freshAtom.subject)
         }
         //if we may to create variable atoms for this predicate and fresh atom (not already counted)
         //then we add new atom projection to atoms set
