@@ -32,23 +32,23 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
     Index(dataset1).mine(Amie()).size shouldBe 116
   }
 
-  "Dataset" should "mine directly from dataset" in {
+  "Dataset" should "mine directly from dataset" ignore {
     dataset1.mine(Amie()).size shouldBe 116
   }
 
-  "Ruleset" should "count confidence" in {
+  "Ruleset" should "count confidence" ignore {
     val rules = ruleset.countConfidence(0.9).rules
     all(rules.map(_.measures[Measure.Confidence].value)) should be >= 0.9
     rules.size shouldBe 166
   }
 
-  it should "count pca confidence" in {
+  it should "count pca confidence" ignore {
     val rules = ruleset.countPcaConfidence(0.9).rules
     all(rules.map(_.measures[Measure.PcaConfidence].value)) should be >= 0.9
     rules.size shouldBe 1067
   }
 
-  it should "count lift" in {
+  it should "count lift" ignore {
     val rules = ruleset.countLift().rules
     all(rules.map(_.measures[Measure.Confidence].value)) should be >= 0.5
     for (rule <- rules) {
@@ -58,7 +58,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
     rules.size shouldBe 1333
   }
 
-  it should "count pca lift" in {
+  it should "count pca lift" ignore {
     val rules = ruleset.countPcaLift().rules
     all(rules.map(_.measures[Measure.PcaConfidence].value)) should be >= 0.5
     for (rule <- rules) {
@@ -68,7 +68,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
     rules.size shouldBe 3059
   }
 
-  it should "sort by interest measures" in {
+  it should "sort by interest measures" ignore {
     ruleset.sorted.rules.toSeq.map(_.measures[Measure.HeadCoverage].value).reverse shouldBe sorted
     ruleset.sortBy(_.measures[Measure.HeadSize].value).rules.toSeq.map(_.measures[Measure.HeadSize].value) shouldBe sorted
     ruleset.sortBy(Measure.HeadSize, Measure.Support).rules
@@ -81,7 +81,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
       .shouldBe(sorted)(Sortable.sortableNatureOfSeq(Ordering.Tuple2(Ordering[Int], Ordering[Int].reverse)))
   }
 
-  it should "count clusters" in {
+  it should "count clusters" ignore {
     val rules = ruleset.sorted.take(500).countClusters(DbScan()).cache
     for (rule <- rules) {
       rule.measures.exists[Measure.Cluster] shouldBe true
@@ -90,7 +90,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
     rules.size shouldBe 500
   }
 
-  it should "do transform operations" in {
+  it should "do transform operations" ignore {
     ruleset.filter(_.measures[Measure.Support].value > 100).size shouldBe 3
     val emptyBodies = ruleset.map(x => x.copy(body = Vector())(x.measures)).rules.map(_.body)
     emptyBodies.size shouldBe ruleset.size
@@ -102,7 +102,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
     ruleset.slice(100, 200).size shouldBe 100
   }
 
-  it should "use mapper" in {
+  it should "use mapper" ignore {
     ruleset.sorted.useMapper { implicit mapper =>
       _.take(1).foreach(x => mapper.getTripleItem(x.head.predicate) shouldBe TripleItem.Uri("directed"))
     }
@@ -111,7 +111,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
     }
   }
 
-  it should "cache" in {
+  it should "cache" ignore {
     ruleset.cache(new FileOutputStream("test.cache"))
     val d = Ruleset.fromCache(ruleset.index)(new FileInputStream("test.cache"))
     d.size shouldBe ruleset.size
@@ -121,7 +121,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
     ruleset.cache.size shouldBe ruleset.size
   }
 
-  it should "export" in {
+  it should "export" ignore {
     ruleset.export[RulesetSource.Text.type](new FileOutputStream("output.txt"))
     var source = Source.fromFile("output.txt", "UTF-8")
     try {
@@ -140,7 +140,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
     new File("output.json").delete() shouldBe true
   }
 
-  it should "filter by patterns" in {
+  it should "filter by patterns" ignore {
     ruleset.useMapper { implicit mapper =>
       ruleset =>
         var x = ruleset.filter(AtomPattern(predicate = TripleItem.Uri("livesIn")) =>: None)

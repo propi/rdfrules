@@ -48,12 +48,16 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
       thi.size shouldBe dataset1.size
     }
     val mem = MemoryMeasurer.measureBytes(index)
-    mem should be(82000000L +- 1000000)
+    mem should be(92000000L +- 1000000)
     val cq = index.tripleItemMap { implicit tim =>
       dataset1.quads.head.toCompressedQuad
     }
     index.tripleMap { thi =>
-      thi.predicates(cq.predicate).subjects(cq.subject)(cq.`object`) shouldBe true
+      thi.predicates(cq.predicate).subjects(cq.subject).contains(cq.`object`) shouldBe true
+      thi.predicates(cq.predicate).subjects(cq.subject)(cq.`object`)(cq.graph) shouldBe false
+      thi.predicates(cq.predicate).subjects(cq.subject).graphs(cq.graph) shouldBe false
+      thi.predicates(cq.predicate).objects(cq.`object`).graphs(cq.graph) shouldBe false
+      thi.getGraphs(cq.predicate)(cq.graph) shouldBe true
       thi.predicates(cq.predicate).objects(cq.`object`)(cq.subject) shouldBe true
       thi.subjects(cq.subject).predicates(cq.predicate)(cq.`object`) shouldBe true
       thi.subjects(cq.subject).objects(cq.`object`)(cq.predicate) shouldBe true
@@ -74,7 +78,15 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
     index.tripleMap { thi =>
       thi.size shouldBe dataset2.size
     }
-    MemoryMeasurer.measureBytes(index) should be(180000000L +- 5000000)
+    val indexMemory1 = MemoryMeasurer.measureBytes(index)
+    indexMemory1 should be(210000000L +- 5000000)
+    val index2 = index.withEvaluatedLazyVals
+    val indexMemory2 = MemoryMeasurer.measureBytes(index2)
+    indexMemory1 should be < indexMemory2
+    index2.tripleMap { thi =>
+      thi.size shouldBe dataset2.size
+    }
+    indexMemory2 should be < MemoryMeasurer.measureBytes(index2)
   }
 
   it should "work with graphs" in {
@@ -83,19 +95,10 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
       dataset1.quads.head.toCompressedQuad
     }
     index.tripleMap { thi =>
-      thi.isInGraph(cq.graph, cq.predicate) shouldBe true
-      thi.isInGraph(0, cq.predicate) shouldBe false
-      thi.isInGraph(cq.graph, 0) shouldBe true
-      thi.isInGraph(cq.graph, cq.predicate, TripleItemPosition.Subject(Atom.Constant(cq.subject))) shouldBe true
-      thi.isInGraph(cq.graph, cq.predicate, TripleItemPosition.Object(Atom.Constant(cq.`object`))) shouldBe true
-      thi.isInGraph(cq.graph, cq.predicate, TripleItemPosition.Subject(Atom.Constant(0))) shouldBe true
-      thi.isInGraph(cq.graph, cq.subject, cq.predicate, cq.`object`) shouldBe true
-      thi.isInGraph(cq.graph, cq.subject, cq.predicate, 0) shouldBe true
-      thi.isInGraph(0, cq.subject, cq.predicate, cq.`object`) shouldBe false
-      thi.getGraphs(cq.predicate).toList should contain only cq.graph
-      thi.getGraphs(0).toList should contain only cq.graph
-      thi.getGraphs(cq.subject, cq.predicate, cq.`object`).toList should contain only cq.graph
-      thi.getGraphs(cq.predicate, TripleItemPosition.Subject(Atom.Constant(cq.subject))).toList should contain only cq.graph
+      thi.getGraphs(cq.predicate).iterator.toList should contain only cq.graph
+      thi.getGraphs(0).iterator.toList should contain only cq.graph
+      thi.getGraphs(cq.subject, cq.predicate, cq.`object`).iterator.toList should contain only cq.graph
+      thi.getGraphs(cq.predicate, TripleItemPosition.Subject(Atom.Constant(cq.subject))).iterator.toList should contain only cq.graph
     }
     val index2 = Index.apply(dataset2)
     val cq2 = index2.tripleItemMap { implicit tim =>
@@ -104,19 +107,10 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
     cq2.size shouldBe 2
     for (cq <- cq2) {
       index2.tripleMap { thi =>
-        thi.isInGraph(cq.graph, cq.predicate) shouldBe true
-        thi.isInGraph(0, cq.predicate) shouldBe false
-        thi.isInGraph(cq.graph, 0) shouldBe false
-        thi.isInGraph(cq.graph, cq.predicate, TripleItemPosition.Subject(Atom.Constant(cq.subject))) shouldBe true
-        thi.isInGraph(cq.graph, cq.predicate, TripleItemPosition.Object(Atom.Constant(cq.`object`))) shouldBe true
-        thi.isInGraph(cq.graph, cq.predicate, TripleItemPosition.Subject(Atom.Constant(0))) shouldBe false
-        thi.isInGraph(cq.graph, cq.subject, cq.predicate, cq.`object`) shouldBe true
-        thi.isInGraph(cq.graph, cq.subject, cq.predicate, 0) shouldBe false
-        thi.isInGraph(0, cq.subject, cq.predicate, cq.`object`) shouldBe false
-        thi.getGraphs(cq.predicate).toList should contain only cq.graph
-        thi.getGraphs(0).toList shouldBe empty
-        thi.getGraphs(cq.subject, cq.predicate, cq.`object`).toList should contain only cq.graph
-        thi.getGraphs(cq.predicate, TripleItemPosition.Subject(Atom.Constant(cq.subject))).toList should contain only cq.graph
+        thi.getGraphs(cq.predicate).iterator.toList should contain only cq.graph
+        an[NoSuchElementException] should be thrownBy thi.getGraphs(0)
+        thi.getGraphs(cq.subject, cq.predicate, cq.`object`).iterator.toList should contain only cq.graph
+        thi.getGraphs(cq.predicate, TripleItemPosition.Subject(Atom.Constant(cq.subject))).iterator.toList should contain only cq.graph
       }
     }
   }
