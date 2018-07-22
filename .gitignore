@@ -74,3 +74,4 @@ $RECYCLE.BIN/
 /temp/
 /node_modules/
 /workspace/
+/package-lock.json
