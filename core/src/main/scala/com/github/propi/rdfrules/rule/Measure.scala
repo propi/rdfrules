@@ -67,12 +67,6 @@ object Measure {
 
   implicit object PcaConfidence extends Key[PcaConfidence]
 
-  case class PcaLift(value: Double) extends Measure {
-    def companion: PcaLift.type = PcaLift
-  }
-
-  implicit object PcaLift extends Key[PcaLift]
-
   case class Cluster(number: Int) extends Measure {
     def companion: Cluster.type = Cluster
   }
@@ -82,7 +76,7 @@ object Measure {
   implicit def mesureToKeyValue(measure: Measure): (Key[Measure], Measure) = measure.companion -> measure
 
   implicit val measureKeyOrdering: Ordering[Key[Measure]] = {
-    val map = Iterator[Key[Measure]](Support, HeadCoverage, Confidence, Lift, PcaConfidence, PcaLift, HeadConfidence, HeadSize, BodySize, PcaBodySize, Cluster).zipWithIndex.map(x => x._1 -> (x._2 + 1)).toMap
+    val map = Iterator[Key[Measure]](Support, HeadCoverage, Confidence, PcaConfidence, Lift, HeadConfidence, HeadSize, BodySize, PcaBodySize, Cluster).zipWithIndex.map(x => x._1 -> (x._2 + 1)).toMap
     Ordering.by[Key[Measure], Int](map.getOrElse(_, 0))
   }
 
@@ -95,7 +89,6 @@ object Measure {
     case Measure.Lift(x) => x
     case Measure.PcaBodySize(x) => x
     case Measure.PcaConfidence(x) => x
-    case Measure.PcaLift(x) => x
     case Measure.Support(x) => x
     case Measure.Cluster(x) => x * -1
   }.reverse

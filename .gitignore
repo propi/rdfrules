@@ -72,3 +72,5 @@ $RECYCLE.BIN/
 /cli/
 /original-amie/
 /temp/
+/node_modules/
+/workspace/

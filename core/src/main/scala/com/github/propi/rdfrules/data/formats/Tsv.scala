@@ -12,7 +12,7 @@ import scala.io.Source
 object Tsv {
 
   implicit val tsvReader: RdfReader[RdfSource.Tsv.type] = (inputStreamBuilder: InputStreamBuilder) => new Traversable[Quad] {
-    def foreach[U](f: (Quad) => U): Unit = {
+    def foreach[U](f: Quad => U): Unit = {
       val is = inputStreamBuilder.build
       val source = Source.fromInputStream(is)
       try {

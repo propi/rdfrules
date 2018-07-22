@@ -124,23 +124,6 @@ trait RuleCounting extends AtomCounting {
     }
   }
 
-  /**
-    * Count pca lift for the rule.
-    * Preconditions: Counted pca confidence and head confidence
-    *
-    * @return New rule with counted pca lift
-    */
-  def withPcaLift: Rule.Simple = {
-    logger.debug(s"Pca lift counting for rule: " + rule)
-    val pcaConfidence = rule.measures.get[Measure.PcaConfidence]
-    val average = rule.measures.get[Measure.HeadConfidence]
-    (pcaConfidence, average) match {
-      //lift is confidence DIVIDED average confidence for the head atom
-      case (Some(pcaConfidence), Some(average)) => rule.copy()(TypedKeyMap(Measure.PcaLift(pcaConfidence.value / average.value)) ++= rule.measures)
-      case _ => rule
-    }
-  }
-
 }
 
 object RuleCounting {

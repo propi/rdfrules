@@ -19,6 +19,12 @@ trait Transformable[T, Coll] {
 
   def drop(n: Int): Coll = transform(coll.view.drop(n))
 
+  def head: T = coll.head
+
+  def headOption: Option[T] = coll.headOption
+
+  def find(f: T => Boolean): Option[T] = coll.find(f)
+
   lazy val size: Int = if (coll.isInstanceOf[IndexedSeq[_]]) {
     coll.size
   } else {

@@ -20,7 +20,6 @@ object CommonStringifiers {
     case Measure.Confidence(v) => s"confidence: $v"
     case Measure.Lift(v) => s"lift: $v"
     case Measure.PcaConfidence(v) => s"pcaConfidence: $v"
-    case Measure.PcaLift(v) => s"pcaLift: $v"
     case Measure.HeadConfidence(v) => s"headConfidence: $v"
     case Measure.HeadSize(v) => s"headSize: $v"
     case Measure.BodySize(v) => s"bodySize: $v"

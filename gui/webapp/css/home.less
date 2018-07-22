@@ -1,0 +1,222 @@
+@medium-screen: 993px;
+
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  src: url(../fonts/MaterialIcons-Regular.eot); /* For IE6-8 */
+  src: local('Material Icons'),
+  local('MaterialIcons-Regular'),
+  url(../fonts/MaterialIcons-Regular.woff2) format('woff2'),
+  url(../fonts/MaterialIcons-Regular.woff) format('woff'),
+  url(../fonts/MaterialIcons-Regular.ttf) format('truetype');
+}
+
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 1em;
+  vertical-align: middle;
+  display: inline-block;
+  line-height: 1em;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  /* Support for all WebKit browsers. */
+  -webkit-font-smoothing: antialiased;
+  /* Support for Safari and Chrome. */
+  text-rendering: optimizeLegibility;
+  /* Support for Firefox. */
+  -moz-osx-font-smoothing: grayscale;
+  /* Support for IE. */
+  font-feature-settings: 'liga';
+}
+
+.persist-size {
+  -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box; /* Firefox, other Gecko */
+  box-sizing: border-box; /* Opera/IE 8+ */
+}
+
+html,
+body {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  font-family: serif;
+  background-color: #FAFAFA;
+  font-size: 6vw;
+  font-size: 6vmin;
+  @media (min-width: @medium-screen) {
+    font-size: 20px;
+  }
+  color: #1c1c1c;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  .persist-size;
+  height: 10%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1em;
+  background-color: #e6eeff;
+  border-bottom: 2px solid black;
+  h1 {
+    font-size: 5vh;
+  }
+  .version {
+    font-size: 3vh;
+    font-style: italic;
+    color: gray;
+  }
+}
+
+main {
+  height: 90%;
+}
+
+.canvas {
+  height: 100%;
+  position: relative;
+  .modal {
+    position: absolute;
+    overflow: auto;
+    width: 100%;
+    height: 100%;
+    z-index: 100;
+    background-color: white;
+    .close {
+      right: 0.2em;
+      font-size: 2em;
+      cursor: pointer;
+      position: absolute;
+      z-index: 101;
+    }
+  }
+  .modal.closed {
+    display: none;
+  }
+  .content {
+    .persist-size;
+    height: 100%;
+    overflow: auto;
+    z-index: 1;
+    padding: 1em 0;
+  }
+  .operations {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100%;
+    width: 100%;
+    .operation {
+      .persist-size;
+      width: 85%;
+      max-width: 25em;
+      border: 2px solid #000000;
+      border-radius: 5px;
+      background-color: #ebebeb;
+      text-align: center;
+      position: relative;
+      padding: 0.7em 1.5em;
+      margin-bottom: 1.5em;
+      .add {
+        cursor: pointer;
+        position: absolute;
+        left: 50%;
+        transform: translate(-50%, 0);
+        font-size: 1.5em;
+        bottom: -1em;
+      }
+      .add.hidden {
+        display: none;
+      }
+      .del {
+        position: absolute;
+        right: 0.2em;
+        top: 0;
+        cursor: pointer;
+      }
+    }
+    .operation.has-next {
+      &:after {
+        content: " ";
+        display: block;
+        position: absolute;
+        left: 0;
+        bottom: -1.5em;
+        height: 1.3em;
+        width: 100%;
+        background: url(../images/arrow-down.png) no-repeat center;
+        background-size: contain;
+      }
+    }
+    .operation.root {
+      font-size: 2em;
+      border: 0;
+      background: none;
+      margin: 0;
+      .add {
+        bottom: 0;
+      }
+      .del {
+        display: none;
+      }
+    }
+    .operation.hidden {
+      display: none;
+    }
+  }
+}
+
+.following-operations {
+  .persist-size;
+  display: flex;
+  min-height: 100%;
+  width: 100%;
+  padding-top: 2em;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  .operation-info {
+    border: 2px solid #b5b5b5;
+    border-radius: 5px;
+    white-space: nowrap;
+    padding: 0.7em 1em;
+    background-color: cornsilk;
+    cursor: pointer;
+  }
+}
+
+.properties {
+  .persist-size;
+  padding-top: 4em;
+  table {
+    border: 2px solid black;
+    border-collapse: collapse;
+    margin: auto;
+    width: 90%;
+    td, th {
+      border: 2px solid black;
+      padding: 0.5em;
+    }
+    th {
+      font-weight: normal;
+      text-align: right;
+    }
+    td {
+      width: 65%;
+    }
+  }
+}

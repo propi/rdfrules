@@ -90,14 +90,6 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index)
     ))
   }.filter(_.measures.exists[Measure.Lift])
 
-  def countPcaLift(minPcaConfidence: Double = 0.5): Ruleset = extendRuleset { implicit thi =>
-    Function.chain[Rule.Simple](List(
-      rule => if (rule.measures.exists[Measure.PcaConfidence]) rule else rule.withPcaConfidence(minPcaConfidence),
-      rule => if (rule.measures.exists[Measure.HeadConfidence]) rule else rule.withHeadConfidence,
-      rule => rule.withPcaLift
-    ))
-  }.filter(_.measures.exists[Measure.PcaLift])
-
   def countClusters(clustering: Clustering[Rule.Simple]): Ruleset = transform(new Traversable[Rule.Simple] {
     def foreach[U](f: Rule.Simple => U): Unit = clustering.clusters(rules.toIndexedSeq).view.zipWithIndex.flatMap { case (cluster, index) =>
       cluster.map(x => x.copy()(TypedKeyMap(Measure.Cluster(index)) ++= x.measures))
@@ -111,7 +103,7 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index)
       def foreach[U](f: Rule.Simple => U): Unit = {
         val ordering = Ordering.by[(Double, Rule.Simple), Double](_._1)
         val queue = mutable.PriorityQueue.empty(if (dissimilar) ordering else ordering.reverse)
-        for (rule2 <- rules) {
+        for (rule2 <- rules if rule2 != rule) {
           val sim = simf(rule, rule2)
           if (queue.size < k) {
             queue.enqueue(sim -> rule2)

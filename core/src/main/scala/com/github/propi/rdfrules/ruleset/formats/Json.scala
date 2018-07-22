@@ -51,7 +51,6 @@ object Json {
     case Measure.Lift(x) => JsObject("name" -> JsString("lift"), "value" -> JsNumber(x))
     case Measure.PcaBodySize(x) => JsObject("name" -> JsString("pcaBodySize"), "value" -> JsNumber(x))
     case Measure.PcaConfidence(x) => JsObject("name" -> JsString("pcaConfidence"), "value" -> JsNumber(x))
-    case Measure.PcaLift(x) => JsObject("name" -> JsString("pcaLift"), "value" -> JsNumber(x))
     case Measure.Support(x) => JsObject("name" -> JsString("support"), "value" -> JsNumber(x))
     case Measure.Cluster(x) => JsObject("name" -> JsString("cluster"), "value" -> JsNumber(x))
   }
