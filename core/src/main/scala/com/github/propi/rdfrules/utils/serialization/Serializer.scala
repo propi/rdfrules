@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.utils.serialization
 
-import java.io.{ByteArrayOutputStream, OutputStream}
+import java.io.{BufferedOutputStream, ByteArrayOutputStream, OutputStream}
+
 import com.github.propi.rdfrules.utils.NumericByteArray._
 
 /**
@@ -22,7 +23,7 @@ object Serializer {
 
   def serialize[T](v: T)(implicit serializer: Serializer[T], serializationSize: SerializationSize[T]): Array[Byte] = {
     val x = serializer.serialize(v)
-    if (serializationSize.size > 0) {
+    if (serializationSize.size >= 0) {
       x
     } else {
       val baos = new ByteArrayOutputStream()
@@ -35,7 +36,7 @@ object Serializer {
   def serializeToOutputStream[T](buildOutputStream: => OutputStream)
                                 (f: Writer[T] => Unit)
                                 (implicit serializer: Serializer[T], serializationSize: SerializationSize[T]): Unit = {
-    val os = buildOutputStream
+    val os = new BufferedOutputStream(buildOutputStream)
     try {
       f((v: T) => os.write(serialize(v)))
     } finally {

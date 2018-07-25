@@ -1,13 +1,15 @@
 package com.github.propi.rdfrules.data.formats
 
+import java.io.{BufferedInputStream, BufferedOutputStream}
+
 import com.github.propi.rdfrules
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
-import com.github.propi.rdfrules.data.{RdfReader, RdfSource, RdfWriter, TripleItem}
+import com.github.propi.rdfrules.data._
 import com.github.propi.rdfrules.utils.{InputStreamBuilder, OutputStreamBuilder}
 import org.apache.jena.graph
 import org.apache.jena.graph.{Node_Blank, Node_Literal, Node_URI}
 import org.apache.jena.riot.system.{StreamRDF, StreamRDFWriter}
-import org.apache.jena.riot.{RDFDataMgr, RDFFormat}
+import org.apache.jena.riot.{Lang, RDFDataMgr, RDFFormat, RDFLanguages}
 import org.apache.jena.sparql.core.Quad
 
 import scala.language.implicitConversions
@@ -18,11 +20,11 @@ import scala.language.implicitConversions
 object JenaLang {
 
   private class StreamRdfImpl[U](f: rdfrules.data.Quad => U) extends StreamRDF {
-    private val prefixes = collection.mutable.Map.empty[String, String]
+    private val prefixes = collection.mutable.ListBuffer.empty[Prefix]
 
-    private def uriToTripleItem(x: Node_URI): TripleItem.Uri = prefixes.get(x.getNameSpace).map(TripleItem.PrefixedUri(_, x.getNameSpace, x.getLocalName)).getOrElse(TripleItem.LongUri(x.getURI))
+    private def uriToTripleItem(x: Node_URI): TripleItem.Uri = prefixes.find(p => x.getURI.startsWith(p.nameSpace)).map(p => TripleItem.PrefixedUri(p.prefix, p.nameSpace, x.getURI.substring(p.nameSpace.length))).getOrElse(TripleItem.LongUri(x.getURI))
 
-    def prefix(prefix: String, iri: String): Unit = prefixes += (iri -> prefix)
+    def prefix(prefix: String, iri: String): Unit = prefixes += Prefix(prefix, iri)
 
     def start(): Unit = {}
 
@@ -67,14 +69,14 @@ object JenaLang {
 
     def finish(): Unit = {}
 
-    def base(base: String): Unit = {}
+    def base(base: String): Unit = prefixes += Prefix("", base)
   }
 
-  implicit def jenaLangToRdfReader(jenaLang: RdfSource.JenaLang): RdfReader[RdfSource.JenaLang] = (inputStreamBuilder: InputStreamBuilder) => new Traversable[rdfrules.data.Quad] {
-    def foreach[U](f: (rdfrules.data.Quad) => U): Unit = {
-      val is = inputStreamBuilder.build
+  implicit def jenaLangToRdfReader(jenaLang: Lang): RdfReader[RdfSource.JenaLang] = (inputStreamBuilder: InputStreamBuilder) => new Traversable[rdfrules.data.Quad] {
+    def foreach[U](f: rdfrules.data.Quad => U): Unit = {
+      val is = new BufferedInputStream(inputStreamBuilder.build)
       try {
-        RDFDataMgr.parse(new StreamRdfImpl(f), is, jenaLang.lang)
+        RDFDataMgr.parse(new StreamRdfImpl(f), is, jenaLang)
       } finally {
         is.close()
       }
@@ -82,14 +84,19 @@ object JenaLang {
   }.view
 
   implicit def jenaFormatToRdfWriter(rdfFormat: RDFFormat): RdfWriter[RdfSource.JenaLang] = (quads: QuadTraversableView, outputStreamBuilder: OutputStreamBuilder) => {
-    val os = outputStreamBuilder.build
+    val os = new BufferedOutputStream(outputStreamBuilder.build)
     val stream = StreamRDFWriter.getWriterStream(os, rdfFormat)
     try {
       stream.start()
       for (prefix <- quads.prefixes) {
         stream.prefix(prefix.prefix, prefix.nameSpace)
       }
-      quads.foreach(quad => stream.quad(quad))
+      rdfFormat.getLang match {
+        case RDFLanguages.N3 | RDFLanguages.NT | RDFLanguages.NTRIPLES | RDFLanguages.TTL | RDFLanguages.TURTLE =>
+          quads.foreach(quad => stream.triple(quad.triple))
+        case _ =>
+          quads.foreach(quad => stream.quad(quad))
+      }
     } finally {
       stream.finish()
       os.close()

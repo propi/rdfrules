@@ -3,11 +3,11 @@ package com.github.propi.rdfrules.data
 import java.io.{File, FileInputStream}
 
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
-import com.github.propi.rdfrules.data.RdfSource.{JenaLang, Tsv}
-import com.github.propi.rdfrules.utils.InputStreamBuilder
-import org.apache.jena.riot.Lang
+import com.github.propi.rdfrules.data.RdfSource.Tsv
 import com.github.propi.rdfrules.data.formats.JenaLang._
 import com.github.propi.rdfrules.data.formats.Tsv._
+import com.github.propi.rdfrules.utils.InputStreamBuilder
+import org.apache.jena.riot.Lang
 
 /**
   * Created by Vaclav Zeman on 27. 6. 2017.
@@ -20,16 +20,20 @@ trait RdfReader[+T <: RdfSource] {
 
 object RdfReader {
 
+  implicit object NoReader extends RdfReader[Nothing] {
+    def fromInputStream(inputStreamBuilder: InputStreamBuilder): QuadTraversableView = throw new IllegalStateException("No specified RdfReader.")
+  }
+
   def apply(file: File): RdfReader[RdfSource] = file.getName.replaceAll(".*\\.", "").toLowerCase match {
-    case "nt" => JenaLang(Lang.NT)
-    case "nq" => JenaLang(Lang.NQ)
-    case "ttl" => JenaLang(Lang.TTL)
-    case "json" => JenaLang(Lang.JSONLD)
-    case "xml" => JenaLang(Lang.RDFXML)
-    case "trig" => JenaLang(Lang.TRIG)
-    case "trix" => JenaLang(Lang.TRIX)
+    case "nt" => Lang.NT
+    case "nq" => Lang.NQ
+    case "ttl" => Lang.TTL
+    case "json" => Lang.JSONLD
+    case "xml" => Lang.RDFXML
+    case "trig" => Lang.TRIG
+    case "trix" => Lang.TRIX
     case "tsv" => Tsv
-    case _ => throw new IllegalArgumentException
+    case x => throw new IllegalArgumentException(s"Unsupported RDF format for reading: $x")
   }
 
 }

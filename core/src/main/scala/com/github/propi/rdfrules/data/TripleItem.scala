@@ -1,13 +1,12 @@
 package com.github.propi.rdfrules.data
 
-import eu.easyminer.discretization.impl.{IntervalBound, Interval => DiscretizationInterval}
 import com.github.propi.rdfrules.utils.BasicExtractors.AnyToDouble
+import eu.easyminer.discretization.impl.{IntervalBound, Interval => DiscretizationInterval}
 import org.apache.jena.datatypes.RDFDatatype
 import org.apache.jena.datatypes.xsd.XSDDatatype
 import org.apache.jena.graph.{Node, NodeFactory}
 
 import scala.language.implicitConversions
-import scala.util.Try
 
 /**
   * Created by Vaclav Zeman on 3. 10. 2017.
@@ -39,19 +38,29 @@ object TripleItem {
       case _ => false
     }
 
+    override def equals(obj: scala.Any): Boolean = obj match {
+      case x: LongUri => (this eq x) || uri == x.uri
+      case x: Uri => hasSameUriAs(x)
+      case _ => false
+    }
+
     override def toString: String = s"<$uri>"
   }
 
   case class PrefixedUri(prefix: String, nameSpace: String, localName: String) extends Uri {
-    def toLongUri: LongUri = LongUri(nameSpace + "/" + localName)
+    def toLongUri: LongUri = LongUri(nameSpace + localName)
 
-    def hasSameUriAs(uri: Uri): Boolean = uri match {
-      case PrefixedUri(_, nameSpace2, localName2) => nameSpace == nameSpace2 && localName == localName2
-      case x: LongUri => Try(hasSameUriAs(x.toPrefixedUri)).getOrElse(false)
-      case _ => false
-    }
+    def hasSameUriAs(uri: Uri): Boolean = toLongUri.hasSameUriAs(uri)
 
     def toPrefix: Prefix = Prefix(prefix, nameSpace)
+
+    override def hashCode(): Int = toLongUri.hashCode()
+
+    override def equals(obj: scala.Any): Boolean = obj match {
+      case x: PrefixedUri => (this eq x) || hasSameUriAs(x)
+      case x: Uri => hasSameUriAs(x)
+      case _ => false
+    }
 
     override def toString: String = prefix + ":" + localName
   }
@@ -80,18 +89,18 @@ object TripleItem {
   }
 
   case class Interval(interval: DiscretizationInterval) extends Literal {
-    override def toString: String = s"interval ${if (interval.isLeftBoundClosed()) "[" else "("} ${interval.getLeftBoundValue()} ; ${interval.getRightBoundValue()} ${if (interval.isRightBoundClosed()) "]" else ")"}"
+    override def toString: String = "\"" + s"interval ${if (interval.isLeftBoundClosed()) "[" else "("} ${interval.getLeftBoundValue()} ; ${interval.getRightBoundValue()} ${if (interval.isRightBoundClosed()) "]" else ")"}" + "\""
   }
 
   object Interval {
     implicit def discretizationIntervalToInterval(interval: DiscretizationInterval): Interval = Interval(interval)
 
     def apply(text: String): Option[Interval] = {
-      val IntervalPattern = "interval (\\[|\\() (\\d+(?:\\.\\d+)?) ; (\\d+(?:\\.\\d+)?) (\\]|\\))".r
+      val IntervalPattern = "\"?interval (\\[|\\() (\\d+(?:\\.\\d+)?) ; (\\d+(?:\\.\\d+)?) (\\]|\\))\"?".r
       text match {
         case IntervalPattern(lb, AnyToDouble(lv), AnyToDouble(rv), rb) => Some(DiscretizationInterval(
           if (lb == "[") IntervalBound.Inclusive(lv) else IntervalBound.Exclusive(lv),
-          if (lb == "]") IntervalBound.Inclusive(rv) else IntervalBound.Exclusive(rv)
+          if (rb == "]") IntervalBound.Inclusive(rv) else IntervalBound.Exclusive(rv)
         ))
         case _ => None
       }

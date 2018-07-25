@@ -13,8 +13,6 @@ trait FromDatasetBuildable extends Buildable {
     TripleHashIndex(toDataset.quads)
   }
 
-  protected def buildTripleItemHashIndex: TripleItemHashIndex = TripleItemHashIndex(toDataset.quads.flatMap { quad =>
-    List(quad.graph, quad.triple.subject, quad.triple.predicate, quad.triple.`object`)
-  })
+  protected def buildTripleItemHashIndex: TripleItemHashIndex = TripleItemHashIndex(toDataset.quads)
 
 }

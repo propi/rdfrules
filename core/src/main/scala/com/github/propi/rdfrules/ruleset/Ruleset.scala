@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.ruleset
 
-import java.io.{InputStream, OutputStream}
+import java.io._
 
 import com.github.propi.rdfrules.algorithm.Clustering
 import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
@@ -70,7 +70,7 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index)
     }
   })
 
-  def withGraphBasedRules: Ruleset = extendRuleset { implicit thi =>
+  def graphBasedRules: Ruleset = extendRuleset { implicit thi =>
     rule => Rule.Simple(rule.head.toGraphBasedAtom, rule.body.map(_.toGraphBasedAtom))(rule.measures)
   }
 
@@ -121,13 +121,15 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index)
 
   def export[T <: RulesetSource](os: => OutputStream)(implicit writer: RulesetWriter[T]): Unit = writer.writeToOutputStream(this, os)
 
+  def export[T <: RulesetSource](file: File)(implicit writer: RulesetWriter[T]): Unit = export(new FileOutputStream(file))
+
 }
 
 object Ruleset {
 
   def apply(rules: IndexedSeq[Rule.Simple], index: Index): Ruleset = new Ruleset(rules, index)
 
-  def fromCache(index: Index)(is: => InputStream): Ruleset = new Ruleset(
+  def fromCache(index: Index, is: => InputStream): Ruleset = new Ruleset(
     new Traversable[Rule.Simple] {
       def foreach[U](f: Rule.Simple => U): Unit = Deserializer.deserializeFromInputStream[Rule.Simple, Unit](is) { reader =>
         Stream.continually(reader.read()).takeWhile(_.isDefined).map(_.get).foreach(f)
@@ -135,5 +137,7 @@ object Ruleset {
     },
     index
   )
+
+  def fromCache(index: Index, file: File): Ruleset = fromCache(index, new FileInputStream(file))
 
 }

@@ -17,7 +17,7 @@ object SerializationSize {
 
   implicit val booleanSerializationSize: SerializationSize[Boolean] = apply(1)
 
-  implicit def default[T <: AnyRef]: SerializationSize[T] = apply(0)
+  implicit def default[T <: AnyRef]: SerializationSize[T] = apply(-1)
 
   def apply[T](n: Int): SerializationSize[T] = new SerializationSize[T] {
     val size: Int = n

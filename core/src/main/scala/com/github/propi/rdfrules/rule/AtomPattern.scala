@@ -50,4 +50,10 @@ object AtomPattern {
 
   }
 
+  implicit class PimpedOptionalConsequent(consequent: Option[AtomPattern]) {
+    def =>:(antecedent: AtomPattern): RulePattern = antecedent &: RulePattern(consequent)
+  }
+
+  implicit class PimpedConsequent(consequent: AtomPattern) extends PimpedOptionalConsequent(Some(consequent))
+
 }

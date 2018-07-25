@@ -92,14 +92,6 @@ public class Ruleset implements
         return asJava(ruleset.countLift(ruleset.countLift$default$1()));
     }
 
-    public Ruleset countPcaLift(double minPcaConfidence) {
-        return asJava(ruleset.countPcaLift(minPcaConfidence));
-    }
-
-    public Ruleset countPcaLift() {
-        return asJava(ruleset.countPcaLift(ruleset.countPcaLift$default$1()));
-    }
-
     /**
      * Count clusters
      *

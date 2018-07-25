@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.data
 
-import java.io.{File, InputStream, OutputStream}
+import java.io._
 
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.data.Triple.TripleTraversableView
@@ -34,9 +34,16 @@ class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView
 
   def export[T <: RdfSource](os: => OutputStream)(implicit writer: RdfWriter[T]): Unit = writer.writeToOutputStream(this, os)
 
+  def export[T <: RdfSource](file: File)(implicit writer: RdfWriter[T]): Unit = {
+    val newWriter = if (writer == RdfWriter.NoWriter) RdfWriter(file) else writer
+    export(new FileOutputStream(file))(newWriter)
+  }
+
   def quads: QuadTraversableView = triples.map(_.toQuad(name))
-  
+
   def withName(name: TripleItem.Uri): Graph = new Graph(name, triples)
+
+  def toDataset: Dataset = Dataset(this)
 
 }
 
@@ -50,7 +57,10 @@ object Graph {
 
   def apply[T <: RdfSource](name: TripleItem.Uri, is: => InputStream)(implicit reader: RdfReader[T]): Graph = new Graph(name, reader.fromInputStream(is).map(_.triple))
 
-  def apply[T <: RdfSource](name: TripleItem.Uri, file: File)(implicit reader: RdfReader[T]): Graph = new Graph(name, reader.fromFile(file).map(_.triple))
+  def apply[T <: RdfSource](name: TripleItem.Uri, file: File)(implicit reader: RdfReader[T]): Graph = {
+    val newReader = if (reader == RdfReader.NoReader) RdfReader(file) else reader
+    new Graph(name, newReader.fromFile(file).map(_.triple))
+  }
 
   def apply[T <: RdfSource](file: File)(implicit reader: RdfReader[T]): Graph = apply(default, file)
 
@@ -68,5 +78,9 @@ object Graph {
   )
 
   def fromCache(is: => InputStream): Graph = fromCache(default, is)
+
+  def fromCache(name: TripleItem.Uri, file: File): Graph = fromCache(name, new FileInputStream(file))
+
+  def fromCache(file: File): Graph = fromCache(default, file)
 
 }

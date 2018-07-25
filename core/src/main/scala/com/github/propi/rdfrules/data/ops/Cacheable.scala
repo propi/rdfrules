@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.data.ops
 
-import java.io.{InputStream, OutputStream}
+import java.io._
 
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 
@@ -42,6 +42,8 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
     })
   }
 
+  def cache(file: File): Coll = cache(new FileOutputStream(file), new FileInputStream(file))
+
   /**
     * Cache the entity through an output stream and return the original (not cached) entity.
     *  - if you want to return cached entity, use cache(os, is) or in memory cache()
@@ -49,11 +51,10 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
     * @param os output stream builder
     * @return the same entity
     */
-  def cache(os: => OutputStream): Coll = {
+  def cache(os: => OutputStream): Unit = {
     Serializer.serializeToOutputStream[T](os) { writer =>
       coll.foreach(writer.write)
     }
-    this
   }
 
 }

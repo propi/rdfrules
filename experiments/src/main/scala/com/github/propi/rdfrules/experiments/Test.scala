@@ -1,26 +1,20 @@
-import java.io.{File, FileOutputStream}
+package com.github.propi.rdfrules.experiments
 
-import com.github.propi.rdfrules.algorithm.amie.Amie
-import com.github.propi.rdfrules.data.{Dataset, Graph, RdfSource, TripleItem}
-import com.github.propi.rdfrules.data.RdfSource.JenaLang
-import com.github.propi.rdfrules.data.formats.JenaLang._
+import java.io.File
+
 import com.github.propi.rdfrules.data.formats.Tsv._
-import com.github.propi.rdfrules.rule.{AtomPattern, Measure, RuleConstraint, Threshold}
-import com.github.propi.rdfrules.utils.Debugger
-import eu.easyminer.discretization.DiscretizationTask
-import eu.easyminer.discretization.task.EquifrequencyDiscretizationTask
-import org.apache.jena.riot.{Lang, RDFFormat}
-import com.github.propi.rdfrules.rule.RulePattern._
-import com.github.propi.rdfrules.rule.AtomPattern.AtomItemPattern._
+import com.github.propi.rdfrules.data.{Graph, RdfSource}
 
 /**
   * Created by Vaclav Zeman on 24. 4. 2018.
   */
-object Main {
+object Test {
 
-  def main(args: Array[String]): Unit = {
-    val dbpedia = Graph("dbpedia", new File("temp/dbpedia.ttl"))(JenaLang(Lang.TTL))
-    dbpedia.take(10).foreach(println)
+  def main2(args: Array[String]): Unit = {
+    val yago = Graph[RdfSource.Tsv.type]("yago", new File("temp/yagoFacts.tsv"))
+    yago.quads.foreach(println)
+    //val dbpedia = Graph("dbpedia", new File("temp/dbpedia.ttl"))(JenaLang(Lang.TS))
+    //dbpedia.take(10).foreach(println)
     //dbpedia.filter(_.subject.hasSameUriAs("http://cs.dbpedia.org/resource/Biologie")).foreach(println)
     //dbpedia.filter(_.subject.hasSameUriAs("http://cs.dbpedia.org/resource/Biologie")).map(_.copy(subject = "Priroda")).foreach(println)
     //dbpedia.slice(100, 500).export(new FileOutputStream("test.nq"))(RDFFormat.NQUADS_ASCII)
@@ -35,8 +29,8 @@ object Main {
     })(_.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
       .filter(_.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
       .foreach(println)*/
-    val yago = Graph[RdfSource.Tsv.type]("yago", new File("temp/yago.tsv"))
-    val dataset = Dataset() /*+ dbpedia*/ + yago
+    //val yago = Graph[RdfSource.Tsv.type]("yago", new File("temp/yago.tsv"))
+    //val dataset = Dataset() /*+ dbpedia*/ + yago
     //dataset.export(new FileOutputStream("test.nq"))(RDFFormat.NQUADS_ASCII)
     //dataset.mine(Amie()).resolvedRules.foreach(println)
     /*Debugger() { implicit debugger =>

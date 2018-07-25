@@ -15,9 +15,9 @@ object RdfSource {
 
   case class JenaLang(lang: Lang) extends RdfSource
 
-  implicit def rdfSourceToRdfReader[T <: RdfSource](rdfSource: T)(implicit rdfReader: RdfReader[T]): RdfReader[T] = rdfReader
+  /*implicit def rdfSourceToRdfReader[T <: RdfSource](rdfSource: T)(implicit rdfReader: RdfReader[T]): RdfReader[T] = rdfReader
 
-  implicit def rdfSourceToRdfWriter[T <: RdfSource](rdfSource: T)(implicit rdfWriter: RdfWriter[T]): RdfWriter[T] = rdfWriter
+  implicit def rdfSourceToRdfWriter[T <: RdfSource](rdfSource: T)(implicit rdfWriter: RdfWriter[T]): RdfWriter[T] = rdfWriter*/
 
   /*sealed trait RdfSourceToLang[T <: RdfSource] {
     def apply(): Lang

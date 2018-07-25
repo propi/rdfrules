@@ -219,6 +219,6 @@ object TripleHashIndex {
     index
   }
 
-  def apply(quads: Traversable[Quad])(implicit mapper: TripleItemHashIndex): TripleHashIndex = apply(quads.view.map(_.toCompressedQuad))
+  def apply(quads: Traversable[Quad])(implicit mapper: TripleItemHashIndex): TripleHashIndex = apply(quads.view.filter(!_.triple.predicate.hasSameUriAs("http://www.w3.org/2002/07/owl#sameAs")).map(_.toCompressedQuad))
 
 }

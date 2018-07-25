@@ -73,10 +73,4 @@ object RulePattern {
     */
   def apply(): RulePattern = apply(None, false)
 
-  implicit class PimpedOptionalConsequent(consequent: Option[AtomPattern]) {
-    def =>:(antecedent: AtomPattern): RulePattern = antecedent &: consequent
-  }
-
-  implicit class PimpedConsequent(consequent: AtomPattern) extends PimpedOptionalConsequent(Some(consequent))
-
 }

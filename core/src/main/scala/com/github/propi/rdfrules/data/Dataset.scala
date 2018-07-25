@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.data
 
-import java.io.{File, InputStream, OutputStream}
+import java.io._
 
 import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
@@ -45,6 +45,11 @@ class Dataset private(val quads: QuadTraversableView)
 
   def export[T <: RdfSource](os: => OutputStream)(implicit writer: RdfWriter[T]): Unit = writer.writeToOutputStream(this, os)
 
+  def export[T <: RdfSource](file: File)(implicit writer: RdfWriter[T]): Unit = {
+    val newWriter = if (writer == RdfWriter.NoWriter) RdfWriter(file) else writer
+    export(new FileOutputStream(file))(newWriter)
+  }
+
   def mine(miner: RulesMining): Ruleset = Index(this).mine(miner)
 
   def index(mode: Mode = Mode.PreservedInMemory): Index = Index(this, mode)
@@ -64,7 +69,10 @@ object Dataset {
 
   def apply[T <: RdfSource](is: => InputStream)(implicit reader: RdfReader[T]): Dataset = new Dataset(reader.fromInputStream(is))
 
-  def apply[T <: RdfSource](file: File)(implicit reader: RdfReader[T]): Dataset = new Dataset(reader.fromFile(file))
+  def apply[T <: RdfSource](file: File)(implicit reader: RdfReader[T]): Dataset = {
+    val newReader = if (reader == RdfReader.NoReader) RdfReader(file) else reader
+    new Dataset(newReader.fromFile(file))
+  }
 
   def apply(quads: Traversable[Quad]): Dataset = new Dataset(quads.view)
 
@@ -77,5 +85,7 @@ object Dataset {
       }
     }.view
   )
+
+  def fromCache(file: File): Dataset = fromCache(new FileInputStream(file))
 
 }

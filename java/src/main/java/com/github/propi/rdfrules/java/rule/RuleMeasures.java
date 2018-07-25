@@ -50,10 +50,6 @@ abstract public class RuleMeasures {
         return measures.get(Measure.PcaConfidence$.MODULE$).fold(() -> null, Measure.PcaConfidence::value);
     }
 
-    public Double getPcaLift() {
-        return measures.get(Measure.PcaLift$.MODULE$).fold(() -> null, Measure.PcaLift::value);
-    }
-
     public Integer getCluster() {
         return measures.get(Measure.Cluster$.MODULE$).fold(() -> null, Measure.Cluster::number);
     }

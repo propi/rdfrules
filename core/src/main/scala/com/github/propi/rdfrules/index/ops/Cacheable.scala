@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.index.ops
 
-import java.io.OutputStream
+import java.io.{File, FileOutputStream, OutputStream}
 
 import com.github.propi.rdfrules.data.TripleItem
 import com.github.propi.rdfrules.index.ops.Cacheable.SerItem
@@ -20,6 +20,8 @@ trait Cacheable extends QuadsIndex {
     self.tripleItemMap(_.iterator.foreach(x => writer.write(Left(x))))
     compressedQuads.foreach(x => writer.write(Right(x)))
   }
+
+  def cache(file: File): Unit = cache(new FileOutputStream(file))
 
 }
 

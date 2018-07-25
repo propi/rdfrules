@@ -149,7 +149,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "work with graph-based rules" in {
-    ruleset.withGraphBasedRules.resolvedRules.view.flatMap(x => x.body :+ x.head).foreach { x =>
+    ruleset.graphBasedRules.resolvedRules.view.flatMap(x => x.body :+ x.head).foreach { x =>
       x should matchPattern { case x: ResolvedRule.Atom.GraphBased if x.graphs("yago") => }
     }
     ruleset.useMapper { implicit mapper =>
@@ -160,7 +160,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
 
   it should "cache and export graph-based rules" in {
     //cache
-    ruleset.withGraphBasedRules.cache(new FileOutputStream("test.cache"))
+    ruleset.graphBasedRules.cache(new FileOutputStream("test.cache"))
     val d = Ruleset.fromCache(ruleset.index)(new FileInputStream("test.cache"))
     d.size shouldBe ruleset.size
     d.resolvedRules.view.flatMap(x => x.body :+ x.head).foreach { x =>

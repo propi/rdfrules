@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.index
 
-import java.io.{InputStream, OutputStream}
+import java.io.{File, FileInputStream, InputStream, OutputStream}
 
 import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.data.Dataset
@@ -19,6 +19,8 @@ trait Index {
   def toDataset: Dataset
 
   def cache(os: => OutputStream): Unit
+
+  def cache(file: File): Unit
 
   def newIndex: Index
 
@@ -59,7 +61,7 @@ object Index {
     }
   }
 
-  def fromCache(is: => InputStream, mode: Mode = Mode.PreservedInMemory): Index = {
+  def fromCache(is: => InputStream, mode: Mode): Index = {
     trait ConcreteIndex extends Index with Cacheable with FromCacheBuildable {
       def newIndex: Index = fromCache(is, mode)
 
@@ -79,5 +81,11 @@ object Index {
       case Mode.InUseInMemory => new ConcreteIndex with InUseInMemory
     }
   }
+
+  def fromCache(is: => InputStream): Index = fromCache(is, Mode.PreservedInMemory)
+
+  def fromCache(file: File, mode: Mode): Index = fromCache(new FileInputStream(file), mode)
+
+  def fromCache(file: File): Index = fromCache(file, Mode.PreservedInMemory)
 
 }

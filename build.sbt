@@ -10,7 +10,7 @@ val basicSettings = Seq(
 lazy val root = project
   .in(file("."))
   .settings(basicSettings: _*)
-  .aggregate(core, java, http, gui)
+  .aggregate(core, java, http, gui, experiments)
 
 lazy val core = project
   .in(file("core"))
@@ -26,3 +26,7 @@ lazy val http = project
 lazy val gui = project
   .in(file("gui"))
   .enablePlugins(ScalaJSPlugin)
+
+lazy val experiments = project
+  .in(file("experiments"))
+  .dependsOn(java)
