@@ -66,29 +66,31 @@ object SimilarityCounting {
 
     protected def relativeNumbersSimilarity(v1: Double, v2: Double): Double = 1 - math.abs(v1 - v2)
 
-    protected def absoluteNumbersSimilarity(v1: Int, v2: Int): Double = {
-      val max = math.max(v1, v2)
-      (max - math.abs(v1 - v2)) / max.toDouble
+    protected def absoluteNumbersSimilarity(v1: Double, v2: Double): Double = {
+      val max = math.max(math.abs(v1), math.abs(v2))
+      if (max == 0) 1 else (max - math.abs(v1 - v2)) / max
     }
 
   }
 
   object SupportSimilarityCounting extends MeasuresSimilarityCounting {
-
     def apply(rule1: Rule, rule2: Rule): Double = relativeNumbersSimilarity(rule1.measures[Measure.HeadCoverage].value, rule2.measures[Measure.HeadCoverage].value)
-
   }
 
   object ConfidenceSimilarityCounting extends MeasuresSimilarityCounting {
-
     def apply(rule1: Rule, rule2: Rule): Double = relativeNumbersSimilarity(rule1.measures.get[Measure.Confidence].map(_.value).getOrElse(0), rule2.measures.get[Measure.Confidence].map(_.value).getOrElse(0))
+  }
 
+  object PcaConfidenceSimilarityCounting extends MeasuresSimilarityCounting {
+    def apply(rule1: Rule, rule2: Rule): Double = relativeNumbersSimilarity(rule1.measures.get[Measure.PcaConfidence].map(_.value).getOrElse(0), rule2.measures.get[Measure.PcaConfidence].map(_.value).getOrElse(0))
+  }
+
+  object LiftSimilarityCounting extends MeasuresSimilarityCounting {
+    def apply(rule1: Rule, rule2: Rule): Double = absoluteNumbersSimilarity(rule1.measures.get[Measure.Lift].map(_.value).getOrElse(1), rule2.measures.get[Measure.Lift].map(_.value).getOrElse(1))
   }
 
   object LengthSimilarityCounting extends MeasuresSimilarityCounting {
-
     def apply(rule1: Rule, rule2: Rule): Double = absoluteNumbersSimilarity(rule1.ruleLength, rule2.ruleLength)
-
   }
 
 }

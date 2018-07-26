@@ -44,12 +44,23 @@ object Rule {
     implicit def apply(extendedRule: ExtendedRule): Simple = new Simple(extendedRule.head, extendedRule.body)(extendedRule.measures)
   }
 
-  implicit val ruleOrdering: Ordering[Rule] = Ordering.by[Rule, (Measure, Measure)] { rule =>
-    rule.measures(Measure.HeadCoverage) -> rule.measures.get(Measure.Confidence).getOrElse(Measure.Confidence(0))
+  implicit val ruleOrdering: Ordering[Rule] = Ordering.by[Rule, (Measure, Measure, Measure, Measure, Measure)] { rule =>
+    (
+      rule.measures.get(Measure.Cluster).getOrElse(Measure.Cluster(0)),
+      rule.measures.get(Measure.PcaConfidence).getOrElse(Measure.PcaConfidence(0)),
+      rule.measures.get(Measure.Lift).getOrElse(Measure.Lift(0)),
+      rule.measures.get(Measure.Confidence).getOrElse(Measure.Confidence(0)),
+      rule.measures(Measure.HeadCoverage)
+    )
   }
 
   implicit val ruleSimpleOrdering: Ordering[Rule.Simple] = Ordering.by[Rule.Simple, Rule](_.asInstanceOf[Rule])
 
-  implicit val ruleSimilarityCounting: SimilarityCounting[Rule.Simple] = (0.6 * AtomsSimilarityCounting) ~ (0.1 * LengthSimilarityCounting) ~ (0.15 * SupportSimilarityCounting) ~ (0.15 * ConfidenceSimilarityCounting)
+  implicit val ruleSimilarityCounting: SimilarityCounting[Rule.Simple] = (0.5 * AtomsSimilarityCounting) ~
+    (0.1 * LengthSimilarityCounting) ~
+    (0.15 * SupportSimilarityCounting) ~
+    (0.05 * ConfidenceSimilarityCounting) ~
+    (0.15 * PcaConfidenceSimilarityCounting) ~
+    (0.05 * LiftSimilarityCounting)
 
 }
