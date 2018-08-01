@@ -138,7 +138,7 @@ RdfRules uses the [EasyMiner-Discretization](https://github.com/KIZI/EasyMiner-D
 
 Before mining the input dataset has to be indexed into memory for the fast rules enumeration and measures counting. The AMIE+ algorithm uses six fact indexes that hold data in several hash tables. Hence, it is important to realize that the complete input data are replicated six times and then stored into memory before the mining phase. This index may have two modes: *preserved* and *in-use*. The *preserved* mode keeps data in memory until the existence of the index object, whereas the *in-use* mode loads data into memory only if the index is needed and is released after use.
 
-Data are actually stored in memory once the mining process is started.
+Data are actually stored in memory once the mining process is started. The system automatically resolves all triples with the *owl:sameAs* predicate and replaces all objects by their subjects in these kinds of triples. Thanks to this functionality we can mine across several graphs and link statements by the *owl:sameAs* predicate.
 
 ## Rule Mining
 
@@ -181,4 +181,133 @@ MinHeadSize | A minimum number of triples matching the rule head. It must be gre
 MinHeadCoverage | A minimal head coverage. It must be greater than *zero* and less than or equal to *one*.   
 MaxRuleLength | A maximal length of a rule. It must be greater than *one*.   
 TopK | A maximum number of returned rules sorted by head coverage. It must be greater than *zero*.  
-Timeout | A maximum mining time in minutes. 
+Timeout | A maximum mining time in minutes.
+
+### Rule Patterns
+
+All mined rules must match at least one pattern defined in the rule patterns list. If we have an idea of what atoms mined rules should contain, we can define one or several rule patterns. A rule pattern is either *exact* or *partial*. The number of atoms in any mined rule must be less than or equal to the length of the *exact* rule pattern. For a *partial* mode, if some rule matches the whole pattern then all its extensions also match the pattern.
+
+```
+AtomItemPattern:
+ Any               // Any item
+ AnyVar,           // Any variable
+ AnyConst,         // Any constant
+ Var(x)            // An item must be variable x
+ Consts(x)         // An item must be constant x
+ OneOf(x[])        // An item must match at least one of the pre-defined atom item patterns x 
+ NoneOf(x[])       // An item must not match all of the pre-defined atom item patterns x
+
+AtomPattern(
+ subject: AtomItemPattern,       // A pattern for subject, default is Any
+ predicate: AtomItemPattern,     // A pattern for predicate, default is Any
+ object: AtomItemPattern,        // A pattern for object, default is Any 
+ graph: AtomItemPattern          // A pattern for graph, default is Any
+)
+
+RulePattern(
+ body: AtomPattern[]             // Patterns for the body of the rule
+ head: AtomPattern               // A pattern for the head of the rule
+)
+```
+
+### Constraints
+
+Finally, the last mining parameter specifies additional constraints and defines a way of mining. Here is a list of implemented constraints that can be used:
+
+Constraint | Description
+------------ | -------------
+OnlyPredicates(*x*) | Rules must contain only predicates defined in the set *x*.
+WithoutPredicates(*x*) | Rules must not contain predicates defined in the set *x*.
+WithInstances | It allows to mine rules with constants at the subject or object position.
+WithObjectInstances | It allows to mine rules with constants only at the object position.
+WithoutDuplicitPredicates | Disable to mine rules which contain some predicate in more than one atom.
+
+## Post-processing
+
+During the mining process the RdfRules count only basic measures of significance: head size, support and head coverage. If you want to compute other measures (like confidences and lift) you can do it explicitly in the post-processing phase. The RdfRules tool also supports rules clustering by the DBScan algorithm. It uses pre-defined similarity functions comparing rule contents and computed measures of significance. We can also use similarity counting to determine top-*k* most similar or dissimilar rules to a selected rule.
+
+All mined rules can also be filtered or sorted by used-defined functions and finally exported either into a human-readable text format or into a machine-readable JSON format.
+
+```
+Example of the TEXT output format:
+(?a <participatedIn> <Turbot_War>) ^ (?a <imports> ?b) -> (?a <exports> ?b) | support: 14, headCoverage: 0.037, confidence: 0.636, pcaConfidence: 0.636, lift: 100.41, headConfidence: 0.0063, headSize: 371, bodySize: 22, pcaBodySize: 22, cluster: 7
+```
+
+```json
+//Example of the JSON output format:
+[{
+  "head": {
+    "subject": {
+      "type": "variable",
+      "value": "?a"
+    },
+    "predicate": "<exports>",
+    "object": {
+      "type": "variable",
+      "value": "?b"
+    }
+  },
+  "body": [{
+    "subject": {
+      "type": "variable",
+      "value": "?a"
+    },
+    "predicate": "<participatedIn>",
+    "object": {
+      "type": "constant",
+      "value": "<Turbot_War>"
+    }
+  }, {
+    "subject": {
+      "type": "variable",
+      "value": "?a"
+    },
+    "predicate": "<imports>",
+    "object": {
+      "type": "variable",
+      "value": "?b"
+    }
+  }],
+  "measures": [{
+    "name": "headSize",
+    "value": 371
+  }, {
+    "name": "confidence",
+    "value": 0.6363636363636364
+  }, {
+    "name": "support",
+    "value": 14
+  }, {
+    "name": "bodySize",
+    "value": 22
+  }, {
+    "name": "headConfidence",
+    "value": 0.006337397533925742
+  }, {
+    "name": "pcaConfidence",
+    "value": 0.6363636363636364
+  }, {
+    "name": "lift",
+    "value": 100.41403162055336
+  }, {
+    "name": "pcaBodySize",
+    "value": 22
+  }, {
+    "name": "headCoverage",
+    "value": 0.03773584905660377
+  }, {
+    "name": "cluster",
+    "value": 7
+  }]
+}]
+```
+
+In RdfRules we can also attach information about graph at every atom and then filter rules based on named graphs. This ability is useful to discover new knowledge based on linking multiple graphs.
+
+```
+(?a <hasChild> ?c <yago>) ^ (?c <dbo:parent> ?b <dbpedia>) -> (?a <isMarriedTo> ?b <yago>)
+```
+
+## Licence
+
+RdfRules is licensed under [GNU General Public License v3.0](http://www.gnu.org/licenses/gpl-3.0.txt)
