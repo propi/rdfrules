@@ -35,3 +35,53 @@ If we use several action operations, e.g. with various input parameters, over th
 caching of performed transformations. Each data object has the cache method that can perform all defined transformations immediately and store the result either into memory or on a disk.
 
 ## Main Abstractions
+
+### RdfGraph
+
+The *RdfGraph* object is a container for RDF triples and is built once we load an RDF graph. It can either be a file or a stream of triples or quads in a standard RDF format such as N-Triples, N-Quads, JSON-LD, TriG or TriX. If the input format contains a set of quads (with information about named graphs) all triples are merged to one graph. Alternatively, we can create directly the *RdfDataset* object (see below) from quads and to preserve the distribution of triples in the individual graphs. This object has defined following main operations:
+
+#### Transformations
+
+Operation | Description
+------------ | -------------
+map(*func*) | Return a new *RdfGraph* object with mapped triples by a function *func*.
+filter(*func*) | Return a new *RdfGraph* object with filtered triples by a function *func*.
+take(*n*), drop(*n*), slice(*from*, *until*) | Return a new *RdfGraph* object with filtered triples by cutting the triple set.
+discretize(*task*, *func*) | Return a new *RdfGraph* object with discretized numeric literals by a predefined *task*. It processes such triples which satisfy a function *func*.
+
+#### Actions
+
+Operation | Description
+------------ | -------------
+foreach(*func*) | Apply a function *func* for each triple.
+histogram(*s*, *p*, *o*) | Return a map where keys are items and values are numbers of aggregated items. Parameters *s*, *p*, *o* represents booleans determining which triple items should be aggregated.
+types() | Return a list of all predicates with their type ranges and frequencies.
+cache(*target*) | Cache this *RdfGraph* object either into memory or into a file on a disk.
+export(*target*, *format*) | Export this *RdfGraph* object into a file in some familiar RDF format.
+
+### RdfDataset
+
+The *RdfDataset* object is a container for RDF quads and is created from one or many *RdfGraph* instances. This data object has the same operations as the *RdfGraph*. The only difference is that operations do not work with triples but with quads.
+
+#### Transformations
+
+Operation | Description
+------------ | -------------
+map(*func*) | Return a new *RdfDataset* object with mapped quads by a function *func*.
+filter(*func*) | Return a new *RdfDataset* object with filtered quads by a function *func*.
+take(*n*), drop(*n*), slice(*from*, *until*) | Return a new *RdfDataset* object with filtered quads by cutting the quad set.
+discretize(*task*, *func*) | Return a new *RdfDataset* object with discretized numeric literals by a predefined *task*. It processes such quads which satisfy a function *func*.
+addGraph(*graph*) | Return a new *RdfDataset* with added *graph*.
+index(*mode*) | Create an *Index* object from this *RdfDataset* object.
+
+#### Actions
+
+Operation | Description
+------------ | -------------
+foreach(*func*) | Apply a function *func* for each quad.
+histogram(*s*, *p*, *o*) | Return a map where keys are items and values are numbers of aggregated items. Parameters *s*, *p*, *o* represents booleans determining which triple items should be aggregated.
+types() | Return a list of all predicates with their type ranges and frequencies.
+cache(*target*) | Cache this *RdfDataset* object either into memory or into a file on a disk.
+export(*target*, *format*) | Export this *RdfDataset* object into a file in some familiar RDF format.
+
+### Index
