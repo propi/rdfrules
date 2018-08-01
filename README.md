@@ -1,7 +1,7 @@
 # RdfRules
 
 RdfRules is a fast analytics engine for rule mining in RDF knowledge graphs. It offers tools for complex rule mining process including RDF data pre-processing and rules post-processing. The core of RdfRules is written in the Scala language. Besides the Scala API,
-RdfRules also provides a Java API, REST web service and a graphical user interface via a web browser. RdfRules uses the AMIE+ algorithm with several extensions as a basis for a complete solution for linked data mining.
+RdfRules also provides a Java API, REST web service and a graphical user interface via a web browser. RdfRules uses the [AMIE+](https://www.mpi-inf.mpg.de/departments/databases-and-information-systems/research/yago-naga/amie/) algorithm with several extensions as a basis for a complete solution for linked data mining.
 
 ## Getting started
 
@@ -85,3 +85,100 @@ cache(*target*) | Cache this *RdfDataset* object either into memory or into a fi
 export(*target*, *format*) | Export this *RdfDataset* object into a file in some familiar RDF format.
 
 ### Index
+
+The *Index* object can be created from the *RdfDataset* object or loaded from cache. It contains prepared and indexed data in memory and has operations for rule mining with the AMIE+ algorithm.
+
+#### Transformations
+
+Operation | Description
+------------ | -------------
+toDataset() | Return a *RdfDataset* object from this *Index* object.
+
+#### Actions
+
+Operation | Description
+------------ | -------------
+cache(*target*) | Serialize this *Index* object into a file on a disk.
+mine(*task*) | Execute a rule mining *task* with thresholds, constraints and patterns, and return a *RuleSet* object.
+
+### RuleSet
+
+The *RuleSet* object is on the output of the RdfRules workflow. It contains all discovered rules conforming to all input restrictions. This final object has multiple operations for rule analysis, counting additional measures of significance, rule filtering and sorting, rule clustering, and finally rule exporting for use in other systems.
+
+#### Transformations
+
+Operation | Description
+------------ | -------------
+map(*func*) | Return a new *RuleSet* object with mapped rules by a function *func*.  
+filter(*func*) | Return a new *RuleSet* object with filtered rules by a function *func*.  
+take(*n*), drop(*n*), slice(*from*, *until*) | Return a new *RuleSet* object with filtered rules by cutting the rule set.  
+filterByPatterns (*patterns*) | Return a new *RuleSet* object with rules matching at least one of the input rule patterns. 
+sortBy(*measures*) | Return a new *RuleSet* object with sorted rules by selected measures of significance.  
+computeConfidence (*minConf*) | Return a new *RuleSet* object with the computed confidence measure for each rule that must be higher than the *minConf* value.  
+computePcaConfidence (*minPcaConf*) | Return a new *RuleSet* object with the computed PCA confidence measure for each rule that must be higher than the *minPcaConf* value.  
+computeLift(*minConf*) | Return a new *RuleSet* object with the computed lift measure for each rule.  
+makeClusters(*task*) | Return a new *RuleSet* object with clusters computed by a clustering task.   
+findSimilar(*rule*, *n*), findDissimilar(*rule*, *n*) | Return a new *RuleSet* object with top *n* rules, the selected rules will be the most similar (or dissimilar) ones from the input rule.
+
+#### Actions
+
+Operation | Description
+------------ | -------------
+foreach(*func*) | Apply a function *func* for each rule.  
+cache(*target*) | Cache this *RuleSet* object either into memory or into a file on a disk.  
+export(*target*, *format*) | Export this *RuleSet* object into a file in some selected output format.  
+
+## Pre-processing
+
+You can use *RdfGraph* and *RdfDataset* abstractions to analyze and pre-process input RDF data before the mining phase. First you load RDF datasets into the RdfRules system and then you can aggregate data, count occurences or read types of individual triple items. Based on the previous analysis you can define some transformations including triples/quads merging, filtering or replacing. Transformed data can either be saved on a disk into a file in some RDF format or the binary format for later use, or used for indexing and rule mining. Therefore, RdfRules is also suitable for RDF data transformations and is not intended only for rules mining.
+
+RdfRules uses the [EasyMiner-Discretization](https://github.com/KIZI/EasyMiner-Discretization) module which provides some implemented unsupervised discretization algorithms, such as equal-frequency and equal-width. These algorithms can be easily used within the RdfRules tool where they are adapted to work with RDF triple items.
+
+## Indexing
+
+Before mining the input dataset has to be indexed into memory for the fast rules enumeration and measures counting. The AMIE+ algorithm uses six fact indexes that hold data in several hash tables. Hence, it is important to realize that the complete input data are replicated six times and then stored into memory before the mining phase. This index may have two modes: *preserved* and *in-use*. The *preserved* mode keeps data in memory until the existence of the index object, whereas the *in-use* mode loads data into memory only if the index is needed and is released after use.
+
+Data are actually stored in memory once the mining process is started.
+
+## Rule Mining
+
+RdfRules uses the [AMIE+](https://www.mpi-inf.mpg.de/departments/databases-and-information-systems/research/yago-naga/amie/) algorithm as the background for rule mining. It mines logical rules in the form of Horn clause with one atom at the head position and with conjunction of atoms at the body position. An atom is a statement (or triple) which is further indivisible and contains a fixed constant at the predicate position and variables or constants at the subject and/or object position, e.g., the atom *livesIn(a, b)* contains variables *a* and *b*, whereas the atom *livesIn(a, Prague)* contains only one variable *a* and the fixed constant *Prague* at the object position.
+
+```
+Horn rules samples:
+1: livesIn(a, b) => wasBornIn(a, b)
+2: livesIn(a, Prague) => wasBornIn(a, Prague)
+3: isMarriedTo(a, b) ^ directed(b, c) => actedIn(a, c)
+4: hasChild(a,c) ^ hasChild(b,c) => isMarriedTo(a,b)
+```
+
+The output rule has to fulfill several conditions. First, rule atoms must be *connected* and mutually reachable. That means variables are shared among atoms to form a continuous path. Second, there are allowed only *closed* rules. A rule is *closed* if its atoms involves any variable and each variable appears at least twice in the rule. Finally, atoms must not be reflexive - one atom does not contain two same variables.
+
+There are four parameters that are passing to the rule mining process. They are: indexed data, thresholds, rule patterns and constraints. The relevance of rules is determined by their measures of significance. In RdfRules we use all measures defined in AMIE+ and some new measures such as lift or clusters.
+
+### Measures of Significance
+
+Measure | Description
+------------ | -------------
+HeadSize | The *head size* of a rule is a measure which indicates a number of triples (or instances) conforming the head of the rule.  
+Support | From all triples matching the head of the rule we count a subset from which we are able to build a path conforming the body of a the rule. With the increasing rule-length the support value is decreasing or unchanged and is always lower or equal to the head size.
+HeadCoverage | This is the relative value of the support measure depending on the head size. ```HC = Support / HeadSize```
+BodySize | The *body size* is a number of all possible paths in an RDF knowledge graph that conform the body of the rule.
+Confidence | The *standard confidence* is a measure compares the body size to the support value and is interpreted as a probability of the head occurrence given the specific body.
+PcaConfidence | This kind of confidence measure is more appropriate for OWA, since a missing fact for a subject variable in the head is not assumed to be a counter-example.
+PcaBodySize | Counted *body size* from which the *PCA confidence* is computed.
+HeadConfidence | Probability of the head occurrence by a random choice across the overall dataset.
+Lift | The ratio between the *standard confidence* and the *head confidence*. With this measure we are able to discover a dependency between the head and the body of the rule.
+Cluster | We can make rule clusters by their similarities. This measure only specifies a number of cluster to which the rule belongs.
+
+### Thresholds
+
+There are several main pruning thresholds which influence the speed of the rules enumeration process:
+
+Threshold | Description
+------------ | -------------
+MinHeadSize | A minimum number of triples matching the rule head. It must be greater than *zero*.  
+MinHeadCoverage | A minimal head coverage. It must be greater than *zero* and less than or equal to *one*.   
+MaxRuleLength | A maximal length of a rule. It must be greater than *one*.   
+TopK | A maximum number of returned rules sorted by head coverage. It must be greater than *zero*.  
+Timeout | A maximum mining time in minutes. 
