@@ -171,6 +171,8 @@ HeadConfidence | Probability of the head occurrence by a random choice across th
 Lift | The ratio between the *standard confidence* and the *head confidence*. With this measure we are able to discover a dependency between the head and the body of the rule.
 Cluster | We can make rule clusters by their similarities. This measure only specifies a number of cluster to which the rule belongs.
 
+![Measures of significance in example](measures.png)
+
 ### Thresholds
 
 There are several main pruning thresholds which influence the speed of the rules enumeration process:
