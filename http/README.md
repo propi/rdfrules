@@ -178,7 +178,37 @@ Notice that *MergeDatasets* task merges all datasets and graphs to one and all f
 
 ### RDF Data Operations
 
-RdfGraph and RdfDataset abstractions have defined similar operations. The main difference is that RdfGraph operates with triples whereas RdfDataset operates with quads.
+For a loaded graph or dataset you can define several transformations and actions.
+
+```
+{"name": "MapData", "parameters": {
+  "search": {                                        //REQUIRED: search quads by regular expressions or conditions
+    "subject": "regular expression or condition",    //OPTIONAL
+    "predicate": "regular expression or condition",  //OPTIONAL
+    "object": "regular expression or condition",     //OPTIONAL
+    "graph": "regular expression or condition"       //OPTIONAL
+  },
+  "replacement": {                      //REQUIRED: if all defined regular expressions or conditions are valid then we replace the quad by defined replacements
+    "subject": "replacement"            //OPTIONAL
+    "predicate": "replacement",         //OPTIONAL
+    "object": "replacement",            //OPTIONAL
+    "graph": "replacement"              //OPTIONAL
+  }
+}}
+```
+
+In regular expressions we can catch groups by brackets and then refer to them in replacement by the symbol $*\<QuadItem\>\<NumberOfGroup\>*. For example: $s1 refers to group 1 in the subject, $p0 refers to whole matched text in the predicate, $o2 refers to group 2 in the object, $g1 refers to group 1 in the graph.
+
+Types of triples items are distinguished as follows:
+
+Type | Search by regexp or condition | Replacement with reference | Description |
+---- | ----------------------------- | -------------------------- | ----------- |
+RESOURCE | ```"<some-uri>"``` | ```"<some-uri-$p0>"``` | Resource must start and end with angle brackets.
+TEXT | ```"\"some (text)\""``` | ```"\"some text $o1\""``` | Text must start and end with double quotes.
+NUMBER | ```"-20.5"``` | ```"$o0 + 5"``` | Text starts with number. We can only capture the whole number and regular expression is not supported.
+NUMBER | ```"> 20"```, ```"(10, 20]"``` | ```"$o0 - 5"``` | For number we can use conditions: >, <, >=, <=, or intervals: (x;y), \[x;y\]
+BOOLEAN | ```"true"``` | ```"false"``` | For boolean we can use only exact matching: true or false.
+INTERVAL | ```"[x, y)"``` | ```"[$o1 + 5, $o2)"``` | For intervals we can use same conditions as for numbers. Both borders of the intervals are captured, we can refer to them in replacement.
 
 ```scala
 import com.github.propi.rdfrules._
