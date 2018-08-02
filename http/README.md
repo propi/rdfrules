@@ -16,7 +16,7 @@ Start the HTTP web server from SBT:
 > run
 ```
 
-You can also download .jar file with all dependencies from JitPack and simply run class ```com.github.propi.rdfrules.http.Main``` without any others parameters.
+You can also download .jar file with all dependencies from JitPack and simply run class ```com.github.propi.rdfrules.http.Main``` without any other parameters.
 
 Default server parameters are:
 ```
@@ -138,43 +138,43 @@ TriX | .trix | Yes
 TSV | .tsv | No
 
 RdfGraph: Loading triples into one graph.
-```scala
-import com.github.propi.rdfrules._
-import org.apache.jena.riot.Lang
-//from file - RdfRules automatically recognizes the RDF format by the file extension
-Graph("/path/to/triples.ttl")
-//or
-Graph("/path/to/triples.turtle")(Lang.TURTLE)
-//or from TSV
-Graph("/path/to/triples.tsv")
-Graph("/path/to/triples.tsv2")(RdfSource.Tsv)
-//or with graph name
-Graph("dbpedia", "/path/to/dbpedia.ttl")
-//from input stream
-Graph(new FileInputStream("/path/to/triples.rdf"))(Lang.RDFXML)
-//from traversable
-val triples: Traversable[Triple] = Traversable(Triple("s1", "p1", "o1"), Triple("s2", "p2", "o2"))
-Graph("my-graph", triples)
-//from cache
-Graph.fromCache("my-graph", "/path/to/triples.cache")
+```
+{"name": "LoadGraph", "parameters": {
+  "path": "path/to/triples.ttl",                       //OPTIONAL: Path in workspace
+  "url": "url/to/triples.ttl",                         //OPTIONAL: URL to a remote file
+  "format": "ttl|nt|nq|xml|json|trig|trix|tsv|cache",  //OPTIONAL: RDF format
+  "graph-name": "..."                                  //OPTIONAL
+}}
 ```
 
 RdfDataset: Loading quads into a dataset.
-```scala
-import com.github.propi.rdfrules._
-import org.apache.jena.riot.Lang
-//one graph - create quads with the default graph name.
-Dataset("/path/to/triples.ttl")
-//multiple graphs from one file
-Dataset("/path/to/triples.nq")
-Dataset("/path/to/triples.nquads")(Lang.NQUADS)
-//multiple graphs from many files
-Dataset() + Graph("graph1", "/path/to/graph1.ttl") + Graph("graph2", "/path/to/graph2.tsv")
-//or
-Dataset("/path/to/quads1.nq") + Dataset("/path/to/quads2.trig")
-//from cache
-Dataset.fromCache("/path/to/quads.cache")
 ```
+{"name": "LoadDataset", "parameters": {
+  "path": "path/to/quads.nq",                        //OPTIONAL: Path in workspace
+  "url": "url/to/quads.nq",                          //OPTIONAL: URL to a remote file
+  "format": "ttl|nt|nq|xml|json|trig|trix|tsv|cache" //OPTIONAL: RDF format
+}}
+```
+
+In the pipeline, after loaded graph or dataset you can do transformations or actions with the last loaded dataset. Once you load another one, then following transformations or actions relate to the last loaded dataset.
+
+```
+[
+{"name": "LoadGraph", "parameters": {...}},           //load graph1
+{"name": "Some transformation", "parameters": {...}}, //transformation related to graph1
+{"name": "Some transformation", "parameters": {...}}, //transformation related to graph1
+{"name": "LoadGraph", "parameters": {...}},           //load graph2
+{"name": "Some transformation", "parameters": {...}}, //transformation related to graph2
+{"name": "Some transformation", "parameters": {...}}, //transformation related to graph2
+{"name": "LoadDataset", "parameters": {...}},         //load dataset1
+{"name": "Some transformation", "parameters": {...}}, //transformation related to dataset1
+{"name": "Some transformation", "parameters": {...}}, //transformation related to dataset1
+{"name": "MergeDatasets", "parameters": null},        //merge all previous datasets together
+{"name": "Some transformation", "parameters": {...}}  //transformation related to graph1, graph2 and dataset1
+]
+```
+
+Notice that *MergeDatasets* task merges all datasets and graphs to one and all following operations are related to all these previously defined graphs and datasets. It is considered as the final set of merged quads from all graphs.
 
 ### RDF Data Operations
 
