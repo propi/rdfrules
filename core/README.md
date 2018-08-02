@@ -27,7 +27,7 @@ TriG | .trig | Yes
 RDF/XML | .rdf, .xml | No
 JSON-LD | .jsonld, .json | Yes
 TriX | .trix | Yes
-TSV | .tsv | Not
+TSV | .tsv | No
 
 RdfGraph: Loading triples into one graph.
 ```scala
@@ -141,6 +141,52 @@ EquidistanceDiscretizationTask, EquifrequencyDiscretizationTask and EquisizeDisc
 Task | Parameters | Algorithm |
 ---- | -----------| --------- |
 EquidistanceDiscretizationTask(*bins*) | *bins*: number of intervals being created | It creates intervals which have equal distance. For example for numbers \[1; 10\] and 5 bins it creates intervals 5 intervals: \[1; 2\], \[3; 4\], \[5; 6\], \[7; 8\], \[9; 10\].
-EquifrequencyDiscretizationTask(*bins*, *mode*, *buffer*) | *bins*: number of intervals being created,<br>*mode* (optional): sorting mode (External or InMemory, default is InMemory),<br>*buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates an exact number of equal-frequent intervals with various distances. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (InMemory: data are sorted in memory with buffer limit, External: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
-EquisizeDiscretizationTask(*support*, *mode*, *buffer*) | *support*: a minimum support (or size) of each interval,<br>*mode* (optional): sorting mode (External or InMemory, default is InMemory),<br>*buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates various number of equal-frequent intervals where all intervals must exceed the minimal
-support value. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (InMemory: data are sorted in memory with buffer limit, External: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
+EquifrequencyDiscretizationTask(*bins*, *mode*, *buffer*) | *bins*: number of intervals being created, *mode* (optional): sorting mode (External or InMemory, default is InMemory), *buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates an exact number of equal-frequent intervals with various distances. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (InMemory: data are sorted in memory with buffer limit, External: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
+EquisizeDiscretizationTask(*support*, *mode*, *buffer*) | *support*: a minimum support (or size) of each interval, *mode* (optional): sorting mode (External or InMemory, default is InMemory), *buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates various number of equal-frequent intervals where all intervals must exceed the minimal support value. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (InMemory: data are sorted in memory with buffer limit, External: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
+
+## Index Operations
+
+The Index object saves data in memory into several hash tables. First, all quad items, including resources, literals, graph names and prefixes, are mapped to a unique integer. Then the program creates six fact indexes only from mapped numbers representing the whole input datasets. Data are replicated six times, therefore we should be cautious about memory. The Index object can be created in two modes:
+
+Mode | Description |
+---- | ------------|
+PreservedInMemory | Data are preserved in memory until the Index object exists. DEFAULT.
+InUseInMemory | Data are loaded into memory once we need them. After use we release the index.
+
+We can operate with Index by following operations:
+```
+import com.github.propi.rdfrules._
+//create index from dataset
+val index = Dataset("/path/to/data.nq").index()
+//create index from graph
+Graph("/path/to/data.nt").index()
+//create index in different mode
+Graph("/path/to/data.nt").index(Mode.InUseInMemory)
+//create index from cache
+Index.fromCache("index.cache")
+Index.fromCache(new FileInputStream("index.cache"))
+//get mapper which maps triple items to number or vice versa
+index.tripleItemMap { mapper =>
+  mapper.getIndex(TripleItem.Uri("hasChild")) // get a number for <hasChild> resource
+  mapper.getTripleItem(1) // get a triple item from number 1
+}
+//get six fact indexes
+index.tripleMap { indexes =>
+  //print all graphs bound with predicate 1, subject 2 and object 3
+  indexes.predicates(1).subjects(2).value(3).iterator.foreach(println)
+  //print a number of all triples with predicate 1 and subject 2
+  println(indexes.predicates(1).subjects(2).size)
+}
+//evaluate all lazy vals in fact indexes such as sizes and graphs: some values are not evaluated immediately but during a mining process if we need them. This method is suitable for measurement of rule mining to eliminate all secondary calculations.
+index.withEvaluatedLazyVals
+//create an RdfDataset object from Index
+index.toDataset
+//serialize the Index object into a file on a disk
+index.cache("data.cache")
+//or with output stream
+index.cache(new FileOutputStream("data.cache"))
+//start a rule mining process where the input parameter is a rule mining task (see below for details)
+index.mine(...)
+```
+
+## Start the Rule Mining Process
