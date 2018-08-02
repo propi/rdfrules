@@ -3,9 +3,11 @@ package com.github.propi.rdfrules.experiments
 import java.io._
 
 import com.github.propi.rdfrules.algorithm.amie.Amie
-import com.github.propi.rdfrules.algorithm.dbscan.DbScan
+import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting.{AtomsSimilarityCounting, SupportSimilarityCounting}
+import com.github.propi.rdfrules.algorithm.dbscan.{DbScan, SimilarityCounting}
 import com.github.propi.rdfrules.data.TripleItem.Uri
 import com.github.propi.rdfrules.data._
+import com.github.propi.rdfrules.index.Index.Mode
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.ruleset.formats.Text._
 import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
@@ -14,6 +16,7 @@ import com.github.propi.rdfrules.utils.Debugger
 import eu.easyminer.discretization.DiscretizationTask
 import eu.easyminer.discretization.task.EquifrequencyDiscretizationTask
 import org.apache.commons.io.FileUtils
+import org.apache.jena.riot.{Lang, RDFFormat}
 
 /**
   * Created by Vaclav Zeman on 24. 4. 2018.

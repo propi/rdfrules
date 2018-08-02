@@ -11,6 +11,7 @@ import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.Debugger
 import org.apache.commons.io.FileUtils
 import com.github.propi.rdfrules.ruleset.formats.Text._
+import com.github.propi.rdfrules.ruleset.formats.Json._
 import com.github.propi.rdfrules.stringifier.CommonStringifiers._
 
 /**
@@ -56,6 +57,7 @@ object YagoAndDbpediaSamples {
         .cache(new File("experiments/results/rules-example3.cache"))
       val ruleset = Ruleset.fromCache(dataset.index(), new File("experiments/results/rules-example3.cache"))
       ruleset.export[RulesetSource.Text.type](new File("experiments/results/rules-example3.txt"))
+      ruleset.export[RulesetSource.Json.type](new File("experiments/results/rules-example3.json"))
       ruleset
     }
   }
