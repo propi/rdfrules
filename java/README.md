@@ -8,15 +8,16 @@ Maven
 
 ```xml
 <repositories>
-		<repository>
-		    <id>jitpack.io</id>
-		    <url>https://jitpack.io</url>
-		</repository>
+   <repository>
+      <id>jitpack.io</id>
+      <url>https://jitpack.io</url>
+   </repository>
 </repositories>
+
 <dependency>
-	    <groupId>com.github.propi.rdfrules</groupId>
-	    <artifactId>java</artifactId>
-	    <version>master</version>
+   <groupId>com.github.propi.rdfrules</groupId>
+   <artifactId>java</artifactId>
+   <version>master</version>
 </dependency>
 ```
 
@@ -182,137 +183,141 @@ PreservedInMemory | Data are preserved in memory until the Index object exists. 
 InUseInMemory | Data are loaded into memory once we need them. After use we release the index.
 
 We can operate with Index by following operations:
-```scala
-import com.github.propi.rdfrules._
+```java
+import com.github.propi.rdfrules.java.data.*;
+import com.github.propi.rdfrules.java.index.*;
+
 //create index from dataset
-val index = Dataset("/path/to/data.nq").index()
+Index index = Dataset.fromFile("/path/to/data.nq").index();
 //create index from graph
-Graph("/path/to/data.nt").index()
+Graph.fromFile("/path/to/data.nt").index();
 //create index in different mode
-Graph("/path/to/data.nt").index(Mode.InUseInMemory)
+Graph.fromFile("/path/to/data.nt").index(Index.Mode.INUSEINMEMORY);
 //create index from cache
-Index.fromCache("index.cache")
-Index.fromCache(new FileInputStream("index.cache"))
+Index.fromCache("index.cache");
+Index.fromCache(() -> new FileInputStream("index.cache"));
 //get mapper which maps triple items to number or vice versa
-index.tripleItemMap { mapper =>
-  mapper.getIndex(TripleItem.Uri("hasChild")) // get a number for <hasChild> resource
-  mapper.getTripleItem(1) // get a triple item from number 1
-}
+index.tripleItemMap(mapper -> {
+  System.out.println(mapper.getIndex(new TripleItem.LongUri("hasChild"))); // get a number for <hasChild> resource
+  return mapper.getTripleItem(1); // get a triple item from number 1
+});
 //get six fact indexes
-index.tripleMap { indexes =>
-  //print all graphs bound with predicate 1, subject 2 and object 3
-  indexes.predicates(1).subjects(2).value(3).iterator.foreach(println)
-  //print a number of all triples with predicate 1 and subject 2
-  println(indexes.predicates(1).subjects(2).size)
-}
+index.tripleMap(indexes -> {
+  //some operations with six fact indexes
+});
 //evaluate all lazy vals in fact indexes such as sizes and graphs: some values are not evaluated immediately but during a mining process if we need them. This method is suitable for measurement of rule mining to eliminate all secondary calculations.
-index.withEvaluatedLazyVals
+index.withEvaluatedLazyVals();
 //create an RdfDataset object from Index
-index.toDataset
+index.toDataset();
 //serialize the Index object into a file on a disk
-index.cache("data.cache")
+index.cache("data.cache");
 //or with output stream
-index.cache(new FileOutputStream("data.cache"))
+index.cache(() -> new FileOutputStream("data.cache"));
 //start a rule mining process where the input parameter is a rule mining task (see below for details)
-index.mine(...)
+index.mine(...);
 ```
 
 ## Start the Rule Mining Process
 
 We can create a rule mining task by following operations:
-```scala
-import com.github.propi.rdfrules._
+```java
+import com.github.propi.rdfrules.java.algorithm.*;
+
 //create the AMIE+ rule mining task with default parameters (MinHeadSize = 100, MinHeadCoverage = 0.01, MaxRuleLength = 3)
-val miningTask = Amie()
+RulesMining miningTask = RulesMining.amie();
 index.mine(miningTask)
 //with debugger which prints progress of the mining process
-Debugger() { implicit debugger =>
-  val miningTask = Amie()
+Debugger.use(debugger -> {
+  RulesMining miningTask = RulesMining.amie(debugger);
   index.mine(miningTask)
-}
-//optionally you can attach your own logger to manage log messages
-Debugger(myLogger) { implicit debugger =>
-  val miningTask = Amie(myLogger)
-  ...
-}
+});
 ```
 
 We can add thresholds, rule patterns and constraints to the created mining task:
-```scala
-import com.github.propi.rdfrules._
-val preparedMiningTask = miningTask
-  .addThreshold(Threshold.MinHeadCoverage(0.1))
+```java
+import com.github.propi.rdfrules.java.algorithm.*;
+import com.github.propi.rdfrules.java.rule.*;
+
+RulesMining preparedMiningTask = miningTask
+  .withMinHeadCoverage(0.1)
   //add rule pattern: * => isMarriedTo(Any, Any)
-  .addPattern(AtomPattern(predicate = "isMarriedTo"))
+  .addPattern(RulePattern.create(new RulePattern.AtomPattern().withPredicate("isMarriedTo")))
   //add rule pattern: Any(?a, Any, <yago>) ^ Any(Any, AnyConstant) => isMarriedTo(Any, Any)
-  .addPattern(AtomPattern(graph = "yago", subject = 'a') &: AtomPattern(`object` = AnyConstant) =>: AtomPattern(predicate = "isMarriedTo"))
+  .addPattern(RulePattern
+     .create(new RulePattern.AtomPattern().withPredicate("isMarriedTo"))
+     .prependBodyAtom(new RulePattern.AtomPattern().withPredicate(new RulePattern.AnyConstant()))
+     .prependBodyAtom(new RulePattern.AtomPattern().withSubject('a').withGraph("isMarriedTo"))
+  )
   //add rule pattern: hasChild(Any, Any) => *
-  .addPattern(AtomPattern(predicate = "hasChild") =>: None)
-  .addConstraint(RuleConstraint.WithInstances(false))
-index.mine(preparedMiningTask)
+  .addPattern(RulePattern
+     .create()
+     .prependBodyAtom(new RulePattern.AtomPattern().withPredicate("hasChild"))
+  )
+  .withInstances(false);
+index.mine(preparedMiningTask);
 ```
 
-All possibilities of thresholds, patterns and constraints are described in the code: [Threshold.scala](https://github.com/propi/rdfrules/blob/master/core/src/main/scala/com/github/propi/rdfrules/rule/Threshold.scala), [RulePattern.scala](https://github.com/propi/rdfrules/blob/master/core/src/main/scala/com/github/propi/rdfrules/rule/RulePattern.scala), [AtomPattern.scala](https://github.com/propi/rdfrules/blob/master/core/src/main/scala/com/github/propi/rdfrules/rule/AtomPattern.scala) and [RuleConstraint.scala](https://github.com/propi/rdfrules/blob/master/core/src/main/scala/com/github/propi/rdfrules/rule/RuleConstraint.scala) (see the Scala API docs - TODO!)
+All possibilities of thresholds, patterns and constraints are described in the code and in the Java API docs -- TODO!
 
 ## RuleSet Operations
 
 The RuleSet object is created by the mining process or can be loaded from cache.
 
-```scala
-import com.github.propi.rdfrules._
-val ruleset = index.mine(preparedMiningTask)
+```java
+import com.github.propi.rdfrules.java.ruleset.*;
+
+Ruleset mine = index.mine(preparedMiningTask);
 //or from cache
-Ruleset.fromCache(index, "rules.cache")
-Ruleset.fromCache(index, new FileInputStream("rules.cache"))
+Ruleset.fromCache(index, "rules.cache");
+Ruleset.fromCache(index, () -> new FileInputStream("rules.cache"));
 ```
 
 We need to attach the Index object if we load rules from cache. The RuleSet contains rules in the mapped numeric form. Hence, we need the Index object to map all numbers back to readable triple items and, of course, also to compute additional measures of significance. The RuleSet object keeps all mined rules in memory. We can transform it by filtering, mapping, sorting and computing functions.
 
-```scala
-import com.github.propi.rdfrules._
+```java
+import com.github.propi.rdfrules.java.ruleset.*;
+
 ruleset
   //map rules
-  .map(rule => if (rule.head.predicate.hasSameUriAs("hasChild")) rule.copy(head = rule.head.copy(predicate = "child")) else rule)
+  .map(rule -> /* update rule */)
   //filter rules
-  .filter(rule => rule.measures(Measure.HeadCoverage).value > 0.2)
+  .filter(rule -> rule.getHeadCoverage() > 0.2);
   //sort by defaults: Cluster, PcaConfidence, Lift, Confidence, HeadCoverage
-  .sorted
+  .sorted()
   //sort by selected measures
-  .sortBy(Measure.HeadCoverage, Measure.Lift)
-  //sort by rule length and then by selected measures
-  .sortByRuleLength(Measure.HeadCoverage)
+  .sortBy(RuleMeasures::getConfidence, Comparator.naturalOrder())
   //compute additional measures of significance
   .computeConfidence(0.5)
   .computePcaConfidence(0.5)
   .computeLift()
   //make clusters
-  .makeClusters(DbScan(minNeighbours = 3, minSimilarity = 0.85))
+  .makeClusters(/*minNeighbours =*/ 3, /*minSimilarity =*/ 0.85))
   //or you can specify our own similarity measures
-  .makeClusters {
-    implicit val ruleSimilarityCounting: SimilarityCounting[Rule.Simple] = (0.5 * AtomsSimilarityCounting) ~ (0.5 * SupportSimilarityCounting)
-    DbScan()
-  }
+  .makeClusters(
+     new SimilarityCounting(SimilarityCounting.RuleSimilarityCounting.ATOMS, 0.5)
+     .add(SimilarityCounting.RuleSimilarityCounting.CONFIDENCE, 0.5)
+  )
   //optionally we can attach to all computing and clustering operations a debugger to print progress
   //we can cache ruleset into a file on a disk or in memory
-  .cache //into memory
-  .cache("rules.cache") //into a file
+  .cache() //into memory
+  .cache("rules.cache"); //into a file
   
 //we can print size of rule set
-println(ruleset.size)
+System.out.println(ruleset.size);
 //or print all rules
-ruleset.foreach(println)
+ruleset.forEach(System.out::println);
 //or export rules into a file
-ruleset.export("rules.json") //machine readable format
-ruleset.export("rules.txt") //human readable format
+ruleset.export("rules.json"); //machine readable format
+ruleset.export("rules.txt"); //human readable format
 //or to outputstream
-ruleset.export[RulesetSource.Json.type](new FileOutputStream("rules.json"))
+ruleset.export(() -> new FileOutputStream("rules.json"), new RulesetWriter.Json());
 
 //we can find some rule
-val rule = ruleset.find(rule => rule.measures(Measure.HeadCoverage).value == 1).get
+Rule rule = ruleset.find(rule -> rule.getHeadCoverage() == 1);
 //or get the head of the rule set
-println(ruleset.head)
+System.out.println(ruleset.head());
 //find top-k similar rules to the rule
-ruleset.findSimilar(rule, 10).foreach(println)
+ruleset.findSimilar(rule, 10).forEach(System.out::println);
 //find top-k dissimilar rules to the rule
-ruleset.findDissimilar(rule, 10).foreach(println)
+ruleset.findDissimilar(rule, 10).forEach(System.out::println);
 ```
