@@ -136,8 +136,6 @@ dataset.mine(...)
 
 Discretization tasks are only facades for implemented discretization algorithms in the [EasyMiner-Discretization](https://github.com/KIZI/EasyMiner-Discretization) library. Supported algorithms are:
 
-EquidistanceDiscretizationTask, EquifrequencyDiscretizationTask and EquisizeDiscretizationTask. 
-
 Task | Parameters | Algorithm |
 ---- | -----------| --------- |
 EquidistanceDiscretizationTask(*bins*) | *bins*: number of intervals being created | It creates intervals which have equal distance. For example for numbers \[1; 10\] and 5 bins it creates intervals 5 intervals: \[1; 2\], \[3; 4\], \[5; 6\], \[7; 8\], \[9; 10\].
@@ -154,7 +152,7 @@ PreservedInMemory | Data are preserved in memory until the Index object exists. 
 InUseInMemory | Data are loaded into memory once we need them. After use we release the index.
 
 We can operate with Index by following operations:
-```
+```scala
 import com.github.propi.rdfrules._
 //create index from dataset
 val index = Dataset("/path/to/data.nq").index()
@@ -190,3 +188,40 @@ index.mine(...)
 ```
 
 ## Start the Rule Mining Process
+
+We can create a rule mining task by following operations:
+```scala
+import com.github.propi.rdfrules._
+//create the AMIE+ rule mining task with default parameters
+val miningTask = Amie()
+index.mine(miningTask)
+//with debugger which prints progress of the mining process
+Debugger() { implicit debugger =>
+  val miningTask = Amie()
+  index.mine(miningTask)
+}
+//optionally you can attach your own logger to manage log messages
+Debugger(myLogger) { implicit debugger =>
+  val miningTask = Amie(myLogger)
+  ...
+}
+```
+
+We can add thresholds, rule patterns and constraints to the created mining task:
+```scala
+import com.github.propi.rdfrules._
+val preparedMiningTask = miningTask
+  .addThreshold(Threshold.MinHeadCoverage(0.1))
+  //add rule pattern: * => isMarriedTo(Any, Any)
+  .addPattern(AtomPattern(predicate = "isMarriedTo"))
+  //add rule pattern: Any(?a, Any, <yago>) ^ Any(Any, AnyConstant) => isMarriedTo(Any, Any)
+  .addPattern(AtomPattern(graph = "yago", subject = 'a') &: AtomPattern(`object` = AnyConstant) =>: AtomPattern(predicate = "isMarriedTo"))
+  //add rule pattern: hasChild(Any, Any) => *
+  .addPattern(AtomPattern(predicate = "hasChild") =>: None)
+  .addConstraint(RuleConstraint.WithInstances(false))
+index.mine(preparedMiningTask)
+```
+
+All possibilities of thresholds, patterns and constraints are described in the code: [Threshold.scala](https://github.com/propi/rdfrules/blob/master/core/src/main/scala/com/github/propi/rdfrules/rule/Threshold.scala), [RulePattern.scala](https://github.com/propi/rdfrules/blob/master/core/src/main/scala/com/github/propi/rdfrules/rule/RulePattern.scala), [AtomPattern.scala](https://github.com/propi/rdfrules/blob/master/core/src/main/scala/com/github/propi/rdfrules/rule/AtomPattern.scala) and [RuleConstraint.scala](https://github.com/propi/rdfrules/blob/master/core/src/main/scala/com/github/propi/rdfrules/rule/RuleConstraint.scala) (see the Scala API docs - TODO!)
+
+## RuleSet Operations
