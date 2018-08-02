@@ -91,4 +91,56 @@ dataset.size
 val types: Map[TripleItem.Uri, Map[TripleItemType], Int] = dataset.types()
 //predicates are keys of the Map, values are Maps where the key is a triple item type (Resource, Number, Boolean, Text, Interval) and values are numbers of occurences of the particular type for the specific predicate.
 types.foreach(println)
+//make histogram for aggregated predicates
+dataset.histogram(predicate = true)
+//make histogram for aggregated predicates with objects
+val histogram: Map[Histogram.Key, Int] = dataset.histogram(predicate = true, `object` = true)
+//a histogram key consists of optional triple items: Histogram.Key(s: Option[TripleItem.Uri], p: Option[TripleItem.Uri], o: Option[TripleItem]).
+//a histogram value is a number of aggregated/grouped triples by the key.
+histogram.toList.sortBy(_._2).foreach(println)
+//we can add prefixes to shorten long URIs and to have data more readable
+dataset.addPrefixes(
+  Prefix("dbo", "http://dbpedia.org/ontology/"),
+  Prefix("dbr", "http://dbpedia.org/resource/")
+)
+//or from file in TURTLE format
+//@prefix dbo: <http://dbpedia.org/ontology/> .
+//@prefix dbr: <http://dbpedia.org/resource/> .
+dataset.addPrefixes("prefixes.ttl")
+//then we can show all defined prefixes
+dataset.prefixes.foreach(println)
+//discretize all numeric literals for the "<age>" predicate into 5 bins by the equal-frequency algorithm.
+dataset.discretize(EquifrequencyDiscretizationTask(5))(quad => quad.triple.predicate.hasSameUriAs("age"))
+//we can use three discretization tasks: EquidistanceDiscretizationTask, EquifrequencyDiscretizationTask and EquisizeDiscretizationTask. See below for more info.
+//it is possible to discretize some parts and only return intervals
+import eu.easyminer.discretization.impl.Interval
+val intervals: Array[Interval] = dataset.discretizeAndGetIntervals(EquifrequencyDiscretizationTask(5))(quad => quad.triple.predicate.hasSameUriAs("age"))
+intervals.foreach(println)
+//cache quads or triples (with all transformations) into a binary file for later use
+dataset.cache("file.cache")
+//export quads or triples into a file in a selected RDF format
+//there are supported only streaming formats: N-Triples, N-Quads, Turtle, TriG, TriX, TSV
+dataset.export("file.ttl") // to one graph
+dataset.export("file.nq") // to several graphs
+//or into output stream
+import org.apache.jena.riot.RDFFormat
+dataset.export(new FileOutputStream("file.nq"))(RDFFormat.NQUADS_ASCII)
+dataset.export(new FileOutputStream("file.tsv"))(RdfSource.Tsv)
+//finally we can create an Index object from RdfDataset or RdfGraph
+val index: Index = dataset.index()
+//or we can specify the index mode. There are two modes: PreservedInMemory and InUseInMemory (for more details see the root page and Index abstraction info)
+dataset.index(Mode.InUseInMemory)
+//we can skip the Index creation and to start rule mining directly (the Index object in PreservedInMemory mode is created automatically)
+dataset.mine(...)
 ```
+
+Discretization tasks are only facades for implemented discretization algorithms in the [EasyMiner-Discretization](https://github.com/KIZI/EasyMiner-Discretization) library. Supported algorithms are:
+
+EquidistanceDiscretizationTask, EquifrequencyDiscretizationTask and EquisizeDiscretizationTask. 
+
+Task | Parameters | Algorithm |
+---- | -----------| --------- |
+EquidistanceDiscretizationTask(*bins*) | *bins*: number of intervals being created | It creates intervals which have equal distance. For example for numbers \[1; 10\] and 5 bins it creates intervals 5 intervals: \[1; 2\], \[3; 4\], \[5; 6\], \[7; 8\], \[9; 10\].
+EquifrequencyDiscretizationTask(*bins*, *mode*, *buffer*) | *bins*: number of intervals being created,<br>*mode* (optional): sorting mode (External or InMemory, default is InMemory),<br>*buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates an exact number of equal-frequent intervals with various distances. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (InMemory: data are sorted in memory with buffer limit, External: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
+EquisizeDiscretizationTask(*support*, *mode*, *buffer*) | *support*: a minimum support (or size) of each interval,<br>*mode* (optional): sorting mode (External or InMemory, default is InMemory),<br>*buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates various number of equal-frequent intervals where all intervals must exceed the minimal
+support value. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (InMemory: data are sorted in memory with buffer limit, External: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
