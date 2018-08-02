@@ -192,7 +192,7 @@ index.mine(...)
 We can create a rule mining task by following operations:
 ```scala
 import com.github.propi.rdfrules._
-//create the AMIE+ rule mining task with default parameters
+//create the AMIE+ rule mining task with default parameters (MinHeadSize = 100, MinHeadCoverage = 0.01, MaxRuleLength = 3)
 val miningTask = Amie()
 index.mine(miningTask)
 //with debugger which prints progress of the mining process
@@ -225,3 +225,64 @@ index.mine(preparedMiningTask)
 All possibilities of thresholds, patterns and constraints are described in the code: [Threshold.scala](https://github.com/propi/rdfrules/blob/master/core/src/main/scala/com/github/propi/rdfrules/rule/Threshold.scala), [RulePattern.scala](https://github.com/propi/rdfrules/blob/master/core/src/main/scala/com/github/propi/rdfrules/rule/RulePattern.scala), [AtomPattern.scala](https://github.com/propi/rdfrules/blob/master/core/src/main/scala/com/github/propi/rdfrules/rule/AtomPattern.scala) and [RuleConstraint.scala](https://github.com/propi/rdfrules/blob/master/core/src/main/scala/com/github/propi/rdfrules/rule/RuleConstraint.scala) (see the Scala API docs - TODO!)
 
 ## RuleSet Operations
+
+The RuleSet object is created by the mining process or can be loaded from cache.
+
+```scala
+import com.github.propi.rdfrules._
+val ruleset = index.mine(preparedMiningTask)
+//or from cache
+Ruleset.fromCache(index, "rules.cache")
+Ruleset.fromCache(index, new FileInputStream("rules.cache"))
+```
+
+We need to attach the Index object if we load rules from cache. The RuleSet contains rules in the mapped numeric form. Hence, we need the Index object to map all numbers back to readable triple items and, of course, also to compute additional measures of significance. The RuleSet object keeps all mined rules in memory. We can transform it by filtering, mapping, sorting and computing functions.
+
+```scala
+import com.github.propi.rdfrules._
+ruleset
+  //map rules
+  .map(rule => if (rule.head.predicate.hasSameUriAs("hasChild")) rule.copy(head = rule.head.copy(predicate = "child")) else rule)
+  //filter rules
+  .filter(rule => rule.measures(Measure.HeadCoverage).value > 0.2)
+  //sort by defaults: Cluster, PcaConfidence, Lift, Confidence, HeadCoverage
+  .sorted
+  //sort by selected measures
+  .sortBy(Measure.HeadCoverage, Measure.Lift)
+  //sort by rule length and then by selected measures
+  .sortByRuleLength(Measure.HeadCoverage)
+  //compute additional measures of significance
+  .computeConfidence(0.5)
+  .computePcaConfidence(0.5)
+  .computeLift()
+  //make clusters
+  .makeClusters(DbScan(minNeighbours = 3, minSimilarity = 0.85))
+  //or you can specify our own similarity measures
+  .makeClusters {
+    implicit val ruleSimilarityCounting: SimilarityCounting[Rule.Simple] = (0.5 * AtomsSimilarityCounting) ~ (0.5 * SupportSimilarityCounting)
+    DbScan()
+  }
+  //optionally we can attach to all computing and clustering operations a debugger to print progress
+  //we can cache ruleset into a file on a disk or in memory
+  .cache //into memory
+  .cache("rules.cache") //into a file
+  
+//we can print size of rule set
+println(ruleset.size)
+//or print all rules
+ruleset.foreach(println)
+//or export rules into a file
+ruleset.export("rules.json") //machine readable format
+ruleset.export("rules.txt") //human readable format
+//or to outputstream
+ruleset.export[RulesetSource.Json.type](new FileOutputStream("rules.json"))
+
+//we can find some rule
+val rule = ruleset.find(rule => rule.measures(Measure.HeadCoverage).value == 1).get
+//or get the head of the rule set
+println(ruleset.head)
+//find top-k similar rules to the rule
+ruleset.findSimilar(rule, 10).foreach(println)
+//find top-k dissimilar rules to the rule
+ruleset.findDissimilar(rule, 10).foreach(println)
+```
