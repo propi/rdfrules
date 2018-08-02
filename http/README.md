@@ -176,12 +176,12 @@ In the pipeline, after loaded graph or dataset you can do transformations or act
 
 Notice that *MergeDatasets* task merges all datasets and graphs to one and all following operations are related to all these previously defined graphs and datasets. It is considered as the final set of merged quads from all graphs.
 
-### RDF Data Operations
+### RDF Data Transformations
 
 For a loaded graph or dataset you can define several transformations and actions.
 
 ```
-{"name": "MapData", "parameters": {
+{"name": "MapQuads", "parameters": {
   "search": {                                        //REQUIRED: search quads by regular expressions or conditions
     "subject": "regular expression or condition",    //OPTIONAL
     "predicate": "regular expression or condition",  //OPTIONAL
@@ -197,7 +197,7 @@ For a loaded graph or dataset you can define several transformations and actions
 }}
 ```
 
-In regular expressions we can catch groups by brackets and then refer to them in replacement by the symbol $*\<QuadItem\>\<NumberOfGroup\>*. For example: $s1 refers to group 1 in the subject, $p0 refers to whole matched text in the predicate, $o2 refers to group 2 in the object, $g1 refers to group 1 in the graph.
+In regular expressions we can capture groups by brackets and then refer to them in replacement by the symbol $*\<QuadItem\>\<NumberOfGroup\>*. For example: $s1 refers to group 1 in the subject, $p0 refers to whole matched text in the predicate, $o2 refers to group 2 in the object, $g1 refers to group 1 in the graph.
 
 Types of triples items are distinguished as follows:
 
@@ -206,143 +206,213 @@ Type | Search by regexp or condition | Replacement with reference | Description 
 RESOURCE | ```"<some-uri>"``` | ```"<some-uri-$p0>"``` | Resource must start and end with angle brackets.
 TEXT | ```"\"some (text)\""``` | ```"\"some text $o1\""``` | Text must start and end with double quotes.
 NUMBER | ```"-20.5"``` | ```"$o0 + 5"``` | Text starts with number. We can only capture the whole number and regular expression is not supported.
-NUMBER | ```"> 20"```, ```"(10, 20]"``` | ```"$o0 - 5"``` | For number we can use conditions: >, <, >=, <=, or intervals: (x;y), \[x;y\]
+NUMBER | ```"> 20"```, ```"(10;20]"``` | ```"$o0 - 5"``` | For number we can use conditions: >, <, >=, <=, or intervals: (x;y), \[x;y\]
 BOOLEAN | ```"true"``` | ```"false"``` | For boolean we can use only exact matching: true or false.
-INTERVAL | ```"[x, y)"``` | ```"[$o1 + 5, $o2)"``` | For intervals we can use same conditions as for numbers. Both borders of the intervals are captured, we can refer to them in replacement.
+INTERVAL | ```"[x;y)"``` | ```"[$o1 + 5;$o2)"``` | For intervals we can use same conditions as for numbers. Both borders of the intervals are captured, we can refer to them in replacement.
 
-```scala
-import com.github.propi.rdfrules._
-val graph = Graph("/path/to/triples.ttl")
-val dataset = Dataset("/path/to/quads.nq")
-//map triples or quads
-graph.map(triple => if (triple.predicate.hasSameUriAs("hasChild")) triple.copy(predicate = "child") else triple)
-dataset.map(quad => if (quad.graph.hasSameUriAs("dbpedia")) quad.copy(graph = "yago") else quad)
-//filter triples or quads (following operations will only be shown for RdfDataset)
-dataset.filter(quad => !quad.triple.predicate.hasSameUriAs("isMarriedTo"))
-//take, drop or slice quads or triples
-dataset.take(10)
-dataset.drop(10)
-dataset.slice(10, 20)
-//count number of quads or triples
-dataset.size
-//list all predicates, their types and amounts 
-val types: Map[TripleItem.Uri, Map[TripleItemType], Int] = dataset.types()
-//predicates are keys of the Map, values are Maps where the key is a triple item type (Resource, Number, Boolean, Text, Interval) and values are numbers of occurences of the particular type for the specific predicate.
-types.foreach(println)
-//make histogram for aggregated predicates
-dataset.histogram(predicate = true)
-//make histogram for aggregated predicates with objects
-val histogram: Map[Histogram.Key, Int] = dataset.histogram(predicate = true, `object` = true)
-//a histogram key consists of optional triple items: Histogram.Key(s: Option[TripleItem.Uri], p: Option[TripleItem.Uri], o: Option[TripleItem]).
-//a histogram value is a number of aggregated/grouped triples by the key.
-histogram.toList.sortBy(_._2).foreach(println)
-//we can add prefixes to shorten long URIs and to have data more readable
-dataset.addPrefixes(
-  Prefix("dbo", "http://dbpedia.org/ontology/"),
-  Prefix("dbr", "http://dbpedia.org/resource/")
-)
-//or from file in TURTLE format
-//@prefix dbo: <http://dbpedia.org/ontology/> .
-//@prefix dbr: <http://dbpedia.org/resource/> .
-dataset.addPrefixes("prefixes.ttl")
-//then we can show all defined prefixes
-dataset.prefixes.foreach(println)
-//discretize all numeric literals for the "<age>" predicate into 5 bins by the equal-frequency algorithm.
-dataset.discretize(EquifrequencyDiscretizationTask(5))(quad => quad.triple.predicate.hasSameUriAs("age"))
-//we can use three discretization tasks: EquidistanceDiscretizationTask, EquifrequencyDiscretizationTask and EquisizeDiscretizationTask. See below for more info.
-//it is possible to discretize some parts and only return intervals
-import eu.easyminer.discretization.impl.Interval
-val intervals: Array[Interval] = dataset.discretizeAndGetIntervals(EquifrequencyDiscretizationTask(5))(quad => quad.triple.predicate.hasSameUriAs("age"))
-intervals.foreach(println)
-//cache quads or triples (with all transformations) into a binary file for later use
-dataset.cache("file.cache")
-//export quads or triples into a file in a selected RDF format
-//there are supported only streaming formats: N-Triples, N-Quads, Turtle, TriG, TriX, TSV
-dataset.export("file.ttl") // to one graph
-dataset.export("file.nq") // to several graphs
-//or into output stream
-import org.apache.jena.riot.RDFFormat
-dataset.export(new FileOutputStream("file.nq"))(RDFFormat.NQUADS_ASCII)
-dataset.export(new FileOutputStream("file.tsv"))(RdfSource.Tsv)
-//finally we can create an Index object from RdfDataset or RdfGraph
-val index: Index = dataset.index()
-//or we can specify the index mode. There are two modes: PreservedInMemory and InUseInMemory (for more details see the root page and Index abstraction info)
-dataset.index(Mode.InUseInMemory)
-//we can skip the Index creation and to start rule mining directly (the Index object in PreservedInMemory mode is created automatically)
-dataset.mine(...)
+For the filtering operation we can use same searching syntax as in the mapping operation.
+```
+{"name": "FilterQuads", "parameters": {
+   "subject": "regular expression or condition",    //OPTIONAL
+   "predicate": "regular expression or condition",  //OPTIONAL
+   "object": "regular expression or condition",     //OPTIONAL
+   "graph": "regular expression or condition"       //OPTIONAL
+}}
 ```
 
-Discretization tasks are only facades for implemented discretization algorithms in the [EasyMiner-Discretization](https://github.com/KIZI/EasyMiner-Discretization) library. Supported algorithms are:
+Take, drop and slice operations:
+```
+{"name": "Take", "parameters": {
+   "value": number  //REQUIRED
+}},
+{"name": "Drop", "parameters": {
+   "value": number  //REQUIRED
+}},
+{"name": "Slice", "parameters": {
+   "start": number  //REQUIRED
+   "end": number    //REQUIRED
+}}
+```
+
+Add prefixes:
+```
+{"name": "AddPrefixes", "parameters": {
+   "path": "path/to/prefixes.ttl",              //OPTIONAL: Path in workspace (only Turtle format is supported)
+   "url": "url/to/prefixes.ttl",                //OPTIONAL: URL to a remote file (only Turtle format is supported)
+   "prefixes" [{                                //OPTIONAL: List of defined prefixes 
+     "prefix": "shorten name",
+     "namespace": "URL prefix to be shorten"
+   }, ...]
+}}
+```
+
+Discretization:
+```
+{"name": "Discretize", "parameters": {
+   "subject": "regular expression or condition",    //OPTIONAL: discretize by this filter
+   "predicate": "regular expression or condition",  //OPTIONAL: discretize by this filter
+   "object": "regular expression or condition",     //OPTIONAL: discretize by this filter
+   "graph": "regular expression or condition",      //OPTIONAL: discretize by this filter
+   "task": {                                        //REQUIRED: discretization task
+      "name": "name of discretization task",        //REQUIRED: EquidistanceDiscretizationTask|EquifrequencyDiscretizationTask|EquisizeDiscretizationTask
+      "bins": number,                               //REQUIRED only for EquidistanceDiscretizationTask and EquifrequencyDiscretizationTask: number of intervals being created
+      "mode": "INMEMORY|EXTERNAL",                  //OPTIONAL: it takes effect only for EquifrequencyDiscretizationTask and EquisizeDiscretizationTask. Default is EXTERNAL.
+      "buffer": number,                             //OPTIONAL: it takes effect only for EquifrequencyDiscretizationTask and EquisizeDiscretizationTask. It is buffer limit for sorting in bytes. Default is 15000000 (15MB).        
+      "support": number                             //REQUIRED only for EquisizeDiscretizationTask: each interval must exceed this minimal support value. For [0;1], it use relative support in percents. For value > 1, it use absolute support.
+   }
+}}
+```
 
 Task | Parameters | Algorithm |
 ---- | -----------| --------- |
-EquidistanceDiscretizationTask(*bins*) | *bins*: number of intervals being created | It creates intervals which have equal distance. For example for numbers \[1; 10\] and 5 bins it creates intervals 5 intervals: \[1; 2\], \[3; 4\], \[5; 6\], \[7; 8\], \[9; 10\].
-EquifrequencyDiscretizationTask(*bins*, *mode*, *buffer*) | *bins*: number of intervals being created, *mode* (optional): sorting mode (External or InMemory, default is InMemory), *buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates an exact number of equal-frequent intervals with various distances. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (InMemory: data are sorted in memory with buffer limit, External: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
-EquisizeDiscretizationTask(*support*, *mode*, *buffer*) | *support*: a minimum support (or size) of each interval, *mode* (optional): sorting mode (External or InMemory, default is InMemory), *buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates various number of equal-frequent intervals where all intervals must exceed the minimal support value. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (InMemory: data are sorted in memory with buffer limit, External: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
+EquidistanceDiscretizationTask | *bins*: number of intervals being created | It creates intervals which have equal distance. For example for numbers \[1; 10\] and 5 bins it creates intervals 5 intervals: \[1; 2\], \[3; 4\], \[5; 6\], \[7; 8\], \[9; 10\].
+EquifrequencyDiscretizationTask | *bins*: number of intervals being created, *mode* (optional): sorting mode (EXTERNAL or INMEMORY, default is EXTERNAL), *buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates an exact number of equal-frequent intervals with various distances. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (INMEMORY: data are sorted in memory with buffer limit, EXTERNAL: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
+EquisizeDiscretizationTask | *support*: a minimum support (or size) of each interval, *mode* (optional): sorting mode (EXTERNAL or INMEMORY, default is EXTERNAL), *buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates various number of equal-frequent intervals where all intervals must exceed the minimal support value (relative support: value between zero and one, absolute support = value greater than one). The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (INMEMORY: data are sorted in memory with buffer limit, EXTERNAL: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
+
+Cache dataset into memory or into a file on a disk ("Cache" task can be used also as the action which returns *null* result):
+```
+{"name": "CacheInMemory", "parameters": null}, // in memory caching
+{"name": "Cache", "parameters": {
+   "path": "path/to/data.cache"               //REQUIRED: Path in workspace for a caching file
+}}
+```
+
+Transform into the Index object:
+```
+{"name": "Index", "parameters": null}
+```
+
+### RDF Data Actions
+
+An action is the last task in the pipeline. It executes all transformations and returns some result.
+
+Cache:
+```
+{"name": "Cache", "parameters": {
+   "path": "path/to/data.cache"               //REQUIRED: Path in workspace for a caching file
+}}
+
+RESULT: null
+```
+
+Export into a file in some RDF format:
+```
+{"name": "ExportQuads", "parameters": {
+   "path": "path/to/dataset.nq",              //REQUIRED: Path in workspace for the export
+   "format": "ttl|nt|nq|trig|trix|tsv"        //OPTIONAL: If the format is not specified then the system tries to guess the format by the file extension.
+}}
+
+RESULT: null
+```
+
+Get quads (it is limited to get maximum 10 000 quads). If you need more you can slice the dataset and repeatly call this action.
+```
+{"name": "GetQuads", "parameters": null}
+
+RESULT: {
+  "size": number                                        //total number of quads in dataset
+  "quads" [{
+     "subject": "resource",
+     "predicate": "resource",
+     "object": "resource|text|number|boolean|interval", //resource: <...>, text: \"...\", number: 0, boolean: true|false, interval: (x,y) or [x,y]
+     "graph": "resource"
+  }, ...]
+}
+```
+
+Size of dataset:
+```
+{"name": "Size", "parameters": null}
+
+RESULT: number
+```
+
+Prefixes:
+```
+{"name": "Prefixes", "parameters": null}
+
+RESULT: [{
+   "prefix": "shorten name",
+   "namespace": "base URI"
+}, ...]
+```
+
+Predicate ranges - their types and amounts:
+```
+{"name": "Types", "parameters": null}
+
+RESULT: [{
+   "predicate": "resource",
+   "types": [{
+      "name": "RESOURCE|TEXT|NUMBER|BOOLEAN|INTERVAL",
+      "amount": number
+   }, ...]
+}, ...]
+```
+
+Aggregate/Group triples by their items and return histogram:
+Predicate ranges - their types and amounts:
+```
+{"name": "Types", "parameters": {
+   "subject": true|false,            //OPTIONAL: group by subject, default is false,
+   "predicate": true|false,          //OPTIONAL: group by predicate, default is false,
+   "object": true|false              //OPTIONAL: group by object, default is false
+}}
+
+RESULT: [{
+   "subject": "...",     //Subject value. Only if the subject parameter is true otherwise it is null
+   "predicate": "...",   //Object value. Only if the object parameter is true otherwise it is null
+   "object": "...",      //Predicate value. Only if the predicate parameter is true otherwise it is null
+   "amount": number
+}, ...]
+```
 
 ## Index Operations
 
-The Index object saves data in memory into several hash tables. First, all quad items, including resources, literals, graph names and prefixes, are mapped to a unique integer. Then the program creates six fact indexes only from mapped numbers representing the whole input datasets. Data are replicated six times, therefore we should be cautious about memory. The Index object can be created in two modes:
+The Index object saves data in memory into several hash tables. First, all quad items, including resources, literals, graph names and prefixes, are mapped to a unique integer. Then the program creates six fact indexes only from mapped numbers representing the whole input datasets. Data are replicated six times, therefore we should be cautious about memory.
 
-Mode | Description |
----- | ------------|
-PreservedInMemory | Data are preserved in memory until the Index object exists. DEFAULT.
-InUseInMemory | Data are loaded into memory once we need them. After use we release the index.
-
-We can operate with Index by following operations:
-```scala
-import com.github.propi.rdfrules._
-//create index from dataset
-val index = Dataset("/path/to/data.nq").index()
-//create index from graph
-Graph("/path/to/data.nt").index()
-//create index in different mode
-Graph("/path/to/data.nt").index(Mode.InUseInMemory)
-//create index from cache
-Index.fromCache("index.cache")
-Index.fromCache(new FileInputStream("index.cache"))
-//get mapper which maps triple items to number or vice versa
-index.tripleItemMap { mapper =>
-  mapper.getIndex(TripleItem.Uri("hasChild")) // get a number for <hasChild> resource
-  mapper.getTripleItem(1) // get a triple item from number 1
-}
-//get six fact indexes
-index.tripleMap { indexes =>
-  //print all graphs bound with predicate 1, subject 2 and object 3
-  indexes.predicates(1).subjects(2).value(3).iterator.foreach(println)
-  //print a number of all triples with predicate 1 and subject 2
-  println(indexes.predicates(1).subjects(2).size)
-}
-//evaluate all lazy vals in fact indexes such as sizes and graphs: some values are not evaluated immediately but during a mining process if we need them. This method is suitable for measurement of rule mining to eliminate all secondary calculations.
-index.withEvaluatedLazyVals
-//create an RdfDataset object from Index
-index.toDataset
-//serialize the Index object into a file on a disk
-index.cache("data.cache")
-//or with output stream
-index.cache(new FileOutputStream("data.cache"))
-//start a rule mining process where the input parameter is a rule mining task (see below for details)
-index.mine(...)
+Load index from cache:
+```
+{"name": "LoadIndex", "parameters": {
+  "path": "path/to/index.cache"                       //REQUIRED: Path in workspace
+}}
 ```
 
-## Start the Rule Mining Process
+After the Index or LoadIndex task we can define following operations.
 
-We can create a rule mining task by following operations:
-```scala
-import com.github.propi.rdfrules._
-//create the AMIE+ rule mining task with default parameters (MinHeadSize = 100, MinHeadCoverage = 0.01, MaxRuleLength = 3)
-val miningTask = Amie()
-index.mine(miningTask)
-//with debugger which prints progress of the mining process
-Debugger() { implicit debugger =>
-  val miningTask = Amie()
-  index.mine(miningTask)
-}
-//optionally you can attach your own logger to manage log messages
-Debugger(myLogger) { implicit debugger =>
-  val miningTask = Amie(myLogger)
-  ...
-}
+Serialize the whole index into a file on a disk (it can be used as a transformation or action):
+```
+{"name": "Cache", "parameters": {
+   "path": "path/to/data.cache"               //REQUIRED: Path in workspace for a caching file
+}}
+
+RETURN: null
+```
+
+Transform index back to the dataset.
+```
+{"name": "ToDataset", "parameters": null}
+```
+
+Finally, from the Index object we can create a rule mining task which transforms the Index object into RuleSet object:
+```
+{"name": "Mine", "parameters": {
+   "thresholds": [{                                                        //OPTIONAL: default is MinHeadSize=100, MinHeadCoverage=0.01, MaxRuleLength=3
+      "name": "MinHeadSize|MinHeadCoverage|MaxRuleLength|TopK|Timeout",    //REQUIRED
+      "value": number                                                      //REQUIRED: MinHeadSize: integer greater than one, MinHeadCoverage: real number [0;1], MaxRuleLength: integer greater than one, TopK: integer greater than zero, Timeout: integer representing number of minutes
+   }, ...],
+   "patterns" [{
+      "head": "...",
+      "body": [{
+         ... same format as the head ...
+      }, ...]
+   }, ...],
+   "constraints": [{
+     "name": ""
+   }, ...]
+}}
+
+RESULT: null
 ```
 
 We can add thresholds, rule patterns and constraints to the created mining task:
@@ -359,8 +429,6 @@ val preparedMiningTask = miningTask
   .addConstraint(RuleConstraint.WithInstances(false))
 index.mine(preparedMiningTask)
 ```
-
-All possibilities of thresholds, patterns and constraints are described in the code: [Threshold.scala](https://github.com/propi/rdfrules/blob/master/core/src/main/scala/com/github/propi/rdfrules/rule/Threshold.scala), [RulePattern.scala](https://github.com/propi/rdfrules/blob/master/core/src/main/scala/com/github/propi/rdfrules/rule/RulePattern.scala), [AtomPattern.scala](https://github.com/propi/rdfrules/blob/master/core/src/main/scala/com/github/propi/rdfrules/rule/AtomPattern.scala) and [RuleConstraint.scala](https://github.com/propi/rdfrules/blob/master/core/src/main/scala/com/github/propi/rdfrules/rule/RuleConstraint.scala) (see the Scala API docs - TODO!)
 
 ## RuleSet Operations
 
