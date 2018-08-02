@@ -75,7 +75,7 @@ RdfGraph and RdfDataset abstractions have defined similar operations. The main d
 ```scala
 import com.github.propi.rdfrules._
 val graph = Graph("/path/to/triples.ttl")
-val dataset = Graph("/path/to/quads.nq")
+val dataset = Dataset("/path/to/quads.nq")
 //map triples or quads
 graph.map(triple => if (triple.predicate.hasSameUriAs("hasChild")) triple.copy(predicate = "child") else triple)
 dataset.map(quad => if (quad.graph.hasSameUriAs("dbpedia")) quad.copy(graph = "yago") else quad)
