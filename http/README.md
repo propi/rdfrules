@@ -14,7 +14,7 @@ Or you can use it in your own SBT project:
 ```sbt
 resolvers += "jitpack" at "https://jitpack.io"
 
-libraryDependencies += "com.github.propi.rdfrules" % "rest" % "master"
+libraryDependencies += "com.github.propi.rdfrules" % "http" % "master"
 ```
 
 You can also download .jar file with all dependencies from JitPack and simply run class ```com.github.propi.rdfrules.http.Main``` without any other parameters.
