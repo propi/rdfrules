@@ -453,7 +453,7 @@ Replace items in rules:
   "search": {                                           //REQUIRED: search rules by regular expressions or conditions
     "patterns": [...],                                  //OPTIONAL: the same syntax as for the "pattern" parameter in the Mine task.
     "measures" [{
-       "type": "HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", //REQUIRED
+       "name": "RuleLength|HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", //REQUIRED
        "value": "condition"                             //REQUIRED: the same syntax as for the filtering or mapping task of quads for the NUMBER type. See below for details.
     }, ...],
     "inverse": true|false                               //OPTIONAL: if true than map all rules that do not conform to all expressions and conditions. Default is false.
@@ -467,7 +467,7 @@ Replace items in rules:
     },
     "body": [... the same syntax as for the head ...],  //OPTIONAL
     "measures": [{
-       "type": "HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", //REQUIRED
+       "name": "HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", //REQUIRED
        "value": number                                  //REQUIRED
     }, ...]
   }
@@ -480,7 +480,7 @@ For the filtering operation we can use same searching syntax as in the mapping o
   "search": {                                           //REQUIRED: search rules by regular expressions or conditions
     "patterns": [...],                                  //OPTIONAL: the same syntax as for the "pattern" parameter in the Mine task.
     "measures" [{
-       "type": "HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", //REQUIRED
+       "name": "RuleLength|HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", //REQUIRED
        "value": "condition"                             //REQUIRED: the same syntax as for the filtering or mapping task of quads for the NUMBER type. See below for details.
     }, ...],
     "inverse": true|false                               //OPTIONAL: if true than filter all rules that do not conform to all expressions and conditions. Default is false.
@@ -502,6 +502,62 @@ Take, drop and slice operations:
    "start": number  //REQUIRED
    "end": number    //REQUIRED
 }}
+```
+
+Sort by measures:
+```
+{"name": "Sorted", null}, //sort by default settings: Cluster, PcaConfidence, Lift, Confidence, HeadCoverage
+{"name": "Sort", "parameters": {
+   "by": [{
+      "measure": "RuleLength|HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster",  //REQUIRED
+      "reversed": true|false  //OPTIONAL: default is false
+   }, ...]
+}}
+```
+
+Compute additional measures of significance:
+```
+{"name": "ComputeConfidence", {
+   "min": number                    //OPTIONAL: minimal confidence, default is 0.5
+}},
+{"name": "ComputeLift", {
+   "min": number                    //OPTIONAL: minimal confidence, default is 0.5
+}},
+{"name": "ComputePcaConfidence", {
+   "min": number                    //OPTIONAL: minimal PCA confidence, default is 0.5
+}}
+```
+
+Make clusters by DBScan algorithms:
+```
+{"name": "MakeClusters", {
+   "minNeighbours": number,                                          //OPTIONAL: default is 5
+   "minSimilarity": number,                                          //OPTIONAL: default is 0.9
+   "features": [{                                                    //OPTIONAL: default is Atoms:0.5, Length:0.1, Support:0.15, PcaConfidence:0.15, Confidence:0.05, Lift:0.05
+      "name": "Atoms|Support|Confidence|PcaConfidence|Lift|Length",  //REQUIRED
+      "weight": number                                               //REQUIRED: weight of this feature [0;1]
+   }, ...]                             
+}}
+```
+
+Find similar or dissimilar rules:
+```
+{"name": "FindSimilar", {
+   "take": number                       //REQUIRED: find top-k most similar rules
+   "rule": {
+      "head": {
+         "subject": "...",          //REQUIRED
+         "predicate": "...",        //REQUIRED
+         "object": "...",           //REQUIRED
+         "graph": "..."             //OPTIONAL
+      },
+      "body" [... same syntax as for the head ...],
+      "measures": [{
+         
+      }, ...]
+   }
+}},
+{"name": "FindDissimilar", ... same syntax as for FindSimilar ... }
 ```
 
 ```scala
