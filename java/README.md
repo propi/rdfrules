@@ -145,7 +145,7 @@ dataset.discretize(new EquifrequencyDiscretizationTask(5), quad -> quad.getTripl
 //we can use three discretization tasks: EquidistanceDiscretizationTask, EquifrequencyDiscretizationTask and EquisizeDiscretizationTask. See below for more info.
 //it is possible to discretize some parts and only return intervals
 import eu.easyminer.discretization.Interval;
-Interval[] intervals = Dataset.empty().discretizeAndGetIntervals(new EquifrequencyDiscretizationTask(5), quad -> quad.getTriple.getPredicate.hasSameUriAs(new TripleItem.LongUri("age")));
+Interval[] intervals = dataset.discretizeAndGetIntervals(new EquifrequencyDiscretizationTask(5), quad -> quad.getTriple.getPredicate.hasSameUriAs(new TripleItem.LongUri("age")));
 //cache quads or triples (with all transformations) into a binary file for later use
 dataset.cache("file.cache");
 //export quads or triples into a file in a selected RDF format
