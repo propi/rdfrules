@@ -31,7 +31,7 @@ TSV | .tsv | No
 
 RdfGraph: Loading triples into one graph.
 ```scala
-import com.github.propi.rdfrules._
+import com.github.propi.rdfrules.data._
 import org.apache.jena.riot.Lang
 //from file - RdfRules automatically recognizes the RDF format by the file extension
 Graph("/path/to/triples.ttl")
@@ -53,7 +53,7 @@ Graph.fromCache("my-graph", "/path/to/triples.cache")
 
 RdfDataset: Loading quads into a dataset.
 ```scala
-import com.github.propi.rdfrules._
+import com.github.propi.rdfrules.data._
 import org.apache.jena.riot.Lang
 //one graph - create quads with the default graph name.
 Dataset("/path/to/triples.ttl")
@@ -110,11 +110,11 @@ dataset.addPrefixes("prefixes.ttl")
 //then we can show all defined prefixes
 dataset.prefixes.foreach(println)
 //discretize all numeric literals for the "<age>" predicate into 5 bins by the equal-frequency algorithm.
-dataset.discretize(EquifrequencyDiscretizationTask(5))(quad => quad.triple.predicate.hasSameUriAs("age"))
-//we can use three discretization tasks: EquidistanceDiscretizationTask, EquifrequencyDiscretizationTask and EquisizeDiscretizationTask. See below for more info.
+dataset.discretize(DiscretizationTask.Equifrequency(5))(quad => quad.triple.predicate.hasSameUriAs("age"))
+//we can use three discretization tasks: Equidistance, Equifrequency and Equisize. See below for more info.
 //it is possible to discretize some parts and only return intervals
 import eu.easyminer.discretization.impl.Interval
-val intervals: Array[Interval] = dataset.discretizeAndGetIntervals(EquifrequencyDiscretizationTask(5))(quad => quad.triple.predicate.hasSameUriAs("age"))
+val intervals: Array[Interval] = dataset.discretizeAndGetIntervals(DiscretizationTask.Equifrequency(5))(quad => quad.triple.predicate.hasSameUriAs("age"))
 intervals.foreach(println)
 //cache quads or triples (with all transformations) into a binary file for later use
 dataset.cache("file.cache")
@@ -138,9 +138,9 @@ Discretization tasks are only facades for implemented discretization algorithms 
 
 Task | Parameters | Algorithm |
 ---- | -----------| --------- |
-EquidistanceDiscretizationTask(*bins*) | *bins*: number of intervals being created | It creates intervals which have equal distance. For example for numbers \[1; 10\] and 5 bins it creates intervals 5 intervals: \[1; 2\], \[3; 4\], \[5; 6\], \[7; 8\], \[9; 10\].
-EquifrequencyDiscretizationTask(*bins*, *mode*, *buffer*) | *bins*: number of intervals being created, *mode* (optional): sorting mode (External or InMemory, default is External), *buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates an exact number of equal-frequent intervals with various distances. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (InMemory: data are sorted in memory with buffer limit, External: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
-EquisizeDiscretizationTask(*support*, *mode*, *buffer*) | *support*: a minimum support (or size) of each interval, *mode* (optional): sorting mode (External or InMemory, default is External), *buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates various number of equal-frequent intervals where all intervals must exceed the minimal support value. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (InMemory: data are sorted in memory with buffer limit, External: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
+DiscretizationTask.Equidistance(*bins*) | *bins*: number of intervals being created | It creates intervals which have equal distance. For example for numbers \[1; 10\] and 5 bins it creates intervals 5 intervals: \[1; 2\], \[3; 4\], \[5; 6\], \[7; 8\], \[9; 10\].
+DiscretizationTask.Equifrequency(*bins*, *buffer*, *mode*) | *bins*: number of intervals being created, *mode* (optional): sorting mode (External or InMemory, default is External), *buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates an exact number of equal-frequent intervals with various distances. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (InMemory: data are sorted in memory with buffer limit, External: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
+DiscretizationTask.Equisize(*support*, *buffer*, *mode*) | *support*: a minimum support (or size) of each interval, *mode* (optional): sorting mode (External or InMemory, default is External), *buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates various number of equal-frequent intervals where all intervals must exceed the minimal support value. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (InMemory: data are sorted in memory with buffer limit, External: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
 
 ## Index Operations
 
@@ -153,7 +153,8 @@ InUseInMemory | Data are loaded into memory once we need them. After use we rele
 
 We can operate with Index by following operations:
 ```scala
-import com.github.propi.rdfrules._
+import com.github.propi.rdfrules.data._
+import com.github.propi.rdfrules.index._
 //create index from dataset
 val index = Dataset("/path/to/data.nq").index()
 //create index from graph
@@ -191,7 +192,7 @@ index.mine(...)
 
 We can create a rule mining task by following operations:
 ```scala
-import com.github.propi.rdfrules._
+import com.github.propi.rdfrules.rule._
 //create the AMIE+ rule mining task with default parameters (MinHeadSize = 100, MinHeadCoverage = 0.01, MaxRuleLength = 3)
 val miningTask = Amie()
 index.mine(miningTask)
@@ -209,15 +210,16 @@ Debugger(myLogger) { implicit debugger =>
 
 We can add thresholds, rule patterns and constraints to the created mining task:
 ```scala
-import com.github.propi.rdfrules._
+import com.github.propi.rdfrules.data._
+import com.github.propi.rdfrules.rule._
 val preparedMiningTask = miningTask
   .addThreshold(Threshold.MinHeadCoverage(0.1))
   //add rule pattern: * => isMarriedTo(Any, Any)
-  .addPattern(AtomPattern(predicate = "isMarriedTo"))
+  .addPattern(AtomPattern(predicate = TripleItem.Uri("isMarriedTo")))
   //add rule pattern: Any(?a, Any, <yago>) ^ Any(Any, AnyConstant) => isMarriedTo(Any, Any)
-  .addPattern(AtomPattern(graph = "yago", subject = 'a') &: AtomPattern(`object` = AnyConstant) =>: AtomPattern(predicate = "isMarriedTo"))
+  .addPattern(AtomPattern(graph = TripleItem.Uri("yago"), subject = 'a') &: AtomPattern(`object` = AnyConstant) =>: AtomPattern(predicate = TripleItem.Uri("isMarriedTo")))
   //add rule pattern: hasChild(Any, Any) => *
-  .addPattern(AtomPattern(predicate = "hasChild") =>: None)
+  .addPattern(AtomPattern(predicate = TripleItem.Uri("hasChild")) =>: None)
   .addConstraint(RuleConstraint.WithInstances(false))
 index.mine(preparedMiningTask)
 ```
@@ -229,7 +231,7 @@ All possibilities of thresholds, patterns and constraints are described in the c
 The RuleSet object is created by the mining process or can be loaded from cache.
 
 ```scala
-import com.github.propi.rdfrules._
+import com.github.propi.ruleset._
 val ruleset = index.mine(preparedMiningTask)
 //or from cache
 Ruleset.fromCache(index, "rules.cache")
@@ -239,7 +241,8 @@ Ruleset.fromCache(index, new FileInputStream("rules.cache"))
 We need to attach the Index object if we load rules from cache. The RuleSet contains rules in the mapped numeric form. Hence, we need the Index object to map all numbers back to readable triple items and, of course, also to compute additional measures of significance. The RuleSet object keeps all mined rules in memory. We can transform it by filtering, mapping, sorting and computing functions.
 
 ```scala
-import com.github.propi.rdfrules._
+import com.github.propi.data._
+import com.github.propi.ruleset._
 ruleset
   //map rules
   .map(rule => if (rule.head.predicate.hasSameUriAs("hasChild")) rule.copy(head = rule.head.copy(predicate = "child")) else rule)
