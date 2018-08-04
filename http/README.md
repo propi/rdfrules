@@ -180,6 +180,7 @@ Notice that *MergeDatasets* task merges all datasets and graphs to one and all f
 
 For a loaded graph or dataset you can define several transformations and actions.
 
+Replace items in quads:
 ```
 {"name": "MapQuads", "parameters": {
   "search": {                                        //REQUIRED: search quads by regular expressions or conditions
@@ -388,7 +389,7 @@ Serialize the whole index into a file on a disk (it can be used as a transformat
    "path": "path/to/data.cache"               //REQUIRED: Path in workspace for a caching file
 }}
 
-RETURN: null
+RESULT: null
 ```
 
 Transform index back to the dataset.
@@ -419,8 +420,6 @@ Finally, from the Index object we can create a rule mining task which transforms
      "values": ["<predicate1>", "prefix:predicate2", ...] //REQUIRED only for OnlyPredicates and WithoutPredicates constraints
    }, ...]
 }}
-
-RESULT: null
 ```
 
 Schema for AtomItemPatternObject
@@ -433,19 +432,77 @@ Schema for AtomItemPatternObject
 }
 ```
 
-## RuleSet Operations
+## RuleSet Transformations
 
-The RuleSet object is created by the mining process or can be loaded from cache.
+The RuleSet object is created by the mining process (Mine task) or can be loaded from cache (LoadRuleSet task).
 
-```scala
-import com.github.propi.rdfrules._
-val ruleset = index.mine(preparedMiningTask)
-//or from cache
-Ruleset.fromCache(index, "rules.cache")
-Ruleset.fromCache(index, new FileInputStream("rules.cache"))
+Load RuleSet from cache:
+```
+{"name": "LoadRuleSet", "parameters": {
+  "path": "path/to/rules.cache"                       //REQUIRED: Path in workspace
+}}
 ```
 
-We need to attach the Index object if we load rules from cache. The RuleSet contains rules in the mapped numeric form. Hence, we need the Index object to map all numbers back to readable triple items and, of course, also to compute additional measures of significance. The RuleSet object keeps all mined rules in memory. We can transform it by filtering, mapping, sorting and computing functions.
+The RuleSet object requires the Index object for mapping all hashed triple items back to the readable format and for computing additional measures of significance. Hence, we can use the LoadRuleSet task only if we have loaded the Index object. 
+
+Miner rules can be transformed by filtering, mapping, sorting and computing functions.
+
+Replace items in rules:
+```
+{"name": "MapRules", "parameters": {
+  "search": {                                           //REQUIRED: search rules by regular expressions or conditions
+    "patterns": [...],                                  //OPTIONAL: the same syntax as for the "pattern" parameter in the Mine task.
+    "measures" [{
+       "type": "HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", //REQUIRED
+       "value": "condition"                             //REQUIRED: the same syntax as for the filtering or mapping task of quads for the NUMBER type. See below for details.
+    }, ...],
+    "inverse": true|false                               //OPTIONAL: if true than map all rules that do not conform to all expressions and conditions. Default is false.
+  },
+  "replacement": {                                      //REQUIRED: if all defined regular expressions or conditions are valid then we replace the rule by defined replacements. All unspecified replacements will have original values.
+    "head": {                                           //OPTIONAL   
+       "subject": "replacement"                         //OPTIONAL: variable: ?a, resource: <...> or prefix:localName
+       "predicate": "replacement",                      //OPTIONAL: resource: <...> or prefix:localName
+       "object": "replacement",                         //OPTIONAL: variable: ?a, resource: <...> or prefix:localName, text: \"...\", number: 0, boolean: true|false, interval: (x,y) or [x,y]
+       "graph": "replacement"                           //OPTIONAL: resource: <...> or prefix:localName
+    },
+    "body": [... the same syntax as for the head ...],  //OPTIONAL
+    "measures": [{
+       "type": "HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", //REQUIRED
+       "value": number                                  //REQUIRED
+    }, ...]
+  }
+}}
+```
+
+For the filtering operation we can use same searching syntax as in the mapping operation.
+```
+{"name": "FilterRules", "parameters": {
+  "search": {                                           //REQUIRED: search rules by regular expressions or conditions
+    "patterns": [...],                                  //OPTIONAL: the same syntax as for the "pattern" parameter in the Mine task.
+    "measures" [{
+       "type": "HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", //REQUIRED
+       "value": "condition"                             //REQUIRED: the same syntax as for the filtering or mapping task of quads for the NUMBER type. See below for details.
+    }, ...],
+    "inverse": true|false                               //OPTIONAL: if true than filter all rules that do not conform to all expressions and conditions. Default is false.
+  },
+}}
+```
+
+For measures conditions we can use: >, <, >=, <=, or intervals: (x;y), \[x;y\]. For example ```> 0.5```: a measure must be greater than 0.5, ```1```: a measure must be 1, ```(0.5;0.9]```: a measure must be greater than 0.5 and less than or equal to 0.9.
+
+Take, drop and slice operations:
+```
+{"name": "Take", "parameters": {
+   "value": number  //REQUIRED
+}},
+{"name": "Drop", "parameters": {
+   "value": number  //REQUIRED
+}},
+{"name": "Slice", "parameters": {
+   "start": number  //REQUIRED
+   "end": number    //REQUIRED
+}}
+```
 
 ```scala
 import com.github.propi.rdfrules._
