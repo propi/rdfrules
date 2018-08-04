@@ -4,16 +4,17 @@ This is the HTTP REST web service of the RdfRules tool written in the Scala lang
 
 ## Getting Started
 
-SBT
+Clone the RdfRules repository and run following SBT commands. It starts the HTTP web server:
+```sbt
+> project http
+> run
+```
+
+Or you can use it in your own SBT project:
 ```sbt
 resolvers += "jitpack" at "https://jitpack.io"
 
 libraryDependencies += "com.github.propi.rdfrules" % "rest" % "master"
-```
-
-Start the HTTP web server from SBT:
-```sbt
-> run
 ```
 
 You can also download .jar file with all dependencies from JitPack and simply run class ```com.github.propi.rdfrules.http.Main``` without any other parameters.
@@ -30,7 +31,7 @@ rdfrules {
   workspace = "workspace"
 }
 ```
-The default endpoint is on http://localhost:8080/api
+The default endpoint is listening on http://localhost:8080/api
 
 You can set some environment variables to change these default values:
 
