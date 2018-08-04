@@ -274,7 +274,6 @@ EquisizeDiscretizationTask | *support*: a minimum support (or size) of each inte
 
 Cache dataset into memory or into a file on a disk ("Cache" task can be used also as the action which returns *null* result):
 ```
-{"name": "CacheInMemory", "parameters": null}, // in memory caching
 {"name": "Cache", "parameters": {
    "path": "path/to/data.cache"               //REQUIRED: Path in workspace for a caching file
 }}
@@ -543,68 +542,90 @@ Make clusters by DBScan algorithms:
 Find similar or dissimilar rules:
 ```
 {"name": "FindSimilar", {
-   "take": number                       //REQUIRED: find top-k most similar rules
-   "rule": {
-      "head": {
-         "subject": "...",          //REQUIRED
-         "predicate": "...",        //REQUIRED
-         "object": "...",           //REQUIRED
-         "graph": "..."             //OPTIONAL
+   "take": number                                    //REQUIRED: find top-k most similar rules
+   "rule": {                                         //REQUIRED
+      "head": {                                      //REQUIRED
+         "subject": "...",                           //REQUIRED: variable: ?a, resource: <...> or prefix:localName
+         "predicate": "...",                         //REQUIRED: resource: <...> or prefix:localName
+         "object": "...",                            //REQUIRED: variable: ?a, resource: <...> or prefix:localName, text: \"...\", number: 0, boolean: true|false, interval: (x,y) or [x,y]
+         "graph": "..."                              //OPTIONAL: resource: <...> or prefix:localName
       },
-      "body" [... same syntax as for the head ...],
+      "body" [... same syntax as for the head ...],  //REQUIRED
       "measures": [{
-         
+         "name": "HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", //REQUIRED
+         "value": number          //REQUIRED
       }, ...]
    }
 }},
 {"name": "FindDissimilar", ... same syntax as for FindSimilar ... }
 ```
 
-```scala
-import com.github.propi.rdfrules._
-ruleset
-  //map rules
-  .map(rule => if (rule.head.predicate.hasSameUriAs("hasChild")) rule.copy(head = rule.head.copy(predicate = "child")) else rule)
-  //filter rules
-  .filter(rule => rule.measures(Measure.HeadCoverage).value > 0.2)
-  //sort by defaults: Cluster, PcaConfidence, Lift, Confidence, HeadCoverage
-  .sorted
-  //sort by selected measures
-  .sortBy(Measure.HeadCoverage, Measure.Lift)
-  //sort by rule length and then by selected measures
-  .sortByRuleLength(Measure.HeadCoverage)
-  //compute additional measures of significance
-  .computeConfidence(0.5)
-  .computePcaConfidence(0.5)
-  .computeLift()
-  //make clusters
-  .makeClusters(DbScan(minNeighbours = 3, minSimilarity = 0.85))
-  //or you can specify our own similarity measures
-  .makeClusters {
-    implicit val ruleSimilarityCounting: SimilarityCounting[Rule.Simple] = (0.5 * AtomsSimilarityCounting) ~ (0.5 * SupportSimilarityCounting)
-    DbScan()
-  }
-  //optionally we can attach to all computing and clustering operations a debugger to print progress
-  //we can cache ruleset into a file on a disk or in memory
-  .cache //into memory
-  .cache("rules.cache") //into a file
-  
-//we can print size of rule set
-println(ruleset.size)
-//or print all rules
-ruleset.foreach(println)
-//or export rules into a file
-ruleset.export("rules.json") //machine readable format
-ruleset.export("rules.txt") //human readable format
-//or to outputstream
-ruleset.export[RulesetSource.Json.type](new FileOutputStream("rules.json"))
+Add information about a belonging graph to each atom of all rules:
+```
+{"name": "GraphBasedRules", null}
+```
 
-//we can find some rule
-val rule = ruleset.find(rule => rule.measures(Measure.HeadCoverage).value == 1).get
-//or get the head of the rule set
-println(ruleset.head)
-//find top-k similar rules to the rule
-ruleset.findSimilar(rule, 10).foreach(println)
-//find top-k dissimilar rules to the rule
-ruleset.findDissimilar(rule, 10).foreach(println)
+Cache the RuleSet object into a file
+```
+{"name": "Cache", "parameters": {
+   "path": "path/to/rules.cache"               //REQUIRED: Path in workspace for a caching file
+}}
+```
+
+## RuleSet Actions
+
+An action is the last task in the pipeline. It executes all transformations and returns some result.
+
+Cache:
+```
+{"name": "Cache", "parameters": {
+   "path": "path/to/rules.cache"               //REQUIRED: Path in workspace for a caching file
+}}
+
+RESULT: null
+```
+
+Export into a file in the human readable text format or in the machine readable JSON format:
+```
+{"name": "ExportRules", "parameters": {
+   "path": "path/to/dataset.txt",             //REQUIRED: Path in workspace for the export
+   "format": "txt|json"                       //OPTIONAL: If the format is not specified then the system tries to guess the format by the file extension.
+}}
+
+RESULT: null
+```
+
+Get rules (it is limited to get maximum 10 000 rules). If you need more you can slice RuleSet and repeatly call this action.
+```
+{"name": "GetRules", "parameters": null}
+
+RESULT: {
+   "size": number,                                //total number of rules in RuleSet
+   "rules": [{
+      "head": {                                      
+         "subject": {
+           "type": "variable|constant",
+           "value": "..."
+         },                           
+         "predicate": "...",                        
+         "object": {
+           "type": "variable|constant",
+           "value": "..."
+         },                             
+         "graph": "..."                           //only for graph-based rules
+      },
+      "body" [... same syntax as for the head ...], 
+      "measures": [{
+         "name": "RuleLength|HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", 
+         "value": number
+      }, ...]
+   }, ...]
+}
+```
+
+Size of RuleSet:
+```
+{"name": "Size", "parameters": null}
+
+RESULT: number
 ```
