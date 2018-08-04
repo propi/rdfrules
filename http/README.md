@@ -187,6 +187,7 @@ For a loaded graph or dataset you can define several transformations and actions
     "predicate": "regular expression or condition",  //OPTIONAL
     "object": "regular expression or condition",     //OPTIONAL
     "graph": "regular expression or condition"       //OPTIONAL
+    "inverse": true|false                            //OPTIONAL: if true than map all quads that do not conform to all expressions and conditions. Default is false.
   },
   "replacement": {                      //REQUIRED: if all defined regular expressions or conditions are valid then we replace the quad by defined replacements
     "subject": "replacement"            //OPTIONAL
@@ -203,7 +204,7 @@ Types of triples items are distinguished as follows:
 
 Type | Search by regexp or condition | Replacement with reference | Description |
 ---- | ----------------------------- | -------------------------- | ----------- |
-RESOURCE | ```"<some-uri>"``` | ```"<some-uri-$p0>"``` | Resource must start and end with angle brackets.
+RESOURCE | ```"<some-uri>"```, ```"prefix:(localName)"``` | ```"<some-uri-$p0>"```, ```"prefix2:$1"``` | Resource must start and end with angle brackets or it can be a local name with a prefix.
 TEXT | ```"\"some (text)\""``` | ```"\"some text $o1\""``` | Text must start and end with double quotes.
 NUMBER | ```"-20.5"``` | ```"$o0 + 5"``` | Text starts with number. We can only capture the whole number and regular expression is not supported.
 NUMBER | ```"> 20"```, ```"(10;20]"``` | ```"$o0 - 5"``` | For number we can use conditions: >, <, >=, <=, or intervals: (x;y), \[x;y\]
@@ -217,6 +218,7 @@ For the filtering operation we can use same searching syntax as in the mapping o
    "predicate": "regular expression or condition",  //OPTIONAL
    "object": "regular expression or condition",     //OPTIONAL
    "graph": "regular expression or condition"       //OPTIONAL
+   "inverse": true|false                            //OPTIONAL: filter quads that do not conform to all expressions and conditions. Default is false.
 }}
 ```
 
@@ -310,11 +312,11 @@ Get quads (it is limited to get maximum 10 000 quads). If you need more you can 
 {"name": "GetQuads", "parameters": null}
 
 RESULT: {
-  "size": number                                        //total number of quads in dataset
+  "size": number                                                       //total number of quads in dataset
   "quads" [{
      "subject": "resource",
      "predicate": "resource",
-     "object": "resource|text|number|boolean|interval", //resource: <...>, text: \"...\", number: 0, boolean: true|false, interval: (x,y) or [x,y]
+     "object": "some type of: resource|text|number|boolean|interval",  //resource: <...>, text: \"...\", number: 0, boolean: true|false, interval: (x,y) or [x,y]
      "graph": "resource"
   }, ...]
 }
@@ -402,32 +404,33 @@ Finally, from the Index object we can create a rule mining task which transforms
       "value": number                                                      //REQUIRED: MinHeadSize: integer greater than one, MinHeadCoverage: real number [0;1], MaxRuleLength: integer greater than one, TopK: integer greater than zero, Timeout: integer representing number of minutes
    }, ...],
    "patterns" [{
-      "head": "...",
-      "body": [{
+      "head": {                              //OPTIONAL: pattern for the head atom
+         "subject": AtomItemPatternObject,   //OPTIONAL: see below for detailed information (default is: Any)
+         "predicate": AtomItemPatternObject, //OPTIONAL: see below for detailed information (default is: Any)
+         "object": AtomItemPatternObject,    //OPTIONAL: see below for detailed information (default is: Any)
+         "graph": AtomItemPatternObject      //OPTIONAL: see below for detailed information (default is: Any)
+      },
+      "body": [{                             //OPTIONAL: patterns for body atoms
          ... same format as the head ...
       }, ...]
    }, ...],
    "constraints": [{
-     "name": ""
+     "name": "WithInstances|WithInstancesOnlyObjects|WithoutDuplicitPredicates|OnlyPredicates|WithoutPredicates", //REQUIRED: see the root directory for detailed information
+     "values": ["<predicate1>", "prefix:predicate2", ...] //REQUIRED only for OnlyPredicates and WithoutPredicates constraints
    }, ...]
 }}
 
 RESULT: null
 ```
 
-We can add thresholds, rule patterns and constraints to the created mining task:
-```scala
-import com.github.propi.rdfrules._
-val preparedMiningTask = miningTask
-  .addThreshold(Threshold.MinHeadCoverage(0.1))
-  //add rule pattern: * => isMarriedTo(Any, Any)
-  .addPattern(AtomPattern(predicate = "isMarriedTo"))
-  //add rule pattern: Any(?a, Any, <yago>) ^ Any(Any, AnyConstant) => isMarriedTo(Any, Any)
-  .addPattern(AtomPattern(graph = "yago", subject = 'a') &: AtomPattern(`object` = AnyConstant) =>: AtomPattern(predicate = "isMarriedTo"))
-  //add rule pattern: hasChild(Any, Any) => *
-  .addPattern(AtomPattern(predicate = "hasChild") =>: None)
-  .addConstraint(RuleConstraint.WithInstances(false))
-index.mine(preparedMiningTask)
+Schema for AtomItemPatternObject
+```
+{
+  "type": "Any|AnyConstant|AnyVariable|Constant|Variable|OneOf|NoneOf", //REQUIRED: see the root directory for detailed information
+  "value": [AtomItemPatternObject, ...]                                 //REQUIRED only for OneOf and NoneOf
+  "value": "a|b|c|d|e|..."                                              //REQUIRED only for Variable: just one character
+  "value": "a value of type: resource|text|number|boolean|interval",    //REQUIRED only for Constant: resource: <...>, text: \"...\", number: 0, boolean: true|false, interval: (x,y) or [x,y]
+}
 ```
 
 ## RuleSet Operations
