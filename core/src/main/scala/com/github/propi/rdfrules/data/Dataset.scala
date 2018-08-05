@@ -6,12 +6,12 @@ import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.data.Triple.TripleTraversableView
 import com.github.propi.rdfrules.data.ops._
-import com.github.propi.rdfrules.index.{Index, TripleItemHashIndex}
+import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.index.Index.Mode
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.serialization.QuadSerialization._
-import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension._
+import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 
 /**
   * Created by Vaclav Zeman on 3. 10. 2017.
@@ -50,14 +50,11 @@ class Dataset private(val quads: QuadTraversableView)
     export(new FileOutputStream(file))(newWriter)
   }
 
+  def export[T <: RdfSource](file: String)(implicit writer: RdfWriter[T]): Unit = export(new File(file))
+
   def mine(miner: RulesMining): Ruleset = Index(this).mine(miner)
 
   def index(mode: Mode = Mode.PreservedInMemory): Index = Index(this, mode)
-
-  def useMapper(mode: Mode = Mode.PreservedInMemory)(f: TripleItemHashIndex => Index => Unit): Unit = {
-    val _index = index(mode)
-    _index.tripleItemMap(mapper => f(mapper)(_index))
-  }
 
 }
 
@@ -74,6 +71,8 @@ object Dataset {
     new Dataset(newReader.fromFile(file))
   }
 
+  def apply[T <: RdfSource](file: String)(implicit reader: RdfReader[T]): Dataset = apply(new File(file))
+
   def apply(quads: Traversable[Quad]): Dataset = new Dataset(quads.view)
 
   def fromCache(is: => InputStream): Dataset = new Dataset(
@@ -87,5 +86,7 @@ object Dataset {
   )
 
   def fromCache(file: File): Dataset = fromCache(new FileInputStream(file))
+
+  def fromCache(file: String): Dataset = fromCache(new File(file))
 
 }

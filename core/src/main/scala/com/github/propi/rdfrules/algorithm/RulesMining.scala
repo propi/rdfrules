@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.algorithm
 
-import com.github.propi.rdfrules.index.TripleHashIndex
+import com.github.propi.rdfrules.index.{TripleHashIndex, TripleItemHashIndex}
 import com.github.propi.rdfrules.rule.{Rule, RuleConstraint, RulePattern, Threshold}
 import com.github.propi.rdfrules.utils.TypedKeyMap
 
@@ -25,6 +25,6 @@ abstract class RulesMining(_thresholds: TypedKeyMap[Threshold], _constraints: Ty
 
   final def patterns: List[RulePattern] = _patterns
 
-  def mine(implicit tripleIndex: TripleHashIndex): IndexedSeq[Rule.Simple]
+  def mine(implicit tripleIndex: TripleHashIndex, mapper: TripleItemHashIndex): IndexedSeq[Rule.Simple]
 
 }

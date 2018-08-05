@@ -15,20 +15,24 @@ sealed trait RuleConstraint extends Value {
 
 object RuleConstraint {
 
-  case class OnlyPredicates(predicates: Set[Int]) extends RuleConstraint {
+  case class OnlyPredicates(predicates: Set[TripleItem.Uri]) extends RuleConstraint {
     def companion: OnlyPredicates.type = OnlyPredicates
+
+    def mapped(implicit mapper: TripleItemHashIndex): Set[Int] = predicates.map(mapper.getIndex(_))
   }
 
   implicit object OnlyPredicates extends Key[OnlyPredicates] {
-    def apply(predicates: TripleItem.Uri*)(implicit mapper: TripleItemHashIndex): OnlyPredicates = new OnlyPredicates(predicates.iterator.map(mapper.getIndex(_)).toSet)
+    def apply(predicates: TripleItem.Uri*): OnlyPredicates = new OnlyPredicates(predicates.toSet)
   }
 
-  case class WithoutPredicates(predicates: Set[Int]) extends RuleConstraint {
+  case class WithoutPredicates(predicates: Set[TripleItem.Uri]) extends RuleConstraint {
     def companion: WithoutPredicates.type = WithoutPredicates
+
+    def mapped(implicit mapper: TripleItemHashIndex): Set[Int] = predicates.map(mapper.getIndex(_))
   }
 
   implicit object WithoutPredicates extends Key[WithoutPredicates] {
-    def apply(predicates: TripleItem.Uri*)(implicit mapper: TripleItemHashIndex): WithoutPredicates = new WithoutPredicates(predicates.iterator.map(mapper.getIndex(_)).toSet)
+    def apply(predicates: TripleItem.Uri*): WithoutPredicates = new WithoutPredicates(predicates.toSet)
   }
 
   case class WithInstances(onlyObjects: Boolean) extends RuleConstraint {

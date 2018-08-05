@@ -1,5 +1,7 @@
 package com.github.propi.rdfrules.rule
 
+import com.github.propi.rdfrules.index.TripleItemHashIndex
+
 import scala.language.implicitConversions
 
 /**
@@ -23,9 +25,19 @@ case class RulePattern private(antecedent: IndexedSeq[AtomPattern], consequent: 
     */
   def withExact(exact: Boolean = true): RulePattern = this.copy(exact = exact)
 
+  /**
+    * Create mapped rule pattern with mapped triple items to hash numbers
+    *
+    * @param mapper triple item mapper
+    * @return a mapped rule pattern
+    */
+  def mapped(implicit mapper: TripleItemHashIndex): RulePattern.Mapped = RulePattern.Mapped(antecedent.map(_.mapped), consequent.map(_.mapped), exact)
+
 }
 
 object RulePattern {
+
+  case class Mapped(antecedent: IndexedSeq[AtomPattern.Mapped], consequent: Option[AtomPattern.Mapped], exact: Boolean)
 
   /**
     * Create a rule pattern with an atom pattern as the consequent.

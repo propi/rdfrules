@@ -4,7 +4,9 @@ import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 
 import com.github.propi.rdfrules.index.TripleHashIndex.MutableHashSet
+import com.github.propi.rdfrules.index.TripleItemHashIndex
 import com.github.propi.rdfrules.rule.{Atom, Measure, Rule}
+import com.github.propi.rdfrules.ruleset.ResolvedRule
 import com.github.propi.rdfrules.utils.TypedKeyMap
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 import com.github.propi.rdfrules.utils.serialization.Serializer._
@@ -138,5 +140,9 @@ object RuleSerialization {
   implicit val ruleSimpleSerializer: Serializer[Rule.Simple] = (v: Rule.Simple) => ruleSerializer.serialize(v)
 
   implicit val ruleSimpleDeserializer: Deserializer[Rule.Simple] = (v: Array[Byte]) => ruleDeserializer.deserialize(v).asInstanceOf[Rule.Simple]
+
+  implicit def resolvedRuleSerializer(implicit mapper: TripleItemHashIndex): Serializer[ResolvedRule] = (v: ResolvedRule) => ruleSimpleSerializer.serialize(v)
+
+  implicit def resolvedRuleDeserializer(implicit mapper: TripleItemHashIndex): Deserializer[ResolvedRule] = (v: Array[Byte]) => ruleSimpleDeserializer.deserialize(v)
 
 }

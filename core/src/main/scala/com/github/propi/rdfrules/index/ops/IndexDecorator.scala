@@ -20,6 +20,8 @@ class IndexDecorator(index: Index) extends Index {
 
   def cache(file: File): Unit = index.cache(file)
 
+  def cache(file: String): Unit = index.cache(file)
+
   def newIndex: Index = index.newIndex
 
   def withEvaluatedLazyVals: Index = index.withEvaluatedLazyVals

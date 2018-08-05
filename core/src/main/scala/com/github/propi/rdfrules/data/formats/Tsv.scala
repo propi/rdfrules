@@ -13,7 +13,9 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 14. 1. 2018.
   */
-object Tsv {
+trait Tsv {
+
+  self: JenaLang =>
 
   private def stripResource(x: String) = x.trim.stripPrefix("<").stripSuffix(">").replaceAll("[\\u0000-\\u0020]|[<>\"{}|^`\\\\]", "")
 
@@ -53,7 +55,7 @@ object Tsv {
           }
           (triple.subject.toString + " " + triple.predicate.toString + " " + o + " .\n").getBytes("UTF-8")
         }
-        JenaLang.jenaLangToRdfReader(Lang.TTL).fromInputStream(new InputStream {
+        jenaLangToRdfReader(Lang.TTL).fromInputStream(new InputStream {
           def read(): Int = if (it.hasNext) it.next().toInt else -1
         }).map { quad =>
           def shortenUri[T <: TripleItem](tripleItem: T): T = tripleItem match {

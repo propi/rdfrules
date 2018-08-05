@@ -1,11 +1,10 @@
 import java.io._
 
 import GraphSpec.dataDbpedia
-import com.github.propi.rdfrules.data.formats.JenaLang._
-import com.github.propi.rdfrules.data.formats.Tsv._
-import com.github.propi.rdfrules.data.{Dataset, Graph, RdfSource, TripleItem}
-import com.github.propi.rdfrules.index.Index
-import com.github.propi.rdfrules.rule.{Atom, TripleItemPosition}
+
+import com.github.propi.rdfrules.data._
+import com.github.propi.rdfrules.index._
+import com.github.propi.rdfrules.rule._
 import objectexplorer.MemoryMeasurer
 import org.apache.jena.riot.Lang
 import org.scalatest.{FlatSpec, Inside, Matchers}
@@ -17,7 +16,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
 
   private lazy val dataset1 = Dataset[RdfSource.Tsv.type](GraphSpec.dataYago)
 
-  private lazy val dataset2 = Dataset() + Graph[RdfSource.Tsv.type]("yago", GraphSpec.dataYago) + Graph("dbpedia", dataDbpedia)(RdfSource.JenaLang(Lang.TTL))
+  private lazy val dataset2 = Dataset() + Graph("yago", GraphSpec.dataYago) + Graph("dbpedia", dataDbpedia)(Lang.TTL)
 
   "Index" should "create from dataset and load items" in {
     val index = Index.apply(dataset1)

@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.rule
 
+import com.github.propi.rdfrules.utils.{Stringifier, TypedKeyMap}
 import com.github.propi.rdfrules.utils.TypedKeyMap.{Key, Value}
 
 import scala.language.implicitConversions
@@ -80,6 +81,16 @@ object Measure {
     Ordering.by[Key[Measure], Int](map.getOrElse(_, 0))
   }
 
+  implicit val measuresOrdering: Ordering[TypedKeyMap.Immutable[Measure]] = Ordering.by[TypedKeyMap.Immutable[Measure], (Measure, Measure, Measure, Measure, Measure)] { measures =>
+    (
+      measures.get(Measure.Cluster).getOrElse(Measure.Cluster(0)),
+      measures.get(Measure.PcaConfidence).getOrElse(Measure.PcaConfidence(0)),
+      measures.get(Measure.Lift).getOrElse(Measure.Lift(0)),
+      measures.get(Measure.Confidence).getOrElse(Measure.Confidence(0)),
+      measures(Measure.HeadCoverage)
+    )
+  }
+
   implicit val measureOrdering: Ordering[Measure] = Ordering.by[Measure, Double] {
     case Measure.BodySize(x) => x
     case Measure.Confidence(x) => x
@@ -92,5 +103,18 @@ object Measure {
     case Measure.Support(x) => x
     case Measure.Cluster(x) => x * -1
   }.reverse
+
+  implicit val measureStringifier: Stringifier[Measure] = {
+    case Measure.Support(v) => s"support: $v"
+    case Measure.HeadCoverage(v) => s"headCoverage: $v"
+    case Measure.Confidence(v) => s"confidence: $v"
+    case Measure.Lift(v) => s"lift: $v"
+    case Measure.PcaConfidence(v) => s"pcaConfidence: $v"
+    case Measure.HeadConfidence(v) => s"headConfidence: $v"
+    case Measure.HeadSize(v) => s"headSize: $v"
+    case Measure.BodySize(v) => s"bodySize: $v"
+    case Measure.PcaBodySize(v) => s"pcaBodySize: $v"
+    case Measure.Cluster(v) => s"cluster: $v"
+  }
 
 }

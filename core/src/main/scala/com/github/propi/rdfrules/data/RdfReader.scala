@@ -4,8 +4,6 @@ import java.io.{File, FileInputStream}
 
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.data.RdfSource.Tsv
-import com.github.propi.rdfrules.data.formats.JenaLang._
-import com.github.propi.rdfrules.data.formats.Tsv._
 import com.github.propi.rdfrules.utils.InputStreamBuilder
 import org.apache.jena.riot.Lang
 

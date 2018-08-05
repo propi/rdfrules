@@ -1,7 +1,9 @@
 package com.github.propi.rdfrules.rule
 
-import com.github.propi.rdfrules.index.TripleHashIndex
+import com.github.propi.rdfrules.data.TripleItem
+import com.github.propi.rdfrules.index.{TripleHashIndex, TripleItemHashIndex}
 import com.github.propi.rdfrules.index.TripleHashIndex.HashSet
+import com.github.propi.rdfrules.ruleset.ResolvedRule
 
 import scala.language.implicitConversions
 
@@ -34,13 +36,13 @@ sealed trait Atom {
 
 object Atom {
 
-  case class Basic(subject: Atom.Item, predicate: Int, `object`: Atom.Item) extends Atom {
+  case class Basic private(subject: Atom.Item, predicate: Int, `object`: Atom.Item) extends Atom {
     override def toString: String = s"<$subject $predicate ${`object`}>"
 
     def transform(subject: Item = subject, predicate: Int = predicate, `object`: Item = `object`): Basic = Basic(subject, predicate, `object`)
   }
 
-  case class GraphBased(subject: Atom.Item, predicate: Int, `object`: Atom.Item)(graphs: HashSet[Int]) extends Atom {
+  case class GraphBased private(subject: Atom.Item, predicate: Int, `object`: Atom.Item)(graphs: HashSet[Int]) extends Atom {
     def containsGraph(x: Int): Boolean = graphs(x)
 
     def graphsIterator: Iterator[Int] = graphs.iterator
@@ -56,7 +58,26 @@ object Atom {
 
   def apply(subject: Atom.Item, predicate: Int, `object`: Atom.Item): Atom = Basic(subject, predicate, `object`)
 
+  implicit def apply(atom: ResolvedRule.Atom)(implicit mapper: TripleItemHashIndex): Atom = apply(
+    atom.subject,
+    mapper.getIndex(atom.predicate),
+    atom.`object`
+  )
+
   sealed trait Item
+
+  object Item {
+    implicit def apply(tripleItem: TripleItem)(implicit mapper: TripleItemHashIndex): Constant = Constant(mapper.getIndex(tripleItem))
+
+    implicit def apply(index: Char): Variable = Variable(index.toInt - 97)
+
+    implicit def apply(string: String): Variable = string.stripPrefix("?").headOption.getOrElse('a')
+
+    implicit def apply(item: ResolvedRule.Atom.Item)(implicit mapper: TripleItemHashIndex): Item = item match {
+      case ResolvedRule.Atom.Item.Variable(x) => x
+      case ResolvedRule.Atom.Item.Constant(x) => x
+    }
+  }
 
   case class Variable(index: Int) extends Item {
     def value: String = {
@@ -72,10 +93,6 @@ object Atom {
     def -- = Variable(index - 1)
 
     override def toString: String = value
-  }
-
-  object Variable {
-    implicit def apply(index: Char): Variable = Variable(index.toInt - 97)
   }
 
   case class Constant(value: Int) extends Item

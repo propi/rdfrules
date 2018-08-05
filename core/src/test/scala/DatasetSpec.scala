@@ -2,10 +2,7 @@ import java.io.{File, FileInputStream, FileOutputStream}
 
 import GraphSpec.dataDbpedia
 import com.github.propi.rdfrules.data._
-import eu.easyminer.discretization.task.EquifrequencyDiscretizationTask
-import com.github.propi.rdfrules.data.formats.JenaLang._
-import com.github.propi.rdfrules.data.formats.Tsv._
-import org.apache.jena.riot.{Lang, RDFFormat}
+import org.apache.jena.riot.Lang
 import org.scalatest.{FlatSpec, Inside, Matchers}
 
 /**
@@ -13,14 +10,14 @@ import org.scalatest.{FlatSpec, Inside, Matchers}
   */
 class DatasetSpec extends FlatSpec with Matchers with Inside {
 
-  private lazy val dataset = Dataset() + Graph[RdfSource.Tsv.type]("yago", GraphSpec.dataYago) + Graph("dbpedia", dataDbpedia)(RdfSource.JenaLang(Lang.TTL))
+  private lazy val dataset = Dataset() + Graph("yago", GraphSpec.dataYago) + Graph("dbpedia", dataDbpedia)(Lang.TTL)
 
   "Dataset" should "load graphs" in {
-    var d = Dataset[RdfSource.Tsv.type](GraphSpec.dataYago)
+    var d = Dataset(GraphSpec.dataYago)
     d.size shouldBe 46654
     d.toGraphs.size shouldBe 1
     d.toGraphs.foreach(_.name shouldBe Graph.default)
-    val dbpg = Graph("graph-uri", dataDbpedia)(RdfSource.JenaLang(Lang.TTL))
+    val dbpg = Graph("graph-uri", dataDbpedia)(Lang.TTL)
     d = d + dbpg
     d.toGraphs.size shouldBe 2
     d.toGraphs.map(_.name) should contain(TripleItem.Uri("graph-uri"))
@@ -30,13 +27,9 @@ class DatasetSpec extends FlatSpec with Matchers with Inside {
   it should "do all graph ops" in {
     dataset.quads.size shouldBe dataset.triples.size
     dataset.prefixes.size shouldBe 0
-    dataset.addPrefixes(Prefix(getClass.getResourceAsStream("/prefixes.ttl"))).prefixes.size shouldBe 2
+    dataset.addPrefixes(getClass.getResourceAsStream("/prefixes.ttl")).prefixes.size shouldBe 2
     dataset.histogram(false, true).size shouldBe 1750
-    val intervals = dataset.discretizeAndGetIntervals(new EquifrequencyDiscretizationTask {
-      def getNumberOfBins: Int = 5
-
-      def getBufferSize: Int = 1000000
-    })(_.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
+    val intervals = dataset.discretizeAndGetIntervals(DiscretizationTask.Equifrequency(5))(_.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
     intervals.length shouldBe 5
     intervals.head.getLeftBoundValue() shouldBe 7.0
     intervals.last.getRightBoundValue() shouldBe 20010.0
@@ -63,12 +56,12 @@ class DatasetSpec extends FlatSpec with Matchers with Inside {
 
     dataset
       .map(q => q.copy(triple = q.triple.copy(repairTripleItem(q.triple.subject).asInstanceOf[TripleItem.Uri], repairTripleItem(q.triple.predicate).asInstanceOf[TripleItem.Uri], repairTripleItem(q.triple.`object`))))
-      .export(new FileOutputStream("test.data"))(RDFFormat.NQUADS_ASCII)
-    val d = Dataset(new File("test.data"))(RdfSource.JenaLang(Lang.NQUADS))
+      .export("test.nq")
+    val d = Dataset("test.nq")
     d.size shouldBe 96654
     d.toGraphs.size shouldBe 2
     d.toGraphs.toList.map(_.name) should contain only(TripleItem.Uri("yago"), TripleItem.Uri("dbpedia"))
-    new File("test.data").delete() shouldBe true
+    new File("test.nq").delete() shouldBe true
   }
 
 }

@@ -67,7 +67,7 @@ object RuleFilter {
       * @param atom new atom
       * @return boolean
       */
-    private def matchAtom(atom: Either[Atom, FreshAtom]): Iterator[RulePattern] = patternAtoms.iterator.filter(x => (x._2.isEmpty && !x._1.exact) || x._2.exists(y => atom.fold(atomMatcher.matchPattern(_, y), freshAtomMatcher.matchPattern(_, y)))).map(_._1)
+    private def matchAtom(atom: Either[Atom, FreshAtom]): Iterator[RulePattern.Mapped] = patternAtoms.iterator.filter(x => (x._2.isEmpty && !x._1.exact) || x._2.exists(y => atom.fold(atomMatcher.matchPattern(_, y), freshAtomMatcher.matchPattern(_, y)))).map(_._1)
 
     /**
       * this rule is defined only if

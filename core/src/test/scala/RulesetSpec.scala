@@ -11,7 +11,7 @@ import com.github.propi.rdfrules.ruleset.formats.Json._
 import com.github.propi.rdfrules.ruleset.formats.Text._
 import com.github.propi.rdfrules.ruleset.{ResolvedRule, Ruleset, RulesetSource}
 import com.github.propi.rdfrules.stringifier.CommonStringifiers._
-import com.github.propi.rdfrules.stringifier.Stringifier
+import com.github.propi.rdfrules.utils.Stringifier
 import org.scalatest.enablers.Sortable
 import org.scalatest.{FlatSpec, Inside, Matchers}
 

@@ -1,4 +1,4 @@
-package com.github.propi.rdfrules.stringifier
+package com.github.propi.rdfrules.utils
 
 /**
   * Created by Vaclav Zeman on 6. 10. 2017.

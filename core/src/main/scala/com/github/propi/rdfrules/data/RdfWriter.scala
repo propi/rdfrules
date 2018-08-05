@@ -5,8 +5,6 @@ import java.io.File
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.data.RdfSource.Tsv
 import com.github.propi.rdfrules.utils.OutputStreamBuilder
-import com.github.propi.rdfrules.data.formats.Tsv._
-import com.github.propi.rdfrules.data.formats.JenaLang._
 import org.apache.jena.riot.RDFFormat
 
 /**

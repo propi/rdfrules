@@ -44,6 +44,8 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
 
   def cache(file: File): Coll = cache(new FileOutputStream(file), new FileInputStream(file))
 
+  def cache(file: String): Coll = cache(new File(file))
+
   /**
     * Cache the entity through an output stream and return the original (not cached) entity.
     *  - if you want to return cached entity, use cache(os, is) or in memory cache()

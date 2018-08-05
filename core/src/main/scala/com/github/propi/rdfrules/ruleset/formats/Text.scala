@@ -3,8 +3,7 @@ package com.github.propi.rdfrules.ruleset.formats
 import java.io.{OutputStreamWriter, PrintWriter}
 
 import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetSource, RulesetWriter}
-import com.github.propi.rdfrules.stringifier.Stringifier
-import com.github.propi.rdfrules.utils.OutputStreamBuilder
+import com.github.propi.rdfrules.utils.{OutputStreamBuilder, Stringifier}
 
 /**
   * Created by Vaclav Zeman on 18. 4. 2018.

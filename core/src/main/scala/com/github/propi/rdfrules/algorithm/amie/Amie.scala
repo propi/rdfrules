@@ -4,7 +4,7 @@ import java.util.concurrent.LinkedBlockingQueue
 
 import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.algorithm.amie.RuleRefinement.{Settings, _}
-import com.github.propi.rdfrules.index.TripleHashIndex
+import com.github.propi.rdfrules.index.{TripleHashIndex, TripleItemHashIndex}
 import com.github.propi.rdfrules.rule.ExtendedRule.{ClosedRule, DanglingRule}
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.HowLong._
@@ -38,9 +38,9 @@ class Amie private(logger: Logger,
     *         Rules contains only these measures: head size, head coverage and support
     *         Rules are not ordered
     */
-  def mine(implicit tripleIndex: TripleHashIndex): IndexedSeq[Rule.Simple] = {
+  def mine(implicit tripleIndex: TripleHashIndex, mapper: TripleItemHashIndex): IndexedSeq[Rule.Simple] = {
     //create amie process with debugger and final triple index
-    implicit val settings: RuleRefinement.Settings = new Settings(this)(if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) debugger else Debugger.EmptyDebugger)
+    implicit val settings: RuleRefinement.Settings = new Settings(this)(if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) debugger else Debugger.EmptyDebugger, mapper)
     val process = new AmieProcess()
     try {
       //get all possible heads
@@ -197,7 +197,7 @@ class Amie private(logger: Logger,
       }
       //filter all atoms by patterns and join all valid patterns to the atom
       possibleAtoms.flatMap { atom =>
-        val validPatterns = patterns.filter(rp => rp.consequent.forall(atomPattern => forAtomMatcher.matchPattern(atom, atomPattern)))
+        val validPatterns = settings.patterns.filter(rp => rp.consequent.forall(atomPattern => forAtomMatcher.matchPattern(atom, atomPattern)))
         if (patterns.isEmpty || validPatterns.nonEmpty) {
           Iterator(atom -> validPatterns)
         } else {

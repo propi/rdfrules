@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.algorithm.amie.RuleFilter.{MinSupportRuleFilter, NoDuplicitRuleFilter, NoRepeatedGroups, RulePatternFilter}
-import com.github.propi.rdfrules.index.TripleHashIndex
+import com.github.propi.rdfrules.index.{TripleHashIndex, TripleItemHashIndex}
 import com.github.propi.rdfrules.rule.ExtendedRule.{ClosedRule, DanglingRule}
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.HowLong._
@@ -388,17 +388,18 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
 
 object RuleRefinement {
 
-  class Settings(rulesMining: RulesMining)(implicit val debugger: Debugger) {
+  class Settings(rulesMining: RulesMining)(implicit val debugger: Debugger, mapper: TripleItemHashIndex) {
     @volatile private var _minHeadCoverage: Double = rulesMining.thresholds.apply[Threshold.MinHeadCoverage].value
 
+    val patterns: List[RulePattern.Mapped] = rulesMining.patterns.map(_.mapped)
     val minSupport: Int = rulesMining.thresholds.apply[Threshold.MinHeadSize].value
     val isWithInstances: Boolean = rulesMining.constraints.exists[RuleConstraint.WithInstances]
     val maxRuleLength: Int = rulesMining.thresholds.apply[Threshold.MaxRuleLength].value
     val withDuplicitPredicates: Boolean = !rulesMining.constraints.exists[RuleConstraint.WithoutDuplicitPredicates]
     val onlyObjectInstances: Boolean = rulesMining.constraints.get[RuleConstraint.WithInstances].exists(_.onlyObjects)
 
-    private val onlyPredicates = rulesMining.constraints.get[RuleConstraint.OnlyPredicates].map(_.predicates)
-    private val withoutPredicates = rulesMining.constraints.get[RuleConstraint.WithoutPredicates].map(_.predicates)
+    private val onlyPredicates = rulesMining.constraints.get[RuleConstraint.OnlyPredicates].map(_.mapped)
+    private val withoutPredicates = rulesMining.constraints.get[RuleConstraint.WithoutPredicates].map(_.mapped)
 
     def isValidPredicate(predicate: Int): Boolean = onlyPredicates.forall(_ (predicate)) && withoutPredicates.forall(!_ (predicate))
 

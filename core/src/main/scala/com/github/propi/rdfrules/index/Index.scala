@@ -22,16 +22,16 @@ trait Index {
 
   def cache(file: File): Unit
 
+  def cache(file: String): Unit
+
   def newIndex: Index
 
   def withEvaluatedLazyVals: Index
 
-  def mine(miner: RulesMining): Ruleset = tripleMap { implicit thi =>
-    Ruleset(miner.mine, this)
-  }
-
-  def useMapper(f: TripleItemHashIndex => Index => Unit): Unit = {
-    tripleItemMap(mapper => f(mapper)(this))
+  def mine(miner: RulesMining): Ruleset = tripleItemMap { implicit mapper =>
+    tripleMap { implicit thi =>
+      Ruleset(miner.mine, this)
+    }
   }
 
 }
@@ -86,6 +86,10 @@ object Index {
 
   def fromCache(file: File, mode: Mode): Index = fromCache(new FileInputStream(file), mode)
 
+  def fromCache(file: String, mode: Mode): Index = fromCache(new File(file), mode)
+
   def fromCache(file: File): Index = fromCache(file, Mode.PreservedInMemory)
+
+  def fromCache(file: String): Index = fromCache(new File(file))
 
 }

@@ -1,5 +1,7 @@
 package com.github.propi.rdfrules.data.ops
 
+import java.io.{File, InputStream}
+
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.data.{Prefix, Quad, TripleItem}
 import com.github.propi.rdfrules.data.Triple
@@ -44,5 +46,11 @@ trait QuadsOps[Coll] {
       }
     }
   })
+
+  def addPrefixes(buildInputStream: => InputStream): Coll = addPrefixes(Prefix(buildInputStream))
+
+  def addPrefixes(file: File): Coll = addPrefixes(Prefix(file))
+
+  def addPrefixes(file: String): Coll = addPrefixes(new File(file))
 
 }

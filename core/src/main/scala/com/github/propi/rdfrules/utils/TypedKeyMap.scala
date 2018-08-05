@@ -19,6 +19,8 @@ class TypedKeyMap[T <: Value] private(m: collection.mutable.Map[Key[T], T]) exte
 
   def ++=(col: TypedKeyMap.Immutable[T]): TypedKeyMap[T] = this += (col.iterator.map(x => x.companion.asInstanceOf[Key[T]] -> x).toSeq: _*)
 
+  def ++=(col: Traversable[T]): TypedKeyMap[T] = this ++= TypedKeyMap(col)
+
   def iterator: Iterator[T] = m.valuesIterator
 
   def +(keyValue: (Key[T], T)): TypedKeyMap[T] = new TypedKeyMap(m + keyValue)
@@ -45,6 +47,8 @@ object TypedKeyMap {
   }
 
   trait Key[+T <: Value]
+
+  def apply[T <: Value](col: Traversable[T]): TypedKeyMap[T] = apply(col.view.map(x => x.companion.asInstanceOf[Key[T]] -> x).toSeq: _*)
 
   def apply[T <: Value](keyValues: (Key[T], T)*): TypedKeyMap[T] = new TypedKeyMap(collection.mutable.HashMap(keyValues: _*))
 

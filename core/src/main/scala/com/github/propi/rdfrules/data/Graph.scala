@@ -2,9 +2,13 @@ package com.github.propi.rdfrules.data
 
 import java.io._
 
+import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.data.Triple.TripleTraversableView
 import com.github.propi.rdfrules.data.ops._
+import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.index.Index.Mode
+import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.serialization.TripleSerialization._
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 
@@ -39,11 +43,17 @@ class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView
     export(new FileOutputStream(file))(newWriter)
   }
 
+  def export[T <: RdfSource](file: String)(implicit writer: RdfWriter[T]): Unit = export(new File(file))
+
   def quads: QuadTraversableView = triples.map(_.toQuad(name))
 
   def withName(name: TripleItem.Uri): Graph = new Graph(name, triples)
 
   def toDataset: Dataset = Dataset(this)
+
+  def mine(miner: RulesMining): Ruleset = toDataset.mine(miner)
+
+  def index(mode: Mode = Mode.PreservedInMemory): Index = toDataset.index(mode)
 
 }
 
@@ -62,7 +72,11 @@ object Graph {
     new Graph(name, newReader.fromFile(file).map(_.triple))
   }
 
+  def apply[T <: RdfSource](name: TripleItem.Uri, file: String)(implicit reader: RdfReader[T]): Graph = apply(name, new File(file))
+
   def apply[T <: RdfSource](file: File)(implicit reader: RdfReader[T]): Graph = apply(default, file)
+
+  def apply[T <: RdfSource](file: String)(implicit reader: RdfReader[T]): Graph = apply(new File(file))
 
   def apply[T <: RdfSource](is: => InputStream)(implicit reader: RdfReader[T]): Graph = apply(default, is)
 
@@ -81,6 +95,10 @@ object Graph {
 
   def fromCache(name: TripleItem.Uri, file: File): Graph = fromCache(name, new FileInputStream(file))
 
+  def fromCache(name: TripleItem.Uri, file: String): Graph = fromCache(name, new File(file))
+
   def fromCache(file: File): Graph = fromCache(default, file)
+
+  def fromCache(file: String): Graph = fromCache(default, new File(file))
 
 }

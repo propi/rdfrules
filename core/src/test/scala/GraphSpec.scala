@@ -1,15 +1,9 @@
 import java.io.{File, FileInputStream, FileOutputStream}
 
 import GraphSpec._
-import com.github.propi.rdfrules.data
 import com.github.propi.rdfrules.data._
-import eu.easyminer.discretization.{RelativeSupport, Support}
 import eu.easyminer.discretization.impl.{Interval, IntervalBound}
-import eu.easyminer.discretization.task.{EquidistanceDiscretizationTask, EquifrequencyDiscretizationTask, EquisizeDiscretizationTask}
-import com.github.propi.rdfrules.data.formats.JenaLang._
-import com.github.propi.rdfrules.data.formats.Tsv._
-import com.github.propi.rdfrules.data.ops.Discretizable
-import org.apache.jena.riot.{Lang, RDFFormat}
+import org.apache.jena.riot.Lang
 import org.scalatest.{FlatSpec, Inside, Matchers}
 
 import scala.collection.SeqView
@@ -20,20 +14,20 @@ import scala.reflect.ClassTag
   */
 class GraphSpec extends FlatSpec with Matchers with Inside {
 
-  private lazy val graph = Graph[RdfSource.Tsv.type](dataYago)
-  private lazy val graphDbpedia = Graph(dataDbpedia)(RdfSource.JenaLang(Lang.TTL))
+  private lazy val graph = Graph(dataYago)(RdfSource.Tsv)
+  private lazy val graphDbpedia = Graph(dataDbpedia)(Lang.TTL)
 
   "Graph object" should "be loaded" in {
     graph.name shouldBe Graph.default
     graph.size shouldBe 46654
     graph.triples.size shouldBe graph.quads.size
-    var first: Option[data.Triple] = None
+    var first: Option[Triple] = None
     var i = 0
     graph.foreach { triple =>
       i += 1
       if (first.isEmpty) first = Some(triple)
     }
-    first shouldBe Some(data.Triple("Azerbaijan", "hasCapital", TripleItem.LongUri("Baku")))
+    first shouldBe Some(Triple("Azerbaijan", "hasCapital", TripleItem.LongUri("Baku")))
     i shouldBe 46654
   }
 
@@ -41,9 +35,9 @@ class GraphSpec extends FlatSpec with Matchers with Inside {
     graph.filter(_.predicate.hasSameUriAs("dealsWith")).size shouldBe 520
     graph.filter(_.predicate.hasSameUriAs("dealsWith")).map(_.copy(predicate = "neco")).triples.forall(_.predicate.hasSameUriAs("neco"))
     graph.take(10).size shouldBe 10
-    graph.take(2).triples.last shouldBe data.Triple("Azerbaijan", "dealsWith", TripleItem.LongUri("People's_Republic_of_China"))
-    graph.drop(1).triples.head shouldBe data.Triple("Azerbaijan", "dealsWith", TripleItem.LongUri("People's_Republic_of_China"))
-    graph.slice(1, 2).triples.toList shouldBe List(data.Triple("Azerbaijan", "dealsWith", TripleItem.LongUri("People's_Republic_of_China")))
+    graph.take(2).triples.last shouldBe Triple("Azerbaijan", "dealsWith", TripleItem.LongUri("People's_Republic_of_China"))
+    graph.drop(1).triples.head shouldBe Triple("Azerbaijan", "dealsWith", TripleItem.LongUri("People's_Republic_of_China"))
+    graph.slice(1, 2).triples.toList shouldBe List(Triple("Azerbaijan", "dealsWith", TripleItem.LongUri("People's_Republic_of_China")))
   }
 
   it should "have triples ops" in {
@@ -77,32 +71,16 @@ class GraphSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "discretize data" in {
-    val intervals = graphDbpedia.discretizeAndGetIntervals(new EquidistanceDiscretizationTask {
-      def getNumberOfBins: Int = 5
-
-      def getBufferSize: Int = 1000000
-    })(quad => quad.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
+    val intervals = graphDbpedia.discretizeAndGetIntervals(DiscretizationTask.Equidistance(5))(quad => quad.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
     intervals.length shouldBe 5
     intervals.last shouldBe Interval(IntervalBound.Inclusive(16009.4), IntervalBound.Inclusive(20010.0))
-    val intervals2 = graphDbpedia.discretizeAndGetIntervals(new EquifrequencyDiscretizationTask {
-      def getNumberOfBins: Int = 5
-
-      def getBufferSize: Int = 1000000
-    }, Discretizable.DiscretizationMode.OnDisc)(quad => quad.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
+    val intervals2 = graphDbpedia.discretizeAndGetIntervals(DiscretizationTask.Equifrequency(5))(quad => quad.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
     intervals2.length shouldBe 5
     intervals2.head shouldBe Interval(IntervalBound.Inclusive(7.0), IntervalBound.Exclusive(1962.5))
-    val intervals3 = graphDbpedia.discretizeAndGetIntervals(new EquisizeDiscretizationTask {
-      def getMinSupport: Support = new RelativeSupport(0.2)
-
-      def getBufferSize: Int = 1000000
-    })(quad => quad.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
+    val intervals3 = graphDbpedia.discretizeAndGetIntervals(DiscretizationTask.Equisize(0.2, mode = DiscretizationTask.Mode.InMemory))(quad => quad.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
     intervals3.length shouldBe 4
     intervals3.head shouldBe Interval(IntervalBound.Inclusive(7.0), IntervalBound.Exclusive(1975.5))
-    val dg = graphDbpedia.discretize(new EquifrequencyDiscretizationTask {
-      def getNumberOfBins: Int = 5
-
-      def getBufferSize: Int = 1000000
-    })(quad => quad.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
+    val dg = graphDbpedia.discretize(DiscretizationTask.Equifrequency(5))(quad => quad.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
     dg.size shouldBe 50000
     dg.types().find(_._1.hasSameUriAs("http://cs.dbpedia.org/property/rok")).get._2.get(TripleItemType.Interval) shouldBe Some(2340)
     val histogram = dg.filter(_.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok")).histogram(false, false, true)
@@ -111,7 +89,7 @@ class GraphSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "be cacheable" in {
-    val `SeqView[Triple, _]` = implicitly[ClassTag[SeqView[data.Triple, _]]]
+    val `SeqView[Triple, _]` = implicitly[ClassTag[SeqView[Triple, _]]]
     graphDbpedia.filter(_.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok")).cache.triples should matchPattern {
       case `SeqView[Triple, _]`(_) =>
     }
@@ -126,9 +104,9 @@ class GraphSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "export data" in {
-    graphDbpedia.export(new FileOutputStream("test.data"))(RDFFormat.NTRIPLES_ASCII)
-    Graph(new File("test.data"))(RdfSource.JenaLang(Lang.NTRIPLES)).size shouldBe 50000
-    new File("test.data").delete() shouldBe true
+    graphDbpedia.export("test.nt")
+    Graph("test.nt").size shouldBe 50000
+    new File("test.nt").delete() shouldBe true
   }
 
 }

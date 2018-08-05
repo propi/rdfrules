@@ -3,8 +3,8 @@ package com.github.propi.rdfrules.data.formats
 import java.io.{BufferedInputStream, BufferedOutputStream}
 
 import com.github.propi.rdfrules
-import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.data._
+import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.utils.{InputStreamBuilder, OutputStreamBuilder}
 import org.apache.jena.graph
 import org.apache.jena.graph.{Node_Blank, Node_Literal, Node_URI}
@@ -17,7 +17,7 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 14. 1. 2018.
   */
-object JenaLang {
+trait JenaLang {
 
   private class StreamRdfImpl[U](f: rdfrules.data.Quad => U) extends StreamRDF {
     private val prefixes = collection.mutable.ListBuffer.empty[Prefix]

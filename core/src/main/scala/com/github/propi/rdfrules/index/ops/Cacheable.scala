@@ -23,6 +23,8 @@ trait Cacheable extends QuadsIndex {
 
   def cache(file: File): Unit = cache(new FileOutputStream(file))
 
+  def cache(file: String): Unit = cache(new File(file))
+
 }
 
 object Cacheable {

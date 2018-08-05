@@ -8,12 +8,12 @@ import com.github.propi.rdfrules.utils.TypedKeyMap
 sealed trait ExtendedRule extends Rule {
   val headTriples: IndexedSeq[(Int, Int)]
   val maxVariable: Atom.Variable
-  val patterns: List[RulePattern]
+  val patterns: List[RulePattern.Mapped]
   val measures: TypedKeyMap[Measure]
 
   def headSize: Int = headTriples.length
 
-  def withPatterns(patterns: List[RulePattern]): ExtendedRule
+  def withPatterns(patterns: List[RulePattern.Mapped]): ExtendedRule
 }
 
 object ExtendedRule {
@@ -75,12 +75,12 @@ object ExtendedRule {
 
   case class ClosedRule(body: IndexedSeq[Atom], head: Atom)
                        (val measures: TypedKeyMap[Measure],
-                        val patterns: List[RulePattern],
+                        val patterns: List[RulePattern.Mapped],
                         val variables: List[Atom.Variable],
                         val maxVariable: Atom.Variable,
                         val headTriples: IndexedSeq[(Int, Int)]) extends ExtendedRule {
 
-    def withPatterns(patterns: List[RulePattern]): ExtendedRule = this.copy()(measures, patterns, variables, maxVariable, headTriples)
+    def withPatterns(patterns: List[RulePattern.Mapped]): ExtendedRule = this.copy()(measures, patterns, variables, maxVariable, headTriples)
 
     override def equals(obj: scala.Any): Boolean = obj match {
       case rule: ClosedRule => checkBodyEquality(body, rule.body.toSet)
@@ -91,12 +91,12 @@ object ExtendedRule {
 
   case class DanglingRule(body: IndexedSeq[Atom], head: Atom)
                          (val measures: TypedKeyMap[Measure],
-                          val patterns: List[RulePattern],
+                          val patterns: List[RulePattern.Mapped],
                           val variables: DanglingVariables,
                           val maxVariable: Atom.Variable,
                           val headTriples: IndexedSeq[(Int, Int)]) extends ExtendedRule {
 
-    def withPatterns(patterns: List[RulePattern]): ExtendedRule = this.copy()(measures, patterns, variables, maxVariable, headTriples)
+    def withPatterns(patterns: List[RulePattern.Mapped]): ExtendedRule = this.copy()(measures, patterns, variables, maxVariable, headTriples)
 
     override def equals(obj: scala.Any): Boolean = obj match {
       case rule: DanglingRule => checkBodyEquality(body, rule.body.toSet)
