@@ -5,11 +5,13 @@ RdfRules also provides a Java API, REST web service and a graphical user interfa
 
 ## Getting started
 
+Requirements: Java 8+
+
 RdfRules is divided into four main modules. They are:
- - Scala API: It is sutable for Scala programmers and for use RdfRules as a framework to invoke mining processes from Scala code.
- - Java API: Similar to Scala API but adapted for Java programmers.
- - Web Service: It is suitable for modular web-based applications and remote access via HTTP.
- - GUI: It is suitable for anyone who wants to use the tool quickly and easily without any needs for further programming.
+ - [Scala API](core): It is sutable for Scala programmers and for use RdfRules as a framework to invoke mining processes from Scala code.
+ - [Java API](java): Similar to Scala API but adapted for Java programmers.
+ - [Web Service](http): It is suitable for modular web-based applications and remote access via HTTP.
+ - [GUI](gui): It is suitable for anyone who wants to use the tool quickly and easily without any needs for further programming.
  
  Detailed information about these modules with deployment instructions are described in their subfolders...
  
