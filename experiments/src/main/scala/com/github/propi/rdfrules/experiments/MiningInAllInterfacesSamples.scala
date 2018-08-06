@@ -38,7 +38,7 @@ object MiningInAllInterfacesSamples {
         })(_.triple.predicate.hasSameUriAs("hasNumberOfPeople"))
         .mine(Amie()
           .addConstraint(RuleConstraint.WithInstances(true)))
-        .countPcaConfidence(0.5)
+        .computePcaConfidence(0.5)
         .sorted
       //.resolvedRules
       //.filter(x => (x.body :+ x.head).exists(_.predicate.hasSameUriAs("hasNumberOfPeople")))
@@ -60,7 +60,7 @@ object MiningInAllInterfacesSamples {
           /*.addThreshold(Threshold.MinHeadSize(20))
           .addThreshold(Threshold.MinHeadCoverage(0.001))*/
           .addConstraint(RuleConstraint.WithInstances(true)))
-        .countPcaConfidence(0.5)
+        .computePcaConfidence(0.5)
         .sorted
         .resolvedRules
         .filter(x => (x.body :+ x.head).exists(_.predicate.hasSameUriAs("hasNumberOfPeople")))

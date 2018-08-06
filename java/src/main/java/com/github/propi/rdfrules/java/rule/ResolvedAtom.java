@@ -47,17 +47,21 @@ public class ResolvedAtom {
             this.variable = variable;
         }
 
+        public Variable(char variable) {
+            this(ScalaResolvedAtom.variable(variable));
+        }
+
+        public Variable(String variable) {
+            this(ScalaResolvedAtom.variable(variable));
+        }
+
         @Override
         public ScalaResolvedAtom.ItemVariableWrapper asScala() {
             return variable;
         }
 
-        public int getIndex() {
-            return variable.item().variable().index();
-        }
-
         public String getValue() {
-            return variable.item().variable().value();
+            return variable.item().value();
         }
     }
 

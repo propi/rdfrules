@@ -1,9 +1,8 @@
 package com.github.propi.rdfrules.rule
 
 import com.github.propi.rdfrules.data.TripleItem
-import com.github.propi.rdfrules.index.{TripleHashIndex, TripleItemHashIndex}
 import com.github.propi.rdfrules.index.TripleHashIndex.HashSet
-import com.github.propi.rdfrules.ruleset.ResolvedRule
+import com.github.propi.rdfrules.index.{TripleHashIndex, TripleItemHashIndex}
 
 import scala.language.implicitConversions
 
@@ -58,12 +57,6 @@ object Atom {
 
   def apply(subject: Atom.Item, predicate: Int, `object`: Atom.Item): Atom = Basic(subject, predicate, `object`)
 
-  implicit def apply(atom: ResolvedRule.Atom)(implicit mapper: TripleItemHashIndex): Atom = apply(
-    atom.subject,
-    mapper.getIndex(atom.predicate),
-    atom.`object`
-  )
-
   sealed trait Item
 
   object Item {
@@ -71,12 +64,7 @@ object Atom {
 
     implicit def apply(index: Char): Variable = Variable(index.toInt - 97)
 
-    implicit def apply(string: String): Variable = string.stripPrefix("?").headOption.getOrElse('a')
-
-    implicit def apply(item: ResolvedRule.Atom.Item)(implicit mapper: TripleItemHashIndex): Item = item match {
-      case ResolvedRule.Atom.Item.Variable(x) => x
-      case ResolvedRule.Atom.Item.Constant(x) => x
-    }
+    implicit def apply(string: String): Variable = apply(string.stripPrefix("?").headOption.getOrElse('a'))
   }
 
   case class Variable(index: Int) extends Item {

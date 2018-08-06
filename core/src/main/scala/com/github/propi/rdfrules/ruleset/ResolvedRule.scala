@@ -12,49 +12,13 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 17. 4. 2018.
   */
-sealed trait ResolvedRule {
-  val body: IndexedSeq[Atom]
-  val head: Atom
-
+case class ResolvedRule private(body: IndexedSeq[Atom], head: Atom)(val measures: TypedKeyMap.Immutable[Measure]) {
   def ruleLength: Int = body.size + 1
-
-  def measures: TypedKeyMap.Immutable[Measure]
-
-  def withBody(body: IndexedSeq[Atom]): ResolvedRule
-
-  def withHead(head: Atom): ResolvedRule
-
-  def withMeasure(measure: Measure): ResolvedRule
-
-  override def equals(obj: scala.Any): Boolean = obj match {
-    case x: ResolvedRule => (this eq x) || (head == x.head && body == x.body)
-    case _ => false
-  }
 
   override def toString: String = Stringifier(this)
 }
 
 object ResolvedRule {
-
-  case class Compressed private(body: IndexedSeq[Atom], head: Atom)(val rule: Rule.Simple) extends ResolvedRule {
-    override def ruleLength: Int = rule.ruleLength
-
-    def measures: TypedKeyMap.Immutable[Measure] = rule.measures
-
-    def withBody(body: IndexedSeq[Atom]): ResolvedRule = this.copy(body = body)(rule)
-
-    def withHead(head: Atom): ResolvedRule = this.copy(head = head)(rule)
-
-    def withMeasure(measure: Measure): ResolvedRule = this.copy()(rule.copy()(measures + measure))
-  }
-
-  case class Simple private(body: IndexedSeq[Atom], head: Atom)(val measures: TypedKeyMap.Immutable[Measure]) extends ResolvedRule {
-    def withBody(body: IndexedSeq[Atom]): ResolvedRule = this.copy(body = body)(measures)
-
-    def withHead(head: Atom): ResolvedRule = this.copy(head = head)(measures)
-
-    def withMeasure(measure: Measure): ResolvedRule = this.copy()(measures + measure)
-  }
 
   sealed trait Atom {
     val subject: Atom.Item
@@ -105,12 +69,43 @@ object ResolvedRule {
 
   }
 
-  def apply(body: IndexedSeq[Atom], head: Atom, measures: Measure*): ResolvedRule = Simple(body, head)(TypedKeyMap(measures))
+  def simple(resolvedRule: ResolvedRule)(implicit mapper: TripleItemHashIndex): (Rule.Simple, collection.Map[Int, TripleItem]) = {
+    var i = 0
+    val map = collection.mutable.Map.empty[TripleItem, Int]
 
-  implicit def apply(rule: Rule.Simple)(implicit mapper: TripleItemHashIndex): ResolvedRule = Compressed(
+    @scala.annotation.tailrec
+    def newIndex: Int = {
+      i += 1
+      mapper.getTripleItemOpt(i) match {
+        case Some(_) => newIndex
+        case None => i
+      }
+    }
+
+    def tripleItem(x: TripleItem): Int = mapper.getIndexOpt(x) match {
+      case Some(x) => x
+      case None => map.getOrElseUpdate(x, newIndex)
+    }
+
+    def atomItem(x: Atom.Item): rule.Atom.Item = x match {
+      case Atom.Item.Variable(x) => x
+      case Atom.Item.Constant(x) => rule.Atom.Constant(tripleItem(x))
+    }
+
+    def atom(x: Atom): rule.Atom = rule.Atom(atomItem(x.subject), tripleItem(x.predicate), atomItem(x.`object`))
+
+    Rule.Simple(
+      atom(resolvedRule.head),
+      resolvedRule.body.map(atom)
+    )(resolvedRule.measures) -> map.map(_.swap)
+  }
+
+  def apply(body: IndexedSeq[Atom], head: Atom, measures: Measure*): ResolvedRule = ResolvedRule(body, head)(TypedKeyMap(measures))
+
+  implicit def apply(rule: Rule.Simple)(implicit mapper: TripleItemHashIndex): ResolvedRule = ResolvedRule(
     rule.body.map(Atom.apply),
     rule.head
-  )(rule)
+  )(rule.measures)
 
   implicit val itemStringifier: Stringifier[ResolvedRule.Atom.Item] = {
     case ResolvedRule.Atom.Item.Variable(x) => x
@@ -129,7 +124,5 @@ object ResolvedRule {
     " -> " +
     Stringifier(v.head) + " | " +
     v.measures.iterator.toList.sortBy(_.companion).iterator.map(x => Stringifier(x)).mkString(", ")
-
-  implicit val resolvedRuleOrdering: Ordering[ResolvedRule] = Ordering.by[ResolvedRule, TypedKeyMap.Immutable[Measure]](_.measures)
 
 }

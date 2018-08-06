@@ -10,12 +10,14 @@ import com.github.propi.rdfrules.utils.OutputStreamBuilder
 import spray.json._
 import DefaultJsonProtocol._
 
+import scala.language.implicitConversions
+
 /**
   * Created by Vaclav Zeman on 18. 4. 2018.
   */
-object Json {
+trait Json {
 
-  implicit val tripleItemJsonWriter: RootJsonWriter[TripleItem] = {
+  private implicit val tripleItemJsonWriter: RootJsonWriter[TripleItem] = {
     case x: TripleItem.Uri => JsString(x.toString)
     case TripleItem.Text(x) => JsString(x)
     case TripleItem.NumberDouble(x) => JsNumber(x)
@@ -23,12 +25,12 @@ object Json {
     case x: TripleItem => JsString(x.toString)
   }
 
-  implicit val mappedAtomItemJsonWriter: RootJsonWriter[Atom.Item] = {
-    case Atom.Item.Variable(x) => JsObject("type" -> JsString("variable"), "value" -> JsString(x.toString()))
+  private implicit val mappedAtomItemJsonWriter: RootJsonWriter[Atom.Item] = {
+    case Atom.Item.Variable(x) => JsObject("type" -> JsString("variable"), "value" -> JsString(x.toString))
     case Atom.Item.Constant(x) => JsObject("type" -> JsString("constant"), "value" -> x.toJson)
   }
 
-  implicit val mappedAtomJsonWriter: RootJsonWriter[Atom] = {
+  private implicit val mappedAtomJsonWriter: RootJsonWriter[Atom] = {
     case ResolvedRule.Atom.Basic(s, p, o) => JsObject(
       "subject" -> s.toJson,
       "predicate" -> p.asInstanceOf[TripleItem].toJson,
@@ -42,7 +44,7 @@ object Json {
     )
   }
 
-  implicit val measureJsonWriter: RootJsonWriter[Measure] = {
+  private implicit val measureJsonWriter: RootJsonWriter[Measure] = {
     case Measure.BodySize(x) => JsObject("name" -> JsString("bodySize"), "value" -> JsNumber(x))
     case Measure.Confidence(x) => JsObject("name" -> JsString("confidence"), "value" -> JsNumber(x))
     case Measure.HeadConfidence(x) => JsObject("name" -> JsString("headConfidence"), "value" -> JsNumber(x))
@@ -55,13 +57,13 @@ object Json {
     case Measure.Cluster(x) => JsObject("name" -> JsString("cluster"), "value" -> JsNumber(x))
   }
 
-  implicit val resolvedRuleJsonWriter: RootJsonWriter[ResolvedRule] = (obj: ResolvedRule) => JsObject(
+  private implicit val resolvedRuleJsonWriter: RootJsonWriter[ResolvedRule] = (obj: ResolvedRule) => JsObject(
     "head" -> obj.head.toJson,
     "body" -> JsArray(obj.body.iterator.map(_.toJson).toVector),
     "measures" -> JsArray(obj.measures.iterator.map(_.toJson).toVector)
   )
 
-  implicit val jsonRulesetWriter: RulesetWriter[RulesetSource.Json.type] = (rules: Traversable[ResolvedRule], outputStreamBuilder: OutputStreamBuilder) => {
+  implicit def jsonRulesetWriter(source: RulesetSource.Json.type): RulesetWriter[RulesetSource.Json.type] = (rules: Traversable[ResolvedRule], outputStreamBuilder: OutputStreamBuilder) => {
     val writer = new PrintWriter(new OutputStreamWriter(outputStreamBuilder.build, "UTF-8"))
     try {
       writer.println('[')

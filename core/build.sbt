@@ -30,5 +30,3 @@ libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.6" % "test
 libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.7.7" % "test"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
 libraryDependencies += "com.github.shihyuho" % "memory-measurer" % "master-SNAPSHOT" % "test"
-
-//libraryDependencies += "commons-cli" % "commons-cli" % "1.2"

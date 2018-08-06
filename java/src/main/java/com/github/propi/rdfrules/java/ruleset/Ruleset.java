@@ -77,19 +77,19 @@ public class Ruleset implements
     }
 
     public Ruleset countConfidence(double minConfidence) {
-        return asJava(ruleset.countConfidence(minConfidence));
+        return asJava(ruleset.computeConfidence(minConfidence));
     }
 
     public Ruleset countPcaConfidence(double minPcaConfidence) {
-        return asJava(ruleset.countPcaConfidence(minPcaConfidence));
+        return asJava(ruleset.computePcaConfidence(minPcaConfidence));
     }
 
     public Ruleset countLift(double minConfidence) {
-        return asJava(ruleset.countLift(minConfidence));
+        return asJava(ruleset.computeLift(minConfidence));
     }
 
     public Ruleset countLift() {
-        return asJava(ruleset.countLift(ruleset.countLift$default$1()));
+        return asJava(ruleset.computeLift(ruleset.computeLift()));
     }
 
     /**
@@ -102,7 +102,7 @@ public class Ruleset implements
      * @return new Ruleset with counted clusters
      */
     public Ruleset countClusters(int minNeighbours, double minSimilarity, SimilarityCounting similarityCounting, Debugger debugger) {
-        return new Ruleset(ruleset.countClusters(DbScan$.MODULE$.apply(
+        return new Ruleset(ruleset.makeClusters(DbScan$.MODULE$.apply(
                 minNeighbours,
                 minSimilarity,
                 similarityCounting.asScala(),
@@ -119,7 +119,7 @@ public class Ruleset implements
      * @return new Ruleset with counted clusters
      */
     public Ruleset countClusters(int minNeighbours, double minSimilarity, SimilarityCounting similarityCounting) {
-        return new Ruleset(ruleset.countClusters(DbScan$.MODULE$.apply(
+        return new Ruleset(ruleset.makeClusters(DbScan$.MODULE$.apply(
                 minNeighbours,
                 minSimilarity,
                 similarityCounting.asScala(),
@@ -137,7 +137,7 @@ public class Ruleset implements
      * @return new Ruleset with counted clusters
      */
     public Ruleset countClusters() {
-        return new Ruleset(ruleset.countClusters(DbScan$.MODULE$.apply(
+        return new Ruleset(ruleset.makeClusters(DbScan$.MODULE$.apply(
                 DbScan$.MODULE$.apply$default$1(),
                 DbScan$.MODULE$.apply$default$2(),
                 SimilarityCounting.DEFAULT().asScala(),

@@ -245,7 +245,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
       val rules = index.tripleMap { implicit thi =>
         amie.addPattern(pattern).mine
       }
-      rules.map(_.body.last.`object`) should contain only Atom.Variable('b')
+      rules.map(_.body.last.`object`) should contain only Atom.Item('b')
       rules.size shouldBe 543
     }
     //any variable in object
@@ -254,7 +254,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
       val rules = index.tripleMap { implicit thi =>
         amie.addPattern(pattern).mine
       }
-      rules.map(_.body.last.`object`) should contain allOf(Atom.Variable('a'), Atom.Variable('b'))
+      rules.map(_.body.last.`object`) should contain allOf(Atom.Item('a'), Atom.Item('b'))
       rules.size shouldBe 546
     }
     //any constant in object

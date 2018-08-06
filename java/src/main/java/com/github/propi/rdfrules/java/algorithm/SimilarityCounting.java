@@ -13,7 +13,9 @@ public class SimilarityCounting {
         ATOMS,
         SUPPORT,
         CONFIDENCE,
-        LENGTH
+        LENGTH,
+        PCA_CONFIDENCE,
+        LIFT
     }
 
     final private com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting.Comb<Rule> similarityCounting;

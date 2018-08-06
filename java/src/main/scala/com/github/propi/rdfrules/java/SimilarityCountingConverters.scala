@@ -15,6 +15,8 @@ object SimilarityCountingConverters {
     case SimilarityCounting.RuleSimilarityCounting.CONFIDENCE => weight * ConfidenceSimilarityCounting
     case SimilarityCounting.RuleSimilarityCounting.LENGTH => weight * LengthSimilarityCounting
     case SimilarityCounting.RuleSimilarityCounting.SUPPORT => weight * SupportSimilarityCounting
+    case SimilarityCounting.RuleSimilarityCounting.PCA_CONFIDENCE => weight * PcaConfidenceSimilarityCounting
+    case SimilarityCounting.RuleSimilarityCounting.LIFT => weight * LiftSimilarityCounting
   }
 
   def toScalaRuleComb(x: SimilarityCounting.RuleSimilarityCounting, weight: Double): Comb[Rule] = toScalaWeightedSimilarityCounting(x, weight)

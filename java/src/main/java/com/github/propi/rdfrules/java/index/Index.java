@@ -6,11 +6,10 @@ import com.github.propi.rdfrules.java.IndexMode;
 import com.github.propi.rdfrules.java.algorithm.RulesMining;
 import com.github.propi.rdfrules.java.data.Dataset;
 import com.github.propi.rdfrules.java.ruleset.Ruleset;
-import scala.runtime.BoxedUnit;
 
+import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -56,6 +55,22 @@ public class Index {
         return fromCache(isb, Mode.PRESERVEDINMEMORY);
     }
 
+    public static Index fromCache(File file, Mode mode) {
+        return new Index(Index$.MODULE$.fromCache(file, mode.getMode()));
+    }
+
+    public static Index fromCache(File file) {
+        return fromCache(file, Mode.PRESERVEDINMEMORY);
+    }
+
+    public static Index fromCache(String file, Mode mode) {
+        return new Index(Index$.MODULE$.fromCache(file, mode.getMode()));
+    }
+
+    public static Index fromCache(String file) {
+        return fromCache(file, Mode.PRESERVEDINMEMORY);
+    }
+
     public com.github.propi.rdfrules.index.Index asScala() {
         return index;
     }
@@ -64,19 +79,20 @@ public class Index {
         index.cache(osb::get);
     }
 
+    public void cache(File file) {
+        index.cache(file);
+    }
+
+    public void cache(String file) {
+        index.cache(file);
+    }
+
     public Index newIndex() {
         return new Index(index.newIndex());
     }
 
     public Dataset toDataset() {
         return new Dataset(index.toDataset());
-    }
-
-    public void useMapper(Function<TripleItemHashIndex, Consumer<Index>> f) {
-        index.useMapper(x -> (y -> {
-            f.apply(new TripleItemHashIndex(x)).accept(new Index(y));
-            return BoxedUnit.UNIT;
-        }));
     }
 
     public <T> T tripleItemMap(Function<TripleItemHashIndex, T> f) {
@@ -89,6 +105,10 @@ public class Index {
 
     public Ruleset mine(RulesMining rulesMining) {
         return new Ruleset(index.mine(rulesMining.asScala()));
+    }
+
+    public Index withEvaluatedLazyVals() {
+        return new Index(index.withEvaluatedLazyVals());
     }
 
 }

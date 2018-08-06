@@ -7,9 +7,18 @@ import com.github.propi.rdfrules.data.{Quad, Triple, TripleItem}
   */
 class TripleItemHashIndex private(map: collection.Map[Int, TripleItem], sameAs: collection.Map[TripleItem, Int]) {
 
-  def getIndex(x: TripleItem): Int = sameAs.getOrElse(x, Stream.iterate(x.hashCode())(_ + 1).find(i => map.get(i).contains(x)).get)
+  def getIndex(x: TripleItem): Int = getIndexOpt(x).get
+
+  def getIndexOpt(x: TripleItem): Option[Int] = sameAs.get(x).orElse(
+    Stream.iterate(x.hashCode())(_ + 1)
+      .map(i => i -> map.get(i))
+      .find(_._2.forall(_ == x))
+      .flatMap(x => x._2.map(_ => x._1))
+  )
 
   def getTripleItem(x: Int): TripleItem = map(x)
+
+  def getTripleItemOpt(x: Int): Option[TripleItem] = map.get(x)
 
   def iterator: Iterator[(Int, TripleItem)] = map.iterator
 

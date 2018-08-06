@@ -17,6 +17,10 @@ public class ResolvedRule extends RuleMeasures {
         this.resolvedRule = resolvedRule;
     }
 
+    public ResolvedRule(Iterable<ResolvedAtom> body, ResolvedAtom head, Measure... measures) {
+        super(resolvedRule.measures());
+    }
+
     public com.github.propi.rdfrules.ruleset.ResolvedRule asScala() {
         return resolvedRule;
     }

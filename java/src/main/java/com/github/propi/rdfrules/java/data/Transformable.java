@@ -40,4 +40,12 @@ public interface Transformable<ST, JT, SColl, JColl> {
         return asScala().size();
     }
 
+    default JT head() {
+        return asScala().headOption().map(this::asJavaItem).getOrElse(() -> null);
+    }
+
+    default JT find(Predicate<JT> f) {
+        return asScala().find(x -> f.test(asJavaItem(x))).getOrElse(() -> null);
+    }
+
 }

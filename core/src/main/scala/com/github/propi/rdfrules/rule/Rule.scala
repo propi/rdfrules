@@ -44,10 +44,6 @@ object Rule {
 
   object Simple {
     implicit def apply(extendedRule: ExtendedRule): Simple = new Simple(extendedRule.head, extendedRule.body)(extendedRule.measures)
-    implicit def apply(resolvedRule: ResolvedRule)(implicit mapper: TripleItemHashIndex): Simple = resolvedRule match {
-      case x: ResolvedRule.Compressed => x.rule
-      case x: ResolvedRule.Simple => Simple(x.head, x.body.map(Atom.apply))(x.measures)
-    }
   }
 
   implicit val ruleOrdering: Ordering[Rule] = Ordering.by[Rule, TypedKeyMap.Immutable[Measure]](_.measures)

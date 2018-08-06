@@ -1,13 +1,9 @@
 package com.github.propi.rdfrules.java.data;
 
-import com.github.propi.rdfrules.data.RdfSource;
-import com.github.propi.rdfrules.data.formats.JenaLang;
-import com.github.propi.rdfrules.data.formats.JenaLang$;
-import com.github.propi.rdfrules.data.formats.Tsv;
+import com.github.propi.rdfrules.java.ReadersWriters;
+import com.github.propi.rdfrules.java.ScalaConverters;
 import com.github.propi.rdfrules.java.algorithm.RulesMining;
 import com.github.propi.rdfrules.java.index.Index;
-import com.github.propi.rdfrules.java.ScalaConverters;
-import com.github.propi.rdfrules.java.index.TripleItemHashIndex;
 import com.github.propi.rdfrules.java.ruleset.Ruleset;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFFormat;
@@ -17,7 +13,6 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -41,19 +36,35 @@ public class Dataset implements
     }
 
     public static Dataset fromTsv(Supplier<InputStream> isb) {
-        return new Dataset(com.github.propi.rdfrules.data.Dataset.apply(isb::get, Tsv.tsvReader()));
+        return new Dataset(com.github.propi.rdfrules.data.Dataset.apply(isb::get, ReadersWriters.tsvReader()));
     }
 
     public static Dataset fromTsv(File file) {
-        return new Dataset(com.github.propi.rdfrules.data.Dataset.apply(file, Tsv.tsvReader()));
+        return new Dataset(com.github.propi.rdfrules.data.Dataset.apply(file, ReadersWriters.tsvReader()));
+    }
+
+    public static Dataset fromTsv(String file) {
+        return fromTsv(new File(file));
     }
 
     public static Dataset fromRdfLang(Supplier<InputStream> isb, Lang lang) {
-        return new Dataset(com.github.propi.rdfrules.data.Dataset.apply(isb::get, JenaLang.jenaLangToRdfReader(new RdfSource.JenaLang(lang))));
+        return new Dataset(com.github.propi.rdfrules.data.Dataset.apply(isb::get, ReadersWriters.jenaLangReader(lang)));
     }
 
     public static Dataset fromRdfLang(File file, Lang lang) {
-        return new Dataset(com.github.propi.rdfrules.data.Dataset.apply(file, JenaLang.jenaLangToRdfReader(new RdfSource.JenaLang(lang))));
+        return new Dataset(com.github.propi.rdfrules.data.Dataset.apply(file, ReadersWriters.jenaLangReader(lang)));
+    }
+
+    public static Dataset fromRdfLang(String file, Lang lang) {
+        return fromRdfLang(new File(file), lang);
+    }
+
+    public static Dataset fromFile(File file) {
+        return new Dataset(com.github.propi.rdfrules.data.Dataset.apply(file, ReadersWriters.noRdfReader()));
+    }
+
+    public static Dataset fromFile(String file) {
+        return fromFile(new File(file));
     }
 
     public static Dataset fromQuads(Iterable<Quad> quads) {
@@ -66,6 +77,14 @@ public class Dataset implements
 
     public static Dataset fromCache(Supplier<InputStream> isb) {
         return new Dataset(com.github.propi.rdfrules.data.Dataset.fromCache(isb::get));
+    }
+
+    public static Dataset fromCache(File file) {
+        return new Dataset(com.github.propi.rdfrules.data.Dataset.fromCache(file));
+    }
+
+    public static Dataset fromCache(String file) {
+        return fromCache(new File(file));
     }
 
     @Override
@@ -108,7 +127,23 @@ public class Dataset implements
     }
 
     public void export(Supplier<OutputStream> osb, RDFFormat rdfFormat) {
-        asScala().export(osb::get, JenaLang$.MODULE$.jenaFormatToRdfWriter(rdfFormat));
+        asScala().export(osb::get, ReadersWriters.jenaLangWriter(rdfFormat));
+    }
+
+    public void export(File file, RDFFormat rdfFormat) {
+        asScala().export(file, ReadersWriters.jenaLangWriter(rdfFormat));
+    }
+
+    public void export(String file, RDFFormat rdfFormat) {
+        asScala().export(file, ReadersWriters.jenaLangWriter(rdfFormat));
+    }
+
+    public void export(File file) {
+        asScala().export(file, ReadersWriters.noRdfWriter());
+    }
+
+    public void export(String file) {
+        asScala().export(file, ReadersWriters.noRdfWriter());
     }
 
     public Index index(Index.Mode mode) {
@@ -117,16 +152,6 @@ public class Dataset implements
 
     public Index index() {
         return Index.fromDataset(this);
-    }
-
-    public void useMapper(Index.Mode mode, Function<TripleItemHashIndex, Consumer<Index>> f) {
-        Index index = index(mode);
-        index.useMapper(f);
-    }
-
-    public void useMapper(Function<TripleItemHashIndex, Consumer<Index>> f) {
-        Index index = index();
-        index.useMapper(f);
     }
 
     public Ruleset mine(RulesMining rulesMining) {

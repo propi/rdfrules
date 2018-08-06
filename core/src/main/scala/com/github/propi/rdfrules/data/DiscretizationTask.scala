@@ -24,7 +24,7 @@ object DiscretizationTask {
   case class Equidistance(bins: Int) extends DiscretizationTask with EquidistanceDiscretizationTask {
     def getNumberOfBins: Int = bins
 
-    def getBufferSize: Int = 0
+    def getBufferSize: Int = 15000000
   }
 
   case class Equifrequency(bins: Int, buffer: Int = 15000000, mode: Mode = Mode.External) extends DiscretizationTask with EquifrequencyDiscretizationTask {

@@ -1,7 +1,5 @@
 package com.github.propi.rdfrules.java.data;
 
-import com.github.propi.rdfrules.java.DiscretizationMode;
-import eu.easyminer.discretization.DiscretizationTask;
 import eu.easyminer.discretization.Interval;
 
 import java.util.function.Predicate;
@@ -11,29 +9,14 @@ import java.util.function.Predicate;
  */
 public interface Discretizable<SColl, JColl> extends QuadsOps<SColl, JColl> {
 
-    enum Mode {
-        INMEMORY(DiscretizationMode.inMemory()),
-        ONDISC(DiscretizationMode.onDisc());
-
-        final private com.github.propi.rdfrules.data.ops.Discretizable.DiscretizationMode mode;
-
-        Mode(com.github.propi.rdfrules.data.ops.Discretizable.DiscretizationMode mode) {
-            this.mode = mode;
-        }
-
-        public com.github.propi.rdfrules.data.ops.Discretizable.DiscretizationMode getMode() {
-            return mode;
-        }
-    }
-
     com.github.propi.rdfrules.data.ops.Discretizable<SColl> asScala();
 
-    default Interval[] discretizeAndGetIntervals(DiscretizationTask task, Mode mode, Predicate<Quad> f) {
-        return asScala().discretizeAndGetIntervals(task, mode.getMode(), x -> f.test(new Quad(x)));
+    default Interval[] discretizeAndGetIntervals(DiscretizationTask task, Predicate<Quad> f) {
+        return asScala().discretizeAndGetIntervals(task.asScala(), x -> f.test(new Quad(x)));
     }
 
-    default JColl discretize(DiscretizationTask task, Mode mode, Predicate<Quad> f) {
-        return asJava(asScala().discretize(task, mode.getMode(), x -> f.test(new Quad(x))));
+    default JColl discretize(DiscretizationTask task, Predicate<Quad> f) {
+        return asJava(asScala().discretize(task.asScala(), x -> f.test(new Quad(x))));
     }
 
 }

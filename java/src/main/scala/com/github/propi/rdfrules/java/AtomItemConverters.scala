@@ -24,10 +24,10 @@ object AtomItemConverters {
     case _: RulePattern.Any => AtomPattern.AtomItemPattern.Any
     case _: RulePattern.AnyConstant => AtomPattern.AtomItemPattern.AnyConstant
     case _: RulePattern.AnyVariable => AtomPattern.AtomItemPattern.AnyVariable
-    case x: RulePattern.Constant => AtomPattern.AtomItemPattern.Constant(com.github.propi.rdfrules.rule.Atom.Constant(x.getConstant))
+    case x: RulePattern.Constant => AtomPattern.AtomItemPattern.Constant(x.getConstant.asScala())
     case x: RulePattern.Variable => AtomPattern.AtomItemPattern.Variable(com.github.propi.rdfrules.rule.Atom.Variable(x.getVariable))
-    case x: RulePattern.OneOf => AtomPattern.AtomItemPattern.OneOf(x.getCol.asScala.map(toScalaAtomItemPattern))
-    case x: RulePattern.NoneOf => AtomPattern.AtomItemPattern.NoneOf(x.getCol.asScala.map(toScalaAtomItemPattern))
+    case x: RulePattern.OneOf => AtomPattern.AtomItemPattern.OneOf(x.getCol.asScala.toSeq.map(toScalaAtomItemPattern))
+    case x: RulePattern.NoneOf => AtomPattern.AtomItemPattern.NoneOf(x.getCol.asScala.toSeq.map(toScalaAtomItemPattern))
     case _ => AtomPattern.AtomItemPattern.Any
   }
 

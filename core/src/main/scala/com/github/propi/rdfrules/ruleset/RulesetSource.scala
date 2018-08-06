@@ -13,6 +13,4 @@ object RulesetSource {
 
   case object Json extends RulesetSource
 
-  implicit def rulesetSourceToRulesetWriter[T <: RulesetSource](rulesetSource: T)(implicit rulesetWriter: RulesetWriter[T]): RulesetWriter[T] = rulesetWriter
-
 }

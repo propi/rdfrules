@@ -2,12 +2,12 @@ package com.github.propi.rdfrules.java.rule;
 
 import com.github.propi.rdfrules.java.AtomItemConverters;
 import com.github.propi.rdfrules.java.data.TripleItem;
-import com.github.propi.rdfrules.java.index.TripleItemHashIndex;
 import com.github.propi.rdfrules.rule.Atom;
 import scala.collection.JavaConverters;
 import scala.collection.immutable.List;
 import scala.collection.immutable.List$;
 
+import java.util.Arrays;
 import java.util.Iterator;
 
 /**
@@ -152,7 +152,7 @@ public class RulePattern {
         }
 
         public Variable(char c) {
-            this.variable = Atom.Variable$.MODULE$.apply(c);
+            this.variable = Atom.Item$.MODULE$.apply(c);
         }
 
         public int getVariable() {
@@ -161,17 +161,13 @@ public class RulePattern {
     }
 
     public static class Constant extends AtomItemPattern {
-        final private int constant;
+        final private TripleItem constant;
 
-        public Constant(int constant) {
+        public Constant(TripleItem constant) {
             this.constant = constant;
         }
 
-        public Constant(TripleItem constant, TripleItemHashIndex mapper) {
-            this(mapper.getIndex(constant));
-        }
-
-        public int getConstant() {
+        public TripleItem getConstant() {
             return constant;
         }
     }
@@ -181,6 +177,10 @@ public class RulePattern {
 
         public OneOf(Iterable<AtomItemPattern> col) {
             this.col = col;
+        }
+
+        public OneOf(AtomItemPattern... items) {
+            this(Arrays.asList(items));
         }
 
         public Iterable<AtomItemPattern> getCol() {
@@ -193,6 +193,10 @@ public class RulePattern {
 
         public NoneOf(Iterable<AtomItemPattern> col) {
             this.col = col;
+        }
+
+        public NoneOf(AtomItemPattern... items) {
+            this(Arrays.asList(items));
         }
 
         public Iterable<AtomItemPattern> getCol() {
