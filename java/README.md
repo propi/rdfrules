@@ -155,7 +155,7 @@ dataset.export("file.nq"); // to several graphs
 //or into output stream
 import org.apache.jena.riot.RDFFormat;
 dataset.export(() -> new FileOutputStream("file.nq"), RDFFormat.NQUADS_ASCII);
-dataset.exportToTsv(() -> new FileOutputStream("file.tsv"));
+dataset.export("file.tsv");
 //finally we can create an Index object from RdfDataset or RdfGraph
 Index index = dataset.index();
 //or we can specify the index mode. There are two modes: PreservedInMemory and InUseInMemory (for more details see the root page and Index abstraction info)
@@ -170,8 +170,8 @@ Discretization tasks are only facades for implemented discretization algorithms 
 Task | Parameters | Algorithm |
 ---- | -----------| --------- |
 EquidistanceDiscretizationTask(*bins*) | *bins*: number of intervals being created | It creates intervals which have equal distance. For example for numbers \[1; 10\] and 5 bins it creates intervals 5 intervals: \[1; 2\], \[3; 4\], \[5; 6\], \[7; 8\], \[9; 10\].
-EquifrequencyDiscretizationTask(*bins*, *mode*, *buffer*) | *bins*: number of intervals being created, *mode* (optional): sorting mode (External or InMemory, default is External), *buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates an exact number of equal-frequent intervals with various distances. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (InMemory: data are sorted in memory with buffer limit, External: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
-EquisizeDiscretizationTask(*support*, *mode*, *buffer*) | *support*: a minimum support (or size) of each interval, *mode* (optional): sorting mode (External or InMemory, default is External), *buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates various number of equal-frequent intervals where all intervals must exceed the minimal support value. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (InMemory: data are sorted in memory with buffer limit, External: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
+EquifrequencyDiscretizationTask(*bins*, *mode*, *buffer*) | *bins*: number of intervals being created, *mode* (optional): sorting mode (EXTERNAL or INMEMORY, default is EXTERNAL), *buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates an exact number of equal-frequent intervals with various distances. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (INMEMORY: data are sorted in memory with buffer limit, EXTERNAL: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
+EquisizeDiscretizationTask(*support*, *mode*, *buffer*) | *support*: a minimum support (or size) of each interval, *mode* (optional): sorting mode (EXTERNAL or INMEMORY, default is EXTERNAL), *buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates various number of equal-frequent intervals where all intervals must exceed the minimal support value. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (INMEMORY: data are sorted in memory with buffer limit, EXTERNAL: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
 
 ## Index Operations
 
@@ -179,8 +179,8 @@ The Index object saves data in memory into several hash tables. First, all quad 
 
 Mode | Description |
 ---- | ------------|
-PreservedInMemory | Data are preserved in memory until the Index object exists. DEFAULT.
-InUseInMemory | Data are loaded into memory once we need them. After use we release the index.
+PRESERVEDINMEMORY | Data are preserved in memory until the Index object exists. DEFAULT.
+INUSEINMEMORY | Data are loaded into memory once we need them. After use we release the index.
 
 We can operate with Index by following operations:
 ```java
@@ -246,7 +246,7 @@ RulesMining preparedMiningTask = miningTask
   .addPattern(RulePattern
      .create(new RulePattern.AtomPattern().withPredicate("isMarriedTo"))
      .prependBodyAtom(new RulePattern.AtomPattern().withPredicate(new RulePattern.AnyConstant()))
-     .prependBodyAtom(new RulePattern.AtomPattern().withSubject('a').withGraph("isMarriedTo"))
+     .prependBodyAtom(new RulePattern.AtomPattern().withSubject('a').withGraph("yago"))
   )
   //add rule pattern: hasChild(Any, Any) => *
   .addPattern(RulePattern
@@ -278,8 +278,6 @@ We need to attach the Index object if we load rules from cache. The RuleSet cont
 import com.github.propi.rdfrules.java.ruleset.*;
 
 ruleset
-  //map rules
-  .map(rule -> /* update rule */)
   //filter rules
   .filter(rule -> rule.getHeadCoverage() > 0.2);
   //sort by defaults: Cluster, PcaConfidence, Lift, Confidence, HeadCoverage
@@ -310,12 +308,13 @@ ruleset.forEach(System.out::println);
 ruleset.export("rules.json"); //machine readable format
 ruleset.export("rules.txt"); //human readable format
 //or to outputstream
-ruleset.export(() -> new FileOutputStream("rules.json"), new RulesetWriter.Json());
+ruleset.exportToJson(() -> new FileOutputStream("rules.json"));
+ruleset.exportToText(() -> new FileOutputStream("rules.rules"));
 
 //we can find some rule
-Rule rule = ruleset.find(rule -> rule.getHeadCoverage() == 1);
+ResolvedRule rule = ruleset.findResolved(rule -> rule.getHeadCoverage() == 1);
 //or get the head of the rule set
-System.out.println(ruleset.head());
+System.out.println(ruleset.headResolved());
 //find top-k similar rules to the rule
 ruleset.findSimilar(rule, 10).forEach(System.out::println);
 //find top-k dissimilar rules to the rule
