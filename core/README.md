@@ -244,8 +244,6 @@ We need to attach the Index object if we load rules from cache. The RuleSet cont
 import com.github.propi.data._
 import com.github.propi.ruleset._
 ruleset
-  //map rules
-  .map(rule => if (rule.head.predicate.hasSameUriAs("hasChild")) rule.copy(head = rule.head.copy(predicate = "child")) else rule)
   //filter rules
   .filter(rule => rule.measures(Measure.HeadCoverage).value > 0.2)
   //sort by defaults: Cluster, PcaConfidence, Lift, Confidence, HeadCoverage
@@ -278,12 +276,12 @@ ruleset.foreach(println)
 ruleset.export("rules.json") //machine readable format
 ruleset.export("rules.txt") //human readable format
 //or to outputstream
-ruleset.export[RulesetSource.Json.type](new FileOutputStream("rules.json"))
+ruleset.export(new FileOutputStream("rules.json"))(RulesetSource.Json)
 
 //we can find some rule
-val rule = ruleset.find(rule => rule.measures(Measure.HeadCoverage).value == 1).get
+val rule = ruleset.findResolved(rule => rule.measures(Measure.HeadCoverage).value == 1).get
 //or get the head of the rule set
-println(ruleset.head)
+println(ruleset.headResolved)
 //find top-k similar rules to the rule
 ruleset.findSimilar(rule, 10).foreach(println)
 //find top-k dissimilar rules to the rule
