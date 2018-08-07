@@ -241,17 +241,17 @@ import com.github.propi.rdfrules.java.rule.*;
 RulesMining preparedMiningTask = miningTask
   .withMinHeadCoverage(0.1)
   //add rule pattern: * => isMarriedTo(Any, Any)
-  .addPattern(RulePattern.create(new RulePattern.AtomPattern().withPredicate("isMarriedTo")))
+  .addPattern(RulePattern.create(new RulePattern.AtomPattern().withPredicate(new TripleItem.LongUri("isMarriedTo"))))
   //add rule pattern: Any(?a, Any, <yago>) ^ Any(Any, AnyConstant) => isMarriedTo(Any, Any)
   .addPattern(RulePattern
-     .create(new RulePattern.AtomPattern().withPredicate("isMarriedTo"))
+     .create(new RulePattern.AtomPattern().withPredicate(new TripleItem.LongUri("isMarriedTo")))
      .prependBodyAtom(new RulePattern.AtomPattern().withPredicate(new RulePattern.AnyConstant()))
-     .prependBodyAtom(new RulePattern.AtomPattern().withSubject('a').withGraph("yago"))
+     .prependBodyAtom(new RulePattern.AtomPattern().withSubject('a').withGraph(new TripleItem.LongUri("yago")))
   )
   //add rule pattern: hasChild(Any, Any) => *
   .addPattern(RulePattern
      .create()
-     .prependBodyAtom(new RulePattern.AtomPattern().withPredicate("hasChild"))
+     .prependBodyAtom(new RulePattern.AtomPattern().withPredicate(new TripleItem.LongUri("hasChild")))
   )
   .withInstances(false);
 index.mine(preparedMiningTask);
