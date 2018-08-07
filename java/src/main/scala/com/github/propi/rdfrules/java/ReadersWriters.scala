@@ -9,17 +9,17 @@ import org.apache.jena.riot.{Lang, RDFFormat}
   */
 object ReadersWriters {
 
-  def tsvReader: RdfReader[RdfSource.Tsv.type] = com.github.propi.rdfrules.data.tsvReader(RdfSource.Tsv)
+  def tsvReader: RdfReader = com.github.propi.rdfrules.data.tsvReader(RdfSource.Tsv)
 
-  def tsvWriter: RdfWriter[RdfSource.Tsv.type] = com.github.propi.rdfrules.data.tsvWriter(RdfSource.Tsv)
+  def tsvWriter: RdfWriter = com.github.propi.rdfrules.data.tsvWriter(RdfSource.Tsv)
 
-  def jenaLangReader(lang: Lang): RdfReader[RdfSource.JenaLang] = com.github.propi.rdfrules.data.jenaLangToRdfReader(lang)
+  def jenaLangReader(lang: Lang): RdfReader = com.github.propi.rdfrules.data.jenaLangToRdfReader(lang)
 
-  def jenaLangWriter(format: RDFFormat): RdfWriter[RdfSource.JenaLang] = com.github.propi.rdfrules.data.jenaFormatToRdfWriter(format)
+  def jenaLangWriter(format: RDFFormat): RdfWriter = com.github.propi.rdfrules.data.jenaFormatToRdfWriter(format)
 
-  def noRdfWriter: RdfWriter[RdfSource] = RdfWriter.NoWriter
+  def noRdfWriter: RdfWriter = RdfWriter.NoWriter
 
-  def noRdfReader: RdfReader[RdfSource] = RdfReader.NoReader
+  def noRdfReader: RdfReader = RdfReader.NoReader
 
   def rulesJsonWriter: RulesetWriter[RulesetSource] = RulesetSource.Json
 

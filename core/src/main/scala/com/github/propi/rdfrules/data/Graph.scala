@@ -36,14 +36,14 @@ class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView
 
   def foreach(f: Triple => Unit): Unit = triples.foreach(f)
 
-  def export[T <: RdfSource](os: => OutputStream)(implicit writer: RdfWriter[T]): Unit = writer.writeToOutputStream(this, os)
+  def export(os: => OutputStream)(implicit writer: RdfWriter): Unit = writer.writeToOutputStream(this, os)
 
-  def export[T <: RdfSource](file: File)(implicit writer: RdfWriter[T]): Unit = {
+  def export(file: File)(implicit writer: RdfWriter): Unit = {
     val newWriter = if (writer == RdfWriter.NoWriter) RdfWriter(file) else writer
     export(new FileOutputStream(file))(newWriter)
   }
 
-  def export[T <: RdfSource](file: String)(implicit writer: RdfWriter[T]): Unit = export(new File(file))
+  def export(file: String)(implicit writer: RdfWriter): Unit = export(new File(file))
 
   def quads: QuadTraversableView = triples.map(_.toQuad(name))
 
@@ -65,20 +65,20 @@ object Graph {
 
   def apply(name: TripleItem.Uri, triples: Traversable[Triple]): Graph = new Graph(name, triples.view)
 
-  def apply[T <: RdfSource](name: TripleItem.Uri, is: => InputStream)(implicit reader: RdfReader[T]): Graph = new Graph(name, reader.fromInputStream(is).map(_.triple))
+  def apply(name: TripleItem.Uri, is: => InputStream)(implicit reader: RdfReader): Graph = new Graph(name, reader.fromInputStream(is).map(_.triple))
 
-  def apply[T <: RdfSource](name: TripleItem.Uri, file: File)(implicit reader: RdfReader[T]): Graph = {
+  def apply(name: TripleItem.Uri, file: File)(implicit reader: RdfReader): Graph = {
     val newReader = if (reader == RdfReader.NoReader) RdfReader(file) else reader
     new Graph(name, newReader.fromFile(file).map(_.triple))
   }
 
-  def apply[T <: RdfSource](name: TripleItem.Uri, file: String)(implicit reader: RdfReader[T]): Graph = apply(name, new File(file))
+  def apply(name: TripleItem.Uri, file: String)(implicit reader: RdfReader): Graph = apply(name, new File(file))
 
-  def apply[T <: RdfSource](file: File)(implicit reader: RdfReader[T]): Graph = apply(default, file)
+  def apply(file: File)(implicit reader: RdfReader): Graph = apply(default, file)
 
-  def apply[T <: RdfSource](file: String)(implicit reader: RdfReader[T]): Graph = apply(new File(file))
+  def apply(file: String)(implicit reader: RdfReader): Graph = apply(new File(file))
 
-  def apply[T <: RdfSource](is: => InputStream)(implicit reader: RdfReader[T]): Graph = apply(default, is)
+  def apply(is: => InputStream)(implicit reader: RdfReader): Graph = apply(default, is)
 
   def fromCache(name: TripleItem.Uri, is: => InputStream): Graph = new Graph(
     name,

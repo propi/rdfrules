@@ -10,7 +10,7 @@ import org.apache.jena.riot.Lang
 /**
   * Created by Vaclav Zeman on 27. 6. 2017.
   */
-trait RdfReader[+T <: RdfSource] {
+trait RdfReader {
   def fromInputStream(inputStreamBuilder: InputStreamBuilder): QuadTraversableView
 
   def fromFile(file: File): QuadTraversableView = fromInputStream(new FileInputStream(file))
@@ -18,11 +18,11 @@ trait RdfReader[+T <: RdfSource] {
 
 object RdfReader {
 
-  implicit object NoReader extends RdfReader[Nothing] {
+  implicit object NoReader extends RdfReader {
     def fromInputStream(inputStreamBuilder: InputStreamBuilder): QuadTraversableView = throw new IllegalStateException("No specified RdfReader.")
   }
 
-  def apply(file: File): RdfReader[RdfSource] = file.getName.replaceAll(".*\\.", "").toLowerCase match {
+  def apply(file: File): RdfReader = file.getName.replaceAll(".*\\.", "").toLowerCase match {
     case "nt" => Lang.NT
     case "nq" => Lang.NQ
     case "ttl" => Lang.TTL

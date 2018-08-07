@@ -72,7 +72,7 @@ trait JenaLang {
     def base(base: String): Unit = prefixes += Prefix("", base)
   }
 
-  implicit def jenaLangToRdfReader(jenaLang: Lang): RdfReader[RdfSource.JenaLang] = (inputStreamBuilder: InputStreamBuilder) => new Traversable[rdfrules.data.Quad] {
+  implicit def jenaLangToRdfReader(jenaLang: Lang): RdfReader = (inputStreamBuilder: InputStreamBuilder) => new Traversable[rdfrules.data.Quad] {
     def foreach[U](f: rdfrules.data.Quad => U): Unit = {
       val is = new BufferedInputStream(inputStreamBuilder.build)
       try {
@@ -83,7 +83,7 @@ trait JenaLang {
     }
   }.view
 
-  implicit def jenaFormatToRdfWriter(rdfFormat: RDFFormat): RdfWriter[RdfSource.JenaLang] = (quads: QuadTraversableView, outputStreamBuilder: OutputStreamBuilder) => {
+  implicit def jenaFormatToRdfWriter(rdfFormat: RDFFormat): RdfWriter = (quads: QuadTraversableView, outputStreamBuilder: OutputStreamBuilder) => {
     val os = new BufferedOutputStream(outputStreamBuilder.build)
     val stream = StreamRDFWriter.getWriterStream(os, rdfFormat)
     try {

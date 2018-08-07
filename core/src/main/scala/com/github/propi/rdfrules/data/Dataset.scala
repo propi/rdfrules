@@ -43,14 +43,14 @@ class Dataset private(val quads: QuadTraversableView)
 
   def foreach(f: Quad => Unit): Unit = quads.foreach(f)
 
-  def export[T <: RdfSource](os: => OutputStream)(implicit writer: RdfWriter[T]): Unit = writer.writeToOutputStream(this, os)
+  def export(os: => OutputStream)(implicit writer: RdfWriter): Unit = writer.writeToOutputStream(this, os)
 
-  def export[T <: RdfSource](file: File)(implicit writer: RdfWriter[T]): Unit = {
+  def export(file: File)(implicit writer: RdfWriter): Unit = {
     val newWriter = if (writer == RdfWriter.NoWriter) RdfWriter(file) else writer
     export(new FileOutputStream(file))(newWriter)
   }
 
-  def export[T <: RdfSource](file: String)(implicit writer: RdfWriter[T]): Unit = export(new File(file))
+  def export(file: String)(implicit writer: RdfWriter): Unit = export(new File(file))
 
   def mine(miner: RulesMining): Ruleset = Index(this).mine(miner)
 
@@ -64,14 +64,14 @@ object Dataset {
 
   def apply(): Dataset = new Dataset(Traversable.empty[Quad].view)
 
-  def apply[T <: RdfSource](is: => InputStream)(implicit reader: RdfReader[T]): Dataset = new Dataset(reader.fromInputStream(is))
+  def apply(is: => InputStream)(implicit reader: RdfReader): Dataset = new Dataset(reader.fromInputStream(is))
 
-  def apply[T <: RdfSource](file: File)(implicit reader: RdfReader[T]): Dataset = {
+  def apply(file: File)(implicit reader: RdfReader): Dataset = {
     val newReader = if (reader == RdfReader.NoReader) RdfReader(file) else reader
     new Dataset(newReader.fromFile(file))
   }
 
-  def apply[T <: RdfSource](file: String)(implicit reader: RdfReader[T]): Dataset = apply(new File(file))
+  def apply(file: String)(implicit reader: RdfReader): Dataset = apply(new File(file))
 
   def apply(quads: Traversable[Quad]): Dataset = new Dataset(quads.view)
 

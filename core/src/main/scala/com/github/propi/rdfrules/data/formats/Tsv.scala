@@ -26,7 +26,7 @@ trait Tsv {
     case x => x.toString
   }
 
-  implicit def tsvReader(rdfSource: RdfSource.Tsv.type): RdfReader[RdfSource.Tsv.type] = (inputStreamBuilder: InputStreamBuilder) => new Traversable[Quad] {
+  implicit def tsvReader(rdfSource: RdfSource.Tsv.type): RdfReader = (inputStreamBuilder: InputStreamBuilder) => new Traversable[Quad] {
     def foreach[U](f: Quad => U): Unit = {
       val is = new BufferedInputStream(inputStreamBuilder.build)
       val source = Source.fromInputStream(is, "UTF-8")
@@ -77,7 +77,7 @@ trait Tsv {
     }
   }.view
 
-  implicit def tsvWriter(rdfSource: RdfSource.Tsv.type): RdfWriter[RdfSource.Tsv.type] = (quads: QuadTraversableView, outputStreamBuilder: OutputStreamBuilder) => {
+  implicit def tsvWriter(rdfSource: RdfSource.Tsv.type): RdfWriter = (quads: QuadTraversableView, outputStreamBuilder: OutputStreamBuilder) => {
     val writer = new PrintWriter(new BufferedOutputStream(outputStreamBuilder.build))
     try {
       for (Quad(triple, _) <- quads) {

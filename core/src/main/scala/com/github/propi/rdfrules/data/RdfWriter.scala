@@ -10,7 +10,7 @@ import org.apache.jena.riot.RDFFormat
 /**
   * Created by Vaclav Zeman on 4. 10. 2017.
   */
-trait RdfWriter[+T <: RdfSource] {
+trait RdfWriter {
   def writeToOutputStream(quads: QuadTraversableView, outputStreamBuilder: OutputStreamBuilder): Unit
 
   def writeToOutputStream(dataset: Dataset, outputStreamBuilder: OutputStreamBuilder): Unit = writeToOutputStream(dataset.quads, outputStreamBuilder)
@@ -20,11 +20,11 @@ trait RdfWriter[+T <: RdfSource] {
 
 object RdfWriter {
 
-  implicit object NoWriter extends RdfWriter[Nothing] {
+  implicit object NoWriter extends RdfWriter {
     def writeToOutputStream(quads: QuadTraversableView, outputStreamBuilder: OutputStreamBuilder): Unit = throw new IllegalStateException("No specified RdfWriter.")
   }
 
-  def apply(file: File): RdfWriter[RdfSource] = file.getName.replaceAll(".*\\.", "").toLowerCase match {
+  def apply(file: File): RdfWriter = file.getName.replaceAll(".*\\.", "").toLowerCase match {
     case "nt" => RDFFormat.NTRIPLES_UTF8
     case "nq" => RDFFormat.NQUADS_UTF8
     case "ttl" => RDFFormat.TURTLE_FLAT
