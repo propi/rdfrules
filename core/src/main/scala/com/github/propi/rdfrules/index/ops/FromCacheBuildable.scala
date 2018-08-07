@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.index.ops
 
-import java.io.{InputStream, OutputStream}
+import java.io.{BufferedInputStream, BufferedOutputStream, InputStream, OutputStream}
 
 import com.github.propi.rdfrules.index.ops.Cacheable.SerItem
 import com.github.propi.rdfrules.index.{Index, TripleHashIndex, TripleItemHashIndex}
@@ -35,10 +35,15 @@ trait FromCacheBuildable extends Buildable {
   })
 
   def cache(os: => OutputStream): Unit = {
-    val _os = os
+    val _os = new BufferedOutputStream(os)
     try {
       useInputStream { is =>
-        Stream.continually(is.read()).takeWhile(_ != -1).foreach(_os.write)
+        val _is = new BufferedInputStream(is)
+        try {
+          Stream.continually(is.read()).takeWhile(_ != -1).foreach(_os.write)
+        } finally {
+          _is.close()
+        }
       }
     } finally {
       _os.close()

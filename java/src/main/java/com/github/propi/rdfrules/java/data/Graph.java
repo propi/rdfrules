@@ -89,6 +89,14 @@ public class Graph implements
         return fromFile(new File(file));
     }
 
+    public static Graph fromFile(TripleItem.Uri name, File file) {
+        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.asScala(), file, ReadersWriters.noRdfReader()));
+    }
+
+    public static Graph fromFile(TripleItem.Uri name, String file) {
+        return fromFile(name, new File(file));
+    }
+
     public static Graph fromTriples(Iterable<Triple> triples) {
         return new Graph(com.github.propi.rdfrules.data.Graph.apply(ScalaConverters.toIterable(triples, Triple::asScala)));
     }

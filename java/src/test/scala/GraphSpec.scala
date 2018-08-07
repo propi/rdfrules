@@ -1,13 +1,11 @@
-import java.io.{File, FileInputStream, FileOutputStream}
+import java.io.File
 
 import GraphSpec._
 import com.github.propi.rdfrules.data.{Triple, TripleItem}
 import com.github.propi.rdfrules.java.data
-import com.github.propi.rdfrules.java.data.{Discretizable, Graph, HistogramKey, Prefix, TripleItemType}
+import com.github.propi.rdfrules.java.data.{DiscretizationTask, Graph, HistogramKey, Prefix, TripleItemType}
 import eu.easyminer.discretization.impl.{Interval, IntervalBound}
-import eu.easyminer.discretization.task.{EquidistanceDiscretizationTask, EquifrequencyDiscretizationTask, EquisizeDiscretizationTask}
-import eu.easyminer.discretization.{RelativeSupport, Support}
-import org.apache.jena.riot.{Lang, RDFFormat}
+import org.apache.jena.riot.Lang
 import org.scalatest.{FlatSpec, Inside, Matchers}
 
 import scala.collection.JavaConverters._
@@ -87,32 +85,16 @@ class GraphSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "discretize data" in {
-    val intervals = graphDbpedia.discretizeAndGetIntervals(new EquidistanceDiscretizationTask {
-      def getNumberOfBins: Int = 5
-
-      def getBufferSize: Int = 1000000
-    }, Discretizable.Mode.INMEMORY, quad => quad.getTriple.getPredicate.hasSameUriAs(new data.TripleItem.LongUri("http://cs.dbpedia.org/property/rok")))
+    val intervals = graphDbpedia.discretizeAndGetIntervals(new DiscretizationTask.Equidistance(5), quad => quad.getTriple.getPredicate.hasSameUriAs(new data.TripleItem.LongUri("http://cs.dbpedia.org/property/rok")))
     intervals.length shouldBe 5
     intervals.last shouldBe Interval(IntervalBound.Inclusive(16009.4), IntervalBound.Inclusive(20010.0))
-    val intervals2 = graphDbpedia.discretizeAndGetIntervals(new EquifrequencyDiscretizationTask {
-      def getNumberOfBins: Int = 5
-
-      def getBufferSize: Int = 1000000
-    }, data.Discretizable.Mode.ONDISC, quad => quad.getTriple.getPredicate.hasSameUriAs(new data.TripleItem.LongUri("http://cs.dbpedia.org/property/rok")))
+    val intervals2 = graphDbpedia.discretizeAndGetIntervals(new DiscretizationTask.Equifrequency(5), quad => quad.getTriple.getPredicate.hasSameUriAs(new data.TripleItem.LongUri("http://cs.dbpedia.org/property/rok")))
     intervals2.length shouldBe 5
     intervals2.head shouldBe Interval(IntervalBound.Inclusive(7.0), IntervalBound.Exclusive(1962.5))
-    val intervals3 = graphDbpedia.discretizeAndGetIntervals(new EquisizeDiscretizationTask {
-      def getMinSupport: Support = new RelativeSupport(0.2)
-
-      def getBufferSize: Int = 1000000
-    }, data.Discretizable.Mode.INMEMORY, quad => quad.getTriple.getPredicate.hasSameUriAs(new data.TripleItem.LongUri("http://cs.dbpedia.org/property/rok")))
+    val intervals3 = graphDbpedia.discretizeAndGetIntervals(new DiscretizationTask.Equisize(0.2), quad => quad.getTriple.getPredicate.hasSameUriAs(new data.TripleItem.LongUri("http://cs.dbpedia.org/property/rok")))
     intervals3.length shouldBe 4
     intervals3.head shouldBe Interval(IntervalBound.Inclusive(7.0), IntervalBound.Exclusive(1975.5))
-    val dg = graphDbpedia.discretize(new EquifrequencyDiscretizationTask {
-      def getNumberOfBins: Int = 5
-
-      def getBufferSize: Int = 1000000
-    }, data.Discretizable.Mode.INMEMORY, quad => quad.getTriple.getPredicate.hasSameUriAs(new data.TripleItem.LongUri("http://cs.dbpedia.org/property/rok")))
+    val dg = graphDbpedia.discretize(new DiscretizationTask.Equifrequency(5), quad => quad.getTriple.getPredicate.hasSameUriAs(new data.TripleItem.LongUri("http://cs.dbpedia.org/property/rok")))
     dg.size shouldBe 50000
     dg.types().get(new data.TripleItem.LongUri("http://cs.dbpedia.org/property/rok")).get(TripleItemType.INTERVAL) shouldBe 2340
     val histogram = dg.filter(_.getPredicate.hasSameUriAs(new data.TripleItem.LongUri("http://cs.dbpedia.org/property/rok"))).histogram(false, false, true)
@@ -125,20 +107,20 @@ class GraphSpec extends FlatSpec with Matchers with Inside {
     graphDbpedia.filter(_.getPredicate.hasSameUriAs(new data.TripleItem.LongUri("http://cs.dbpedia.org/property/rok"))).cache.asScala().triples should matchPattern {
       case `SeqView[Triple, _]`(_) =>
     }
-    val cached = graphDbpedia.cache(() => new FileOutputStream("test.cache"), () => new FileInputStream("test.cache"))
+    val cached = graphDbpedia.cache("test.cache")
     cached.size shouldBe 50000
-    val g2 = Graph.fromCache(() => new FileInputStream("test.cache"))
+    val g2 = Graph.fromCache("test.cache")
     g2.size shouldBe 50000
     g2.getName shouldBe Graph.DEFAULT
     new File("test.cache").delete() shouldBe true
-    graph.cache(() => new FileOutputStream("test.cache"), () => new FileInputStream("test.cache")).size shouldBe 46654
+    graph.cache("test.cache").size shouldBe 46654
     new File("test.cache").delete() shouldBe true
   }
 
   it should "export data" in {
-    graphDbpedia.export(() => new FileOutputStream("test.data"), RDFFormat.NTRIPLES_ASCII)
-    Graph.fromRdfLang(new File("test.data"), Lang.NTRIPLES).size shouldBe 50000
-    new File("test.data").delete() shouldBe true
+    graphDbpedia.export("test.nt")
+    Graph.fromFile("test.nt").size shouldBe 50000
+    new File("test.nt").delete() shouldBe true
   }
 
 }

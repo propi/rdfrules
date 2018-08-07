@@ -6,6 +6,7 @@ import com.github.propi.rdfrules.java.TripleItemConverters;
 import com.github.propi.rdfrules.java.data.TripleItem;
 
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Created by Vaclav Zeman on 13. 5. 2018.
@@ -16,6 +17,10 @@ public class ResolvedAtom {
 
     public ResolvedAtom(com.github.propi.rdfrules.ruleset.ResolvedRule.Atom atom) {
         this.atom = atom;
+    }
+
+    public ResolvedAtom(Item subject, TripleItem.Uri predicate, Item object) {
+        this(ScalaResolvedAtom.resolvedAtom(subject.asScala().item(), predicate.asScala(), object.asScala().item()));
     }
 
     abstract public static class Item {
@@ -72,6 +77,10 @@ public class ResolvedAtom {
             this.constant = constant;
         }
 
+        public Constant(TripleItem constant) {
+            this(ScalaResolvedAtom.constant(constant));
+        }
+
         @Override
         public ScalaResolvedAtom.ItemConstantWrapper asScala() {
             return constant;
@@ -96,6 +105,10 @@ public class ResolvedAtom {
 
     public Item getObject() {
         return AtomItemConverters.toJavaResolvedAtomItem(atom.object());
+    }
+
+    public Set<TripleItem.Uri> getGraphs() {
+        return ScalaResolvedAtom.graphs(asScala());
     }
 
     @Override

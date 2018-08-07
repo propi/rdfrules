@@ -1,5 +1,9 @@
 package com.github.propi.rdfrules.experiments
 
+import java.io.File
+
+import org.apache.commons.io.FileUtils
+
 /**
   * Created by Vaclav Zeman on 25. 7. 2018.
   */
@@ -20,6 +24,19 @@ trait Example[T] {
     resultPrinter.printResult(result)
     println("+++++++++++++++++++++++++++++++++++++++++")
     println("+++++++++++++++++++++++++++++++++++++++++")
+  }
+
+}
+
+object Example {
+
+  val resultDir = "experiments/results/"
+  val experimentsDir = "experiments/data/"
+
+  def prepareResultsDir(): Unit = {
+    val resultsDir = new File(resultDir.stripSuffix("/"))
+    if (!resultsDir.isDirectory) resultsDir.mkdirs()
+    FileUtils.cleanDirectory(resultsDir)
   }
 
 }

@@ -1,8 +1,8 @@
 package com.github.propi.rdfrules.java.ruleset;
 
+import com.github.propi.rdfrules.java.ReadersWriters;
 import com.github.propi.rdfrules.java.ScalaConverters;
 import com.github.propi.rdfrules.java.rule.ResolvedRule;
-import com.github.propi.rdfrules.stringifier.CommonStringifiers$;
 
 import java.io.OutputStream;
 import java.util.function.Supplier;
@@ -17,7 +17,7 @@ public interface RulesetWriter {
     class Json implements RulesetWriter {
         @Override
         public void writeToOutputStream(Iterable<ResolvedRule> rules, Supplier<OutputStream> osb) {
-            com.github.propi.rdfrules.ruleset.formats.Json.jsonRulesetWriter().writeToOutputStream(
+            ReadersWriters.rulesJsonWriter().writeToOutputStream(
                     ScalaConverters.toIterable(rules, ResolvedRule::asScala),
                     osb::get
             );
@@ -27,7 +27,7 @@ public interface RulesetWriter {
     class Text implements RulesetWriter {
         @Override
         public void writeToOutputStream(Iterable<ResolvedRule> rules, Supplier<OutputStream> osb) {
-            com.github.propi.rdfrules.ruleset.formats.Text.textRulesetWriter(CommonStringifiers$.MODULE$.resolvedRuleStringifier()).writeToOutputStream(
+            ReadersWriters.rulesTextWriter().writeToOutputStream(
                     ScalaConverters.toIterable(rules, ResolvedRule::asScala),
                     osb::get
             );

@@ -1,18 +1,11 @@
 package com.github.propi.rdfrules.experiments
 
-import java.io._
-
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.algorithm.dbscan.DbScan
-import com.github.propi.rdfrules.data.TripleItem.Uri
 import com.github.propi.rdfrules.data._
 import com.github.propi.rdfrules.rule._
-import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
+import com.github.propi.rdfrules.ruleset._
 import com.github.propi.rdfrules.utils.Debugger
-import org.apache.commons.io.FileUtils
-import com.github.propi.rdfrules.ruleset.formats.Text._
-import com.github.propi.rdfrules.ruleset.formats.Json._
-import com.github.propi.rdfrules.stringifier.CommonStringifiers._
 
 /**
   * Created by Vaclav Zeman on 24. 4. 2018.
@@ -23,7 +16,7 @@ object YagoAndDbpediaSamples {
     def name: String = "Logical rules mining from a YAGO sample with default params"
 
     protected def example: Ruleset = {
-      Dataset(new File("experiments/data/yago.tsv"))
+      Dataset(Example.experimentsDir + "yago.tsv")
         .mine(Amie())
         .sorted
         .take(10)
@@ -34,7 +27,7 @@ object YagoAndDbpediaSamples {
     def name: String = "Logical rules mining from a YAGO sample with the top-k approach."
 
     protected def example: Ruleset = {
-      Dataset(new File("experiments/data/yago.tsv"))
+      Dataset(Example.experimentsDir + "yago.tsv")
         .mine(Amie().addThreshold(Threshold.TopK(10)))
         .sorted
     }
@@ -44,7 +37,7 @@ object YagoAndDbpediaSamples {
     def name: String = "Logical rules mining from a YAGO sample with many mining params."
 
     protected def example: Ruleset = {
-      val dataset = Dataset(new File("experiments/data/yago.tsv"))
+      val dataset = Dataset(Example.experimentsDir + "yago.tsv")
       dataset.mine(Amie()
         .addThreshold(Threshold.MinHeadSize(80))
         .addThreshold(Threshold.MinHeadCoverage(0.001))
@@ -54,10 +47,10 @@ object YagoAndDbpediaSamples {
         .computeLift()
         .makeClusters(DbScan(minNeighbours = 2))
         .sortBy(Measure.Cluster, Measure.PcaConfidence, Measure.Lift, Measure.HeadCoverage)
-        .cache(new File("experiments/results/rules-example3.cache"))
-      val ruleset = Ruleset.fromCache(dataset.index(), new File("experiments/results/rules-example3.cache"))
-      ruleset.export[RulesetSource.Text.type](new File("experiments/results/rules-example3.txt"))
-      ruleset.export[RulesetSource.Json.type](new File("experiments/results/rules-example3.json"))
+        .cache(Example.resultDir + "rules-example3.cache")
+      val ruleset = Ruleset.fromCache(dataset.index(), Example.resultDir + "rules-example3.cache")
+      ruleset.export(Example.resultDir + "rules-example3.txt")
+      ruleset.export(Example.resultDir + "rules-example3.json")
       ruleset
     }
   }
@@ -66,9 +59,9 @@ object YagoAndDbpediaSamples {
     def name: String = "Logical rules mining only from a YAGO graph."
 
     protected def example: Ruleset = {
-      val dataset = Graph("yago", new File("experiments/data/yagoLiteralFacts.tsv")).toDataset +
-        Graph("yago", new File("experiments/data/yagoFacts.tsv")) +
-        Graph("yago", new File("experiments/data/yagoDBpediaInstances.tsv"))
+      val dataset = Graph("yago", Example.experimentsDir + "yagoLiteralFacts.tsv").toDataset +
+        Graph("yago", Example.experimentsDir + "yagoFacts.tsv") +
+        Graph("yago", Example.experimentsDir + "yagoDBpediaInstances.tsv")
       dataset.mine(Amie()
         .addThreshold(Threshold.MinHeadCoverage(0.2)))
         .sorted
@@ -79,28 +72,24 @@ object YagoAndDbpediaSamples {
     def name: String = "Logical rules mining across two linked graphs: YAGO and DBpedia"
 
     protected def example: Ruleset = {
-      val dataset = Graph("yago", new File("experiments/data/yagoLiteralFacts.tsv")).toDataset +
-        Graph("yago", new File("experiments/data/yagoFacts.tsv")) +
-        Graph("yago", new File("experiments/data/yagoDBpediaInstances.tsv")) +
-        Graph("dbpedia", new File("experiments/data/mappingbased_objects_sample.ttl")) +
-        Graph("dbpedia", new File("experiments/data/mappingbased_literals_sample.ttl"))
-      dataset.index().useMapper { implicit mapper =>
-        _.mine(Amie()
-          .addThreshold(Threshold.MinHeadCoverage(0.2))
-          .addPattern(AtomPattern(graph = Uri("dbpedia")) =>: AtomPattern(graph = Uri("yago")))
-          .addPattern(AtomPattern(graph = Uri("yago")) =>: AtomPattern(graph = Uri("dbpedia"))))
-          .sorted
-          .graphBasedRules
-          .cache(new File("experiments/results/rules-example5.cache"))
-      }
-      Ruleset.fromCache(dataset.index(), new File("experiments/results/rules-example5.cache"))
+      val dataset = Graph("yago", Example.experimentsDir + "yagoLiteralFacts.tsv").toDataset +
+        Graph("yago", Example.experimentsDir + "yagoFacts.tsv") +
+        Graph("yago", Example.experimentsDir + "yagoDBpediaInstances.tsv") +
+        Graph("dbpedia", Example.experimentsDir + "mappingbased_objects_sample.ttl") +
+        Graph("dbpedia", Example.experimentsDir + "mappingbased_literals_sample.ttl")
+      dataset.mine(Amie()
+        .addThreshold(Threshold.MinHeadCoverage(0.2))
+        .addPattern(AtomPattern(graph = TripleItem.Uri("dbpedia")) =>: AtomPattern(graph = TripleItem.Uri("yago")))
+        .addPattern(AtomPattern(graph = TripleItem.Uri("yago")) =>: AtomPattern(graph = TripleItem.Uri("dbpedia"))))
+        .sorted
+        .graphBasedRules
+        .cache(Example.resultDir + "rules-example5.cache")
+      Ruleset.fromCache(dataset.index(), Example.resultDir + "rules-example5.cache")
     }
   }
 
   def main(args: Array[String]): Unit = {
-    val resultsDir = new File("experiments/results")
-    if (!resultsDir.isDirectory) resultsDir.mkdirs()
-    FileUtils.cleanDirectory(resultsDir)
+    Example.prepareResultsDir()
     Debugger() { implicit debugger =>
       val examples = List(
         yagoLogicalRulesExample1,

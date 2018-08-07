@@ -100,16 +100,40 @@ public class RulePattern {
             return new AtomPattern(subject, predicate, object, graph);
         }
 
+        public AtomPattern withSubject(TripleItem subject) {
+            return new AtomPattern(new Constant(subject), predicate, object, graph);
+        }
+
+        public AtomPattern withSubject(char subject) {
+            return new AtomPattern(new Variable(subject), predicate, object, graph);
+        }
+
         public AtomPattern withPredicate(AtomItemPattern predicate) {
             return new AtomPattern(subject, predicate, object, graph);
+        }
+
+        public AtomPattern withPredicate(TripleItem predicate) {
+            return new AtomPattern(subject, new Constant(predicate), object, graph);
         }
 
         public AtomPattern withObject(AtomItemPattern object) {
             return new AtomPattern(subject, predicate, object, graph);
         }
 
+        public AtomPattern withObject(TripleItem object) {
+            return new AtomPattern(subject, predicate, new Constant(object), graph);
+        }
+
+        public AtomPattern withObject(char object) {
+            return new AtomPattern(subject, predicate, new Variable(object), graph);
+        }
+
         public AtomPattern withGraph(AtomItemPattern graph) {
             return new AtomPattern(subject, predicate, object, graph);
+        }
+
+        public AtomPattern withGraph(TripleItem graph) {
+            return new AtomPattern(subject, predicate, object, new Constant(graph));
         }
 
         public AtomItemPattern getSubject() {

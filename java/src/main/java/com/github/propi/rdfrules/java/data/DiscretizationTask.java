@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.java.data;
 
-import com.github.propi.rdfrules.java.DiscretizationTaskMode;
+import com.github.propi.rdfrules.java.DiscretizationTaskConverters;
 import eu.easyminer.discretization.Support;
 import eu.easyminer.discretization.task.EquidistanceDiscretizationTask;
 import eu.easyminer.discretization.task.EquifrequencyDiscretizationTask;
@@ -32,8 +32,8 @@ abstract public class DiscretizationTask implements eu.easyminer.discretization.
     }
 
     public enum Mode {
-        INMEMORY(DiscretizationTaskMode.inMemory()),
-        EXTERNAL(DiscretizationTaskMode.external());
+        INMEMORY(DiscretizationTaskConverters.inMemory()),
+        EXTERNAL(DiscretizationTaskConverters.external());
 
         final private com.github.propi.rdfrules.data.DiscretizationTask.Mode mode;
 
@@ -77,19 +77,11 @@ abstract public class DiscretizationTask implements eu.easyminer.discretization.
         }
 
         public Equifrequency(int bins, int buffer) {
-            this.scala = new com.github.propi.rdfrules.data.DiscretizationTask.Equifrequency(
-                    bins,
-                    buffer,
-                    com.github.propi.rdfrules.data.DiscretizationTask.Equifrequency.$lessinit$greater$default$3()
-            );
+            this.scala = DiscretizationTaskConverters.equifrequency(bins, buffer);
         }
 
         public Equifrequency(int bins) {
-            this.scala = new com.github.propi.rdfrules.data.DiscretizationTask.Equifrequency(
-                    bins,
-                    com.github.propi.rdfrules.data.DiscretizationTask.Equifrequency.$lessinit$greater$default$2(),
-                    com.github.propi.rdfrules.data.DiscretizationTask.Equifrequency.$lessinit$greater$default$3()
-            );
+            this.scala = DiscretizationTaskConverters.equifrequency(bins);
         }
 
         @Override
@@ -116,19 +108,11 @@ abstract public class DiscretizationTask implements eu.easyminer.discretization.
         }
 
         public Equisize(double support, int buffer) {
-            this.scala = new com.github.propi.rdfrules.data.DiscretizationTask.Equisize(
-                    support,
-                    buffer,
-                    com.github.propi.rdfrules.data.DiscretizationTask.Equisize.$lessinit$greater$default$3()
-            );
+            this.scala = DiscretizationTaskConverters.equisize(support, buffer);
         }
 
         public Equisize(double support) {
-            this.scala = new com.github.propi.rdfrules.data.DiscretizationTask.Equisize(
-                    support,
-                    com.github.propi.rdfrules.data.DiscretizationTask.Equisize.$lessinit$greater$default$2(),
-                    com.github.propi.rdfrules.data.DiscretizationTask.Equisize.$lessinit$greater$default$3()
-            );
+            this.scala = DiscretizationTaskConverters.equisize(support);
         }
 
         @Override

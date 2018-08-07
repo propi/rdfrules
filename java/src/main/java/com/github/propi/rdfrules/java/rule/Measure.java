@@ -1,9 +1,35 @@
 package com.github.propi.rdfrules.java.rule;
 
+import com.github.propi.rdfrules.java.MeasuresConverters;
+import com.github.propi.rdfrules.utils.TypedKeyMap;
+
 /**
  * Created by Vaclav Zeman on 6. 8. 2018.
  */
 abstract public class Measure {
+
+    public enum Key {
+        SUPPORT(MeasuresConverters.Support()),
+        BODYSIZE(MeasuresConverters.BodySize()),
+        CLUSTER(MeasuresConverters.Cluster()),
+        CONFIDENCE(MeasuresConverters.Confidence()),
+        HEADCONFIDENCE(MeasuresConverters.HeadConfidence()),
+        HEADCOVERAGE(MeasuresConverters.HeadCoverage()),
+        HEADSIZE(MeasuresConverters.HeadSize()),
+        LIFT(MeasuresConverters.Lift()),
+        PCABODYSIZE(MeasuresConverters.PcaBodySize()),
+        PCACONFIDENCE(MeasuresConverters.PcaConfidence());
+
+        final private com.github.propi.rdfrules.utils.TypedKeyMap.Key<com.github.propi.rdfrules.rule.Measure> key;
+
+        Key(com.github.propi.rdfrules.utils.TypedKeyMap.Key<com.github.propi.rdfrules.rule.Measure> key) {
+            this.key = key;
+        }
+
+        public TypedKeyMap.Key<com.github.propi.rdfrules.rule.Measure> getKey() {
+            return key;
+        }
+    }
 
     abstract public com.github.propi.rdfrules.rule.Measure asScala();
 

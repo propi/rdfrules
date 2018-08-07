@@ -35,14 +35,6 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
         tihi.getIndex(item) shouldBe code
       }
     }
-    index.useMapper { tihi => index =>
-      index.toDataset.size() shouldBe dataset1.size()
-      for (item <- items) {
-        val code = item.hashCode()
-        tihi.getTripleItem(code) shouldBe item
-        tihi.getIndex(item) shouldBe code
-      }
-    }
   }
 
   it should "create from dataset and load index" in {
@@ -61,21 +53,21 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
 
   it should "cache" in {
     val index = Index.fromDataset(dataset2)
-    index.cache(() => new FileOutputStream("test.index"))
+    index.cache("test.index")
     val file = new File("test.index")
     file.exists() shouldBe true
     file.length() should be > 5000000L
   }
 
   it should "be loaded from cache" in {
-    val index = Index.fromCache(() => new BufferedInputStream(new FileInputStream("test.index")))
+    val index = Index.fromCache("test.index")
     index.tripleMap { thi =>
       thi.size shouldBe dataset2.size
     }
     val dataset = index.toDataset
     dataset.size shouldBe dataset2.size
     dataset.toGraphs.asScala.map(_.getName).toList should contain only(new TripleItem.LongUri("yago"), new TripleItem.LongUri("dbpedia"))
-    index.cache(() => new BufferedOutputStream(new FileOutputStream("test2.index")))
+    index.cache("test2.index")
     new File("test.index").length() shouldBe new File("test2.index").length()
     new File("test.index").delete() shouldBe true
     new File("test2.index").delete() shouldBe true

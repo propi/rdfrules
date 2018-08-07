@@ -1,7 +1,9 @@
 package com.github.propi.rdfrules.java.rule;
 
+import com.github.propi.rdfrules.java.ScalaConverters;
 import com.github.propi.rdfrules.java.SeqWrapper;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -18,7 +20,11 @@ public class ResolvedRule extends RuleMeasures {
     }
 
     public ResolvedRule(Iterable<ResolvedAtom> body, ResolvedAtom head, Measure... measures) {
-        super(resolvedRule.measures());
+        this(com.github.propi.rdfrules.ruleset.ResolvedRule.apply(
+                ScalaConverters.toIterable(body, ResolvedAtom::asScala).toIndexedSeq(),
+                head.asScala(),
+                ScalaConverters.toIterable(Arrays.asList(measures), Measure::asScala).toSeq()
+        ));
     }
 
     public com.github.propi.rdfrules.ruleset.ResolvedRule asScala() {

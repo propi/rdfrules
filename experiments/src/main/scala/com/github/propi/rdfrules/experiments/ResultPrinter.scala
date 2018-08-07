@@ -19,7 +19,7 @@ object ResultPrinter {
     def printResult(x: Ruleset): Unit = {
       println("Number of found rules: " + x.size)
       println("Rules sample:")
-      x.resolvedRules.foreach(println)
+      x.foreach(println)
     }
   }
 

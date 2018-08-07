@@ -1,8 +1,7 @@
-import java.io.{File, FileInputStream, FileOutputStream}
+import java.io.{File, FileOutputStream}
 
 import GraphSpec.dataDbpedia
 import com.github.propi.rdfrules.java.data._
-import eu.easyminer.discretization.task.EquifrequencyDiscretizationTask
 import org.apache.jena.riot.{Lang, RDFFormat}
 import org.scalatest.{FlatSpec, Inside, Matchers}
 
@@ -34,11 +33,7 @@ class DatasetSpec extends FlatSpec with Matchers with Inside {
     dataset.addPrefixes(Prefix.fromInputStream(() => getClass.getResourceAsStream("/prefixes.ttl"))).prefixes(_ => i += 1)
     i shouldBe 2
     dataset.histogram(false, true, false).size shouldBe 1750
-    val intervals = dataset.discretizeAndGetIntervals(new EquifrequencyDiscretizationTask {
-      def getNumberOfBins: Int = 5
-
-      def getBufferSize: Int = 1000000
-    }, Discretizable.Mode.INMEMORY, _.getTriple.getPredicate.hasSameUriAs(new TripleItem.LongUri("http://cs.dbpedia.org/property/rok")))
+    val intervals = dataset.discretizeAndGetIntervals(new DiscretizationTask.Equifrequency(5), _.getTriple.getPredicate.hasSameUriAs(new TripleItem.LongUri("http://cs.dbpedia.org/property/rok")))
     intervals.length shouldBe 5
     intervals.head.getLeftBoundValue shouldBe 7.0
     intervals.last.getRightBoundValue shouldBe 20010.0
@@ -48,8 +43,8 @@ class DatasetSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "cache" in {
-    dataset.cache(() => new FileOutputStream("test.cache"))
-    val d = Dataset.fromCache(() => new FileInputStream("test.cache"))
+    dataset.cache("test.cache")
+    val d = Dataset.fromCache("test.cache")
     d.size shouldBe 96654
     d.toGraphs.asScala.size shouldBe 2
     d.toGraphs.asScala.toList.map(_.getName) should contain only(new TripleItem.LongUri("yago"), new TripleItem.LongUri("dbpedia"))

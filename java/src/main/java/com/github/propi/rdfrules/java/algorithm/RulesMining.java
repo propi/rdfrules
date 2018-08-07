@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.java.algorithm;
 
 import com.github.propi.rdfrules.algorithm.amie.Amie$;
 import com.github.propi.rdfrules.java.RulesMiningWrapper;
+import com.github.propi.rdfrules.java.data.TripleItem;
 import com.github.propi.rdfrules.java.rule.RulePattern;
 import com.github.propi.rdfrules.rule.RuleConstraint;
 import com.github.propi.rdfrules.rule.Threshold;
@@ -51,11 +52,11 @@ public class RulesMining {
         return new RulesMining(rulesMining.addThreshold(new Threshold.Timeout(timeout)));
     }
 
-    public RulesMining withOnlyPredicates(Set<Integer> predicates) {
+    public RulesMining withOnlyPredicates(Set<TripleItem.Uri> predicates) {
         return new RulesMining(new RulesMiningWrapper(rulesMining).withOnlyPredicates(predicates));
     }
 
-    public RulesMining withoutPredicates(Set<Integer> predicates) {
+    public RulesMining withoutPredicates(Set<TripleItem.Uri> predicates) {
         return new RulesMining(new RulesMiningWrapper(rulesMining).withoutPredicates(predicates));
     }
 

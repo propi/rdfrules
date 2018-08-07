@@ -35,6 +35,10 @@ abstract public class TripleItem {
         public boolean hasSameUriAs(Uri uri) {
             return this.asScala().hasSameUriAs(uri.asScala());
         }
+
+        public boolean hasSameUriAs(String longUri) {
+            return hasSameUriAs(new LongUri(longUri));
+        }
     }
 
     abstract public static class Literal extends TripleItem {
