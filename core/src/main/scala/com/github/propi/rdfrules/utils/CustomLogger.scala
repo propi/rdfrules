@@ -1,3 +1,5 @@
+package com.github.propi.rdfrules.utils
+
 import com.typesafe.scalalogging
 import org.slf4j.event.Level
 import org.slf4j.helpers.MessageFormatter
