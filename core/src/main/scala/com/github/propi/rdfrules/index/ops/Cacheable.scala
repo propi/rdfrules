@@ -21,9 +21,12 @@ trait Cacheable extends QuadsIndex {
     compressedQuads.foreach(x => writer.write(Right(x)))
   }
 
-  def cache(file: File): Unit = cache(new FileOutputStream(file))
+  def cache(file: File): Index = {
+    cache(new FileOutputStream(file))
+    Index.fromCache(file)
+  }
 
-  def cache(file: String): Unit = cache(new File(file))
+  def cache(file: String): Index = cache(new File(file))
 
 }
 

@@ -12,7 +12,7 @@ import scala.language.implicitConversions
   */
 trait Text {
 
-  implicit def textRulesetWriter(source: RulesetSource.Text.type)(implicit stringifier: Stringifier[ResolvedRule]): RulesetWriter[RulesetSource.Text.type] = (rules: Traversable[ResolvedRule], outputStreamBuilder: OutputStreamBuilder) => {
+  implicit def textRulesetWriter(source: RulesetSource.Text.type)(implicit stringifier: Stringifier[ResolvedRule]): RulesetWriter = (rules: Traversable[ResolvedRule], outputStreamBuilder: OutputStreamBuilder) => {
     val writer = new PrintWriter(new OutputStreamWriter(outputStreamBuilder.build, "UTF-8"))
     try {
       for (rule <- rules) {

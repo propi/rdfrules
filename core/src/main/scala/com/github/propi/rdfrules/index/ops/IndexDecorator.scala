@@ -18,9 +18,9 @@ class IndexDecorator(index: Index) extends Index {
 
   def cache(os: => OutputStream): Unit = index.cache(os)
 
-  def cache(file: File): Unit = index.cache(file)
+  def cache(file: File): Index = index.cache(file)
 
-  def cache(file: String): Unit = index.cache(file)
+  def cache(file: String): Index = index.cache(file)
 
   def newIndex: Index = index.newIndex
 

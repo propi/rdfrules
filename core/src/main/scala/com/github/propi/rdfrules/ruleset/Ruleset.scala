@@ -133,14 +133,14 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index)
 
   def findDissimilar(rule: ResolvedRule, k: Int)(implicit simf: SimilarityCounting[Rule.Simple]): Ruleset = findSimilar(rule, k, true)
 
-  def export[T <: RulesetSource](os: => OutputStream)(implicit writer: RulesetWriter[T]): Unit = writer.writeToOutputStream(this, os)
+  def export(os: => OutputStream)(implicit writer: RulesetWriter): Unit = writer.writeToOutputStream(this, os)
 
-  def export[T <: RulesetSource](file: File)(implicit writer: RulesetWriter[T]): Unit = {
+  def export(file: File)(implicit writer: RulesetWriter): Unit = {
     val newWriter = if (writer == RulesetWriter.NoWriter) RulesetWriter(file) else writer
     export(new FileOutputStream(file))(newWriter)
   }
 
-  def export[T <: RulesetSource](file: String)(implicit writer: RulesetWriter[T]): Unit = export(new File(file))
+  def export(file: String)(implicit writer: RulesetWriter): Unit = export(new File(file))
 
 }
 

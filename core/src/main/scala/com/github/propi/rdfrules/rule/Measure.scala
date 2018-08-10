@@ -74,6 +74,19 @@ object Measure {
 
   implicit object Cluster extends Key[Cluster]
 
+  def unapply(arg: Measure): Option[Double] = arg match {
+    case Measure.BodySize(x) => Some(x)
+    case Measure.Confidence(x) => Some(x)
+    case Measure.HeadConfidence(x) => Some(x)
+    case Measure.HeadCoverage(x) => Some(x)
+    case Measure.HeadSize(x) => Some(x)
+    case Measure.Lift(x) => Some(x)
+    case Measure.PcaBodySize(x) => Some(x)
+    case Measure.PcaConfidence(x) => Some(x)
+    case Measure.Support(x) => Some(x)
+    case Measure.Cluster(x) => Some(x)
+  }
+
   implicit def mesureToKeyValue(measure: Measure): (Key[Measure], Measure) = measure.companion -> measure
 
   implicit val measureKeyOrdering: Ordering[Key[Measure]] = {

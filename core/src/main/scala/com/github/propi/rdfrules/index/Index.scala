@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.index
 
-import java.io.{File, FileInputStream, InputStream, OutputStream}
+import java.io._
 
 import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.data.Dataset
@@ -20,9 +20,9 @@ trait Index {
 
   def cache(os: => OutputStream): Unit
 
-  def cache(file: File): Unit
+  def cache(file: File): Index
 
-  def cache(file: String): Unit
+  def cache(file: String): Index
 
   def newIndex: Index
 

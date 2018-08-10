@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.http.task
 
-import com.github.propi.rdfrules.data.{Dataset, Graph}
+import com.github.propi.rdfrules.data.Dataset
 
 /**
   * Created by Vaclav Zeman on 7. 8. 2018.
@@ -29,22 +29,14 @@ object Task {
 
   object NoInput
 
-  class MergeDatasets private(graphs: List[Task[Task.NoInput.type, Graph]],
-                              datasets: List[Task[Task.NoInput.type, Dataset]]) extends Task[NoInput.type, Dataset] {
-    def this() = this(Nil, Nil)
+  class MergeDatasets private(datasets: List[Task[Task.NoInput.type, Dataset]]) extends Task[NoInput.type, Dataset] {
+    def this() = this(Nil)
 
     val companion: TaskDefinition = MergeDatasets
 
-    def addGraphTasks(graphs: List[Task[Task.NoInput.type, Graph]]) = new MergeDatasets(graphs, datasets)
+    def addDatasetTasks(datasets: List[Task[Task.NoInput.type, Dataset]]) = new MergeDatasets(datasets)
 
-    def addDatasetTasks(datasets: List[Task[Task.NoInput.type, Dataset]]) = new MergeDatasets(graphs, datasets)
-
-    def execute(input: NoInput.type): Dataset = {
-      val rdfGraphs = graphs.iterator.map(_.execute(NoInput))
-      val rdfDatasets = datasets.iterator.map(_.execute(NoInput))
-      val dataset = rdfGraphs.foldLeft(Dataset())(_ + _)
-      rdfDatasets.foldLeft(dataset)(_ + _)
-    }
+    def execute(input: NoInput.type): Dataset = datasets.iterator.map(_.execute(NoInput)).foldLeft(Dataset())(_ + _)
   }
 
   object MergeDatasets extends TaskDefinition {

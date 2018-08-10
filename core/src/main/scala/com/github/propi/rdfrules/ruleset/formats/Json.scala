@@ -63,7 +63,7 @@ trait Json {
     "measures" -> JsArray(obj.measures.iterator.map(_.toJson).toVector)
   )
 
-  implicit def jsonRulesetWriter(source: RulesetSource.Json.type): RulesetWriter[RulesetSource.Json.type] = (rules: Traversable[ResolvedRule], outputStreamBuilder: OutputStreamBuilder) => {
+  implicit def jsonRulesetWriter(source: RulesetSource.Json.type): RulesetWriter = (rules: Traversable[ResolvedRule], outputStreamBuilder: OutputStreamBuilder) => {
     val writer = new PrintWriter(new OutputStreamWriter(outputStreamBuilder.build, "UTF-8"))
     try {
       writer.println('[')
