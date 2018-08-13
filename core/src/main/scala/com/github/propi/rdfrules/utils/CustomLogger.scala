@@ -8,7 +8,7 @@ import org.slf4j.{Logger, LoggerFactory, Marker}
 /**
   * Created by Vaclav Zeman on 9. 4. 2018.
   */
-class CustomLogger(logger: Logger)(log: (String, Level) => Unit) extends Logger {
+class CustomLogger private(logger: Logger, log: (String, Level) => Unit) extends Logger {
   def getName: String = logger.getName
 
   def isTraceEnabled: Boolean = logger.isTraceEnabled
@@ -254,6 +254,6 @@ class CustomLogger(logger: Logger)(log: (String, Level) => Unit) extends Logger 
 
 object CustomLogger {
 
-  def apply(name: String)(log: (String, Level) => Unit): scalalogging.Logger = scalalogging.Logger(new CustomLogger(LoggerFactory.getLogger(name))(log))
+  def apply(name: String)(log: (String, Level) => Unit): scalalogging.Logger = scalalogging.Logger(new CustomLogger(LoggerFactory.getLogger(name), log))
 
 }
