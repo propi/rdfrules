@@ -4,15 +4,18 @@ import java.net.URL
 
 import akka.NotUsed
 import akka.stream.scaladsl.Source
-import com.github.propi.rdfrules.algorithm.RulesMining
+import com.github.propi.rdfrules.algorithm.{Clustering, RulesMining}
 import com.github.propi.rdfrules.data.{DiscretizationTask, Prefix, RdfSource, TripleItem}
-import com.github.propi.rdfrules.http.task._
 import com.github.propi.rdfrules.http.task.Task.MergeDatasets
-import com.github.propi.rdfrules.rule.{Measure, RulePattern}
-import com.github.propi.rdfrules.utils.TypedKeyMap
-import com.typesafe.scalalogging.Logger
+import com.github.propi.rdfrules.http.task._
+import com.github.propi.rdfrules.rule.{Measure, Rule, RulePattern}
+import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetSource}
+import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
 import org.apache.jena.riot.RDFFormat
-import spray.json.{JsArray, JsString, JsValue, RootJsonReader}
+import spray.json.DefaultJsonProtocol._
+import spray.json._
+
+import scala.reflect.ClassTag
 
 /**
   * Created by Vaclav Zeman on 13. 8. 2018.
@@ -103,7 +106,7 @@ object PipelineJsonFormats {
     new data.Cache(fields("path").convertTo[String])
   }
 
-  implicit val indexReader: RootJsonReader[data.Index] = (_: JsValue) => {
+  implicit def indexReader(implicit debugger: Debugger): RootJsonReader[data.Index] = (_: JsValue) => {
     new data.Index()
   }
 
@@ -139,7 +142,7 @@ object PipelineJsonFormats {
     )
   }
 
-  implicit val loadIndexReader: RootJsonReader[index.LoadIndex] = (json: JsValue) => {
+  implicit def loadIndexReader(implicit debugger: Debugger): RootJsonReader[index.LoadIndex] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new index.LoadIndex(fields("path").convertTo[String])
   }
@@ -153,7 +156,7 @@ object PipelineJsonFormats {
     new index.ToDataset()
   }
 
-  implicit def mineReader(implicit logger: Logger): RootJsonReader[index.Mine] = (json: JsValue) => {
+  implicit def mineReader(implicit debugger: Debugger): RootJsonReader[index.Mine] = (json: JsValue) => {
     new index.Mine(json.convertTo[RulesMining])
   }
 
@@ -168,61 +171,162 @@ object PipelineJsonFormats {
       fields.get("measures").collect {
         case JsArray(x) => x.map { json =>
           val fields = json.asJsObject.fields
-          fields("name").convertTo[TypedKeyMap.Key[Measure]] -> fields("value").convertTo[TripleItemMatcher[TripleItem.Number[Double]]]
+          (fields("measure") match {
+            case JsString("RuleLength") => None
+            case x => Some(x.convertTo[TypedKeyMap.Key[Measure]])
+          }) -> fields("value").convertTo[TripleItemMatcher[TripleItem.Number[Double]]]
         }
       }.getOrElse(Nil),
       fields.get("patterns").map(_.convertTo[Seq[RulePattern]]).getOrElse(Nil)
     )
   }
 
-  private val taskDefinitions = List(
-    data.AddPrefixes,
-    data.Cache,
-    data.Discretize,
-    data.Drop,
-    data.ExportQuads,
-    data.FilterQuads,
-    data.GetQuads,
-    data.Histogram,
-    data.LoadDataset,
-    data.LoadGraph,
-    data.MapQuads,
-    data.Prefixes,
-    data.Size,
-    data.Slice,
-    data.Take,
-    data.Types,
-    index.Cache,
-    index.LoadIndex,
-    index.Mine,
-    index.ToDataset,
-    ruleset.Cache,
-    ruleset.ComputeConfidence,
-    ruleset.ComputeLift,
-    ruleset.ComputePcaConfidence,
-    ruleset.Drop,
-    ruleset.ExportRules,
-    ruleset.FilterRules,
-    ruleset.FindSimilar,
-    ruleset.FindDissimilar,
-    ruleset.GetRules,
-    ruleset.GraphBasedRules,
-    ruleset.LoadRuleset,
-    ruleset.MakeClusters,
-    ruleset.Size,
-    ruleset.Slice,
-    ruleset.Sort,
-    ruleset.Sorted,
-    ruleset.Take
-  )
-
-  implicit def pipelineObjectReader(implicit logger: Logger): RootJsonReader[Pipeline[Any]] = new RootJsonReader[Pipeline[Any]] {
-    def read(json: JsValue): Pipeline[Any] = json.asJsObject.fields
+  implicit val takeRulesReader: RootJsonReader[ruleset.Take] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new ruleset.Take(fields("value").convertTo[Int])
   }
 
-  implicit val pipelineReader: RootJsonReader[Logger => Pipeline[Source[JsValue, NotUsed]]] = new RootJsonReader[Logger => Pipeline[Source[JsValue, NotUsed]]] {
-    def read(json: JsValue): Logger => Pipeline[Source[JsValue, NotUsed]] = { implicit logger =>
+  implicit val dropRulesReader: RootJsonReader[ruleset.Drop] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new ruleset.Drop(fields("value").convertTo[Int])
+  }
 
+  implicit val sliceRulesReader: RootJsonReader[ruleset.Slice] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new ruleset.Slice(fields("start").convertTo[Int], fields("end").convertTo[Int])
+  }
+
+  implicit val sortedReader: RootJsonReader[ruleset.Sorted] = (_: JsValue) => {
+    new ruleset.Sorted()
+  }
+
+  implicit val sortReader: RootJsonReader[ruleset.Sort] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new ruleset.Sort(
+      fields.get("by").collect {
+        case JsArray(x) => x.map { json =>
+          val fields = json.asJsObject.fields
+          (fields("measure") match {
+            case JsString("RuleLength") => None
+            case x => Some(x.convertTo[TypedKeyMap.Key[Measure]])
+          }) -> fields.get("reversed").exists(_.convertTo[Boolean])
+        }
+      }.getOrElse(Nil)
+    )
+  }
+
+  implicit def computeConfidenceReader(implicit debugger: Debugger): RootJsonReader[ruleset.ComputeConfidence] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new ruleset.ComputeConfidence(fields.get("min").map(_.convertTo[Double]))
+  }
+
+  implicit def computePcaConfidenceReader(implicit debugger: Debugger): RootJsonReader[ruleset.ComputePcaConfidence] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new ruleset.ComputePcaConfidence(fields.get("min").map(_.convertTo[Double]))
+  }
+
+  implicit def computeLiftReader(implicit debugger: Debugger): RootJsonReader[ruleset.ComputeLift] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new ruleset.ComputeLift(fields.get("min").map(_.convertTo[Double]))
+  }
+
+  implicit val makeClustersReader: RootJsonReader[ruleset.MakeClusters] = (json: JsValue) => {
+    new ruleset.MakeClusters(json.convertTo[Clustering[Rule.Simple]])
+  }
+
+  implicit val findSimilarReader: RootJsonReader[ruleset.FindSimilar] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new ruleset.FindSimilar(fields("rule").convertTo[ResolvedRule], fields("take").convertTo[Int])
+  }
+
+  implicit val findDissimilarReader: RootJsonReader[ruleset.FindDissimilar] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new ruleset.FindDissimilar(fields("rule").convertTo[ResolvedRule], fields("take").convertTo[Int])
+  }
+
+  implicit val cacheRulesetReader: RootJsonReader[ruleset.Cache] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new ruleset.Cache(fields("path").convertTo[String])
+  }
+
+  implicit val graphBasedRulesReader: RootJsonReader[ruleset.GraphBasedRules] = (_: JsValue) => {
+    new ruleset.GraphBasedRules()
+  }
+
+  implicit val exportRulesReader: RootJsonReader[ruleset.ExportRules] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new ruleset.ExportRules(
+      fields("path").convertTo[String],
+      fields.get("format").map(_.convertTo[RulesetSource])
+    )
+  }
+
+  implicit val getRulesReader: RootJsonReader[ruleset.GetRules] = (_: JsValue) => {
+    new ruleset.GetRules()
+  }
+
+  implicit val rulesetSizeReader: RootJsonReader[ruleset.Size] = (_: JsValue) => {
+    new ruleset.Size()
+  }
+
+  implicit def pipelineObjectReader(implicit debugger: Debugger): RootJsonReader[Task[_, _]] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    val params = fields("parameters")
+    fields("name").convertTo[String] match {
+      case data.AddPrefixes.name => params.convertTo[data.AddPrefixes]
+      case data.Cache.name => params.convertTo[data.Cache]
+      case data.Discretize.name => params.convertTo[data.Discretize]
+      case data.Drop.name => params.convertTo[data.Drop]
+      case data.ExportQuads.name => params.convertTo[data.ExportQuads]
+      case data.FilterQuads.name => params.convertTo[data.FilterQuads]
+      case data.GetQuads.name => params.convertTo[data.GetQuads]
+      case data.Histogram.name => params.convertTo[data.Histogram]
+      case data.LoadDataset.name => params.convertTo[data.LoadDataset]
+      case data.LoadGraph.name => params.convertTo[data.LoadGraph]
+      case data.MapQuads.name => params.convertTo[data.MapQuads]
+      case data.Prefixes.name => params.convertTo[data.Prefixes]
+      case data.Size.name => params.convertTo[data.Size]
+      case data.Slice.name => params.convertTo[data.Slice]
+      case data.Take.name => params.convertTo[data.Take]
+      case data.Types.name => params.convertTo[data.Types]
+      case data.Index.name => params.convertTo[data.Index]
+      case index.Cache.name => params.convertTo[index.Cache]
+      case index.LoadIndex.name => params.convertTo[index.LoadIndex]
+      case index.Mine.name => params.convertTo[index.Mine]
+      case index.ToDataset.name => params.convertTo[index.ToDataset]
+      case ruleset.Cache.name => params.convertTo[ruleset.Cache]
+      case ruleset.ComputeConfidence.name => params.convertTo[ruleset.ComputeConfidence]
+      case ruleset.ComputeLift.name => params.convertTo[ruleset.ComputeLift]
+      case ruleset.ComputePcaConfidence.name => params.convertTo[ruleset.ComputePcaConfidence]
+      case ruleset.Drop.name => params.convertTo[ruleset.Drop]
+      case ruleset.ExportRules.name => params.convertTo[ruleset.ExportRules]
+      case ruleset.FilterRules.name => params.convertTo[ruleset.FilterRules]
+      case ruleset.FindSimilar.name => params.convertTo[ruleset.FindSimilar]
+      case ruleset.FindDissimilar.name => params.convertTo[ruleset.FindDissimilar]
+      case ruleset.GetRules.name => params.convertTo[ruleset.GetRules]
+      case ruleset.GraphBasedRules.name => params.convertTo[ruleset.GraphBasedRules]
+      case ruleset.LoadRuleset.name => params.convertTo[ruleset.LoadRuleset]
+      case ruleset.MakeClusters.name => params.convertTo[ruleset.MakeClusters]
+      case ruleset.Size.name => params.convertTo[ruleset.Size]
+      case ruleset.Slice.name => params.convertTo[ruleset.Slice]
+      case ruleset.Sort.name => params.convertTo[ruleset.Sort]
+      case ruleset.Sorted.name => params.convertTo[ruleset.Sorted]
+      case ruleset.Take.name => params.convertTo[ruleset.Take]
+      case x => throw deserializationError(s"Unknown task name: $x")
+    }
+  }
+
+  implicit val pipelineReader: RootJsonReader[Debugger => Pipeline[Source[JsValue, NotUsed]]] = (json: JsValue) => { implicit debugger =>
+    val `Task[NoInput, _]` = implicitly[ClassTag[Task[Task.NoInput.type, _]]]
+
+    def addPipeline(tasks: List[Task[_, _]], pipeline: Option[Pipeline[_]]): Pipeline[Source[JsValue, NotUsed]] = tasks match {
+      case head :: tail => addPipeline(tail, pipeline.map(_ + head).orElse(`Task[NoInput, _]`.unapply(head).map(Pipeline(_))))
+      case _ => pipeline.map(_ + new ToJsonTask).getOrElse(throw deserializationError("No task defines"))
+    }
+
+    json match {
+      case JsArray(x) => addPipeline(x.iterator.map(_.convertTo[Task[_, _]]).toList, None)
+      case _ => throw deserializationError("No tasks defined")
     }
   }
 

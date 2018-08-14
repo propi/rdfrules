@@ -12,17 +12,20 @@ trait Task[I, O] {
 
   def name: String = companion.name
 
-  final def andThen[T](task: Task[O, T]): Task[I, T] = {
+  private def buildNewTask[T](taskName: String, f: I => T) = {
     val rootName = name
-    val f = (this.execute _).andThen(task.execute)
     new Task[I, T] {
       val companion: TaskDefinition = new TaskDefinition {
-        val name: String = s"$rootName -> ${task.name}"
+        val name: String = s"$rootName -> $taskName"
       }
 
       def execute(input: I): T = f(input)
     }
   }
+
+  final def andThen[T](task: Task[O, T]): Task[I, T] = buildNewTask(task.name, (this.execute _).andThen(task.execute))
+
+  final def andThenAny[T](task: Task[Any, T]): Task[I, T] = buildNewTask(task.name, (this.execute _).andThen(task.execute))
 }
 
 object Task {

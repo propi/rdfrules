@@ -14,7 +14,7 @@ import akka.stream.scaladsl.{Flow, Source}
 import akka.util.{ByteString, Timeout}
 import com.github.propi.rdfrules.http.actor
 import com.github.propi.rdfrules.http.task.Pipeline
-import com.typesafe.scalalogging.Logger
+import com.github.propi.rdfrules.utils.Debugger
 import spray.json.{JsValue, _}
 
 import scala.concurrent.duration._
@@ -31,7 +31,7 @@ class Task(implicit actorSystem: ActorSystem) {
   val route: Route = pathPrefix("task") {
     pathEnd {
       post {
-        entity(as[Logger => Pipeline[Source[JsValue, NotUsed]]]) { pipeline =>
+        entity(as[Debugger => Pipeline[Source[JsValue, NotUsed]]]) { pipeline =>
           val id = UUID.randomUUID()
           actorSystem.actorOf(actor.Task.props(id, pipeline), "task-" + id.toString)
           complete(StatusCodes.Accepted)

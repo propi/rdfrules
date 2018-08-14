@@ -13,6 +13,8 @@ import scala.language.postfixOps
   */
 trait Debugger {
 
+  val logger: Logger
+
   def debug[T](name: String, num: Int = 0)(f: ActionDebugger => T): T
 
 }
@@ -25,17 +27,23 @@ object Debugger {
     val actor = new DebuggerActor(logger)
     new Thread(actor).start()
     try {
-      f(new ActorDebugger(actor))
+      f(new ActorDebugger(logger, actor))
     } finally {
       actor ! Message.Stop
     }
   }
 
   object EmptyDebugger extends Debugger {
-    def debug[T](name: String, num: Int = 0)(f: (ActionDebugger) => T): T = f(EmptyActionDebugger)
+    val logger: Logger = Logger[Debugger]
+
+    def debug[T](name: String, num: Int = 0)(f: ActionDebugger => T): T = f(EmptyActionDebugger)
   }
 
-  private class ActorDebugger(debugger: DebuggerActor) extends Debugger {
+  class LoggerDebugger(val logger: Logger) extends Debugger {
+    def debug[T](name: String, num: Int = 0)(f: ActionDebugger => T): T = f(EmptyActionDebugger)
+  }
+
+  private class ActorDebugger(val logger: Logger, debugger: DebuggerActor) extends Debugger {
 
     def debug[T](name: String, num: Int = 0)(f: ActionDebugger => T): T = {
       val ad = new ActorActionDebugger(name, num, debugger)
@@ -104,9 +112,9 @@ object Debugger {
 
     private def dump(action: Action, msg: String): Unit = {
       action.state = msg
-      if (lastDump + debugClock.toMillis < System.currentTimeMillis()) {
+      if (lastDump + debugClock.toMillis < System.currentTimeMillis() || msg == "ended") {
         for (action <- actions.valuesIterator) {
-          logger.info(action.toString + (if (action.state.nonEmpty) "\n" + " - current state: " + action.state else ""))
+          logger.info(action.toString + (if (action.state.nonEmpty) " -- " + action.state else ""))
         }
         lastDump = System.currentTimeMillis()
       }

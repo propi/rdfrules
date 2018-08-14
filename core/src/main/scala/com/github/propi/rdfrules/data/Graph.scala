@@ -10,6 +10,7 @@ import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.index.Index.Mode
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.serialization.TripleSerialization._
+import com.github.propi.rdfrules.utils.Debugger
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 
 import scala.language.implicitConversions
@@ -51,9 +52,9 @@ class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView
 
   def toDataset: Dataset = Dataset(this)
 
-  def mine(miner: RulesMining): Ruleset = toDataset.mine(miner)
+  def mine(miner: RulesMining)(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = toDataset.mine(miner)
 
-  def index(mode: Mode = Mode.PreservedInMemory): Index = toDataset.index(mode)
+  def index(mode: Mode = Mode.PreservedInMemory)(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = toDataset.index(mode)
 
 }
 

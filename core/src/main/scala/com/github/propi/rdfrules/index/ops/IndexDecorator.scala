@@ -4,11 +4,14 @@ import java.io.{File, OutputStream}
 
 import com.github.propi.rdfrules.data.Dataset
 import com.github.propi.rdfrules.index.{Index, TripleHashIndex, TripleItemHashIndex}
+import com.github.propi.rdfrules.utils.Debugger
 
 /**
   * Created by Vaclav Zeman on 19. 7. 2018.
   */
 class IndexDecorator(index: Index) extends Index {
+
+  implicit val debugger: Debugger = index.debugger
 
   def tripleMap[T](f: TripleHashIndex => T): T = index.tripleMap(f)
 

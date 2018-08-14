@@ -10,6 +10,7 @@ import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.index.Index.Mode
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.serialization.QuadSerialization._
+import com.github.propi.rdfrules.utils.Debugger
 import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension._
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 
@@ -52,9 +53,9 @@ class Dataset private(val quads: QuadTraversableView)
 
   def export(file: String)(implicit writer: RdfWriter): Unit = export(new File(file))
 
-  def mine(miner: RulesMining): Ruleset = Index(this).mine(miner)
+  def mine(miner: RulesMining)(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = Index(this).mine(miner)
 
-  def index(mode: Mode = Mode.PreservedInMemory): Index = Index(this, mode)
+  def index(mode: Mode = Mode.PreservedInMemory)(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = Index(this, mode)
 
 }
 

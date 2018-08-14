@@ -6,8 +6,7 @@ import akka.NotUsed
 import akka.actor.{Actor, Props, ReceiveTimeout, Status}
 import akka.stream.scaladsl.Source
 import com.github.propi.rdfrules.http.task.Pipeline
-import com.github.propi.rdfrules.utils.CustomLogger
-import com.typesafe.scalalogging.Logger
+import com.github.propi.rdfrules.utils.{CustomLogger, Debugger}
 import spray.json.JsValue
 
 import scala.concurrent.duration._
@@ -18,7 +17,7 @@ import scala.util.{Failure, Success}
 /**
   * Created by Vaclav Zeman on 13. 8. 2018.
   */
-class Task private(id: UUID, pipeline: Logger => Pipeline[Source[JsValue, NotUsed]]) extends Actor {
+class Task private(id: UUID, pipeline: Debugger => Pipeline[Source[JsValue, NotUsed]]) extends Actor {
 
   context.setReceiveTimeout(10 minutes)
 
@@ -31,7 +30,9 @@ class Task private(id: UUID, pipeline: Logger => Pipeline[Source[JsValue, NotUse
     val logger = CustomLogger("task-" + id.toString) { (msg, level) =>
       if (level.toInt >= 20) self ! Task.Request.AddMsg(msg)
     }
-    val result = pipeline(logger).execute
+    val result = Debugger(logger) { debugger =>
+       pipeline(debugger).execute
+    }
     new Date() -> result
   }
 
@@ -58,7 +59,7 @@ class Task private(id: UUID, pipeline: Logger => Pipeline[Source[JsValue, NotUse
 
 object Task {
 
-  def props(id: UUID, pipeline: Logger => Pipeline[Source[JsValue, NotUsed]]): Props = Props(new Task(id, pipeline))
+  def props(id: UUID, pipeline: Debugger => Pipeline[Source[JsValue, NotUsed]]): Props = Props(new Task(id, pipeline))
 
   sealed trait Request
 

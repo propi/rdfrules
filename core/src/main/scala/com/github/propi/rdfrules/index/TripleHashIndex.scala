@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.index
 import com.github.propi.rdfrules.data.Quad
 import com.github.propi.rdfrules.index.TripleHashIndex._
 import com.github.propi.rdfrules.rule.{Atom, TripleItemPosition}
-import com.typesafe.scalalogging.Logger
+import com.github.propi.rdfrules.utils.Debugger
 
 import scala.collection.JavaConverters._
 import scala.language.implicitConversions
@@ -118,8 +118,6 @@ class TripleHashIndex private {
 
 object TripleHashIndex {
 
-  private val logger = Logger[TripleHashIndex]
-
   type TripleItemMap = HashMap[Int, HashSet[Int]]
   type TripleItemMapWithGraphsAndSet = HashMap[Int, AnyWithGraphs[HashSet[Int]]]
   type TripleItemMapWithGraphsAndMap = HashMap[Int, AnyWithGraphs[TripleItemMap]]
@@ -207,18 +205,17 @@ object TripleHashIndex {
     lazy val size: Int = predicates.valuesIterator.map(_.size).sum
   }
 
-  def apply(quads: Traversable[CompressedQuad]): TripleHashIndex = {
+  def apply(quads: Traversable[CompressedQuad])(implicit debugger: Debugger = Debugger.EmptyDebugger): TripleHashIndex = {
     val index = new TripleHashIndex
-    var i = 0
-    for (quad <- quads) {
-      index.addQuad(quad)
-      i += 1
-      if (i % 10000 == 0) logger.info(s"Dataset loading: $i quads")
+    debugger.debug("Dataset loading") { ad =>
+      for (quad <- quads) {
+        index.addQuad(quad)
+        ad.done()
+      }
     }
-    logger.info(s"Dataset loaded: $i quads")
     index
   }
 
-  def apply(quads: Traversable[Quad])(implicit mapper: TripleItemHashIndex): TripleHashIndex = apply(quads.view.filter(!_.triple.predicate.hasSameUriAs("http://www.w3.org/2002/07/owl#sameAs")).map(_.toCompressedQuad))
+  def apply(quads: Traversable[Quad])(implicit mapper: TripleItemHashIndex, debugger: Debugger = Debugger.EmptyDebugger): TripleHashIndex = apply(quads.view.filter(!_.triple.predicate.hasSameUriAs("http://www.w3.org/2002/07/owl#sameAs")).map(_.toCompressedQuad))
 
 }

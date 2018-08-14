@@ -9,7 +9,6 @@ import com.github.propi.rdfrules.rule.ExtendedRule.{ClosedRule, DanglingRule}
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.HowLong._
 import com.github.propi.rdfrules.utils.{Debugger, HashQueue, TypedKeyMap}
-import com.typesafe.scalalogging.Logger
 
 import scala.collection.mutable
 import scala.collection.parallel.immutable.ParVector
@@ -20,15 +19,14 @@ import scala.language.postfixOps
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
-class Amie private(logger: Logger,
-                   _thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
+class Amie private(_thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
                    _constraints: TypedKeyMap[RuleConstraint] = TypedKeyMap(),
                    _patterns: List[RulePattern] = Nil)
                   (implicit debugger: Debugger) extends RulesMining(_thresholds, _constraints, _patterns) {
 
   protected def transform(thresholds: TypedKeyMap[Threshold],
                           constraints: TypedKeyMap[RuleConstraint],
-                          patterns: List[RulePattern]): RulesMining = new Amie(logger, thresholds, constraints, patterns)
+                          patterns: List[RulePattern]): RulesMining = new Amie(thresholds, constraints, patterns)
 
   /**
     * Mine all closed rules from tripleIndex by defined thresholds (hc, support, rule length), optional rule pattern and constraints
@@ -39,6 +37,7 @@ class Amie private(logger: Logger,
     *         Rules are not ordered
     */
   def mine(implicit tripleIndex: TripleHashIndex, mapper: TripleItemHashIndex): IndexedSeq[Rule.Simple] = {
+    val logger = debugger.logger
     //create amie process with debugger and final triple index
     implicit val settings: RuleRefinement.Settings = new Settings(this)(if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) debugger else Debugger.EmptyDebugger, mapper)
     val process = new AmieProcess()
@@ -257,7 +256,7 @@ class Amie private(logger: Logger,
 
 object Amie {
 
-  def apply(logger: Logger = Logger[Amie])(implicit debugger: Debugger = Debugger.EmptyDebugger): RulesMining = new Amie(logger)
+  def apply(implicit debugger: Debugger = Debugger.EmptyDebugger): RulesMining = new Amie()
     .addThreshold(Threshold.MinHeadSize(100))
     .addThreshold(Threshold.MinHeadCoverage(0.01))
     .addThreshold(Threshold.MaxRuleLength(3))

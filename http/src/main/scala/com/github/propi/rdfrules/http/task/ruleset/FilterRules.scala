@@ -9,16 +9,19 @@ import com.github.propi.rdfrules.utils.TypedKeyMap
 /**
   * Created by Vaclav Zeman on 7. 8. 2018.
   */
-class FilterRules(measures: Seq[(TypedKeyMap.Key[Measure], TripleItemMatcher[TripleItem.Number[Double]])],
+class FilterRules(measures: Seq[(Option[TypedKeyMap.Key[Measure]], TripleItemMatcher[TripleItem.Number[Double]])],
                   patterns: Seq[RulePattern]) extends Task[Ruleset, Ruleset] {
   val companion: TaskDefinition = FilterRules
 
   def execute(input: Ruleset): Ruleset = {
     val rulesetFiltered = if (measures.nonEmpty) {
       input.filter(rule => measures.forall { case (measure, matcher) =>
-        rule.measures.get(measure).collect {
-          case Measure(x) => TripleItem.Number(x)
-        }.exists(matcher.matchAll(_).nonEmpty)
+        measure match {
+          case Some(measure) => rule.measures.get(measure).collect {
+            case Measure(x) => TripleItem.Number(x)
+          }.exists(matcher.matchAll(_).nonEmpty)
+          case None => matcher.matchAll(TripleItem.Number(rule.ruleLength)).nonEmpty
+        }
       })
     } else {
       input

@@ -6,11 +6,14 @@ import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.data.Dataset
 import com.github.propi.rdfrules.index.ops._
 import com.github.propi.rdfrules.ruleset.Ruleset
+import com.github.propi.rdfrules.utils.Debugger
 
 /**
   * Created by Vaclav Zeman on 12. 3. 2018.
   */
 trait Index {
+
+  implicit val debugger: Debugger
 
   def tripleMap[T](f: TripleHashIndex => T): T
 
@@ -48,9 +51,12 @@ object Index {
 
   }
 
-  def apply(dataset: Dataset, mode: Mode = Mode.PreservedInMemory): Index = {
+  def apply(dataset: Dataset, mode: Mode = Mode.PreservedInMemory)(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = {
     val _dataset = dataset
+    val _debugger = debugger
     trait ConcreteIndex extends Index with Cacheable with FromDatasetBuildable {
+      implicit val debugger: Debugger = _debugger
+
       override def toDataset: Dataset = _dataset
 
       def newIndex: Index = apply(_dataset, mode)
@@ -61,8 +67,11 @@ object Index {
     }
   }
 
-  def fromCache(is: => InputStream, mode: Mode): Index = {
+  def fromCache(is: => InputStream, mode: Mode)(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = {
+    val _debugger = debugger
     trait ConcreteIndex extends Index with Cacheable with FromCacheBuildable {
+      implicit val debugger: Debugger = _debugger
+
       def newIndex: Index = fromCache(is, mode)
 
       protected def useInputStream[T](f: InputStream => T): T = {
@@ -82,14 +91,14 @@ object Index {
     }
   }
 
-  def fromCache(is: => InputStream): Index = fromCache(is, Mode.PreservedInMemory)
+  def fromCache(is: => InputStream)(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = fromCache(is, Mode.PreservedInMemory)
 
-  def fromCache(file: File, mode: Mode): Index = fromCache(new FileInputStream(file), mode)
+  def fromCache(file: File, mode: Mode)(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = fromCache(new FileInputStream(file), mode)
 
-  def fromCache(file: String, mode: Mode): Index = fromCache(new File(file), mode)
+  def fromCache(file: String, mode: Mode)(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = fromCache(new File(file), mode)
 
-  def fromCache(file: File): Index = fromCache(file, Mode.PreservedInMemory)
+  def fromCache(file: File)(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = fromCache(file, Mode.PreservedInMemory)
 
-  def fromCache(file: String): Index = fromCache(new File(file))
+  def fromCache(file: String)(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = fromCache(new File(file))
 
 }

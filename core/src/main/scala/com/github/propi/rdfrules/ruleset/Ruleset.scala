@@ -10,7 +10,7 @@ import com.github.propi.rdfrules.index.{Index, TripleHashIndex}
 import com.github.propi.rdfrules.rule.{Measure, Rule, RulePattern, RulePatternMatcher}
 import com.github.propi.rdfrules.ruleset.ops.Sortable
 import com.github.propi.rdfrules.serialization.RuleSerialization._
-import com.github.propi.rdfrules.utils.TypedKeyMap
+import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 
@@ -23,6 +23,8 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index)
   extends Transformable[Rule.Simple, Ruleset]
     with Cacheable[Rule.Simple, Ruleset]
     with Sortable[Rule.Simple, Ruleset] {
+
+  self =>
 
   protected def coll: Traversable[Rule.Simple] = rules
 
@@ -75,31 +77,45 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index)
 
   def findResolved(f: ResolvedRule => Boolean): Option[ResolvedRule] = resolvedRules.find(f)
 
-  private def extendRuleset(f: TripleHashIndex => Rule.Simple => Rule.Simple): Ruleset = transform(new Traversable[Rule.Simple] {
+  private def extendRuleset(f: TripleHashIndex => Rule.Simple => Rule.Simple)(implicit debugger: Int => (Debugger.ActionDebugger => Unit) => Unit): Ruleset = transform(new Traversable[Rule.Simple] {
     def foreach[U](f2: Rule.Simple => U): Unit = index.tripleMap { thi =>
-      rules.view.map(f(thi)(_)).foreach(f2)
+      debugger(self.size) { ad =>
+        rules.view.map(f(thi)(_)).foreach(x => ad.result()(f2(x)))
+      }
     }
   })
 
-  def graphBasedRules: Ruleset = extendRuleset { implicit thi =>
-    rule => Rule.Simple(rule.head.toGraphBasedAtom, rule.body.map(_.toGraphBasedAtom))(rule.measures)
+  def graphBasedRules: Ruleset = {
+    implicit val ad: Int => (Debugger.ActionDebugger => Unit) => Unit = size => f => Debugger.EmptyDebugger.debug("", size)(f)
+    extendRuleset { implicit thi =>
+      rule => Rule.Simple(rule.head.toGraphBasedAtom, rule.body.map(_.toGraphBasedAtom))(rule.measures)
+    }
   }
 
-  def computeConfidence(minConfidence: Double): Ruleset = extendRuleset { implicit thi =>
-    _.withConfidence(minConfidence)
-  }.filter(_.measures.get[Measure.Confidence].exists(_.value >= minConfidence))
+  def computeConfidence(minConfidence: Double)(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = {
+    implicit val ad: Int => (Debugger.ActionDebugger => Unit) => Unit = size => f => debugger.debug("Confidence computing", size)(f)
+    extendRuleset { implicit thi =>
+      _.withConfidence(minConfidence)
+    }.filter(_.measures.get[Measure.Confidence].exists(_.value >= minConfidence))
+  }
 
-  def computePcaConfidence(minPcaConfidence: Double): Ruleset = extendRuleset { implicit thi =>
-    _.withPcaConfidence(minPcaConfidence)
-  }.filter(_.measures.get[Measure.PcaConfidence].exists(_.value >= minPcaConfidence))
+  def computePcaConfidence(minPcaConfidence: Double)(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = {
+    implicit val ad: Int => (Debugger.ActionDebugger => Unit) => Unit = size => f => debugger.debug("PCA Confidence computing", size)(f)
+    extendRuleset { implicit thi =>
+      _.withPcaConfidence(minPcaConfidence)
+    }.filter(_.measures.get[Measure.PcaConfidence].exists(_.value >= minPcaConfidence))
+  }
 
-  def computeLift(minConfidence: Double = 0.5): Ruleset = extendRuleset { implicit thi =>
-    Function.chain[Rule.Simple](List(
-      rule => if (rule.measures.exists[Measure.Confidence]) rule else rule.withConfidence(minConfidence),
-      rule => if (rule.measures.exists[Measure.HeadConfidence]) rule else rule.withHeadConfidence,
-      rule => rule.withLift
-    ))
-  }.filter(_.measures.exists[Measure.Lift])
+  def computeLift(minConfidence: Double = 0.5)(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = {
+    implicit val ad: Int => (Debugger.ActionDebugger => Unit) => Unit = size => f => debugger.debug("Lift computing", size)(f)
+    extendRuleset { implicit thi =>
+      Function.chain[Rule.Simple](List(
+        rule => if (rule.measures.exists[Measure.Confidence]) rule else rule.withConfidence(minConfidence),
+        rule => if (rule.measures.exists[Measure.HeadConfidence]) rule else rule.withHeadConfidence,
+        rule => rule.withLift
+      ))
+    }.filter(_.measures.exists[Measure.Lift])
+  }
 
   def makeClusters(clustering: Clustering[Rule.Simple]): Ruleset = transform(new Traversable[Rule.Simple] {
     def foreach[U](f: Rule.Simple => U): Unit = clustering.clusters(rules.toIndexedSeq).view.zipWithIndex.flatMap { case (cluster, index) =>
