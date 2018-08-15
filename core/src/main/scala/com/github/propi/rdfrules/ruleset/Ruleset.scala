@@ -92,21 +92,21 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index)
     }
   }
 
-  def computeConfidence(minConfidence: Double)(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = {
+  def computeConfidence(minConfidence: Double)(implicit debugger: Debugger): Ruleset = {
     implicit val ad: Int => (Debugger.ActionDebugger => Unit) => Unit = size => f => debugger.debug("Confidence computing", size)(f)
     extendRuleset { implicit thi =>
       _.withConfidence(minConfidence)
     }.filter(_.measures.get[Measure.Confidence].exists(_.value >= minConfidence))
   }
 
-  def computePcaConfidence(minPcaConfidence: Double)(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = {
+  def computePcaConfidence(minPcaConfidence: Double)(implicit debugger: Debugger): Ruleset = {
     implicit val ad: Int => (Debugger.ActionDebugger => Unit) => Unit = size => f => debugger.debug("PCA Confidence computing", size)(f)
     extendRuleset { implicit thi =>
       _.withPcaConfidence(minPcaConfidence)
     }.filter(_.measures.get[Measure.PcaConfidence].exists(_.value >= minPcaConfidence))
   }
 
-  def computeLift(minConfidence: Double = 0.5)(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = {
+  def computeLift(minConfidence: Double = 0.5)(implicit debugger: Debugger): Ruleset = {
     implicit val ad: Int => (Debugger.ActionDebugger => Unit) => Unit = size => f => debugger.debug("Lift computing", size)(f)
     extendRuleset { implicit thi =>
       Function.chain[Rule.Simple](List(

@@ -14,7 +14,7 @@ import org.scalatest.{FlatSpec, Inside, Matchers}
   */
 class IndexSpec extends FlatSpec with Matchers with Inside {
 
-  private lazy val dataset1 = Dataset[RdfSource.Tsv.type](GraphSpec.dataYago)
+  private lazy val dataset1 = Dataset(GraphSpec.dataYago)
 
   private lazy val dataset2 = Dataset() + Graph("yago", GraphSpec.dataYago) + Graph("dbpedia", dataDbpedia)(Lang.TTL)
 
@@ -22,7 +22,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
     val index = Index.apply(dataset1)
     index.toDataset shouldBe dataset1
     index.newIndex.toDataset shouldBe dataset1
-    MemoryMeasurer.measureBytes(index) should be(500L +- 50)
+    MemoryMeasurer.measureBytes(index) should be(600L +- 100)
     index.tripleItemMap { tihi =>
       val items = dataset1.take(5).quads.flatMap(x => List(x.triple.subject, x.triple.predicate, x.triple.`object`)).toList
       for (item <- items) {
@@ -42,7 +42,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
 
   it should "create from dataset and load index" in {
     val index = Index.apply(dataset1)
-    MemoryMeasurer.measureBytes(index) should be(500L +- 50)
+    MemoryMeasurer.measureBytes(index) should be(600L +- 100)
     index.tripleMap { thi =>
       thi.size shouldBe dataset1.size
     }
@@ -150,7 +150,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
   it should "be loaded from cache with inUseInMemory mode" in {
     val index = Index.fromCache(new BufferedInputStream(new FileInputStream("test.index")), Index.Mode.InUseInMemory)
     val mem = MemoryMeasurer.measureBytes(index)
-    mem should be(55L +- 10)
+    mem should be(250L +- 10)
     val dsize = dataset2.size
     index.toDataset.size shouldBe dsize
     MemoryMeasurer.measureBytes(index) should be(mem +- 150)

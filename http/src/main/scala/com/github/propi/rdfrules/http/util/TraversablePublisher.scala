@@ -4,6 +4,8 @@ import com.github.propi.rdfrules.http.util.TraversablePublisher.ForeachThread
 import com.github.propi.rdfrules.http.util.TraversablePublisher.Message.{Running, Stopping}
 import org.reactivestreams.{Publisher, Subscriber, Subscription}
 
+import scala.language.implicitConversions
+
 /**
   * Created by Vaclav Zeman on 14. 8. 2018.
   */
@@ -42,7 +44,7 @@ object TraversablePublisher {
 
   }
 
-  class ForeachThread[T] private(col: Traversable[T], s: Subscriber[_ >: T]) extends Runnable {
+  class ForeachThread[T] private[TraversablePublisher](col: Traversable[T], s: Subscriber[_ >: T]) extends Runnable {
 
     private object Locker
 

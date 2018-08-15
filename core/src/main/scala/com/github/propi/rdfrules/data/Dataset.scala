@@ -53,9 +53,9 @@ class Dataset private(val quads: QuadTraversableView)
 
   def export(file: String)(implicit writer: RdfWriter): Unit = export(new File(file))
 
-  def mine(miner: RulesMining)(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = Index(this).mine(miner)
+  def mine(miner: RulesMining)(implicit debugger: Debugger): Ruleset = Index(this).mine(miner)
 
-  def index(mode: Mode = Mode.PreservedInMemory)(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = Index(this, mode)
+  def index(mode: Mode = Mode.PreservedInMemory)(implicit debugger: Debugger): Index = Index(this, mode)
 
 }
 

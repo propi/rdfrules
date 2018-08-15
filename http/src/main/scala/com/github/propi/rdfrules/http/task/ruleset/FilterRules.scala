@@ -9,7 +9,7 @@ import com.github.propi.rdfrules.utils.TypedKeyMap
 /**
   * Created by Vaclav Zeman on 7. 8. 2018.
   */
-class FilterRules(measures: Seq[(Option[TypedKeyMap.Key[Measure]], TripleItemMatcher[TripleItem.Number[Double]])],
+class FilterRules(measures: Seq[(Option[TypedKeyMap.Key[Measure]], TripleItemMatcher.Number)],
                   patterns: Seq[RulePattern]) extends Task[Ruleset, Ruleset] {
   val companion: TaskDefinition = FilterRules
 

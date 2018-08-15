@@ -5,6 +5,7 @@ import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
 import com.github.propi.rdfrules.data._
 import com.github.propi.rdfrules.index._
 import com.github.propi.rdfrules.rule._
+import com.github.propi.rdfrules.utils.{CustomLogger, Debugger}
 import org.apache.jena.riot.Lang
 import org.scalatest.{FlatSpec, Inside, Matchers}
 
@@ -13,7 +14,7 @@ import org.scalatest.{FlatSpec, Inside, Matchers}
   */
 class AmieSpec extends FlatSpec with Matchers with Inside {
 
-  private lazy val dataset1 = Dataset[RdfSource.Tsv.type](GraphSpec.dataYago)
+  private lazy val dataset1 = Dataset(GraphSpec.dataYago)
 
   private lazy val dataset2 = Dataset() + Graph("yago", GraphSpec.dataYago) + Graph("dbpedia", GraphSpec.dataDbpedia)(Lang.TTL)
 
@@ -208,11 +209,13 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     val customLogger = CustomLogger("test") { (msg, _) =>
       if (msg.contains("timeout limit")) timeoutPrinted.set(true)
     }
-    val index = Index.apply(dataset1)
-    val amie = Amie(customLogger).addThreshold(Threshold.MaxRuleLength(5)).addThreshold(Threshold.Timeout(1)).addConstraint(RuleConstraint.WithInstances(false))
-    index.tripleItemMap { implicit mapper =>
-      index.tripleMap { implicit thi =>
-        amie.mine
+    Debugger(customLogger) { implicit debugger =>
+      val index = Index.apply(dataset1)
+      val amie = Amie().addThreshold(Threshold.MaxRuleLength(5)).addThreshold(Threshold.Timeout(1)).addConstraint(RuleConstraint.WithInstances(false))
+      index.tripleItemMap { implicit mapper =>
+        index.tripleMap { implicit thi =>
+          amie.mine
+        }
       }
     }
     timeoutPrinted.get() shouldBe true

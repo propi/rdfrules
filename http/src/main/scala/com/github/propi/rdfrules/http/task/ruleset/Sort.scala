@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.http.task.ruleset
 
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
-import com.github.propi.rdfrules.rule.Measure
+import com.github.propi.rdfrules.rule.{Measure, Rule}
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.TypedKeyMap
 
@@ -14,22 +14,20 @@ class Sort(measures: Seq[(Option[TypedKeyMap.Key[Measure]], Boolean)]) extends T
   private def revNum(x: Boolean) = if (x) -1 else 1
 
   def execute(input: Ruleset): Ruleset = {
+    val measuresConverters: Seq[Rule.Simple => Measure] = measures.map(x => x._1.collect {
+      case Measure.BodySize => rule: Rule.Simple => Measure.BodySize(rule.measures.get(Measure.BodySize).map(_.value).getOrElse(0) * revNum(x._2))
+      case Measure.Confidence => rule: Rule.Simple => Measure.Confidence(rule.measures.get(Measure.Confidence).map(_.value).getOrElse(0.0) * revNum(x._2))
+      case Measure.HeadConfidence => rule: Rule.Simple => Measure.HeadConfidence(rule.measures.get(Measure.HeadConfidence).map(_.value).getOrElse(0.0) * revNum(x._2))
+      case Measure.HeadCoverage => rule: Rule.Simple => Measure.HeadCoverage(rule.measures.get(Measure.HeadCoverage).map(_.value).getOrElse(0.0) * revNum(x._2))
+      case Measure.HeadSize => rule: Rule.Simple => Measure.HeadSize(rule.measures.get(Measure.HeadSize).map(_.value).getOrElse(0) * revNum(x._2))
+      case Measure.Lift => rule: Rule.Simple => Measure.Lift(rule.measures.get(Measure.Lift).map(_.value).getOrElse(0.0) * revNum(x._2))
+      case Measure.PcaBodySize => rule: Rule.Simple => Measure.PcaBodySize(rule.measures.get(Measure.PcaBodySize).map(_.value).getOrElse(0) * revNum(x._2))
+      case Measure.PcaConfidence => rule: Rule.Simple => Measure.PcaConfidence(rule.measures.get(Measure.PcaConfidence).map(_.value).getOrElse(0.0) * revNum(x._2))
+      case Measure.Support => rule: Rule.Simple => Measure.Support(rule.measures.get(Measure.Support).map(_.value).getOrElse(0) * revNum(x._2))
+      case Measure.Cluster => rule: Rule.Simple => Measure.Cluster(rule.measures.get(Measure.Cluster).map(_.number).getOrElse(0) * revNum(x._2))
+    }.getOrElse((rule: Rule.Simple) => Measure.Cluster(rule.ruleLength * revNum(x._2))))
     input.sortBy[Iterable[Measure]] { rule =>
-      measures.map {
-        case (Some(measure), reverse) => measure match {
-          case Measure.BodySize(x) => Measure.BodySize(x * revNum(reverse))
-          case Measure.Confidence(x) => Measure.Confidence(x * revNum(reverse))
-          case Measure.HeadConfidence(x) => Measure.HeadConfidence(x * revNum(reverse))
-          case Measure.HeadCoverage(x) => Measure.HeadCoverage(x * revNum(reverse))
-          case Measure.HeadSize(x) => Measure.HeadSize(x * revNum(reverse))
-          case Measure.Lift(x) => Measure.Lift(x * revNum(reverse))
-          case Measure.PcaBodySize(x) => Measure.PcaBodySize(x * revNum(reverse))
-          case Measure.PcaConfidence(x) => Measure.PcaConfidence(x * revNum(reverse))
-          case Measure.Support(x) => Measure.Support(x * revNum(reverse))
-          case Measure.Cluster(x) => Measure.Cluster(x * revNum(reverse))
-        }
-        case (None, reverse) => Measure.Cluster(rule.ruleLength * revNum(reverse))
-      }
+      measuresConverters.map(_ (rule))
     }
   }
 }

@@ -33,7 +33,7 @@ object Debugger {
     }
   }
 
-  object EmptyDebugger extends Debugger {
+  implicit object EmptyDebugger extends Debugger {
     val logger: Logger = Logger[Debugger]
 
     def debug[T](name: String, num: Int = 0)(f: ActionDebugger => T): T = f(EmptyActionDebugger)

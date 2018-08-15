@@ -73,6 +73,6 @@ class DbScan[T] private(minNeighbours: Int, minSimilarity: Double)(implicit simi
 
 object DbScan {
 
-  def apply[T](minNeighbours: Int = 5, minSimilarity: Double = 0.9)(implicit similarity: SimilarityCounting[T], debugger: Debugger = Debugger.EmptyDebugger): Clustering[T] = new DbScan(minNeighbours, minSimilarity)
+  def apply[T](minNeighbours: Int = 5, minSimilarity: Double = 0.9)(implicit similarity: SimilarityCounting[T], debugger: Debugger): Clustering[T] = new DbScan(minNeighbours, minSimilarity)
 
 }

@@ -205,7 +205,7 @@ object TripleHashIndex {
     lazy val size: Int = predicates.valuesIterator.map(_.size).sum
   }
 
-  def apply(quads: Traversable[CompressedQuad])(implicit debugger: Debugger = Debugger.EmptyDebugger): TripleHashIndex = {
+  def apply(quads: Traversable[CompressedQuad])(implicit debugger: Debugger): TripleHashIndex = {
     val index = new TripleHashIndex
     debugger.debug("Dataset loading") { ad =>
       for (quad <- quads) {
@@ -216,6 +216,6 @@ object TripleHashIndex {
     index
   }
 
-  def apply(quads: Traversable[Quad])(implicit mapper: TripleItemHashIndex, debugger: Debugger = Debugger.EmptyDebugger): TripleHashIndex = apply(quads.view.filter(!_.triple.predicate.hasSameUriAs("http://www.w3.org/2002/07/owl#sameAs")).map(_.toCompressedQuad))
+  def apply(quads: Traversable[Quad])(implicit mapper: TripleItemHashIndex, debugger: Debugger): TripleHashIndex = apply(quads.view.filter(!_.triple.predicate.hasSameUriAs("http://www.w3.org/2002/07/owl#sameAs")).map(_.toCompressedQuad))
 
 }

@@ -16,6 +16,8 @@ import com.github.propi.rdfrules.http.actor
 import com.github.propi.rdfrules.http.task.Pipeline
 import com.github.propi.rdfrules.utils.Debugger
 import spray.json.{JsValue, _}
+import com.github.propi.rdfrules.http.formats.PipelineJsonReaders._
+import com.github.propi.rdfrules.http.formats.CommonDataJsonWriters._
 
 import scala.concurrent.duration._
 import scala.language.postfixOps

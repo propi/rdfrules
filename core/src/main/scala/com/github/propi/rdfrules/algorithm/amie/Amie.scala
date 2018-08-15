@@ -256,7 +256,7 @@ class Amie private(_thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
 
 object Amie {
 
-  def apply(implicit debugger: Debugger = Debugger.EmptyDebugger): RulesMining = new Amie()
+  def apply()(implicit debugger: Debugger): RulesMining = new Amie()
     .addThreshold(Threshold.MinHeadSize(100))
     .addThreshold(Threshold.MinHeadCoverage(0.01))
     .addThreshold(Threshold.MaxRuleLength(3))

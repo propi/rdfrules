@@ -89,14 +89,14 @@ object TripleItem {
   }
 
   case class Interval(interval: DiscretizationInterval) extends Literal {
-    override def toString: String = "\"" + s"interval ${if (interval.isLeftBoundClosed()) "[" else "("} ${interval.getLeftBoundValue()} ; ${interval.getRightBoundValue()} ${if (interval.isRightBoundClosed()) "]" else ")"}" + "\""
+    override def toString: String = s"${if (interval.isLeftBoundClosed()) "[" else "("} ${interval.getLeftBoundValue()} ; ${interval.getRightBoundValue()} ${if (interval.isRightBoundClosed()) "]" else ")"}"
   }
 
   object Interval {
     implicit def discretizationIntervalToInterval(interval: DiscretizationInterval): Interval = Interval(interval)
 
     def apply(text: String): Option[Interval] = {
-      val IntervalPattern = "\"?interval (\\[|\\() (\\d+(?:\\.\\d+)?) ; (\\d+(?:\\.\\d+)?) (\\]|\\))\"?".r
+      val IntervalPattern = "\"?\\s*(\\[|\\()\\s*(.+?)\\s*;\\s*(.+?)\\s*(\\]|\\))\\s*\"?".r
       text match {
         case IntervalPattern(lb, AnyToDouble(lv), AnyToDouble(rv), rb) => Some(DiscretizationInterval(
           if (lb == "[") IntervalBound.Inclusive(lv) else IntervalBound.Exclusive(lv),
@@ -128,7 +128,7 @@ object TripleItem {
     case Text(value) => NodeFactory.createLiteral(value)
     case number: Number[_] => NodeFactory.createLiteral(number.toString, number: RDFDatatype)
     case boolean: BooleanValue => NodeFactory.createLiteral(boolean.toString, XSDDatatype.XSDboolean)
-    case Interval(interval) => NodeFactory.createLiteral(interval.toString)
+    case interval: Interval => NodeFactory.createLiteral(interval.toString)
   }
 
 }

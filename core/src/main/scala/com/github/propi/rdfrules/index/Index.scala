@@ -51,7 +51,7 @@ object Index {
 
   }
 
-  def apply(dataset: Dataset, mode: Mode = Mode.PreservedInMemory)(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = {
+  def apply(dataset: Dataset, mode: Mode = Mode.PreservedInMemory)(implicit debugger: Debugger): Index = {
     val _dataset = dataset
     val _debugger = debugger
     trait ConcreteIndex extends Index with Cacheable with FromDatasetBuildable {
@@ -67,7 +67,7 @@ object Index {
     }
   }
 
-  def fromCache(is: => InputStream, mode: Mode)(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = {
+  def fromCache(is: => InputStream, mode: Mode)(implicit debugger: Debugger): Index = {
     val _debugger = debugger
     trait ConcreteIndex extends Index with Cacheable with FromCacheBuildable {
       implicit val debugger: Debugger = _debugger
@@ -91,14 +91,14 @@ object Index {
     }
   }
 
-  def fromCache(is: => InputStream)(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = fromCache(is, Mode.PreservedInMemory)
+  def fromCache(is: => InputStream)(implicit debugger: Debugger): Index = fromCache(is, Mode.PreservedInMemory)(debugger)
 
-  def fromCache(file: File, mode: Mode)(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = fromCache(new FileInputStream(file), mode)
+  def fromCache(file: File, mode: Mode)(implicit debugger: Debugger): Index = fromCache(new FileInputStream(file), mode)
 
-  def fromCache(file: String, mode: Mode)(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = fromCache(new File(file), mode)
+  def fromCache(file: String, mode: Mode)(implicit debugger: Debugger): Index = fromCache(new File(file), mode)
 
-  def fromCache(file: File)(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = fromCache(file, Mode.PreservedInMemory)
+  def fromCache(file: File)(implicit debugger: Debugger): Index = fromCache(file, Mode.PreservedInMemory)
 
-  def fromCache(file: String)(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = fromCache(new File(file))
+  def fromCache(file: String)(implicit debugger: Debugger): Index = fromCache(new File(file))
 
 }

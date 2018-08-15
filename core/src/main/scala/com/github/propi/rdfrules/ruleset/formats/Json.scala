@@ -17,9 +17,8 @@ import scala.language.implicitConversions
   */
 trait Json {
 
-  private implicit val tripleItemJsonWriter: RootJsonWriter[TripleItem] = {
-    case x: TripleItem.Uri => JsString(x.toString)
-    case TripleItem.Text(x) => JsString(x)
+  implicit val tripleItemJsonWriter: RootJsonWriter[TripleItem] = {
+    case x: TripleItem.PrefixedUri => JsString(x.toLongUri.toString)
     case TripleItem.NumberDouble(x) => JsNumber(x)
     case TripleItem.BooleanValue(x) => JsBoolean(x)
     case x: TripleItem => JsString(x.toString)
@@ -45,19 +44,19 @@ trait Json {
   }
 
   private implicit val measureJsonWriter: RootJsonWriter[Measure] = {
-    case Measure.BodySize(x) => JsObject("name" -> JsString("bodySize"), "value" -> JsNumber(x))
-    case Measure.Confidence(x) => JsObject("name" -> JsString("confidence"), "value" -> JsNumber(x))
-    case Measure.HeadConfidence(x) => JsObject("name" -> JsString("headConfidence"), "value" -> JsNumber(x))
-    case Measure.HeadCoverage(x) => JsObject("name" -> JsString("headCoverage"), "value" -> JsNumber(x))
-    case Measure.HeadSize(x) => JsObject("name" -> JsString("headSize"), "value" -> JsNumber(x))
-    case Measure.Lift(x) => JsObject("name" -> JsString("lift"), "value" -> JsNumber(x))
-    case Measure.PcaBodySize(x) => JsObject("name" -> JsString("pcaBodySize"), "value" -> JsNumber(x))
-    case Measure.PcaConfidence(x) => JsObject("name" -> JsString("pcaConfidence"), "value" -> JsNumber(x))
-    case Measure.Support(x) => JsObject("name" -> JsString("support"), "value" -> JsNumber(x))
-    case Measure.Cluster(x) => JsObject("name" -> JsString("cluster"), "value" -> JsNumber(x))
+    case Measure.BodySize(x) => JsObject("name" -> JsString("BodySize"), "value" -> JsNumber(x))
+    case Measure.Confidence(x) => JsObject("name" -> JsString("Vonfidence"), "value" -> JsNumber(x))
+    case Measure.HeadConfidence(x) => JsObject("name" -> JsString("HeadConfidence"), "value" -> JsNumber(x))
+    case Measure.HeadCoverage(x) => JsObject("name" -> JsString("HeadCoverage"), "value" -> JsNumber(x))
+    case Measure.HeadSize(x) => JsObject("name" -> JsString("HeadSize"), "value" -> JsNumber(x))
+    case Measure.Lift(x) => JsObject("name" -> JsString("Lift"), "value" -> JsNumber(x))
+    case Measure.PcaBodySize(x) => JsObject("name" -> JsString("PcaBodySize"), "value" -> JsNumber(x))
+    case Measure.PcaConfidence(x) => JsObject("name" -> JsString("PcaConfidence"), "value" -> JsNumber(x))
+    case Measure.Support(x) => JsObject("name" -> JsString("Support"), "value" -> JsNumber(x))
+    case Measure.Cluster(x) => JsObject("name" -> JsString("Cluster"), "value" -> JsNumber(x))
   }
 
-  private implicit val resolvedRuleJsonWriter: RootJsonWriter[ResolvedRule] = (obj: ResolvedRule) => JsObject(
+  implicit val resolvedRuleJsonWriter: RootJsonWriter[ResolvedRule] = (obj: ResolvedRule) => JsObject(
     "head" -> obj.head.toJson,
     "body" -> JsArray(obj.body.iterator.map(_.toJson).toVector),
     "measures" -> JsArray(obj.measures.iterator.map(_.toJson).toVector)

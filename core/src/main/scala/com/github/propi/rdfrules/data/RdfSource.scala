@@ -15,4 +15,16 @@ object RdfSource {
 
   case class JenaLang(lang: Lang) extends RdfSource
 
+  def apply(extension: String): RdfSource = extension.toLowerCase match {
+    case "nt" => JenaLang(Lang.NT)
+    case "nq" => JenaLang(Lang.NQ)
+    case "ttl" => JenaLang(Lang.TTL)
+    case "json" => JenaLang(Lang.JSONLD)
+    case "xml" => JenaLang(Lang.RDFXML)
+    case "trig" => JenaLang(Lang.TRIG)
+    case "trix" => JenaLang(Lang.TRIX)
+    case "tsv" => Tsv
+    case x => throw new IllegalArgumentException(s"Unsupported RDF format for reading: $x")
+  }
+
 }

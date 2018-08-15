@@ -4,8 +4,11 @@ import java.net.URL
 
 import akka.NotUsed
 import akka.stream.scaladsl.Source
+import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
 import com.github.propi.rdfrules.algorithm.{Clustering, RulesMining}
 import com.github.propi.rdfrules.data.{DiscretizationTask, Prefix, RdfSource, TripleItem}
+import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
+import com.github.propi.rdfrules.http.formats.CommonDataJsonReaders._
 import com.github.propi.rdfrules.http.task.Task.MergeDatasets
 import com.github.propi.rdfrules.http.task._
 import com.github.propi.rdfrules.rule.{Measure, Rule, RulePattern}
@@ -20,7 +23,7 @@ import scala.reflect.ClassTag
 /**
   * Created by Vaclav Zeman on 13. 8. 2018.
   */
-object PipelineJsonFormats {
+object PipelineJsonReaders {
 
   implicit val loadGraphReader: RootJsonReader[data.LoadGraph] = (json: JsValue) => {
     val fields = json.asJsObject.fields
@@ -91,6 +94,8 @@ object PipelineJsonFormats {
       fields.get("prefixes").map(_.convertTo[Seq[Prefix]]).getOrElse(Nil)
     )
   }
+
+  implicit val prefixesReader: RootJsonReader[data.Prefixes] = (_: JsValue) => new data.Prefixes()
 
   implicit val discretizeReader: RootJsonReader[data.Discretize] = (json: JsValue) => {
     val fields = json.asJsObject.fields
@@ -168,16 +173,14 @@ object PipelineJsonFormats {
   implicit val filterRulesReader: RootJsonReader[ruleset.FilterRules] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new ruleset.FilterRules(
-      fields.get("measures").collect {
-        case JsArray(x) => x.map { json =>
-          val fields = json.asJsObject.fields
-          (fields("measure") match {
-            case JsString("RuleLength") => None
-            case x => Some(x.convertTo[TypedKeyMap.Key[Measure]])
-          }) -> fields("value").convertTo[TripleItemMatcher[TripleItem.Number[Double]]]
-        }
-      }.getOrElse(Nil),
-      fields.get("patterns").map(_.convertTo[Seq[RulePattern]]).getOrElse(Nil)
+      fields.get("measures").iterator.flatMap(_.convertTo[JsArray].elements).map { json =>
+        val fields = json.asJsObject.fields
+        fields("measure") -> fields("value").convertTo[String]
+      }.collect {
+        case (JsString("RuleLength"), TripleItemMatcher.Number(x)) => None -> x
+        case (measure, TripleItemMatcher.Number(x)) => Some(measure.convertTo[TypedKeyMap.Key[Measure]]) -> x
+      }.toSeq,
+      fields.get("patterns").map(_.convertTo[JsArray].elements.map(_.convertTo[RulePattern])).getOrElse(Nil)
     )
   }
 
@@ -230,17 +233,19 @@ object PipelineJsonFormats {
     new ruleset.ComputeLift(fields.get("min").map(_.convertTo[Double]))
   }
 
-  implicit val makeClustersReader: RootJsonReader[ruleset.MakeClusters] = (json: JsValue) => {
+  implicit def makeClustersReader(implicit debugger: Debugger): RootJsonReader[ruleset.MakeClusters] = (json: JsValue) => {
     new ruleset.MakeClusters(json.convertTo[Clustering[Rule.Simple]])
   }
 
   implicit val findSimilarReader: RootJsonReader[ruleset.FindSimilar] = (json: JsValue) => {
     val fields = json.asJsObject.fields
+    implicit val sc: SimilarityCounting[Rule.Simple] = fields.get("features").map(_.convertTo[SimilarityCounting[Rule.Simple]]).getOrElse(Rule.ruleSimilarityCounting)
     new ruleset.FindSimilar(fields("rule").convertTo[ResolvedRule], fields("take").convertTo[Int])
   }
 
   implicit val findDissimilarReader: RootJsonReader[ruleset.FindDissimilar] = (json: JsValue) => {
     val fields = json.asJsObject.fields
+    implicit val sc: SimilarityCounting[Rule.Simple] = fields.get("features").map(_.convertTo[SimilarityCounting[Rule.Simple]]).getOrElse(Rule.ruleSimilarityCounting)
     new ruleset.FindDissimilar(fields("rule").convertTo[ResolvedRule], fields("take").convertTo[Int])
   }
 
@@ -312,6 +317,7 @@ object PipelineJsonFormats {
       case ruleset.Sort.name => params.convertTo[ruleset.Sort]
       case ruleset.Sorted.name => params.convertTo[ruleset.Sorted]
       case ruleset.Take.name => params.convertTo[ruleset.Take]
+      case MergeDatasets.name => params.convertTo[MergeDatasets]
       case x => throw deserializationError(s"Unknown task name: $x")
     }
   }
