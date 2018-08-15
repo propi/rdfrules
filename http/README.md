@@ -116,10 +116,9 @@ The schema for a result or progress information in JSON:
 {
   "id": "...",                              //task id
   "started": "...",                         //start time
-  "finished": null|"...",                   //end time
-  "tasks": [""|null],                       //task number is null if it is still in progress or has a string with task end time
+  "finished": "...",                        //end time - only if the task is completed
   "logs": [{"time": "...", "message": ""}], //mining logs
-  "result": null|Object|Array               //some results - the result scheme depends on the final action operation
+  "result": Array                           //some results - the result scheme depends on the final action operation
 }
 ```
 
@@ -144,7 +143,7 @@ RdfGraph: Loading triples into one graph.
   "path": "path/to/triples.ttl",                       //OPTIONAL: Path in workspace
   "url": "url/to/triples.ttl",                         //OPTIONAL: URL to a remote file
   "format": "ttl|nt|nq|xml|json|trig|trix|tsv|cache",  //OPTIONAL: RDF format
-  "graph-name": "..."                                  //OPTIONAL
+  "graph-name": "..."                                  //OPTIONAL: resource URI: <...>
 }}
 ```
 
@@ -206,21 +205,23 @@ Types of triples items are distinguished as follows:
 
 Type | Search by regexp or condition | Replacement with reference | Description |
 ---- | ----------------------------- | -------------------------- | ----------- |
-RESOURCE | ```"<some-uri>"```, ```"prefix:(localName)"``` | ```"<some-uri-$p0>"```, ```"prefix2:$1"``` | Resource must start and end with angle brackets or it can be a local name with a prefix.
+RESOURCE | ```"<some-uri>"```, ```"prefix:(localName)"``` | ```"<some-uri-$p0>"```, ```"_:$1"``` | Resource must start and end with angle brackets or it can be a local name with a prefix. Replacement can be only the full URI or blank node (prefixed URI is not allowed).
 TEXT | ```"\"some (text)\""``` | ```"\"some text $o1\""``` | Text must start and end with double quotes.
 NUMBER | ```"-20.5"``` | ```"$o0 + 5"``` | Text starts with number. We can only capture the whole number and regular expression is not supported.
 NUMBER | ```"> 20"```, ```"(10;20]"``` | ```"$o0 - 5"``` | For number we can use conditions: >, <, >=, <=, or intervals: (x;y), \[x;y\]
 BOOLEAN | ```"true"``` | ```"false"``` | For boolean we can use only exact matching: true or false.
-INTERVAL | ```"[x;y)"``` | ```"[$o1 + 5;$o2)"``` | For intervals we can use same conditions as for numbers. Both borders of the intervals are captured, we can refer to them in replacement.
+INTERVAL | ```"i[x;y)"``` | ```"($o1;$o2)"``` | Intervals must match the pattern. Both borders of the intervals are captured, we can refer to them in replacement.
 
 For the filtering operation we can use same searching syntax as in the mapping operation.
 ```
 {"name": "FilterQuads", "parameters": {
-   "subject": "regular expression or condition",    //OPTIONAL
-   "predicate": "regular expression or condition",  //OPTIONAL
-   "object": "regular expression or condition",     //OPTIONAL
-   "graph": "regular expression or condition"       //OPTIONAL
-   "inverse": true|false                            //OPTIONAL: filter quads that do not conform to all expressions and conditions. Default is false.
+   "or": [{                                             //REQUIRED several conditions separated with logical OR
+       "subject": "regular expression or condition",    //OPTIONAL
+       "predicate": "regular expression or condition",  //OPTIONAL
+       "object": "regular expression or condition",     //OPTIONAL
+       "graph": "regular expression or condition"       //OPTIONAL
+       "inverse": true|false                            //OPTIONAL: filter quads that do not conform to all expressions and conditions. Default is false.
+    }, ...]
 }}
 ```
 
@@ -245,7 +246,7 @@ Add prefixes:
    "url": "url/to/prefixes.ttl",                //OPTIONAL: URL to a remote file (only Turtle format is supported)
    "prefixes" [{                                //OPTIONAL: List of defined prefixes 
      "prefix": "shorten name",
-     "namespace": "URL prefix to be shorten"
+     "nameSpace": "URL prefix to be shorten"
    }, ...]
 }}
 ```
@@ -257,6 +258,7 @@ Discretization:
    "predicate": "regular expression or condition",  //OPTIONAL: discretize by this filter
    "object": "regular expression or condition",     //OPTIONAL: discretize by this filter
    "graph": "regular expression or condition",      //OPTIONAL: discretize by this filter
+   "inverse": true|false,                           //OPTIONAL: negation of conditions (default is false)
    "task": {                                        //REQUIRED: discretization task
       "name": "name of discretization task",        //REQUIRED: EquidistanceDiscretizationTask|EquifrequencyDiscretizationTask|EquisizeDiscretizationTask
       "bins": number,                               //REQUIRED only for EquidistanceDiscretizationTask and EquifrequencyDiscretizationTask: number of intervals being created
@@ -295,7 +297,7 @@ Cache:
    "path": "path/to/data.cache"               //REQUIRED: Path in workspace for a caching file
 }}
 
-RESULT: null
+RESULT: [null]
 ```
 
 Export into a file in some RDF format:
@@ -305,29 +307,26 @@ Export into a file in some RDF format:
    "format": "ttl|nt|nq|trig|trix|tsv"        //OPTIONAL: If the format is not specified then the system tries to guess the format by the file extension.
 }}
 
-RESULT: null
+RESULT: [null]
 ```
 
 Get quads (it is limited to get maximum 10 000 quads). If you need more you can slice the dataset and repeatly call this action.
 ```
 {"name": "GetQuads", "parameters": null}
 
-RESULT: {
-  "size": number                                                       //total number of quads in dataset
-  "quads" [{
+RESULT: [{
      "subject": "resource",
      "predicate": "resource",
      "object": "some type of: resource|text|number|boolean|interval",  //resource: <...>, text: \"...\", number: 0, boolean: true|false, interval: (x,y) or [x,y]
      "graph": "resource"
-  }, ...]
-}
+}, ...]
 ```
 
 Size of dataset:
 ```
 {"name": "Size", "parameters": null}
 
-RESULT: number
+RESULT: [number]
 ```
 
 Prefixes:
@@ -336,7 +335,7 @@ Prefixes:
 
 RESULT: [{
    "prefix": "shorten name",
-   "namespace": "base URI"
+   "nameSpace": "base URI"
 }, ...]
 ```
 
@@ -347,7 +346,7 @@ Predicate ranges - their types and amounts:
 RESULT: [{
    "predicate": "resource",
    "types": [{
-      "name": "RESOURCE|TEXT|NUMBER|BOOLEAN|INTERVAL",
+      "name": "Resource|Text|Number|Boolean|Interval",
       "amount": number
    }, ...]
 }, ...]
@@ -356,7 +355,7 @@ RESULT: [{
 Aggregate/Group triples by their items and return histogram:
 Predicate ranges - their types and amounts:
 ```
-{"name": "Types", "parameters": {
+{"name": "Histogram", "parameters": {
    "subject": true|false,            //OPTIONAL: group by subject, default is false,
    "predicate": true|false,          //OPTIONAL: group by predicate, default is false,
    "object": true|false              //OPTIONAL: group by object, default is false
@@ -389,7 +388,7 @@ Serialize the whole index into a file on a disk (it can be used as a transformat
    "path": "path/to/data.cache"               //REQUIRED: Path in workspace for a caching file
 }}
 
-RESULT: null
+RESULT: [null]
 ```
 
 Transform index back to the dataset.
@@ -404,7 +403,7 @@ Finally, from the Index object we can create a rule mining task which transforms
       "name": "MinHeadSize|MinHeadCoverage|MaxRuleLength|TopK|Timeout",    //REQUIRED
       "value": number                                                      //REQUIRED: MinHeadSize: integer greater than one, MinHeadCoverage: real number [0;1], MaxRuleLength: integer greater than one, TopK: integer greater than zero, Timeout: integer representing number of minutes
    }, ...],
-   "patterns" [{
+   "patterns": [{
       "head": {                              //OPTIONAL: pattern for the head atom
          "subject": AtomItemPatternObject,   //OPTIONAL: see below for detailed information (default is: Any)
          "predicate": AtomItemPatternObject, //OPTIONAL: see below for detailed information (default is: Any)
@@ -413,7 +412,8 @@ Finally, from the Index object we can create a rule mining task which transforms
       },
       "body": [{                             //OPTIONAL: patterns for body atoms
          ... same format as the head ...
-      }, ...]
+      }, ...],
+      "exact": true|false                    //OPTIONAL: exact or partial mode (default is false = partial mode)
    }, ...],
    "constraints": [{
      "name": "WithInstances|WithInstancesOnlyObjects|WithoutDuplicitPredicates|OnlyPredicates|WithoutPredicates", //REQUIRED: see the root directory for detailed information
@@ -425,7 +425,7 @@ Finally, from the Index object we can create a rule mining task which transforms
 Schema for AtomItemPatternObject
 ```
 {
-  "type": "Any|AnyConstant|AnyVariable|Constant|Variable|OneOf|NoneOf", //REQUIRED: see the root directory for detailed information
+  "name": "Any|AnyConstant|AnyVariable|Constant|Variable|OneOf|NoneOf", //REQUIRED: see the root directory for detailed information
   "value": [AtomItemPatternObject, ...]                                 //REQUIRED only for OneOf and NoneOf
   "value": "a|b|c|d|e|..."                                              //REQUIRED only for Variable: just one character
   "value": "a value of type: resource|text|number|boolean|interval",    //REQUIRED only for Constant: resource: <...>, text: \"...\", number: 0, boolean: true|false, interval: (x,y) or [x,y]
@@ -447,34 +447,7 @@ The RuleSet object requires the Index object for mapping all hashed triple items
 
 Miner rules can be transformed by filtering, mapping, sorting and computing functions.
 
-Replace items in rules:
-```
-{"name": "MapRules", "parameters": {
-  "search": {                                           //REQUIRED: search rules by regular expressions or conditions
-    "patterns": [...],                                  //OPTIONAL: the same syntax as for the "pattern" parameter in the Mine task.
-    "measures" [{
-       "name": "RuleLength|HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", //REQUIRED
-       "value": "condition"                             //REQUIRED: the same syntax as for the filtering or mapping task of quads for the NUMBER type. See below for details.
-    }, ...],
-    "inverse": true|false                               //OPTIONAL: if true than map all rules that do not conform to all expressions and conditions. Default is false.
-  },
-  "replacement": {                                      //REQUIRED: if all defined regular expressions or conditions are valid then we replace the rule by defined replacements. All unspecified replacements will have original values.
-    "head": {                                           //OPTIONAL   
-       "subject": "replacement"                         //OPTIONAL: variable: ?a, resource: <...> or prefix:localName
-       "predicate": "replacement",                      //OPTIONAL: resource: <...> or prefix:localName
-       "object": "replacement",                         //OPTIONAL: variable: ?a, resource: <...> or prefix:localName, text: \"...\", number: 0, boolean: true|false, interval: (x,y) or [x,y]
-       "graph": "replacement"                           //OPTIONAL: resource: <...> or prefix:localName
-    },
-    "body": [... the same syntax as for the head ...],  //OPTIONAL
-    "measures": [{
-       "name": "HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", //REQUIRED
-       "value": number                                  //REQUIRED
-    }, ...]
-  }
-}}
-```
-
-For the filtering operation we can use same searching syntax as in the mapping operation.
+Rules filtering:
 ```
 {"name": "FilterRules", "parameters": {
   "search": {                                           //REQUIRED: search rules by regular expressions or conditions
@@ -482,9 +455,8 @@ For the filtering operation we can use same searching syntax as in the mapping o
     "measures" [{
        "name": "RuleLength|HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", //REQUIRED
        "value": "condition"                             //REQUIRED: the same syntax as for the filtering or mapping task of quads for the NUMBER type. See below for details.
-    }, ...],
-    "inverse": true|false                               //OPTIONAL: if true than filter all rules that do not conform to all expressions and conditions. Default is false.
-  },
+    }, ...]
+  }
 }}
 ```
 
@@ -543,13 +515,12 @@ Make clusters by DBScan algorithms:
 Find similar or dissimilar rules:
 ```
 {"name": "FindSimilar", {
-   "take": number                                    //REQUIRED: find top-k most similar rules
+   "take": number,                                   //REQUIRED: find top-k most similar rules
    "rule": {                                         //REQUIRED
       "head": {                                      //REQUIRED
-         "subject": "...",                           //REQUIRED: variable: ?a, resource: <...> or prefix:localName
-         "predicate": "...",                         //REQUIRED: resource: <...> or prefix:localName
-         "object": "...",                            //REQUIRED: variable: ?a, resource: <...> or prefix:localName, text: \"...\", number: 0, boolean: true|false, interval: (x,y) or [x,y]
-         "graph": "..."                              //OPTIONAL: resource: <...> or prefix:localName
+         "subject": "...",                           //REQUIRED: variable: ?a, constant - resource: <...>
+         "predicate": "...",                         //REQUIRED: constant - resource: <...>
+         "object": "...",                            //REQUIRED: variable: ?a, constant - resource: <...>, text: \"...\", number: 0, boolean: true|false, interval: (x,y) or [x,y]
       },
       "body" [... same syntax as for the head ...],  //REQUIRED
       "measures": [{
@@ -583,7 +554,7 @@ Cache:
    "path": "path/to/rules.cache"               //REQUIRED: Path in workspace for a caching file
 }}
 
-RESULT: null
+RESULT: [null]
 ```
 
 Export into a file in the human readable text format or in the machine readable JSON format:
@@ -593,40 +564,37 @@ Export into a file in the human readable text format or in the machine readable 
    "format": "txt|json"                       //OPTIONAL: If the format is not specified then the system tries to guess the format by the file extension.
 }}
 
-RESULT: null
+RESULT: [null]
 ```
 
 Get rules (it is limited to get maximum 10 000 rules). If you need more you can slice RuleSet and repeatly call this action.
 ```
 {"name": "GetRules", "parameters": null}
 
-RESULT: {
-   "size": number,                                //total number of rules in RuleSet
-   "rules": [{
-      "head": {                                      
-         "subject": {
-           "type": "variable|constant",
-           "value": "..."
-         },                           
-         "predicate": "...",                        
-         "object": {
-           "type": "variable|constant",
-           "value": "..."
-         },                             
-         "graph": "..."                           //only for graph-based rules
-      },
-      "body" [... same syntax as for the head ...], 
-      "measures": [{
-         "name": "RuleLength|HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", 
-         "value": number
-      }, ...]
+RESULT: [{
+   "head": {                                      
+      "subject": {
+        "type": "variable|constant",
+        "value": "..."
+      },                           
+      "predicate": "...",                        
+      "object": {
+        "type": "variable|constant",
+        "value": "..."
+      },                             
+      "graph": "..."                           //only for graph-based rules
+   },
+   "body" [... same syntax as for the head ...], 
+   "measures": [{
+      "name": "RuleLength|HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", 
+      "value": number
    }, ...]
-}
+}, ...]
 ```
 
 Size of RuleSet:
 ```
 {"name": "Size", "parameters": null}
 
-RESULT: number
+RESULT: [number]
 ```
