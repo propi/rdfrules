@@ -50,14 +50,14 @@ Graph.fromRdfLang("/path/to/triples.turtle", Lang.TURTLE);
 Graph.fromFile("/path/to/triples.tsv");
 Graph.fromTsv("/path/to/triples.tsv2");
 //or with graph name
-Graph.fromFile("dbpedia", "/path/to/dbpedia.ttl");
+Graph.fromFile(new TripleItem.LongUri("dbpedia"), "/path/to/dbpedia.ttl");
 //from input stream
-Graph.fromFile(() -> new FileInputStream("/path/to/triples.rdf"), Lang.RDFXML);
+Graph.fromRdfLang(() -> new FileInputStream("/path/to/triples.rdf"), Lang.RDFXML);
 //from iterable
 Iterable<Triple> triples = ...
-Graph.fromTriples("my-graph", triples);
+Graph.fromTriples(new TripleItem.LongUri("my-graph"), triples);
 //from cache
-Graph.fromCache("my-graph", "/path/to/triples.cache");
+Graph.fromCache(new TripleItem.LongUri("my-graph"), "/path/to/triples.cache");
 ```
 
 RdfDataset: Loading quads into a dataset.
@@ -70,7 +70,7 @@ Dataset.fromFile("/path/to/triples.ttl");
 Dataset.fromFile("/path/to/triples.nq");
 Dataset.fromRdfLang("/path/to/triples.nquads", Lang.NQUADS);
 //multiple graphs from many files
-Dataset.empty().add(Graph.fromFile("graph1", "/path/to/graph1.ttl")).add(Graph.fromFile("graph2", "/path/to/graph2.tsv"));
+Dataset.empty().add(Graph.fromFile(new TripleItem.LongUri("graph1"), "/path/to/graph1.ttl")).add(Graph.fromFile(new TripleItem.LongUri("graph2"), "/path/to/graph2.tsv"));
 //or
 Dataset.fromFile("/path/to/quads1.nq").add(Dataset.fromFile("/path/to/quads2.trig"));
 //from cache
@@ -87,7 +87,7 @@ import com.github.propi.rdfrules.java.data.*;
 Graph graph = Graph.fromFile("/path/to/triples.ttl");
 Dataset dataset = Dataset.fromFile("/path/to/quads.nq");
 //map triples or quads
-graph.map(quad -> {
+dataset.map(quad -> {
        if (quad.getTriple().getPredicate().hasSameUriAs(new TripleItem.LongUri("hasChild"))) {
            return new Quad(
                    new Triple(
@@ -130,7 +130,7 @@ Map<HistogramKey, Integer> histogram = dataset.histogram(false, true, true);
 //a histogram value is a number of aggregated/grouped triples by the key.
 histogram.forEach((histogramKey, integer) -> System.out.println(histogramKey + ": " + integer));
 //we can add prefixes to shorten long URIs and to have data more readable
-.addPrefixes(Arrays.asList(
+dataset.addPrefixes(Arrays.asList(
    new Prefix("dbo", "http://dbpedia.org/ontology/"),
    new Prefix("dbr", "http://dbpedia.org/resource/"))
 );
@@ -141,11 +141,11 @@ dataset.addPrefixes("/path/to/prefixes.ttl");
 //then we can show all defined prefixes
 dataset.prefixes(System.out::println);
 //discretize all numeric literals for the "<age>" predicate into 5 bins by the equal-frequency algorithm.
-dataset.discretize(new EquifrequencyDiscretizationTask(5), quad -> quad.getTriple.getPredicate.hasSameUriAs(new TripleItem.LongUri("age")));
-//we can use three discretization tasks: EquidistanceDiscretizationTask, EquifrequencyDiscretizationTask and EquisizeDiscretizationTask. See below for more info.
+dataset.discretize(new DiscretizationTask.Equifrequency(5), quad -> quad.getTriple().getPredicate().hasSameUriAs(new TripleItem.LongUri("age")));
+//we can use three discretization tasks: DiscretizationTask.Equidistance, DiscretizationTask.Equifrequency and DiscretizationTask.Equisize See below for more info.
 //it is possible to discretize some parts and only return intervals
 import eu.easyminer.discretization.Interval;
-Interval[] intervals = dataset.discretizeAndGetIntervals(new EquifrequencyDiscretizationTask(5), quad -> quad.getTriple.getPredicate.hasSameUriAs(new TripleItem.LongUri("age")));
+Interval[] intervals = dataset.discretizeAndGetIntervals(new DiscretizationTask.Equifrequency(5), quad -> quad.getTriple().getPredicate().hasSameUriAs(new TripleItem.LongUri("age")));
 //cache quads or triples (with all transformations) into a binary file for later use
 dataset.cache("file.cache");
 //export quads or triples into a file in a selected RDF format
@@ -169,9 +169,9 @@ Discretization tasks are only facades for implemented discretization algorithms 
 
 Task | Parameters | Algorithm |
 ---- | -----------| --------- |
-EquidistanceDiscretizationTask(*bins*) | *bins*: number of intervals being created | It creates intervals which have equal distance. For example for numbers \[1; 10\] and 5 bins it creates intervals 5 intervals: \[1; 2\], \[3; 4\], \[5; 6\], \[7; 8\], \[9; 10\].
-EquifrequencyDiscretizationTask(*bins*, *mode*, *buffer*) | *bins*: number of intervals being created, *mode* (optional): sorting mode (EXTERNAL or INMEMORY, default is EXTERNAL), *buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates an exact number of equal-frequent intervals with various distances. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (INMEMORY: data are sorted in memory with buffer limit, EXTERNAL: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
-EquisizeDiscretizationTask(*support*, *mode*, *buffer*) | *support*: a minimum support (or size) of each interval, *mode* (optional): sorting mode (EXTERNAL or INMEMORY, default is EXTERNAL), *buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates various number of equal-frequent intervals where all intervals must exceed the minimal support value. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (INMEMORY: data are sorted in memory with buffer limit, EXTERNAL: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
+DiscretizationTask.Equidistance(*bins*) | *bins*: number of intervals being created | It creates intervals which have equal distance. For example for numbers \[1; 10\] and 5 bins it creates intervals 5 intervals: \[1; 2\], \[3; 4\], \[5; 6\], \[7; 8\], \[9; 10\].
+DiscretizationTask.Equifrequency(*bins*, *mode*, *buffer*) | *bins*: number of intervals being created, *mode* (optional): sorting mode (EXTERNAL or INMEMORY, default is EXTERNAL), *buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates an exact number of equal-frequent intervals with various distances. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (INMEMORY: data are sorted in memory with buffer limit, EXTERNAL: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
+DiscretizationTask.Equisize(*support*, *mode*, *buffer*) | *support*: a minimum support (or size) of each interval, *mode* (optional): sorting mode (EXTERNAL or INMEMORY, default is EXTERNAL), *buffer* (optional): maximal buffer limit in bytes for sorting in memory (default is 15MB) | It creates various number of equal-frequent intervals where all intervals must exceed the minimal support value. The algorithm requires sorted stream of numbers. Hence, data must be sorted - sorting is performing internally with a sorting mode (INMEMORY: data are sorted in memory with buffer limit, EXTERNAL: data are sorted in memory with buffer limit or sorted on a disk if the buffer limit is exceeded).
 
 ## Index Operations
 
@@ -279,7 +279,7 @@ import com.github.propi.rdfrules.java.ruleset.*;
 
 ruleset
   //filter rules
-  .filter(rule -> rule.getHeadCoverage() > 0.2);
+  .filter(rule -> rule.getHeadCoverage() > 0.2)
   //sort by defaults: Cluster, PcaConfidence, Lift, Confidence, HeadCoverage
   .sorted()
   //sort by selected measures
@@ -289,9 +289,9 @@ ruleset
   .computePcaConfidence(0.5)
   .computeLift()
   //make clusters
-  .makeClusters(/*minNeighbours =*/ 3, /*minSimilarity =*/ 0.85))
+  .makeClusters()
   //or you can specify our own similarity measures
-  .makeClusters(
+  .makeClusters(/*minNeighbours =*/ 3, /*minSimilarity =*/ 0.85,
      new SimilarityCounting(SimilarityCounting.RuleSimilarityCounting.ATOMS, 0.5)
      .add(SimilarityCounting.RuleSimilarityCounting.CONFIDENCE, 0.5)
   )
@@ -307,9 +307,10 @@ ruleset.forEach(System.out::println);
 //or export rules into a file
 ruleset.export("rules.json"); //machine readable format
 ruleset.export("rules.txt"); //human readable format
+ruleset.exportToJson("rules.json");
+ruleset.exportToText("rules.rules");
 //or to outputstream
-ruleset.exportToJson(() -> new FileOutputStream("rules.json"));
-ruleset.exportToText(() -> new FileOutputStream("rules.rules"));
+ruleset.export(() -> new FileOutputStream("rules.txt"), new RulesetWriter.Text());
 
 //we can find some rule
 ResolvedRule rule = ruleset.findResolved(rule -> rule.getHeadCoverage() == 1);
