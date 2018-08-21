@@ -143,7 +143,7 @@ RdfGraph: Loading triples into one graph.
   "path": "path/to/triples.ttl",                       //OPTIONAL: Path in workspace
   "url": "url/to/triples.ttl",                         //OPTIONAL: URL to a remote file
   "format": "ttl|nt|nq|xml|json|trig|trix|tsv|cache",  //OPTIONAL: RDF format
-  "graph-name": "..."                                  //OPTIONAL: resource URI: <...>
+  "graphName": "..."                                   //OPTIONAL: resource URI: <...>
 }}
 ```
 
