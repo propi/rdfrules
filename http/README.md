@@ -227,13 +227,13 @@ For the filtering operation we can use same searching syntax as in the mapping o
 
 Take, drop and slice operations:
 ```
-{"name": "Take", "parameters": {
+{"name": "TakeQuads", "parameters": {
    "value": number  //REQUIRED
 }},
-{"name": "Drop", "parameters": {
+{"name": "DropQuads", "parameters": {
    "value": number  //REQUIRED
 }},
-{"name": "Slice", "parameters": {
+{"name": "SliceQuads", "parameters": {
    "start": number  //REQUIRED
    "end": number    //REQUIRED
 }}
@@ -277,7 +277,7 @@ EquisizeDiscretizationTask | *support*: a minimum support (or size) of each inte
 
 Cache dataset into memory or into a file on a disk ("Cache" task can be used also as the action which returns *null* result):
 ```
-{"name": "Cache", "parameters": {
+{"name": "CacheDataset", "parameters": {
    "path": "path/to/data.cache"               //REQUIRED: Path in workspace for a caching file
 }}
 ```
@@ -293,7 +293,7 @@ An action is the last task in the pipeline. It executes all transformations and 
 
 Cache:
 ```
-{"name": "Cache", "parameters": {
+{"name": "CacheDataset", "parameters": {
    "path": "path/to/data.cache"               //REQUIRED: Path in workspace for a caching file
 }}
 
@@ -324,7 +324,7 @@ RESULT: [{
 
 Size of dataset:
 ```
-{"name": "Size", "parameters": null}
+{"name": "DatasetSize", "parameters": null}
 
 RESULT: [number]
 ```
@@ -384,7 +384,7 @@ After the Index or LoadIndex task we can define following operations.
 
 Serialize the whole index into a file on a disk (it can be used as a transformation or action):
 ```
-{"name": "Cache", "parameters": {
+{"name": "CacheIndex", "parameters": {
    "path": "path/to/data.cache"               //REQUIRED: Path in workspace for a caching file
 }}
 
@@ -438,7 +438,7 @@ The RuleSet object is created by the mining process (Mine task) or can be loaded
 
 Load RuleSet from cache:
 ```
-{"name": "LoadRuleSet", "parameters": {
+{"name": "LoadRuleset", "parameters": {
   "path": "path/to/rules.cache"                       //REQUIRED: Path in workspace
 }}
 ```
@@ -464,13 +464,13 @@ For measures conditions we can use: >, <, >=, <=, or intervals: (x;y), \[x;y\]. 
 
 Take, drop and slice operations:
 ```
-{"name": "Take", "parameters": {
+{"name": "TakeRules", "parameters": {
    "value": number  //REQUIRED
 }},
-{"name": "Drop", "parameters": {
+{"name": "DropRules", "parameters": {
    "value": number  //REQUIRED
 }},
-{"name": "Slice", "parameters": {
+{"name": "SliceRules", "parameters": {
    "start": number  //REQUIRED
    "end": number    //REQUIRED
 }}
@@ -539,7 +539,7 @@ Add information about a belonging graph to each atom of all rules:
 
 Cache the RuleSet object into a file
 ```
-{"name": "Cache", "parameters": {
+{"name": "CacheRuleset", "parameters": {
    "path": "path/to/rules.cache"               //REQUIRED: Path in workspace for a caching file
 }}
 ```
@@ -550,7 +550,7 @@ An action is the last task in the pipeline. It executes all transformations and 
 
 Cache:
 ```
-{"name": "Cache", "parameters": {
+{"name": "CacheRuleset", "parameters": {
    "path": "path/to/rules.cache"               //REQUIRED: Path in workspace for a caching file
 }}
 
@@ -594,7 +594,7 @@ RESULT: [{
 
 Size of RuleSet:
 ```
-{"name": "Size", "parameters": null}
+{"name": "RulesetSize", "parameters": null}
 
 RESULT: [number]
 ```
