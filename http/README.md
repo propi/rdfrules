@@ -478,7 +478,7 @@ Take, drop and slice operations:
 
 Sort by measures:
 ```
-{"name": "Sorted", null}, //sort by default settings: Cluster, PcaConfidence, Lift, Confidence, HeadCoverage
+{"name": "Sorted", "parameters": null}, //sort by default settings: Cluster, PcaConfidence, Lift, Confidence, HeadCoverage
 {"name": "Sort", "parameters": {
    "by": [{
       "measure": "RuleLength|HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster",  //REQUIRED
@@ -489,20 +489,20 @@ Sort by measures:
 
 Compute additional measures of significance:
 ```
-{"name": "ComputeConfidence", {
+{"name": "ComputeConfidence", "parameters": {
    "min": number                    //OPTIONAL: minimal confidence, default is 0.5
 }},
-{"name": "ComputeLift", {
+{"name": "ComputeLift", "parameters": {
    "min": number                    //OPTIONAL: minimal confidence, default is 0.5
 }},
-{"name": "ComputePcaConfidence", {
+{"name": "ComputePcaConfidence", "parameters": {
    "min": number                    //OPTIONAL: minimal PCA confidence, default is 0.5
 }}
 ```
 
 Make clusters by DBScan algorithms:
 ```
-{"name": "MakeClusters", {
+{"name": "MakeClusters", "parameters": {
    "minNeighbours": number,                                          //OPTIONAL: default is 5
    "minSimilarity": number,                                          //OPTIONAL: default is 0.9
    "features": [{                                                    //OPTIONAL: default is Atoms:0.5, Length:0.1, Support:0.15, PcaConfidence:0.15, Confidence:0.05, Lift:0.05
@@ -514,7 +514,7 @@ Make clusters by DBScan algorithms:
 
 Find similar or dissimilar rules:
 ```
-{"name": "FindSimilar", {
+{"name": "FindSimilar", "parameters": {
    "take": number,                                   //REQUIRED: find top-k most similar rules
    "rule": {                                         //REQUIRED
       "head": {                                      //REQUIRED
@@ -534,7 +534,7 @@ Find similar or dissimilar rules:
 
 Add information about a belonging graph to each atom of all rules:
 ```
-{"name": "GraphBasedRules", null}
+{"name": "GraphBasedRules", "parameters": null}
 ```
 
 Cache the RuleSet object into a file
