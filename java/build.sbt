@@ -7,6 +7,7 @@ version := "1.0.0"
 scalaVersion := "2.12.3"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-encoding", "utf8")
+scalacOptions in (Compile, doc) += "-no-java-comments"
 //scalacOptions += "-Xlog-implicits"
 
 parallelExecution in Test := false
