@@ -21,6 +21,8 @@ lazy val java = project
 
 lazy val http = project
   .in(file("http"))
+  .settings(packMain := Map("main" -> "com.github.propi.rdfrules.http.Main"))
+  .enablePlugins(PackPlugin)
   .dependsOn(core)
 
 lazy val gui = project
