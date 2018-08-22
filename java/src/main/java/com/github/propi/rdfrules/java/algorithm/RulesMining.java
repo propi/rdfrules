@@ -21,11 +21,11 @@ public class RulesMining {
     }
 
     public static RulesMining amie(Debugger debugger) {
-        return new RulesMining(Amie$.MODULE$.apply(Amie$.MODULE$.apply$default$1(), debugger.asScala()));
+        return new RulesMining(Amie$.MODULE$.apply(debugger.asScala()));
     }
 
     public static RulesMining amie() {
-        return new RulesMining(Amie$.MODULE$.apply(Amie$.MODULE$.apply$default$1(), Amie$.MODULE$.apply$default$2(Amie$.MODULE$.apply$default$1())));
+        return new RulesMining(Amie$.MODULE$.apply(Debugger.empty().asScala()));
     }
 
     public com.github.propi.rdfrules.algorithm.RulesMining asScala() {

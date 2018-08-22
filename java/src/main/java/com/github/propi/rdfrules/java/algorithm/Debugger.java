@@ -20,6 +20,10 @@ public class Debugger {
         return debugger;
     }
 
+    public static Debugger empty() {
+        return new Debugger(com.github.propi.rdfrules.utils.Debugger.EmptyDebugger$.MODULE$);
+    }
+
     public static void use(Consumer<Debugger> f) {
         Debugger$.MODULE$.apply(Debugger$.MODULE$.apply$default$1(), x -> {
             f.accept(new Debugger(x));

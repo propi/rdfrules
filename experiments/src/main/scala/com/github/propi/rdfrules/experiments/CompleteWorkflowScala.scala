@@ -27,6 +27,7 @@ object CompleteWorkflowScala {
         )
         .computePcaConfidence(0.5)
         .sorted
+        .cache
       ruleset.export(Example.resultDir + "rules-workflow-scala.json")
       ruleset.export(Example.resultDir + "rules-workflow-scala.txt")
       ruleset

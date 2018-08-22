@@ -6,10 +6,10 @@ import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 /**
   * Created by Vaclav Zeman on 9. 8. 2018.
   */
-class Types extends Task[Dataset, collection.Map[TripleItem.Uri, collection.Map[TripleItemType, Int]]] {
+class Types extends Task[Dataset, Seq[(TripleItem.Uri, collection.Map[TripleItemType, Int])]] {
   val companion: TaskDefinition = Types
 
-  def execute(input: Dataset): collection.Map[TripleItem.Uri, collection.Map[TripleItemType, Int]] = input.types()
+  def execute(input: Dataset): Seq[(TripleItem.Uri, collection.Map[TripleItemType, Int])] = input.types().iterator.toSeq
 }
 
 object Types extends TaskDefinition {

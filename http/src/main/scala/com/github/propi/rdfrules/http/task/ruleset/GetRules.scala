@@ -9,7 +9,7 @@ import com.github.propi.rdfrules.ruleset.{ResolvedRule, Ruleset}
 class GetRules extends Task[Ruleset, Traversable[ResolvedRule]] {
   val companion: TaskDefinition = GetRules
 
-  def execute(input: Ruleset): Traversable[ResolvedRule] = input.take(10000).resolvedRules
+  def execute(input: Ruleset): Traversable[ResolvedRule] = input.take(10000).cache.resolvedRules
 }
 
 object GetRules extends TaskDefinition {

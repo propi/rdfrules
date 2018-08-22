@@ -79,8 +79,9 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index)
 
   private def extendRuleset(f: TripleHashIndex => Rule.Simple => Rule.Simple)(implicit debugger: Int => (Debugger.ActionDebugger => Unit) => Unit): Ruleset = transform(new Traversable[Rule.Simple] {
     def foreach[U](f2: Rule.Simple => U): Unit = index.tripleMap { thi =>
-      debugger(self.size) { ad =>
-        rules.view.map(f(thi)(_)).foreach(x => ad.result()(f2(x)))
+      val cached = self.cache
+      debugger(cached.size) { ad =>
+        cached.rules.view.map(f(thi)(_)).foreach(x => ad.result()(f2(x)))
       }
     }
   })

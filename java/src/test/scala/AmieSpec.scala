@@ -1,7 +1,7 @@
 import java.util
 
 import GraphSpec.dataDbpedia
-import com.github.propi.rdfrules.java.algorithm.RulesMining
+import com.github.propi.rdfrules.java.algorithm.{Debugger, RulesMining}
 import com.github.propi.rdfrules.java.data.{Dataset, Graph, TripleItem}
 import com.github.propi.rdfrules.java.rule.RulePattern
 import com.github.propi.rdfrules.java.rule.RulePattern.AtomPattern
@@ -38,9 +38,11 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "mine with default params" in {
-    val index = dataset1.index()
-    val rules = index.mine(RulesMining.amie())
-    rules.size shouldBe 123
+    Debugger.use((t: Debugger) => {
+      val index = dataset1.index(t)
+      val rules = index.mine(RulesMining.amie(t))
+      rules.size shouldBe 123
+    })
   }
 
   it should "mine without duplicit predicates" in {

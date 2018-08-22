@@ -3,6 +3,7 @@ package com.github.propi.rdfrules.java.data;
 import com.github.propi.rdfrules.java.ReadersWriters;
 import com.github.propi.rdfrules.java.ScalaConverters;
 import com.github.propi.rdfrules.java.TripleItemConverters;
+import com.github.propi.rdfrules.java.algorithm.Debugger;
 import com.github.propi.rdfrules.java.algorithm.RulesMining;
 import com.github.propi.rdfrules.java.index.Index;
 import com.github.propi.rdfrules.java.ruleset.Ruleset;
@@ -200,8 +201,20 @@ public class Graph implements
         return toDataset().index();
     }
 
+    public Index index(Index.Mode mode, Debugger debugger) {
+        return toDataset().index(mode, debugger);
+    }
+
+    public Index index(Debugger debugger) {
+        return toDataset().index(debugger);
+    }
+
     public Ruleset mine(RulesMining rulesMining) {
         return toDataset().mine(rulesMining);
+    }
+
+    public Ruleset mine(RulesMining rulesMining, Debugger debugger) {
+        return toDataset().mine(rulesMining, debugger);
     }
 
 }

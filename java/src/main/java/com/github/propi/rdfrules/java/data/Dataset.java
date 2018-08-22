@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.java.data;
 
 import com.github.propi.rdfrules.java.ReadersWriters;
 import com.github.propi.rdfrules.java.ScalaConverters;
+import com.github.propi.rdfrules.java.algorithm.Debugger;
 import com.github.propi.rdfrules.java.algorithm.RulesMining;
 import com.github.propi.rdfrules.java.index.Index;
 import com.github.propi.rdfrules.java.ruleset.Ruleset;
@@ -154,8 +155,20 @@ public class Dataset implements
         return Index.fromDataset(this);
     }
 
+    public Index index(Index.Mode mode, Debugger debugger) {
+        return Index.fromDataset(this, mode, debugger);
+    }
+
+    public Index index(Debugger debugger) {
+        return Index.fromDataset(this, debugger);
+    }
+
     public Ruleset mine(RulesMining rulesMining) {
-        return new Ruleset(asScala().mine(rulesMining.asScala()));
+        return new Ruleset(asScala().mine(rulesMining.asScala(), Debugger.empty().asScala()));
+    }
+
+    public Ruleset mine(RulesMining rulesMining, Debugger debugger) {
+        return new Ruleset(asScala().mine(rulesMining.asScala(), debugger.asScala()));
     }
 
 }

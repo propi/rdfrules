@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.http.task.data
 
 import com.github.propi.rdfrules.data.Dataset
+import com.github.propi.rdfrules.http.Workspace
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 
 /**
@@ -9,7 +10,7 @@ import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 class Cache(path: String) extends Task[Dataset, Dataset] {
   val companion: TaskDefinition = Cache
 
-  def execute(input: Dataset): Dataset = input.cache(path)
+  def execute(input: Dataset): Dataset = input.cache(Workspace.path(path))
 }
 
 object Cache extends TaskDefinition {

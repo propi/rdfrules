@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.server.Route
 import akka.stream.{ActorMaterializer, Materializer}
 import com.github.propi.rdfrules.http.util.{DefaultServer, DefaultServerConf}
+import akka.http.scaladsl.server.Directives._
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -21,7 +22,7 @@ object Main extends DefaultServer with DefaultServerConf {
   implicit val actorSystem: ActorSystem = ActorSystem("rdfrules-http")
   implicit val materializer: Materializer = ActorMaterializer()
 
-  val route: Route = (new service.Workspace).route
+  val route: Route = (new service.Workspace).route ~ (new service.Task).route
 
   def main(args: Array[String]): Unit = {
     Await.result(bind(), 30 seconds)

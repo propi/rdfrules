@@ -17,14 +17,13 @@ import scala.util.{Failure, Success}
 /**
   * Created by Vaclav Zeman on 13. 8. 2018.
   */
-class Task private(id: UUID, pipeline: Debugger => Pipeline[Source[JsValue, NotUsed]]) extends Actor {
+class Task private(id: UUID, started: Date, pipeline: Debugger => Pipeline[Source[JsValue, NotUsed]]) extends Actor {
 
   context.setReceiveTimeout(10 minutes)
 
   private implicit val ec: ExecutionContext = context.dispatcher
 
   private val logBuffer = collection.mutable.ListBuffer.empty[(String, Date)]
-  private val started = new Date()
 
   private val result = Future {
     val logger = CustomLogger("task-" + id.toString) { (msg, level) =>
@@ -59,7 +58,7 @@ class Task private(id: UUID, pipeline: Debugger => Pipeline[Source[JsValue, NotU
 
 object Task {
 
-  def props(id: UUID, pipeline: Debugger => Pipeline[Source[JsValue, NotUsed]]): Props = Props(new Task(id, pipeline))
+  def props(id: UUID, started: Date, pipeline: Debugger => Pipeline[Source[JsValue, NotUsed]]): Props = Props(new Task(id, started, pipeline))
 
   sealed trait Request
 

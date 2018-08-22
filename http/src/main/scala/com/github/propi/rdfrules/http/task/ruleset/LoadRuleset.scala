@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.http.task.ruleset
 
+import com.github.propi.rdfrules.http.Workspace
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.ruleset.Ruleset
@@ -10,7 +11,7 @@ import com.github.propi.rdfrules.ruleset.Ruleset
 class LoadRuleset(path: String) extends Task[Index, Ruleset] {
   val companion: TaskDefinition = LoadRuleset
 
-  def execute(input: Index): Ruleset = Ruleset.fromCache(input, path)
+  def execute(input: Index): Ruleset = Ruleset.fromCache(input, Workspace.path(path))
 }
 
 object LoadRuleset extends TaskDefinition {

@@ -6,19 +6,18 @@ import akka.NotUsed
 import akka.stream.scaladsl.Source
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
 import com.github.propi.rdfrules.algorithm.{Clustering, RulesMining}
-import com.github.propi.rdfrules.data.{DiscretizationTask, Prefix, RdfSource, TripleItem}
+import com.github.propi.rdfrules.data.{Dataset, DiscretizationTask, Prefix, RdfSource, TripleItem}
 import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.formats.CommonDataJsonReaders._
 import com.github.propi.rdfrules.http.task.Task.MergeDatasets
 import com.github.propi.rdfrules.http.task._
+import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.rule.{Measure, Rule, RulePattern}
-import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetSource}
+import com.github.propi.rdfrules.ruleset.{ResolvedRule, Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
 import org.apache.jena.riot.RDFFormat
 import spray.json.DefaultJsonProtocol._
 import spray.json._
-
-import scala.reflect.ClassTag
 
 /**
   * Created by Vaclav Zeman on 13. 8. 2018.
@@ -66,8 +65,7 @@ object PipelineJsonReaders {
   implicit val filterQuadsReader: RootJsonReader[data.FilterQuads] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new data.FilterQuads(
-      json.convertTo[QuadMatcher],
-      fields.get("inverse").exists(_.convertTo[Boolean])
+      fields("or").convertTo[JsArray].elements.map(json => json.convertTo[QuadMatcher] -> fields.get("inverse").exists(_.convertTo[Boolean]))
     )
   }
 
@@ -274,64 +272,92 @@ object PipelineJsonReaders {
     new ruleset.Size()
   }
 
-  implicit def pipelineObjectReader(implicit debugger: Debugger): RootJsonReader[Task[_, _]] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    val params = fields("parameters")
-    fields("name").convertTo[String] match {
-      case data.AddPrefixes.name => params.convertTo[data.AddPrefixes]
-      case data.Cache.name => params.convertTo[data.Cache]
-      case data.Discretize.name => params.convertTo[data.Discretize]
-      case data.Drop.name => params.convertTo[data.Drop]
-      case data.ExportQuads.name => params.convertTo[data.ExportQuads]
-      case data.FilterQuads.name => params.convertTo[data.FilterQuads]
-      case data.GetQuads.name => params.convertTo[data.GetQuads]
-      case data.Histogram.name => params.convertTo[data.Histogram]
-      case data.LoadDataset.name => params.convertTo[data.LoadDataset]
-      case data.LoadGraph.name => params.convertTo[data.LoadGraph]
-      case data.MapQuads.name => params.convertTo[data.MapQuads]
-      case data.Prefixes.name => params.convertTo[data.Prefixes]
-      case data.Size.name => params.convertTo[data.Size]
-      case data.Slice.name => params.convertTo[data.Slice]
-      case data.Take.name => params.convertTo[data.Take]
-      case data.Types.name => params.convertTo[data.Types]
-      case data.Index.name => params.convertTo[data.Index]
-      case index.Cache.name => params.convertTo[index.Cache]
-      case index.LoadIndex.name => params.convertTo[index.LoadIndex]
-      case index.Mine.name => params.convertTo[index.Mine]
-      case index.ToDataset.name => params.convertTo[index.ToDataset]
-      case ruleset.Cache.name => params.convertTo[ruleset.Cache]
-      case ruleset.ComputeConfidence.name => params.convertTo[ruleset.ComputeConfidence]
-      case ruleset.ComputeLift.name => params.convertTo[ruleset.ComputeLift]
-      case ruleset.ComputePcaConfidence.name => params.convertTo[ruleset.ComputePcaConfidence]
-      case ruleset.Drop.name => params.convertTo[ruleset.Drop]
-      case ruleset.ExportRules.name => params.convertTo[ruleset.ExportRules]
-      case ruleset.FilterRules.name => params.convertTo[ruleset.FilterRules]
-      case ruleset.FindSimilar.name => params.convertTo[ruleset.FindSimilar]
-      case ruleset.FindDissimilar.name => params.convertTo[ruleset.FindDissimilar]
-      case ruleset.GetRules.name => params.convertTo[ruleset.GetRules]
-      case ruleset.GraphBasedRules.name => params.convertTo[ruleset.GraphBasedRules]
-      case ruleset.LoadRuleset.name => params.convertTo[ruleset.LoadRuleset]
-      case ruleset.MakeClusters.name => params.convertTo[ruleset.MakeClusters]
-      case ruleset.Size.name => params.convertTo[ruleset.Size]
-      case ruleset.Slice.name => params.convertTo[ruleset.Slice]
-      case ruleset.Sort.name => params.convertTo[ruleset.Sort]
-      case ruleset.Sorted.name => params.convertTo[ruleset.Sorted]
-      case ruleset.Take.name => params.convertTo[ruleset.Take]
-      case MergeDatasets.name => params.convertTo[MergeDatasets]
-      case x => throw deserializationError(s"Unknown task name: $x")
-    }
-  }
-
   implicit val pipelineReader: RootJsonReader[Debugger => Pipeline[Source[JsValue, NotUsed]]] = (json: JsValue) => { implicit debugger =>
-    val `Task[NoInput, _]` = implicitly[ClassTag[Task[Task.NoInput.type, _]]]
+    def addInput(head: JsValue, tail: Seq[JsValue]): Pipeline[Source[JsValue, NotUsed]] = {
+      val fields = head.asJsObject.fields
+      val params = fields("parameters")
+      fields("name").convertTo[String] match {
+        case data.LoadDataset.name => addTaskFromDataset(Pipeline(params.convertTo[data.LoadDataset]), tail)
+        case data.LoadGraph.name => addTaskFromDataset(Pipeline(params.convertTo[data.LoadGraph]), tail)
+        case index.LoadIndex.name => addTaskFromIndex(Pipeline(params.convertTo[index.LoadIndex]), tail)
+        case x => throw deserializationError(s"Invalid first task: $x")
+      }
+    }
 
-    def addPipeline(tasks: List[Task[_, _]], pipeline: Option[Pipeline[_]]): Pipeline[Source[JsValue, NotUsed]] = tasks match {
-      case head :: tail => addPipeline(tail, pipeline.map(_ + head).orElse(`Task[NoInput, _]`.unapply(head).map(Pipeline(_))))
-      case _ => pipeline.map(_ + new ToJsonTask).getOrElse(throw deserializationError("No task defines"))
+    @scala.annotation.tailrec
+    def addTaskFromDataset(pipeline: Pipeline[Dataset], tail: Seq[JsValue]): Pipeline[Source[JsValue, NotUsed]] = tail match {
+      case Seq(head, tail@_*) =>
+        val fields = head.asJsObject.fields
+        val params = fields("parameters")
+        fields("name").convertTo[String] match {
+          case data.AddPrefixes.name => addTaskFromDataset(pipeline ~> params.convertTo[data.AddPrefixes], tail)
+          case data.Cache.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Cache], tail)
+          case data.Discretize.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Discretize], tail)
+          case data.Drop.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Drop], tail)
+          case data.ExportQuads.name => pipeline ~> params.convertTo[data.ExportQuads] ~> ToJsonTask.FromUnit
+          case data.FilterQuads.name => addTaskFromDataset(pipeline ~> params.convertTo[data.FilterQuads], tail)
+          case data.GetQuads.name => pipeline ~> params.convertTo[data.GetQuads] ~> ToJsonTask.FromQuads
+          case data.Histogram.name => pipeline ~> params.convertTo[data.Histogram] ~> ToJsonTask.FromHistogram
+          case data.LoadDataset.name => addTaskFromDataset(pipeline |~> params.convertTo[data.LoadDataset], tail)
+          case data.LoadGraph.name => addTaskFromDataset(pipeline |~> params.convertTo[data.LoadGraph], tail)
+          case data.MapQuads.name => addTaskFromDataset(pipeline ~> params.convertTo[data.MapQuads], tail)
+          case data.Prefixes.name => pipeline ~> params.convertTo[data.Prefixes] ~> ToJsonTask.FromPrefixes
+          case data.Size.name => pipeline ~> params.convertTo[data.Size] ~> ToJsonTask.FromInt
+          case data.Slice.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Slice], tail)
+          case data.Take.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Take], tail)
+          case data.Types.name => pipeline ~> params.convertTo[data.Types] ~> ToJsonTask.FromTypes
+          case data.Index.name => addTaskFromIndex(pipeline ~> params.convertTo[data.Index], tail)
+          case MergeDatasets.name => addTaskFromDataset(pipeline |~> params.convertTo[MergeDatasets], tail)
+          case x => throw deserializationError(s"Invalid task '$x' can not be bound to Dataset")
+        }
+      case _ => pipeline ~> new ToJsonTask.From[Dataset]
+    }
+
+    @scala.annotation.tailrec
+    def addTaskFromIndex(pipeline: Pipeline[Index], tail: Seq[JsValue]): Pipeline[Source[JsValue, NotUsed]] = tail match {
+      case Seq(head, tail@_*) =>
+        val fields = head.asJsObject.fields
+        val params = fields("parameters")
+        fields("name").convertTo[String] match {
+          case index.Cache.name => addTaskFromIndex(pipeline ~> params.convertTo[index.Cache], tail)
+          case index.Mine.name => addTaskFromRuleset(pipeline ~> params.convertTo[index.Mine], tail)
+          case index.ToDataset.name => addTaskFromDataset(pipeline ~> params.convertTo[index.ToDataset], tail)
+          case ruleset.LoadRuleset.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.LoadRuleset], tail)
+          case x => throw deserializationError(s"Invalid task '$x' can not be bound to Index")
+        }
+      case _ => pipeline ~> new ToJsonTask.From[Index]
+    }
+
+    @scala.annotation.tailrec
+    def addTaskFromRuleset(pipeline: Pipeline[Ruleset], tail: Seq[JsValue]): Pipeline[Source[JsValue, NotUsed]] = tail match {
+      case Seq(head, tail@_*) =>
+        val fields = head.asJsObject.fields
+        val params = fields("parameters")
+        fields("name").convertTo[String] match {
+          case ruleset.Cache.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Cache], tail)
+          case ruleset.ComputeConfidence.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.ComputeConfidence], tail)
+          case ruleset.ComputeLift.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.ComputeLift], tail)
+          case ruleset.ComputePcaConfidence.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.ComputePcaConfidence], tail)
+          case ruleset.Drop.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Drop], tail)
+          case ruleset.ExportRules.name => pipeline ~> params.convertTo[ruleset.ExportRules] ~> ToJsonTask.FromUnit
+          case ruleset.FilterRules.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.FilterRules], tail)
+          case ruleset.FindSimilar.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.FindSimilar], tail)
+          case ruleset.FindDissimilar.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.FindDissimilar], tail)
+          case ruleset.GetRules.name => pipeline ~> params.convertTo[ruleset.GetRules] ~> ToJsonTask.FromRules
+          case ruleset.GraphBasedRules.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.GraphBasedRules], tail)
+          case ruleset.MakeClusters.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.MakeClusters], tail)
+          case ruleset.Size.name => pipeline ~> params.convertTo[ruleset.Size] ~> ToJsonTask.FromInt
+          case ruleset.Slice.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Slice], tail)
+          case ruleset.Sort.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Sort], tail)
+          case ruleset.Sorted.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Sorted], tail)
+          case ruleset.Take.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Take], tail)
+          case x => throw deserializationError(s"Invalid task '$x' can not be bound to Ruleset")
+        }
+      case _ => pipeline ~> new ToJsonTask.From[Ruleset]
     }
 
     json match {
-      case JsArray(x) => addPipeline(x.iterator.map(_.convertTo[Task[_, _]]).toList, None)
+      case JsArray(Vector(head, tail@_*)) => addInput(head, tail)
       case _ => throw deserializationError("No tasks defined")
     }
   }

@@ -40,9 +40,10 @@ public class CompleteWorkflowJava {
                     .mine(RulesMining.amie(debugger)
                             .withInstances(true)
                             .addPattern(RulePattern.create().prependBodyAtom(new RulePattern.AtomPattern().withPredicate(new TripleItem.LongUri("hasNumberOfPeople"))))
-                            .addPattern(RulePattern.create(new RulePattern.AtomPattern().withPredicate(new TripleItem.LongUri("hasNumberOfPeople")))))
-                    .computePcaConfidence(0.5)
-                    .sorted();
+                            .addPattern(RulePattern.create(new RulePattern.AtomPattern().withPredicate(new TripleItem.LongUri("hasNumberOfPeople")))), debugger)
+                    .computePcaConfidence(0.5, debugger)
+                    .sorted()
+                    .cache();
             ruleset.export(Example$.MODULE$.resultDir() + "rules-workflow-scala.json");
             ruleset.export(Example$.MODULE$.resultDir() + "rules-workflow-scala.txt");
             printRuleset(ruleset);

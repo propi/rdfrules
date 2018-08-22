@@ -21,10 +21,10 @@ object ReadersWriters {
 
   def noRdfReader: RdfReader = RdfReader.NoReader
 
-  def rulesJsonWriter: RulesetWriter[RulesetSource] = RulesetSource.Json
+  def rulesJsonWriter: RulesetWriter = RulesetSource.Json
 
-  def rulesTextWriter: RulesetWriter[RulesetSource] = RulesetSource.Text
+  def rulesTextWriter: RulesetWriter = RulesetSource.Text
 
-  def rulesNoWriter: RulesetWriter[RulesetSource] = RulesetWriter.NoWriter
+  def rulesNoWriter: RulesetWriter = RulesetWriter.NoWriter
 
 }

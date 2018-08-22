@@ -1,4 +1,4 @@
-package com.github.propi.rdfrules.java.index;
+package com.github.propi.rdfrules.java.ruleset;
 
 import com.github.propi.rdfrules.java.OrderingWrapper;
 import com.github.propi.rdfrules.java.data.Transformable;

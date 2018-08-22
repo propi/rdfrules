@@ -52,10 +52,19 @@ object TripleItemHashIndex {
     for (Quad(Triple(s, p, o), g) <- col) {
       if (p.hasSameUriAs("http://www.w3.org/2002/07/owl#sameAs")) {
         val (idSubject, subjectIsAdded) = getId(s)
-        val (idObject, objectIsAdded) = getId(o)
         if (!subjectIsAdded) map += (idSubject -> s)
         sameAs += (o -> idSubject)
-        if (objectIsAdded) map -= idObject
+        val (idObject, objectIsAdded) = getId(o)
+        if (objectIsAdded) {
+          //remove existed sameAs object
+          map -= idObject
+          //if there are some holes after removing, we move all next related items by one step above
+          Stream.iterate(idObject + 1)(_ + 1).takeWhile(x => map.get(x).exists(_.hashCode() != x)).foreach { oldId =>
+            val item = map(oldId)
+            map -= oldId
+            map += ((oldId - 1) -> item)
+          }
+        }
       } else {
         for (item <- List(s, p, o, g)) {
           if (!sameAs.contains(item)) {

@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.http.util
 
 import com.github.propi.rdfrules.http.util.TraversablePublisher.ForeachThread
 import com.github.propi.rdfrules.http.util.TraversablePublisher.Message.{Running, Stopping}
+import com.typesafe.scalalogging.Logger
 import org.reactivestreams.{Publisher, Subscriber, Subscription}
 
 import scala.language.implicitConversions
@@ -25,6 +26,8 @@ class TraversablePublisher[T] private(col: Traversable[T]) extends Publisher[T] 
 }
 
 object TraversablePublisher {
+
+  private val logger = Logger(this.getClass)
 
   sealed trait Message {
     val x: Long
@@ -65,26 +68,32 @@ object TraversablePublisher {
 
     def run(): Unit = {
       var noRead = false
-      col.foreach { el =>
-        if (!noRead) {
-          var stopped = false
-          Locker.synchronized {
-            while (!stopped) {
-              if (request.x > 0) {
-                request = request.minusOne
-                stopped = true
-                s.onNext(el)
-              } else if (request.isInstanceOf[Stopping]) {
-                noRead = true
-                stopped = true
-              } else {
-                Locker.wait()
+      try {
+        col.foreach { el =>
+          if (!noRead) {
+            var stopped = false
+            Locker.synchronized {
+              while (!stopped) {
+                if (request.x > 0) {
+                  request = request.minusOne
+                  stopped = true
+                  s.onNext(el)
+                } else if (request.isInstanceOf[Stopping]) {
+                  noRead = true
+                  stopped = true
+                } else {
+                  Locker.wait()
+                }
               }
             }
           }
         }
+        s.onComplete()
+      } catch {
+        case th: Throwable =>
+          logger.error(th.getMessage, th)
+          s.onError(th)
       }
-      s.onComplete()
     }
 
   }

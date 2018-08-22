@@ -24,20 +24,20 @@ trait Task[I, O] {
   }
 
   final def andThen[T](task: Task[O, T]): Task[I, T] = buildNewTask(task.name, (this.execute _).andThen(task.execute))
-
-  final def andThenAny[T](task: Task[Any, T]): Task[I, T] = buildNewTask(task.name, (this.execute _).andThen(task.execute))
 }
 
 object Task {
 
   object NoInput
 
-  class MergeDatasets private(datasets: List[Task[Task.NoInput.type, Dataset]]) extends Task[NoInput.type, Dataset] {
+  trait NoInputDatasetTask extends Task[NoInput.type, Dataset]
+
+  class MergeDatasets private(datasets: List[NoInputDatasetTask]) extends NoInputDatasetTask {
     def this() = this(Nil)
 
     val companion: TaskDefinition = MergeDatasets
 
-    def addDatasetTasks(datasets: List[Task[Task.NoInput.type, Dataset]]) = new MergeDatasets(datasets)
+    def addDatasetTasks(datasets: List[NoInputDatasetTask]) = new MergeDatasets(datasets)
 
     def execute(input: NoInput.type): Dataset = datasets.iterator.map(_.execute(NoInput)).foldLeft(Dataset())(_ + _)
   }

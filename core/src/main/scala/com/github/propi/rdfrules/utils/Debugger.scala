@@ -112,7 +112,7 @@ object Debugger {
 
     private def dump(action: Action, msg: String): Unit = {
       action.state = msg
-      if (lastDump + debugClock.toMillis < System.currentTimeMillis() || msg == "ended") {
+      if (lastDump + debugClock.toMillis < System.currentTimeMillis() || msg == "ended" || msg == "started") {
         for (action <- actions.valuesIterator) {
           logger.info(action.toString + (if (action.state.nonEmpty) " -- " + action.state else ""))
         }

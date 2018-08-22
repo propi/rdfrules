@@ -9,7 +9,6 @@ import com.github.propi.rdfrules.java.algorithm.SimilarityCounting;
 import com.github.propi.rdfrules.java.data.Cacheable;
 import com.github.propi.rdfrules.java.data.Transformable;
 import com.github.propi.rdfrules.java.index.Index;
-import com.github.propi.rdfrules.java.index.Sortable;
 import com.github.propi.rdfrules.java.rule.Measure;
 import com.github.propi.rdfrules.java.rule.ResolvedRule;
 import com.github.propi.rdfrules.java.rule.Rule;
@@ -116,20 +115,36 @@ public class Ruleset implements
         return asJava(asScala().graphBasedRules());
     }
 
+    public Ruleset computeConfidence(double minConfidence, Debugger debugger) {
+        return asJava(ruleset.computeConfidence(minConfidence, debugger.asScala()));
+    }
+
     public Ruleset computeConfidence(double minConfidence) {
-        return asJava(ruleset.computeConfidence(minConfidence));
+        return computeConfidence(minConfidence, Debugger.empty());
+    }
+
+    public Ruleset computePcaConfidence(double minPcaConfidence, Debugger debugger) {
+        return asJava(ruleset.computePcaConfidence(minPcaConfidence, debugger.asScala()));
     }
 
     public Ruleset computePcaConfidence(double minPcaConfidence) {
-        return asJava(ruleset.computePcaConfidence(minPcaConfidence));
+        return computePcaConfidence(minPcaConfidence, Debugger.empty());
+    }
+
+    public Ruleset computeLift(double minConfidence, Debugger debugger) {
+        return asJava(ruleset.computeLift(minConfidence, debugger.asScala()));
     }
 
     public Ruleset computeLift(double minConfidence) {
-        return asJava(ruleset.computeLift(minConfidence));
+        return computeLift(minConfidence, Debugger.empty());
+    }
+
+    public Ruleset computeLift(Debugger debugger) {
+        return asJava(ruleset.computeLift(ruleset.computeLift$default$1(), debugger.asScala()));
     }
 
     public Ruleset computeLift() {
-        return asJava(ruleset.computeLift(ruleset.computeLift$default$1()));
+        return computeLift(Debugger.empty());
     }
 
     /**
@@ -159,11 +174,23 @@ public class Ruleset implements
      * @return new Ruleset with counted clusters
      */
     public Ruleset makeClusters(int minNeighbours, double minSimilarity, SimilarityCounting similarityCounting) {
+        return makeClusters(minNeighbours, minSimilarity, similarityCounting, Debugger.empty());
+    }
+
+    /**
+     * Count clusters with default parameters
+     * minNeighbours = 5
+     * minSimilarity = 0.9
+     * similarityCounting = DEFAULT
+     *
+     * @return new Ruleset with counted clusters
+     */
+    public Ruleset makeClusters(Debugger debugger) {
         return new Ruleset(ruleset.makeClusters(DbScan$.MODULE$.apply(
-                minNeighbours,
-                minSimilarity,
-                similarityCounting.asScala(),
-                DbScan$.MODULE$.apply$default$4(minNeighbours, minSimilarity)
+                DbScan$.MODULE$.apply$default$1(),
+                DbScan$.MODULE$.apply$default$2(),
+                SimilarityCounting.DEFAULT().asScala(),
+                debugger.asScala()
         )));
     }
 
@@ -177,14 +204,8 @@ public class Ruleset implements
      * @return new Ruleset with counted clusters
      */
     public Ruleset makeClusters() {
-        return new Ruleset(ruleset.makeClusters(DbScan$.MODULE$.apply(
-                DbScan$.MODULE$.apply$default$1(),
-                DbScan$.MODULE$.apply$default$2(),
-                SimilarityCounting.DEFAULT().asScala(),
-                DbScan$.MODULE$.apply$default$4(DbScan$.MODULE$.apply$default$1(), DbScan$.MODULE$.apply$default$2())
-        )));
+        return makeClusters(Debugger.empty());
     }
-
 
     public Iterable<ResolvedRule> getResolvedRules() {
         return () -> JavaConverters.asJavaIterator(ruleset.resolvedRules().toIterator().map(ResolvedRule::new));
