@@ -6,8 +6,8 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class Root extends Operation {
-  val info: OperationInfo = OperationInfo.Root
+class MergeDatasets(fromOperation: Operation) extends Operation {
+  val info: OperationInfo = OperationInfo.MergeDatasets
   val properties: Constants[Property] = Constants()
-  val previousOperation: Var[Option[Operation]] = Var(None)
+  val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 }
