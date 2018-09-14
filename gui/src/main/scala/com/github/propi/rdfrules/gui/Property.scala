@@ -3,6 +3,8 @@ package com.github.propi.rdfrules.gui
 import com.thoughtworks.binding.{Binding, dom}
 import org.scalajs.dom.html.{Div, TableRow}
 
+import scala.scalajs.js
+
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
@@ -23,5 +25,7 @@ trait Property {
       </td>
     </tr>
   }
+
+  def toJson: js.Any
 
 }

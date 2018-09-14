@@ -6,12 +6,16 @@ import org.scalajs.dom.Event
 import org.scalajs.dom.html.Div
 import org.scalajs.dom.raw.HTMLInputElement
 
+import scala.scalajs.js
+
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
 case class Checkbox(name: String, title: String, default: Boolean = false) extends Property {
 
   private var isChecked: Boolean = default
+
+  def toJson: js.Any = isChecked
 
   @dom
   final protected def valueView: Binding[Div] = {

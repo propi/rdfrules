@@ -11,9 +11,9 @@ class LoadGraph(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.LoadGraph
   val properties: Constants[Property] = Constants(
     ChooseFileFromWorkspace(Workspace.loadFiles, "path"),
-    OptionalText("url", "URL"),
+    OptionalText[String]("url", "URL"),
     Select("format", "RDF format", Constants("ttl" -> "Turtle", "nt" -> "N-Triples", "nq" -> "N-Quads", "xml" -> "RDF/XML", "json" -> "JSON-LD", "trig" -> "TriG", "trix" -> "TriX", "tsv" -> "TSV", "cache" -> "Cache")),
-    OptionalText("graphName", "Graph name")
+    OptionalText[String]("graphName", "Graph name")
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 }

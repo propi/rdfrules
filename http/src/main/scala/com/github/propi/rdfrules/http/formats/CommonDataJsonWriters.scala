@@ -28,7 +28,7 @@ object CommonDataJsonWriters extends Json {
 
   implicit val typeWriter: RootJsonWriter[(TripleItem.Uri, collection.Map[TripleItemType, Int])] = (obj: (TripleItem.Uri, collection.Map[TripleItemType, Int])) => JsObject(
     "predicate" -> obj._1.asInstanceOf[TripleItem].toJson,
-    "types" -> JsArray(obj._2.iterator.map(x => JsObject("type" -> x._1.toJson, "amount" -> x._2.toJson)).toVector)
+    "types" -> JsArray(obj._2.iterator.map(x => JsObject("name" -> x._1.toJson, "amount" -> x._2.toJson)).toVector)
   )
 
   implicit val histogramWriter: RootJsonWriter[(Histogram.Key, Int)] = (obj: (Histogram.Key, Int)) => JsObject(

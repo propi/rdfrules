@@ -5,6 +5,9 @@ import com.thoughtworks.binding.{Binding, dom}
 import org.scalajs.dom.Event
 import org.scalajs.dom.html.Div
 
+import scala.concurrent.Future
+import scala.scalajs.js
+
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
@@ -16,13 +19,33 @@ trait Operation {
   val previousOperation: Var[Option[Operation]]
   val description: Var[String] = Var("")
 
+  def buildActionProgress(id: Future[String]): Option[ActionProgress] = None
+
   private val nextOperation: Var[Option[Operation]] = Var(None)
+  private val actionProgress: Var[Option[ActionProgress]] = Var(None)
 
   private def delete(): Unit = {
     nextOperation.value.foreach(_.delete())
     nextOperation.value = None
     previousOperation.value.foreach(_.nextOperation.value = None)
     Main.canvas.deleteLastOperation()
+  }
+
+  protected def propertiesToJson: js.Dictionary[js.Any] = {
+    js.Dictionary(properties.value.map(x => x.name -> x.toJson).filter(x => !js.isUndefined(x._2)): _*)
+  }
+
+  private def toJson(list: List[js.Any]): List[js.Any] = {
+    val json = js.Dynamic.literal(name = info.name, parameters = propertiesToJson)
+    previousOperation.value match {
+      case Some(op) => op.toJson(json :: list)
+      case None => list
+    }
+  }
+
+  private def launchAction(): Unit = {
+    previousOperation.value
+    buildActionProgress(Task.sendTask(js.Array(toJson(Nil): _*))).foreach(x => actionProgress.value = Some(x))
   }
 
   @dom
@@ -32,12 +55,18 @@ trait Operation {
     val classHidden = if (_nextOperation.nonEmpty && _previousOperation.isEmpty) " hidden" else ""
     val classHasNext = if (_nextOperation.nonEmpty) " has-next" else ""
     <div class={info.`type`.toString + " operation " + info.name + classHidden + classHasNext} ondblclick={_: Event => if (properties.value.nonEmpty) Main.canvas.openModal(viewProperties)}>
-      <a class={"add" + (if (info.`type` == Operation.Type.Action || _nextOperation.nonEmpty) " hidden" else "")} onclick={_: Event => Main.canvas.openModal(viewFollowingOperations)}>
-        <i class="material-icons">add_circle_outline</i>
-      </a>
-      <a class="del" onclick={_: Event => delete()}>
-        <i class="material-icons">delete</i>
-      </a>
+      {info.`type` match {
+      case Operation.Type.Transformation =>
+        <a class={"add" + (if (_nextOperation.nonEmpty) " hidden" else "")} onclick={_: Event => Main.canvas.openModal(viewFollowingOperations)}>
+          <i class="material-icons">add_circle_outline</i>
+        </a>
+      case Operation.Type.Action =>
+        <a class="launch" onclick={_: Event =>
+          launchAction()
+          Main.canvas.openModal(viewActionProgress)}>Launch Pipeline</a>
+    }}<a class="del" onclick={_: Event => delete()}>
+      <i class="material-icons">delete</i>
+    </a>
       <strong class="title">
         {info.title}
       </strong>
@@ -45,6 +74,17 @@ trait Operation {
         {description.bind}
       </span>
     </div>
+  }
+
+  @dom
+  private def viewActionProgress: Binding[Div] = {
+    actionProgress.bind match {
+      case Some(ap) =>
+        <div>
+          {ap.view.bind}
+        </div>
+      case None => <div class="action-progress">No action!</div>
+    }
   }
 
   @dom

@@ -32,7 +32,7 @@ object Workspace {
   def loadFiles: Future[Constants[FileValue]] = {
     val result = Promise[Constants[FileValue]]()
     Endpoint.get[js.Array[js.Dynamic]]("/workspace") { data =>
-      result.success(Constants(data.map(anyToFileValue("", _)): _*))
+      result.success(Constants(data.data.map(anyToFileValue("", _)): _*))
     }
     result.future
   }

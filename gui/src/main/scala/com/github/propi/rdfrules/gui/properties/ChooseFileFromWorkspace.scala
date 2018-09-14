@@ -8,6 +8,7 @@ import org.scalajs.dom.Event
 import org.scalajs.dom.html.Div
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.scalajs.js
 
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
@@ -22,6 +23,11 @@ case class ChooseFileFromWorkspace(files: Future[Constants[FileValue]],
 
   private val loadedFiles: Var[Option[Constants[FileValue]]] = Var(None)
   private val selectedFile: Var[Option[FileValue.File]] = Var(None)
+
+  def toJson: js.Any = selectedFile.value match {
+    case Some(file) => file.path
+    case None => js.undefined
+  }
 
   @dom
   private def bindingFileValue(fileValue: FileValue): Binding[Div] = fileValue match {

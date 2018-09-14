@@ -69,27 +69,27 @@ trait DefaultServer {
     }
     decodeRequest {
       encodeResponse {
-        respondWithHeader(`Access-Control-Allow-Origin`.*) {
-          mapResponseEntity(jsonToUtf8JsonEntity) {
-            handleRejections(rejectionHandler) {
-              handleExceptions(exceptionHandler) {
-                pathPrefix(rootPath) {
-                  val innerRoute = cancelRejections(classOf[MethodRejection]) {
-                    options {
-                      extractRequest { request =>
-                        respondWithHeaders(
-                          List(
-                            request.header[`Access-Control-Request-Headers`].map(x => `Access-Control-Allow-Headers`(x.headers)),
-                            request.header[`Access-Control-Request-Method`].map(x => `Access-Control-Allow-Methods`(x.method)),
-                            Some(`Access-Control-Allow-Credentials`(true))
-                          ).flatten
-                        ) {
-                          complete("")
-                        }
+        extractRequest { request =>
+          respondWithHeaders(
+            List(
+              request.header[`Access-Control-Request-Headers`].map(x => `Access-Control-Allow-Headers`(x.headers)),
+              request.header[`Access-Control-Request-Method`].map(x => `Access-Control-Allow-Methods`(x.method)),
+              request.header[`Access-Control-Expose-Headers`].map(x => `Access-Control-Expose-Headers`(x.headers)),
+              Some(`Access-Control-Allow-Credentials`(true)),
+              Some(`Access-Control-Allow-Origin`.*)
+            ).flatten
+          ) {
+            mapResponseEntity(jsonToUtf8JsonEntity) {
+              handleRejections(rejectionHandler) {
+                handleExceptions(exceptionHandler) {
+                  pathPrefix(rootPath) {
+                    val innerRoute = cancelRejections(classOf[MethodRejection]) {
+                      options {
+                        complete("")
                       }
-                    }
-                  } ~ route
-                  stoppingEndpoint.map(innerRoute ~ _).getOrElse(innerRoute)
+                    } ~ route
+                    stoppingEndpoint.map(innerRoute ~ _).getOrElse(innerRoute)
+                  }
                 }
               }
             }

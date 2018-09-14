@@ -7,12 +7,19 @@ import org.scalajs.dom.Event
 import org.scalajs.dom.html.Div
 import org.scalajs.dom.raw.HTMLSelectElement
 
+import scala.scalajs.js
+
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
 case class Select(name: String, title: String, items: Constants[(String, String)]) extends Property {
 
   private var selectedItem: Option[String] = None
+
+  def toJson: js.Any = selectedItem match {
+    case Some(x) => x
+    case None => js.undefined
+  }
 
   @dom
   final protected def valueView: Binding[Div] = {

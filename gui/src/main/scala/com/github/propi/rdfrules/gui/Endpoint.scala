@@ -12,11 +12,16 @@ import scala.scalajs.js.JSON
   */
 object Endpoint {
 
-  def request(url: String, method: String, data: Option[js.Any])(callback: String => Unit): Unit = {
+  case class Response[T](status: Int, headers: Map[String, String], data: T) {
+    def to[A](f: T => A): Response[A] = Response(status, headers, f(data))
+  }
+
+  def request(url: String, method: String, data: Option[js.Any])(callback: Response[String] => Unit): Unit = {
     var last_index = 0
     val buffer = new StringBuffer()
     val xhr = new dom.XMLHttpRequest()
     xhr.open(method, Globals.endpoint + url)
+    xhr.setRequestHeader("Access-Control-Expose-Headers", "Location")
     xhr.onprogress = { _: ProgressEvent =>
       val curr_index = xhr.responseText.length
       if (last_index != curr_index) {
@@ -25,7 +30,11 @@ object Endpoint {
       last_index = curr_index
     }
     xhr.onload = { _: Event =>
-      callback(buffer.toString)
+      val Header = "(.+?)\\s*:\\s*(.+)".r
+      val headers = xhr.getAllResponseHeaders().trim.split("[\\r\\n]+").collect {
+        case Header(name, value) => name.toLowerCase -> value.toLowerCase
+      }.toMap
+      callback(Response(xhr.status, headers, buffer.toString))
     }
     data match {
       case Some(data) =>
@@ -35,8 +44,8 @@ object Endpoint {
     }
   }
 
-  def get[T](url: String)(callback: T => Unit)(implicit f: String => T): Unit = request(url, "GET", None)(data => callback(f(data)))
+  def get[T](url: String)(callback: Response[T] => Unit)(implicit f: String => T): Unit = request(url, "GET", None)(data => callback(data.to(f)))
 
-  def post[T](url: String, data: js.Any)(callback: T => Unit = (_: T) => {})(implicit f: String => T): Unit = request(url, "POST", Some(data))(data => callback(f(data)))
+  def post[T](url: String, data: js.Any)(callback: Response[T] => Unit = (_: Response[T]) => {})(implicit f: String => T): Unit = request(url, "POST", Some(data))(data => callback(data.to(f)))
 
 }

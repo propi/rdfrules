@@ -11,17 +11,17 @@ class MapQuads(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.MapQuads
   val properties: Constants[Property] = Constants(
     Group("search", "Search", Constants(
-      OptionalText("subject", "Subject"),
-      OptionalText("predicate", "Predicate"),
-      OptionalText("object", "Object"),
-      OptionalText("graph", "Graph"),
+      OptionalText[String]("subject", "Subject"),
+      OptionalText[String]("predicate", "Predicate"),
+      OptionalText[String]("object", "Object"),
+      OptionalText[String]("graph", "Graph"),
       Checkbox("inverse", "Inverse")
     )),
     Group("replacement", "Replacement", Constants(
-      OptionalText("subject", "Subject"),
-      OptionalText("predicate", "Predicate"),
-      OptionalText("object", "Object"),
-      OptionalText("graph", "Graph")
+      OptionalText[String]("subject", "Subject"),
+      OptionalText[String]("predicate", "Predicate"),
+      OptionalText[String]("object", "Object"),
+      OptionalText[String]("graph", "Graph")
     ))
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))

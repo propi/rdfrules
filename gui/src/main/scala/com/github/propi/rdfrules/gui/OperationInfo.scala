@@ -21,6 +21,11 @@ object OperationInfo {
     val `type`: Operation.Type = Operation.Type.Transformation
   }
 
+  sealed trait Action extends OperationInfo {
+    val `type`: Operation.Type = Operation.Type.Action
+    val followingOperations: Constants[OperationInfo] = Constants()
+  }
+
   sealed trait DatasetTransformation extends Transformation {
     val followingOperations: Constants[OperationInfo] = Constants(
       LoadGraph,
@@ -30,8 +35,23 @@ object OperationInfo {
       FilterQuads,
       TakeQuads,
       DropQuads,
-      SliceQuads
+      SliceQuads,
+      DiscretizeEqualDistance,
+      DiscretizeEqualFrequency,
+      DiscretizeEqualSize,
+      CacheDataset,
+      Index,
+      CacheDatasetAction,
+      ExportQuads,
+      GetQuads,
+      DatasetSize,
+      Types,
+      Histogram
     )
+  }
+
+  sealed trait IndexTransformation extends Transformation {
+    val followingOperations: Constants[OperationInfo] = Constants()
   }
 
   object Root extends Transformation {
@@ -96,6 +116,83 @@ object OperationInfo {
     val title: String = "Slice"
 
     def buildOperation(from: Operation): Operation = new SliceQuads(from)
+  }
+
+  object DiscretizeEqualFrequency extends DatasetTransformation {
+    val name: String = "Discretize"
+    val title: String = "Discretize (equal frequency)"
+
+    def buildOperation(from: Operation): Operation = new DiscretizeEqualFrequency(from)
+  }
+
+  object DiscretizeEqualSize extends DatasetTransformation {
+    val name: String = "Discretize"
+    val title: String = "Discretize (equal size)"
+
+    def buildOperation(from: Operation): Operation = new DiscretizeEqualSize(from)
+  }
+
+  object DiscretizeEqualDistance extends DatasetTransformation {
+    val name: String = "Discretize"
+    val title: String = "Discretize (equal distance)"
+
+    def buildOperation(from: Operation): Operation = new DiscretizeEqualDistance(from)
+  }
+
+  object CacheDataset extends DatasetTransformation {
+    val name: String = "CacheDataset"
+    val title: String = "Cache"
+
+    def buildOperation(from: Operation): Operation = new CacheDataset(from)
+  }
+
+  object Index extends IndexTransformation {
+    val name: String = "Index"
+    val title: String = "Index"
+
+    def buildOperation(from: Operation): Operation = new Index(from)
+  }
+
+  object CacheDatasetAction extends Action {
+    val name: String = "CacheDataset"
+    val title: String = "Cache"
+
+    def buildOperation(from: Operation): Operation = new actions.CacheDataset(from)
+  }
+
+  object ExportQuads extends Action {
+    val name: String = "ExportQuads"
+    val title: String = "Export"
+
+    def buildOperation(from: Operation): Operation = new actions.ExportQuads(from)
+  }
+
+  object GetQuads extends Action {
+    val name: String = "GetQuads"
+    val title: String = "Get quads"
+
+    def buildOperation(from: Operation): Operation = new actions.GetQuads(from)
+  }
+
+  object DatasetSize extends Action {
+    val name: String = "DatasetSize"
+    val title: String = "Size"
+
+    def buildOperation(from: Operation): Operation = new actions.DatasetSize(from)
+  }
+
+  object Types extends Action {
+    val name: String = "Types"
+    val title: String = "Types"
+
+    def buildOperation(from: Operation): Operation = new actions.Types(from)
+  }
+
+  object Histogram extends Action {
+    val name: String = "Histogram"
+    val title: String = "Histogram"
+
+    def buildOperation(from: Operation): Operation = new actions.Histogram(from)
   }
 
 }

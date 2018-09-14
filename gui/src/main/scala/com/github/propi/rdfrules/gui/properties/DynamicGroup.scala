@@ -6,12 +6,16 @@ import com.thoughtworks.binding.{Binding, dom}
 import org.scalajs.dom.Event
 import org.scalajs.dom.html.Div
 
+import scala.scalajs.js
+
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
 case class DynamicGroup(name: String, title: String, properties: () => Constants[Property]) extends Property {
 
   private val groups: Vars[Constants[Property]] = Vars.empty
+
+  def toJson: js.Any = js.Array(groups.value.map(properties => js.Dictionary(properties.value.map(x => x.name -> x.toJson).filter(x => !js.isUndefined(x._2)): _*)): _*)
 
   @dom
   protected def valueView: Binding[Div] = {

@@ -11,10 +11,10 @@ class FilterQuads(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.FilterQuads
   val properties: Constants[Property] = Constants(
     DynamicGroup("or", "Filter by (logical OR)", () => Constants(
-      OptionalText("subject", "Subject"),
-      OptionalText("predicate", "Predicate"),
-      OptionalText("object", "Object"),
-      OptionalText("graph", "Graph"),
+      OptionalText[String]("subject", "Subject"),
+      OptionalText[String]("predicate", "Predicate"),
+      OptionalText[String]("object", "Object"),
+      OptionalText[String]("graph", "Graph"),
       Checkbox("inverse", "Inverse")
     ))
   )
