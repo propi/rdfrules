@@ -452,13 +452,11 @@ Miner rules can be transformed by filtering, mapping, sorting and computing func
 Rules filtering:
 ```
 {"name": "FilterRules", "parameters": {
-  "search": {                                           //REQUIRED: search rules by regular expressions or conditions
-    "patterns": [...],                                  //OPTIONAL: the same syntax as for the "pattern" parameter in the Mine task.
-    "measures" [{
-       "name": "RuleLength|HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", //REQUIRED
-       "value": "condition"                             //REQUIRED: the same syntax as for the filtering or mapping task of quads for the NUMBER type. See below for details.
-    }, ...]
-  }
+   "patterns": [...],                                  //OPTIONAL: the same syntax as for the "pattern" parameter in the Mine task.
+   "measures" [{                                       //OPTIONAL
+      "name": "RuleLength|HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", //REQUIRED
+      "value": "condition"                             //REQUIRED: the same syntax as for the filtering or mapping task of quads for the NUMBER type. See below for details.
+   }, ...]
 }}
 ```
 
