@@ -11,7 +11,7 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 14. 9. 2018.
   */
-class Size(val name: String, val id: Future[String]) extends ActionProgress {
+class Size(val title: String, val id: Future[String]) extends ActionProgress {
 
   @dom
   def viewResult(result: Constants[js.Dynamic]): Binding[Div] = <div>

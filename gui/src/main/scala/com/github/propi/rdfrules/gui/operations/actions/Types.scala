@@ -13,5 +13,5 @@ class Types(fromOperation: Operation) extends Operation {
   val properties: Constants[Property] = Constants()
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 
-  override def buildActionProgress(id: Future[String]): Option[ActionProgress] = Some(new results.Types(info.name, id))
+  override def buildActionProgress(id: Future[String]): Option[ActionProgress] = Some(new results.Types(info.title, id))
 }

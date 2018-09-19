@@ -13,10 +13,10 @@ import scala.concurrent.Future
 class ExportQuads(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.ExportQuads
   val properties: Constants[Property] = Constants(
-    FixedText[String]("path", "Path"),
-    Select("format", "RDF format", Constants("ttl" -> "Turtle", "nt" -> "N-Triples", "nq" -> "N-Quads", "trig" -> "TriG", "trix" -> "TriX", "tsv" -> "TSV"))
+    new FixedText[String]("path", "Path"),
+    new Select("format", "RDF format", Constants("ttl" -> "Turtle", "nt" -> "N-Triples", "nq" -> "N-Quads", "trig" -> "TriG", "trix" -> "TriX", "tsv" -> "TSV"))
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 
-  override def buildActionProgress(id: Future[String]): Option[ActionProgress] = Some(new NoResult(info.name, id))
+  override def buildActionProgress(id: Future[String]): Option[ActionProgress] = Some(new NoResult(info.title, id))
 }

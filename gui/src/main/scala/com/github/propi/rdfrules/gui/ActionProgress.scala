@@ -14,7 +14,7 @@ import scala.util.{Failure, Success, Try}
   * Created by Vaclav Zeman on 14. 9. 2018.
   */
 trait ActionProgress {
-  val name: String
+  val title: String
   val id: Future[String]
 
   private implicit val ec: ExecutionContext = ExecutionContext.global
@@ -36,43 +36,28 @@ trait ActionProgress {
 
   protected def viewResult(result: Constants[js.Dynamic]): Binding[Div]
 
-  /*
-  <h3>Logs</h3>
-        <ul class="logs">
-          {for (log <- result.getLogs) yield
-          <li>
-            <span class="time">
-              {log.time}
-              :</span> <span class="message">
-            {log.message}
-          </span>
-          </li>}
-        </ul>
-        <h3>Result</h3>
-        <div class="result">
-          {if (result.getResult.value.isEmpty) {
-          <div>Not yet!</div>
-        } else {
-          viewResult(result.getResult).bind
-        }}
-        </div>
-   */
-
   @dom
   def view: Binding[Div] = progress.bind match {
     case Some(Success(result)) =>
       <div class="action-progress">
         <h2>
-          {name}
+          {title}
         </h2>
         <ul class="meta">
           <li>Started:
             {result.started}
           </li>
           <li>Finished:
-            {result.finished.getOrElse("is still in progress...")}
+            {result.finished.getOrElse("")}
           </li>
         </ul>
+        <h3>Result</h3>
+        <div class="result">
+          {result.getResult match {
+          case Some(x) => viewResult(x).bind
+          case None => <div>This task is still in progress. Wait a moment!</div>
+        }}
+        </div>
         <h3>Logs</h3>
         <ul class="logs">
           {for (log <- result.getLogs) yield
@@ -84,18 +69,11 @@ trait ActionProgress {
           </span>
           </li>}
         </ul>
-        <h3>Result</h3>
-        <div class="result">
-          {result.getResult match {
-          case Some(x) => viewResult(x).bind
-          case None => <div>Not yet!</div>
-        }}
-        </div>
       </div>
     case Some(Failure(te: TaskException)) =>
       <div class="action-progress">
         <h2>
-          {name}
+          {title}
         </h2>
         <ul class="error">
           <li>Name:
@@ -109,7 +87,7 @@ trait ActionProgress {
     case Some(Failure(th)) =>
       <div class="action-progress">
         <h2>
-          {name}
+          {title}
         </h2>
         <ul class="error">
           <li>Message:
@@ -118,7 +96,7 @@ trait ActionProgress {
         </ul>
       </div>
     case None =>
-      <div class="action-progress">Waiting for a result...</div>
+      <div class="action-progress waiting">Waiting for a result...</div>
   }
 
 }

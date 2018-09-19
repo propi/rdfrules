@@ -10,12 +10,12 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 class FilterQuads(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.FilterQuads
   val properties: Constants[Property] = Constants(
-    DynamicGroup("or", "Filter by (logical OR)", () => Constants(
-      OptionalText[String]("subject", "Subject"),
-      OptionalText[String]("predicate", "Predicate"),
-      OptionalText[String]("object", "Object"),
-      OptionalText[String]("graph", "Graph"),
-      Checkbox("inverse", "Inverse")
+    new DynamicGroup("or", "Filter by (logical OR)", () => Constants(
+      new OptionalText[String]("subject", "Subject"),
+      new OptionalText[String]("predicate", "Predicate"),
+      new OptionalText[String]("object", "Object"),
+      new OptionalText[String]("graph", "Graph"),
+      new Checkbox("inverse", "Inverse")
     ))
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))

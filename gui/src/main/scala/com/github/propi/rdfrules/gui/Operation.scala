@@ -54,17 +54,18 @@ trait Operation {
     val _previousOperation = previousOperation.bind
     val classHidden = if (_nextOperation.nonEmpty && _previousOperation.isEmpty) " hidden" else ""
     val classHasNext = if (_nextOperation.nonEmpty) " has-next" else ""
-    <div class={info.`type`.toString + " operation " + info.name + classHidden + classHasNext} ondblclick={_: Event => if (properties.value.nonEmpty) Main.canvas.openModal(viewProperties)}>
+    <div class={info.`type`.toString + " operation " + info.name + classHidden + classHasNext} onclick={_: Event => if (properties.value.nonEmpty) Main.canvas.openModal(viewProperties)}>
       {info.`type` match {
       case Operation.Type.Transformation =>
-        <a class={"add" + (if (_nextOperation.nonEmpty) " hidden" else "")} onclick={_: Event => Main.canvas.openModal(viewFollowingOperations)}>
+        <a class={"add" + (if (_nextOperation.nonEmpty) " hidden" else "")} onclick={e: Event => Main.canvas.openModal(viewFollowingOperations); e.stopPropagation();}>
           <i class="material-icons">add_circle_outline</i>
         </a>
       case Operation.Type.Action =>
-        <a class="launch" onclick={_: Event =>
+        <a class="launch" onclick={e: Event =>
           launchAction()
-          Main.canvas.openModal(viewActionProgress)}>Launch Pipeline</a>
-    }}<a class="del" onclick={_: Event => delete()}>
+          Main.canvas.openModal(viewActionProgress)
+          e.stopPropagation()}>Launch Pipeline</a>
+    }}<a class="del" onclick={e: Event => delete(); e.stopPropagation();}>
       <i class="material-icons">delete</i>
     </a>
       <strong class="title">
@@ -99,17 +100,27 @@ trait Operation {
   }
 
   @dom
+  private def viewOperationInfo(operationInfo: OperationInfo): Binding[Div] = {
+    <div class={operationInfo.`type` + " operation-info"} onclick={_: Event =>
+      val newOperation = operationInfo.buildOperation(self)
+      nextOperation.value = Some(newOperation)
+      Main.canvas.addOperation(newOperation)
+      Main.canvas.closeModal()}>
+      {operationInfo.title}
+    </div>
+  }
+
+  @dom
   private def viewFollowingOperations: Binding[Div] = {
     <div class="following-operations">
-      {for (operationInfo <- info.followingOperations) yield {
-      <div class={operationInfo.`type` + " operation-info"} onclick={_: Event =>
-        val newOperation = operationInfo.buildOperation(self)
-        nextOperation.value = Some(newOperation)
-        Main.canvas.addOperation(newOperation)
-        Main.canvas.closeModal()}>
-        {operationInfo.title}
+      <h3>Transformations</h3>
+      <div class="transformations">
+        {for (operationInfo <- Constants(info.followingOperations.value.filter(_.`type` == Operation.Type.Transformation): _*)) yield viewOperationInfo(operationInfo).bind}
       </div>
-    }}
+      <h3 class={if (info.followingOperations.value.exists(_.`type` == Operation.Type.Action)) "" else "hidden"}>Actions</h3>
+      <div class="actions">
+        {for (operationInfo <- Constants(info.followingOperations.value.filter(_.`type` == Operation.Type.Action): _*)) yield viewOperationInfo(operationInfo).bind}
+      </div>
     </div>
   }
 

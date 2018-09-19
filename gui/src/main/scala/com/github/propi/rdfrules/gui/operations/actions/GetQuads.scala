@@ -14,5 +14,5 @@ class GetQuads(fromOperation: Operation) extends Operation {
   val properties: Constants[Property] = Constants()
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 
-  override def buildActionProgress(id: Future[String]): Option[ActionProgress] = Some(new Quads(info.name, id))
+  override def buildActionProgress(id: Future[String]): Option[ActionProgress] = Some(new Quads(info.title, id))
 }

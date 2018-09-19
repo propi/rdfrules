@@ -8,30 +8,56 @@ import org.scalajs.dom.html.Div
 
 import scala.concurrent.Future
 import scala.scalajs.js
+import scala.scalajs.js.JSNumberOps._
 
 /**
   * Created by Vaclav Zeman on 14. 9. 2018.
   */
-class Histogram(val name: String, val id: Future[String]) extends ActionProgress {
+class Histogram(val title: String, val id: Future[String]) extends ActionProgress with Pagination[HistogramItem] {
+
+  private var max: Double = 1
 
   @dom
-  def viewResult(result: Constants[js.Dynamic]): Binding[Div] = <div class="histogram">
-    {for (item <- result.map(_.asInstanceOf[HistogramItem])) yield
-      <div class="item">
-        <div class="subject">
-          {item.subject}
-        </div>
-        <div class="predicate">
-          {item.predicate}
-        </div>
-        <div class="object">
-          {if (item.`object` == null) "null" else item.`object`.toString}
-        </div>
-        <div class="amount">
-          {item.amount.toString}
-        </div>
-      </div>}
+  def viewRecord(record: HistogramItem): Binding[Div] = <div class="item">
+    <div class="info">
+      <div class={"subject" + (if (record.subject == null) " empty" else "")}>
+        {if (record.subject == null) "*" else record.subject}
+      </div>
+      <div class={"predicate" + (if (record.predicate == null) " empty" else "")}>
+        {if (record.predicate == null) "*" else record.predicate}
+      </div>
+      <div class={"object" + (if (record.`object` == null) " empty" else "")}>
+        {if (record.`object` == null) "*" else record.`object`.toString}
+      </div>
+      <div class="amount">
+        {record.amount.toString}
+      </div>
+    </div>
+    <div class="status">
+      <div class="bar" style={"width: " + math.round((record.amount / max) * 100).toString + "%"}>
+        {((record.amount / max) * 100).toFixed(2).toDouble + " %"}
+      </div>
+    </div>
   </div>
+
+  @dom
+  def viewResult(result: Constants[js.Dynamic]): Binding[Div] = {
+    max = result.value.iterator.map(_.asInstanceOf[HistogramItem]).map(_.amount).max
+    <div class="histogram">
+      <div class="histogram-amount">
+        <span class="text">Number of values:</span>
+        <span class="number">
+          {result.value.size.toString}
+        </span>
+      </div>
+      <div class="histogram-body">
+        {viewRecords(result.value.view.map(_.asInstanceOf[HistogramItem])).bind}
+      </div>
+      <div class="histogram-pages">
+        {viewPages(result.value.size).bind}
+      </div>
+    </div>
+  }
 
 }
 

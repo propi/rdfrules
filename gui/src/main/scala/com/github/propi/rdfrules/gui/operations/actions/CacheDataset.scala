@@ -13,9 +13,9 @@ import scala.concurrent.Future
 class CacheDataset(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.CacheDatasetAction
   val properties: Constants[Property] = Constants(
-    FixedText[String]("path", "Path")
+    new FixedText[String]("path", "Path")
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 
-  override def buildActionProgress(id: Future[String]): Option[ActionProgress] = Some(new NoResult(info.name, id))
+  override def buildActionProgress(id: Future[String]): Option[ActionProgress] = Some(new NoResult(info.title, id))
 }

@@ -12,7 +12,7 @@ trait Property {
   val name: String
   val title: String
 
-  protected def valueView: Binding[Div]
+  def valueView: Binding[Div]
 
   @dom
   def view: Binding[TableRow] = {

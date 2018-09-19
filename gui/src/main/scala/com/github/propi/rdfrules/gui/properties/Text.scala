@@ -9,14 +9,14 @@ import org.scalajs.dom.raw.HTMLInputElement
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-abstract class Text(name: String, title: String, default: String) extends Property {
+abstract class Text(val name: String, val title: String, default: String) extends Property {
 
   private var text: String = default
 
   final def getText: String = text
 
   @dom
-  final protected def valueView: Binding[Div] = {
+  final def valueView: Binding[Div] = {
     <div>
       <input type="text" value={text} onkeyup={e: Event => text = e.srcElement.asInstanceOf[HTMLInputElement].value}/>
     </div>

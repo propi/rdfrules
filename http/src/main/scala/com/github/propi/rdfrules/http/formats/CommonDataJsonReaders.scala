@@ -206,7 +206,7 @@ object CommonDataJsonReaders {
     .foldLeft(Option.empty[Comb[Rule.Simple]]) {
       case (None, x) => Some(x)
       case (Some(x), y) => Some(x ~ y)
-    }.get
+    }.getOrElse(implicitly[SimilarityCounting[Rule.Simple]])
 
   implicit def clusteringReader(implicit debugger: Debugger): RootJsonReader[Clustering[Rule.Simple]] = (json: JsValue) => {
     val fields = json.asJsObject.fields

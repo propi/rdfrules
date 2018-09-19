@@ -10,7 +10,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 class CacheDataset(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.CacheDataset
   val properties: Constants[Property] = Constants(
-    FixedText[String]("path", "Path")
+    new FixedText[String]("path", "Path")
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 }

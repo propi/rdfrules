@@ -11,16 +11,16 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-case class Checkbox(name: String, title: String, default: Boolean = false) extends Property {
+class Checkbox(val name: String, val title: String, default: Boolean = false) extends Property {
 
   private var isChecked: Boolean = default
 
   def toJson: js.Any = isChecked
 
   @dom
-  final protected def valueView: Binding[Div] = {
+  final def valueView: Binding[Div] = {
     <div>
-      <input type="checkbox" checked={isChecked} onchange={e: Event => isChecked = e.srcElement.asInstanceOf[HTMLInputElement].checked}/>
+      <input type="checkbox" class="checkbox" checked={isChecked} onchange={e: Event => isChecked = e.srcElement.asInstanceOf[HTMLInputElement].checked}/>
     </div>
   }
 

@@ -43,6 +43,7 @@ class DbScan[T] private(minNeighbours: Int, minSimilarity: Double)(implicit simi
     * @return clustered data
     */
   def clusters(data: IndexedSeq[T]): IndexedSeq[IndexedSeq[T]] = debugger.debug("DBscan clustering process", data.size) { implicit ad =>
+    ad.done()
     makeClusters(data, Vector.empty)
   }
 

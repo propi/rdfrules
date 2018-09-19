@@ -12,11 +12,11 @@ import scala.concurrent.Future
 class Histogram(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.Histogram
   val properties: Constants[Property] = Constants(
-    Checkbox("subject", "Subject"),
-    Checkbox("predicate", "Predicate"),
-    Checkbox("object", "Object")
+    new Checkbox("subject", "Subject"),
+    new Checkbox("predicate", "Predicate"),
+    new Checkbox("object", "Object")
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 
-  override def buildActionProgress(id: Future[String]): Option[ActionProgress] = Some(new results.Histogram(info.name, id))
+  override def buildActionProgress(id: Future[String]): Option[ActionProgress] = Some(new results.Histogram(info.title, id))
 }

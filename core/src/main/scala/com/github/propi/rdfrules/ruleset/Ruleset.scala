@@ -81,7 +81,9 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index)
     def foreach[U](f2: Rule.Simple => U): Unit = index.tripleMap { thi =>
       val cached = self.cache
       debugger(cached.size) { ad =>
-        cached.rules.view.map(f(thi)(_)).foreach(x => ad.result()(f2(x)))
+        cached.rules.toIndexedSeq.par.map { rule =>
+          ad.result()(f(thi)(rule))
+        }.seq.foreach(x => f2(x))
       }
     }
   })

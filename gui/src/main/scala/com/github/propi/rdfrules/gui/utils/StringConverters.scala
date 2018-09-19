@@ -9,10 +9,12 @@ import scala.scalajs.js.JSON
   */
 object StringConverters {
 
-  implicit def stringToJsonArray(x: String): js.Array[js.Dynamic] = JSON.parse(x).asInstanceOf[js.Array[js.Dynamic]]
+  implicit class StringOps(x: String) {
+    def toJsonArray: js.Array[js.Dynamic] = JSON.parse(x).asInstanceOf[js.Array[js.Dynamic]]
+  }
 
-  implicit def strinToInt(x: String): Int = Predef.augmentString(x).toInt
+  implicit def stringToInt(x: String): Int = Predef.augmentString(x).toInt
 
-  implicit def strinToDouble(x: String): Double = Predef.augmentString(x).toDouble
+  implicit def stringToDouble(x: String): Double = Predef.augmentString(x).toDouble
 
 }

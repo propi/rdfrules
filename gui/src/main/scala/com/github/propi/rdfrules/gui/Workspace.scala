@@ -33,7 +33,7 @@ object Workspace {
     val result = Promise[Constants[FileValue]]()
     Endpoint.get[js.Array[js.Dynamic]]("/workspace") { data =>
       result.success(Constants(data.data.map(anyToFileValue("", _)): _*))
-    }
+    }(_.toJsonArray)
     result.future
   }
 

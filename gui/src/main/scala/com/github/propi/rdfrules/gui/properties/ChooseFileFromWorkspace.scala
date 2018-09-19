@@ -13,9 +13,9 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-case class ChooseFileFromWorkspace(files: Future[Constants[FileValue]],
-                                   name: String,
-                                   title: String = "Choose a file from the workspace") extends Property {
+class ChooseFileFromWorkspace(files: Future[Constants[FileValue]],
+                                   val name: String,
+                                   val title: String = "Choose a file from the workspace") extends Property {
 
   private implicit val ec: ExecutionContext = ExecutionContext.global
 
@@ -58,8 +58,8 @@ case class ChooseFileFromWorkspace(files: Future[Constants[FileValue]],
   }
 
   @dom
-  protected def valueView: Binding[Div] = {
-    <div>
+  def valueView: Binding[Div] = {
+    <div class="choose-file">
       {val x = loadedFiles.bind
     x match {
       case Some(files) => for (file <- files) yield bindingFileValue(file).bind

@@ -45,7 +45,7 @@ trait Json {
 
   private implicit val measureJsonWriter: RootJsonWriter[Measure] = {
     case Measure.BodySize(x) => JsObject("name" -> JsString("BodySize"), "value" -> JsNumber(x))
-    case Measure.Confidence(x) => JsObject("name" -> JsString("Vonfidence"), "value" -> JsNumber(x))
+    case Measure.Confidence(x) => JsObject("name" -> JsString("Confidence"), "value" -> JsNumber(x))
     case Measure.HeadConfidence(x) => JsObject("name" -> JsString("HeadConfidence"), "value" -> JsNumber(x))
     case Measure.HeadCoverage(x) => JsObject("name" -> JsString("HeadCoverage"), "value" -> JsNumber(x))
     case Measure.HeadSize(x) => JsObject("name" -> JsString("HeadSize"), "value" -> JsNumber(x))

@@ -14,12 +14,12 @@ import scala.scalajs.js.Dictionary
 class DiscretizeEqualDistance(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.DiscretizeEqualDistance
   val properties: Constants[Property] = Constants(
-    OptionalText[String]("subject", "Subject"),
-    OptionalText[String]("predicate", "Predicate"),
-    OptionalText[String]("object", "Object"),
-    OptionalText[String]("graph", "Graph"),
-    Checkbox("inverse", "Inverse"),
-    FixedText[Int]("bins", "Number of bins")
+    new OptionalText[String]("subject", "Subject"),
+    new OptionalText[String]("predicate", "Predicate"),
+    new OptionalText[String]("object", "Object"),
+    new OptionalText[String]("graph", "Graph"),
+    new Checkbox("inverse", "Inverse"),
+    new FixedText[Int]("bins", "Number of bins")
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 

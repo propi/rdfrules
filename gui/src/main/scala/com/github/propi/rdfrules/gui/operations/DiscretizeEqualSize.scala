@@ -14,12 +14,12 @@ import scala.scalajs.js.Dictionary
 class DiscretizeEqualSize(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.DiscretizeEqualSize
   val properties: Constants[Property] = Constants(
-    OptionalText[String]("subject", "Subject"),
-    OptionalText[String]("predicate", "Predicate"),
-    OptionalText[String]("object", "Object"),
-    OptionalText[String]("graph", "Graph"),
-    Checkbox("inverse", "Inverse"),
-    FixedText[Double]("support", "Min support")
+    new OptionalText[String]("subject", "Subject"),
+    new OptionalText[String]("predicate", "Predicate"),
+    new OptionalText[String]("object", "Object"),
+    new OptionalText[String]("graph", "Graph"),
+    new Checkbox("inverse", "Inverse"),
+    new FixedText[Double]("support", "Min support")
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 

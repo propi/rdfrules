@@ -10,18 +10,18 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 class MapQuads(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.MapQuads
   val properties: Constants[Property] = Constants(
-    Group("search", "Search", Constants(
-      OptionalText[String]("subject", "Subject"),
-      OptionalText[String]("predicate", "Predicate"),
-      OptionalText[String]("object", "Object"),
-      OptionalText[String]("graph", "Graph"),
-      Checkbox("inverse", "Inverse")
+    new Group("search", "Search", Constants(
+      new OptionalText[String]("subject", "Subject"),
+      new OptionalText[String]("predicate", "Predicate"),
+      new OptionalText[String]("object", "Object"),
+      new OptionalText[String]("graph", "Graph"),
+      new Checkbox("inverse", "Inverse")
     )),
-    Group("replacement", "Replacement", Constants(
-      OptionalText[String]("subject", "Subject"),
-      OptionalText[String]("predicate", "Predicate"),
-      OptionalText[String]("object", "Object"),
-      OptionalText[String]("graph", "Graph")
+    new Group("replacement", "Replacement", Constants(
+      new OptionalText[String]("subject", "Subject"),
+      new OptionalText[String]("predicate", "Predicate"),
+      new OptionalText[String]("object", "Object"),
+      new OptionalText[String]("graph", "Graph")
     ))
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))

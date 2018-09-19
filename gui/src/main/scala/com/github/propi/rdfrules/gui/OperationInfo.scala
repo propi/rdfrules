@@ -51,13 +51,17 @@ object OperationInfo {
   }
 
   sealed trait IndexTransformation extends Transformation {
-    val followingOperations: Constants[OperationInfo] = Constants()
+    val followingOperations: Constants[OperationInfo] = Constants(CacheIndex, ToDataset, Mine, CacheIndexAction, LoadRuleset)
+  }
+
+  sealed trait RulesetTransformation extends Transformation {
+    val followingOperations: Constants[OperationInfo] = Constants(FilterRules, TakeRules, DropRules, SliceRules, Sorted, Sort, ComputeConfidence, ComputePcaConfidence, ComputeLift, MakeClusters, GraphBasedRules, CacheRuleset, CacheRulesetAction, ExportRules, GetRules, RulesetSize)
   }
 
   object Root extends Transformation {
     val name: String = "root"
     val title: String = ""
-    val followingOperations: Constants[OperationInfo] = Constants(LoadGraph, LoadDataset)
+    val followingOperations: Constants[OperationInfo] = Constants(LoadGraph, LoadDataset, LoadIndex)
 
     def buildOperation(from: Operation): Operation = new Root
   }
@@ -74,6 +78,20 @@ object OperationInfo {
     val title: String = "Load dataset"
 
     def buildOperation(from: Operation): Operation = new LoadDataset(from)
+  }
+
+  object LoadIndex extends IndexTransformation {
+    val name: String = "LoadIndex"
+    val title: String = "Load index"
+
+    def buildOperation(from: Operation): Operation = new LoadIndex(from)
+  }
+
+  object LoadRuleset extends RulesetTransformation {
+    val name: String = "LoadRuleset"
+    val title: String = "Load ruleset"
+
+    def buildOperation(from: Operation): Operation = new LoadRuleset(from)
   }
 
   object MergeDatasets extends DatasetTransformation {
@@ -146,13 +164,6 @@ object OperationInfo {
     def buildOperation(from: Operation): Operation = new CacheDataset(from)
   }
 
-  object Index extends IndexTransformation {
-    val name: String = "Index"
-    val title: String = "Index"
-
-    def buildOperation(from: Operation): Operation = new Index(from)
-  }
-
   object CacheDatasetAction extends Action {
     val name: String = "CacheDataset"
     val title: String = "Cache"
@@ -193,6 +204,153 @@ object OperationInfo {
     val title: String = "Histogram"
 
     def buildOperation(from: Operation): Operation = new actions.Histogram(from)
+  }
+
+  object Index extends IndexTransformation {
+    val name: String = "Index"
+    val title: String = "Index"
+
+    def buildOperation(from: Operation): Operation = new Index(from)
+  }
+
+  object CacheIndex extends IndexTransformation {
+    val name: String = "CacheIndex"
+    val title: String = "Cache"
+
+    def buildOperation(from: Operation): Operation = new CacheIndex(from)
+  }
+
+  object CacheIndexAction extends Action {
+    val name: String = "CacheIndex"
+    val title: String = "Cache"
+
+    def buildOperation(from: Operation): Operation = new actions.CacheIndex(from)
+  }
+
+  object ToDataset extends DatasetTransformation {
+    val name: String = "ToDataset"
+    val title: String = "To dataset"
+
+    def buildOperation(from: Operation): Operation = new ToDataset(from)
+  }
+
+  object Mine extends RulesetTransformation {
+    val name: String = "Mine"
+    val title: String = "Mine"
+
+    def buildOperation(from: Operation): Operation = new Mine(from)
+  }
+
+  object FilterRules extends RulesetTransformation {
+    val name: String = "FilterRules"
+    val title: String = "Filter"
+
+    def buildOperation(from: Operation): Operation = new FilterRules(from)
+  }
+
+  object TakeRules extends RulesetTransformation {
+    val name: String = "TakeRules"
+    val title: String = "Take"
+
+    def buildOperation(from: Operation): Operation = new TakeRules(from)
+  }
+
+  object DropRules extends RulesetTransformation {
+    val name: String = "DropRules"
+    val title: String = "Drop"
+
+    def buildOperation(from: Operation): Operation = new DropRules(from)
+  }
+
+  object SliceRules extends RulesetTransformation {
+    val name: String = "SliceRules"
+    val title: String = "Slice"
+
+    def buildOperation(from: Operation): Operation = new SliceRules(from)
+  }
+
+  object Sorted extends RulesetTransformation {
+    val name: String = "Sorted"
+    val title: String = "Sorted"
+
+    def buildOperation(from: Operation): Operation = new Sorted(from)
+  }
+
+  object Sort extends RulesetTransformation {
+    val name: String = "Sort"
+    val title: String = "Sort"
+
+    def buildOperation(from: Operation): Operation = new Sort(from)
+  }
+
+  object ComputeConfidence extends RulesetTransformation {
+    val name: String = "ComputeConfidence"
+    val title: String = "Compute confidence"
+
+    def buildOperation(from: Operation): Operation = new ComputeConfidence(from)
+  }
+
+  object ComputePcaConfidence extends RulesetTransformation {
+    val name: String = "ComputePcaConfidence"
+    val title: String = "Compute PCA confidence"
+
+    def buildOperation(from: Operation): Operation = new ComputePcaConfidence(from)
+  }
+
+  object ComputeLift extends RulesetTransformation {
+    val name: String = "ComputeLift"
+    val title: String = "Compute lift"
+
+    def buildOperation(from: Operation): Operation = new ComputeLift(from)
+  }
+
+  object MakeClusters extends RulesetTransformation {
+    val name: String = "MakeClusters"
+    val title: String = "Make clusters"
+
+    def buildOperation(from: Operation): Operation = new MakeClusters(from)
+  }
+
+  object GraphBasedRules extends RulesetTransformation {
+    val name: String = "GraphBasedRules"
+    val title: String = "To graph-based rules"
+
+    def buildOperation(from: Operation): Operation = new GraphBasedRules(from)
+  }
+
+  object CacheRuleset extends RulesetTransformation {
+    val name: String = "CacheRuleset"
+    val title: String = "Cache"
+
+    def buildOperation(from: Operation): Operation = new CacheRuleset(from)
+  }
+
+  object CacheRulesetAction extends Action {
+    val name: String = "CacheRuleset"
+    val title: String = "Cache"
+
+    def buildOperation(from: Operation): Operation = new actions.CacheRuleset(from)
+  }
+
+  object ExportRules extends Action {
+    val name: String = "ExportRules"
+    val title: String = "Export"
+
+    def buildOperation(from: Operation): Operation = new actions.ExportRules(from)
+  }
+
+  object GetRules extends Action {
+    val name: String = "GetRules"
+    val title: String = "Get rules"
+
+    def buildOperation(from: Operation): Operation = new actions.GetRules(from)
+  }
+
+  object RulesetSize extends Action {
+    val name: String = "RulesetSize"
+    val title: String = "Size"
+
+    def buildOperation(from: Operation): Operation = new actions.RulesetSize(from)
   }
 
 }

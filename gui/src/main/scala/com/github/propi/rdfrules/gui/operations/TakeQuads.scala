@@ -11,7 +11,7 @@ import com.github.propi.rdfrules.gui.utils.StringConverters._
 class TakeQuads(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.TakeQuads
   val properties: Constants[Property] = Constants(
-    FixedText[Int]("value", "Take first N quads", "10")
+    new FixedText[Int]("value", "Take first N quads", "10")
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 }

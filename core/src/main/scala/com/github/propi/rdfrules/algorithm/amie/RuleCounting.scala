@@ -104,6 +104,7 @@ trait RuleCounting extends AtomCounting {
         //if subject is variable then we return all subjects for the head atom predicate
         case (x: Atom.Variable, _) => tripleIndex.predicates(rule.head.predicate).subjects.keysIterator.map(y => Map(x -> Atom.Constant(y)))
         //if subject is constant then we will search negative examples for object variable, we return all object instances for the atom predicate
+        //TODO - this step is maybe invalid - only connections with subject are valid
         case (_, x: Atom.Variable) => tripleIndex.predicates(rule.head.predicate).objects.keysIterator.map(y => Map(x -> Atom.Constant(y)))
         case _ => Iterator.empty
       }

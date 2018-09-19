@@ -11,8 +11,8 @@ import com.github.propi.rdfrules.gui.utils.StringConverters._
 class SliceQuads(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.SliceQuads
   val properties: Constants[Property] = Constants(
-    FixedText[Int]("from", "From"),
-    FixedText[Int]("until", "Until")
+    new FixedText[Int]("start", "From"),
+    new FixedText[Int]("end", "Until")
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 }

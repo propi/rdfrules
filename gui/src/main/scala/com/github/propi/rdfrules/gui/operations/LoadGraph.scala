@@ -10,10 +10,10 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 class LoadGraph(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.LoadGraph
   val properties: Constants[Property] = Constants(
-    ChooseFileFromWorkspace(Workspace.loadFiles, "path"),
-    OptionalText[String]("url", "URL"),
-    Select("format", "RDF format", Constants("ttl" -> "Turtle", "nt" -> "N-Triples", "nq" -> "N-Quads", "xml" -> "RDF/XML", "json" -> "JSON-LD", "trig" -> "TriG", "trix" -> "TriX", "tsv" -> "TSV", "cache" -> "Cache")),
-    OptionalText[String]("graphName", "Graph name")
+    new ChooseFileFromWorkspace(Workspace.loadFiles, "path"),
+    new OptionalText[String]("url", "URL"),
+    new Select("format", "RDF format", Constants("ttl" -> "Turtle", "nt" -> "N-Triples", "nq" -> "N-Quads", "xml" -> "RDF/XML", "json" -> "JSON-LD", "trig" -> "TriG", "trix" -> "TriX", "tsv" -> "TSV", "cache" -> "Cache")),
+    new OptionalText[String]("graphName", "Graph name")
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 }

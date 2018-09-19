@@ -103,7 +103,7 @@ object Debugger {
       def hasProgressBar: Boolean = maxNum > 0
 
       override def toString: String = if (hasProgressBar) {
-        s"Action $name, steps: $num from $maxNum, progress: ${(relativeProgress * 100).round}%"
+        s"Action $name, steps: $num of $maxNum, progress: ${(relativeProgress * 100).round}%"
       } else {
         s"Action $name, steps: $num"
       }
