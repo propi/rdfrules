@@ -4,6 +4,8 @@ This is the HTTP REST web service of the RdfRules tool written in the Scala lang
 
 ## Getting Started
 
+[![](https://jitpack.io/v/propi/rdfrules.svg)](https://jitpack.io/#propi/rdfrules)
+
 Clone the RdfRules repository and run following SBT commands. It starts the HTTP web server:
 ```sbt
 > project http
@@ -14,7 +16,7 @@ Or you can use it in your own SBT project:
 ```sbt
 resolvers += "jitpack" at "https://jitpack.io"
 
-libraryDependencies += "com.github.propi.rdfrules" % "http" % "master"
+libraryDependencies += "com.github.propi.rdfrules" %% "http" % "master"
 ```
 
 You can also download .jar file with all dependencies from JitPack and simply run class ```com.github.propi.rdfrules.http.Main``` without any other parameters.
@@ -450,13 +452,11 @@ Miner rules can be transformed by filtering, mapping, sorting and computing func
 Rules filtering:
 ```
 {"name": "FilterRules", "parameters": {
-  "search": {                                           //REQUIRED: search rules by regular expressions or conditions
-    "patterns": [...],                                  //OPTIONAL: the same syntax as for the "pattern" parameter in the Mine task.
-    "measures" [{
-       "name": "RuleLength|HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", //REQUIRED
-       "value": "condition"                             //REQUIRED: the same syntax as for the filtering or mapping task of quads for the NUMBER type. See below for details.
-    }, ...]
-  }
+   "patterns": [...],                                  //OPTIONAL: the same syntax as for the "pattern" parameter in the Mine task.
+   "measures" [{                                       //OPTIONAL
+      "name": "RuleLength|HeadSize|Support|HeadCoverage|BodySize|Confidence|PcaConfidence|PcaBodySize|HeadConfidence|Lift|Cluster", //REQUIRED
+      "value": "condition"                             //REQUIRED: the same syntax as for the filtering or mapping task of quads for the NUMBER type. See below for details.
+   }, ...]
 }}
 ```
 

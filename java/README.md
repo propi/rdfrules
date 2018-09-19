@@ -4,6 +4,8 @@ This is the Java API of the RdfRules tool. It has implemented several facades ov
 
 ## Getting Started
 
+[![](https://jitpack.io/v/propi/rdfrules.svg)](https://jitpack.io/#propi/rdfrules)
+
 Maven
 
 ```xml
@@ -15,9 +17,9 @@ Maven
 </repositories>
 
 <dependency>
-   <groupId>com.github.propi.rdfrules</groupId>
-   <artifactId>java</artifactId>
-   <version>master</version>
+	 <groupId>com.github.propi.rdfrules</groupId>
+	 <artifactId>java_2.12</artifactId>
+	 <version>master</version>
 </dependency>
 ```
 

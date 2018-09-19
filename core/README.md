@@ -4,12 +4,16 @@ This is the core of the RdfRules tool written in the Scala language. It has impl
 
 ## Getting Started
 
+[![](https://jitpack.io/v/propi/rdfrules.svg)](https://jitpack.io/#propi/rdfrules)
+
 SBT
+
+For Scala 2.12
 
 ```sbt
 resolvers += "jitpack" at "https://jitpack.io"
 
-libraryDependencies += "com.github.propi.rdfrules" % "core" % "master"
+libraryDependencies += "com.github.propi.rdfrules" %% "core" % "master"
 ```
 
 ## Tutorial
