@@ -1,0 +1,418 @@
+@medium-screen: 993px;
+
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  src: url(../fonts/MaterialIcons-Regular.eot); /* For IE6-8 */
+  src: local('Material Icons'),
+  local('MaterialIcons-Regular'),
+  url(../fonts/MaterialIcons-Regular.woff2) format('woff2'),
+  url(../fonts/MaterialIcons-Regular.woff) format('woff'),
+  url(../fonts/MaterialIcons-Regular.ttf) format('truetype');
+}
+
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 1em;
+  vertical-align: middle;
+  display: inline-block;
+  line-height: 1em;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  /* Support for all WebKit browsers. */
+  -webkit-font-smoothing: antialiased;
+  /* Support for Safari and Chrome. */
+  text-rendering: optimizeLegibility;
+  /* Support for Firefox. */
+  -moz-osx-font-smoothing: grayscale;
+  /* Support for IE. */
+  font-feature-settings: 'liga';
+}
+
+.persist-size {
+  -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box; /* Firefox, other Gecko */
+  box-sizing: border-box; /* Opera/IE 8+ */
+}
+
+html,
+body {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  font-family: serif;
+  background-color: #FAFAFA;
+  font-size: 6vw;
+  font-size: 6vmin;
+  @media (min-width: @medium-screen) {
+    font-size: 20px;
+  }
+  color: #1c1c1c;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  .persist-size;
+  height: 10%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1em;
+  background-color: #e6eeff;
+  border-bottom: 2px solid black;
+  h1 {
+    font-size: 5vh;
+  }
+  .version {
+    font-size: 3vh;
+    font-style: italic;
+    color: gray;
+  }
+}
+
+main {
+  height: 90%;
+}
+
+.canvas {
+  height: 100%;
+  position: relative;
+  .modal {
+    position: absolute;
+    overflow: auto;
+    width: 100%;
+    height: 100%;
+    z-index: 100;
+    background-color: white;
+    .close {
+      right: 0.2em;
+      font-size: 2em;
+      cursor: pointer;
+      position: absolute;
+      z-index: 101;
+    }
+  }
+  .modal.closed {
+    display: none;
+  }
+  .content {
+    .persist-size;
+    height: 100%;
+    overflow: auto;
+    z-index: 1;
+    padding: 1em 0;
+  }
+  .operations {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100%;
+    width: 100%;
+    .operation {
+      .persist-size;
+      width: 85%;
+      max-width: 25em;
+      border: 2px solid #000000;
+      border-radius: 5px;
+      background-color: #ebebeb;
+      text-align: center;
+      position: relative;
+      padding: 0.7em 1.5em;
+      margin-bottom: 1.5em;
+      cursor: default;
+      .launch {
+        cursor: pointer;
+        position: absolute;
+        left: 50%;
+        transform: translate(-50%, 100%);
+        font-size: 1em;
+        bottom: 0;
+        background-color: #ecffe5;
+        border: 2px solid #000000;
+        padding: 0.2em 0.5em;
+      }
+      .add {
+        cursor: pointer;
+        position: absolute;
+        left: 50%;
+        transform: translate(-50%, 0);
+        font-size: 1.5em;
+        bottom: -1em;
+      }
+      .add.hidden {
+        display: none;
+      }
+      .del {
+        position: absolute;
+        right: 0.2em;
+        top: 0;
+        cursor: pointer;
+      }
+    }
+    .operation.has-next {
+      &:after {
+        content: " ";
+        display: block;
+        position: absolute;
+        left: 0;
+        bottom: -1.5em;
+        height: 1.3em;
+        width: 100%;
+        background: url(../images/arrow-down.png) no-repeat center;
+        background-size: contain;
+      }
+    }
+    .operation.root {
+      font-size: 2em;
+      border: 0;
+      background: none;
+      margin: 0;
+      .add {
+        bottom: 0;
+      }
+      .del {
+        display: none;
+      }
+    }
+    .operation.hidden {
+      display: none;
+    }
+  }
+}
+
+.following-operations {
+  .persist-size;
+  min-height: 100%;
+  width: 100%;
+  padding-top: 3em;
+  h3 {
+    font-size: 1.3em;
+    text-align: center;
+    font-weight: bold;
+  }
+  h3.hidden {
+    display: none;
+  }
+  .transformations, .actions {
+    padding: 1em 1em 2em 1em;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    max-width: 1024px;
+    margin: auto;
+    .operation-info {
+      border: 2px solid #b5b5b5;
+      border-radius: 5px;
+      white-space: nowrap;
+      padding: 0.7em 1em;
+      margin: 0.5em;
+      background-color: cornsilk;
+      cursor: pointer;
+      &.action {
+        background-color: #ecffe5;
+      }
+    }
+  }
+}
+
+.properties {
+  .persist-size;
+  padding-top: 4em;
+  padding-bottom: 2em;
+  table {
+    border: 2px solid black;
+    border-collapse: collapse;
+    margin: auto;
+    width: 90%;
+    td, th {
+      border: 2px solid black;
+      padding: 0.5em;
+    }
+    th {
+      font-weight: normal;
+      text-align: right;
+    }
+    td {
+      width: 75%;
+      a.add, a.del {
+        cursor: pointer;
+      }
+      table {
+        width: 100%;
+        th {
+          width: 1%;
+          white-space: nowrap;
+        }
+        td {
+          width: auto;
+        }
+      }
+    }
+  }
+  .choose-file {
+    padding: 0.5em;
+    .directory {
+      cursor: default;
+      .name {
+        font-style: italic;
+      }
+      .files {
+        padding-left: 1em;
+      }
+    }
+    .file {
+      cursor: pointer;
+      &:before {
+        content: '-';
+      }
+    }
+  }
+  input, select {
+    .persist-size;
+    width: 100%;
+    padding: 0.3em 0.5em;
+    border: 1px solid #cecece;
+    font-size: 0.8em;
+  }
+  input.checkbox {
+    width: 1.3em;
+    height: 1.3em;
+  }
+}
+
+.dynamic-group {
+  > table {
+    margin-bottom: 0.5em;
+  }
+}
+.properties.sub {
+  padding: 0;
+  > table {
+    margin-bottom: 0;
+  }
+}
+
+.action-progress {
+  width: 90%;
+  margin: auto;
+  padding-top: 3em;
+  &.waiting {
+    text-align: center;
+  }
+  h2 {
+    font-weight: bold;
+    font-size: 1.5em;
+    margin: 0.2em 0 0.6em 0;
+    border-bottom: 1px solid darkgray;
+  }
+  h3 {
+    font-weight: bold;
+    font-size: 1.2em;
+    margin: 0.2em 0;
+  }
+  ul.meta {
+    list-style: none;
+    margin-bottom: 1em;
+  }
+  ul.logs {
+    background-color: whitesmoke;
+    border: 1px solid gray;
+    height: 25vh;
+    min-height: 130px;
+    overflow: auto;
+    margin-bottom: 2em;
+    list-style: none;
+    font-size: 0.8em;
+  }
+  .result {
+    margin-bottom: 1em;
+    .records {
+      margin: 1em 0;
+    }
+    .pages {
+      .page {
+        .persist-size;
+        display: inline-block;
+        font-size: 0.8em;
+        border: 1px solid #eaeaea;
+        padding: 0.1em 0.3em;
+        background-color: #fffeef;
+        cursor: pointer;
+        margin: 0 0.5em 0.5em 0;
+        min-width: 2.3em;
+        text-align: center;
+      }
+      .page.active {
+        background-color: #f6f6ff;
+      }
+      .page:hover {
+        background-color: #f4ffdf;
+      }
+    }
+    .quad {
+      display: flex;
+      .subject, .predicate, .object, .graph {
+        padding-right: 0.8em;
+      }
+      &:after {
+        content: '.';
+      }
+    }
+    .type {
+      margin-bottom: 0.5em;
+      .predicate-types {
+        font-size: 0.9em;
+        font-style: italic;
+      }
+    }
+    .item {
+      margin-bottom: 0.5em;
+      .info {
+        display: flex;
+        .subject {
+          padding-right: 0.5em;
+        }
+        .predicate {
+          padding-right: 0.5em;
+        }
+        .object:after {
+          content: ':';
+        }
+        .amount:before {
+          content: '\00a0';
+        }
+      }
+      .bar {
+        background-color: #ff6060;
+        min-width: 4em;
+        width: 1%;
+        font-size: 0.9em;
+        color: white;
+        padding-right: 0.3em;
+        box-sizing: border-box;
+        text-align: right;
+        border-radius: 0 5px 5px 0;
+      }
+    }
+    .rule {
+      margin-bottom: 0.5em;
+      .measures {
+        font-size: 0.9em;
+        font-style: italic;
+      }
+    }
+  }
+}
