@@ -1,3 +1,6 @@
+# docker build -t rdfrules .
+# docker run --name rdfrules -p 8899:8899 -d rdfrules
+
 FROM debian:8.10
 
 LABEL maintainer="prozeman@gmail.com"
@@ -12,7 +15,8 @@ RUN echo 'deb http://http.debian.net/debian jessie-backports main' >> /etc/apt/s
        
 ADD . /root
 
-RUN sed -i 's/"http:\/\/localhost:8080\/api"/window.location.href.replace(\/\\\/webapp\\\/.*\/, "")/g' webapp/index.html
+RUN chmod 775 bin/main && \
+    sed -i 's/"http:\/\/localhost:8080\/api"/window.location.href.replace(\/\\\/webapp\\\/.*\/, "")/g' webapp/index.html
 
 ENV RDFRULES_HOSTNAME="0.0.0.0"
 ENV RDFRULES_PORT="8899"
