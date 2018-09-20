@@ -8,9 +8,11 @@ RUN echo 'deb http://http.debian.net/debian jessie-backports main' >> /etc/apt/s
     echo 'deb http://dl.bintray.com/sbt/debian /' >> /etc/apt/sources.list && \
     apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823 && \
     apt-get update && \
-    apt-get install -t jessie-backports -y --no-install-recommends openjdk-8-jdk && \
+    apt-get install -t jessie-backports -y --no-install-recommends openjdk-8-jdk
        
 ADD . /root
+
+RUN sed -i 's/"http:\/\/localhost:8080\/api"/window.location.href.replace(\/\\\/webapp\\\/.*\/, "")/g' webapp/index.html
 
 ENV RDFRULES_HOSTNAME="0.0.0.0"
 ENV RDFRULES_PORT="8899"
