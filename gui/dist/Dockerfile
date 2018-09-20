@@ -27,4 +27,4 @@ ENV JAVA_OPTS="-Duser.country=US -Dorg.slf4j.simpleLogger.defaultLogLevel=info -
 
 EXPOSE 8899
 
-CMD ["/root/bin/main"]
+CMD ["bash", "/root/bin/main"]
