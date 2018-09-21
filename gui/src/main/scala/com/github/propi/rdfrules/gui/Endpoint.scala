@@ -34,6 +34,9 @@ object Endpoint {
       val headers = xhr.getAllResponseHeaders().trim.split("[\\r\\n]+").collect {
         case Header(name, value) => name.toLowerCase -> value.toLowerCase
       }.toMap
+      if (buffer.length() == 0) {
+        buffer.append(xhr.responseText)
+      }
       callback(Response(xhr.status, headers, buffer.toString))
     }
     data match {
