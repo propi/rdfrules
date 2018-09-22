@@ -235,3 +235,64 @@ Parameters:
 | Subject | Aggregate values by subjects | No |  |
 | Predicate | Aggregate values by predicates | No |  |
 | Object | Aggregate values by objects | No |  |
+
+### Index operations
+
+#### Transformations
+
+##### Load ruleset
+
+It loads a ruleset from a cache saved on a disk.
+
+Parameters:
+
+| Name | Description | Required | Default |
+|----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| Choose a file from the workspace | You can choose one file from the workspace to be loaded as a ruleset. | Yes |  |
+
+##### Cache
+
+Serialize index into a binary file on a disk.
+
+Parameters:
+
+| Name | Description | Required | Default |
+|----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| Path | Path in the workspace where the cache file will be saved | Yes |  |
+
+##### To dataset
+
+Tranform the index into dataset
+
+##### Mine
+
+It mines rules from the index and tranforms the result into a ruleset. You can specify thresholds, patterns and constraints. Default is: thresholds - *min head size* = 100, *min head coverage* = 0.01, *max rule length* = 3; without patterns; without constraints.
+
+Parameters:
+
+| Name | Description | Required | Default |
+|----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| Threshold -> Name | Name of a pruning threshold to be used | Yes |  |
+| Threshold -> Value | Value for the selected pruning threshold. It should be a real number \[0;1\] for *min head coverage* and a positive integer for others. | Yes |  |
+| Pattern -> Head | A pattern for the head atom | No |  |
+| Pattern -> Body | Patterns for body atoms separated by logical AND | No |  |
+| Pattern -> * -> Subject | Pattern for the subject of the atom | No | Any |
+| Pattern -> * -> Predicate | Pattern for the predicate of the atom | No | Any |
+| Pattern -> * -> Object | Pattern for the object of the atom | No | Any |
+| Pattern -> * -> Graph | Pattern for the graph of the atom | No | Any |
+| Constaint -> Name | Name of a constraint to be used | Yes |  |
+| Threshold -> Values | Values for "Only predicates" and "Without predicates" constraints. | No |  |
+
+For patterns of individual atom items we can use several predefined types with values. See the [http](../http) module for more details about patterns, thresholds and constraints. 
+
+#### Actions
+
+##### Cache
+
+Serialize index into a binary file on a disk.
+
+Parameters:
+
+| Name | Description | Required | Default |
+|----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| Path | Path in the workspace where the cache file will be saved | Yes |  |
