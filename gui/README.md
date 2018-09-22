@@ -128,3 +128,59 @@ Parameters:
 | Graph | A condition for the name of the graph of each quad | No |  |
 | Inverse | If the inversed is checked (true) then the conditions are inversed (negated). | No | false |
 
+##### Take
+
+Take first N quads.
+
+Parameters:
+
+| Name | Description | Required | Default |
+|----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| Take first N quads | A number of quads to be taken from the head | Yes |  |
+
+##### Drop
+
+Drop first N quads.
+
+Parameters:
+
+| Name | Description | Required | Default |
+|----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| Drop first N quads | A number of quads to be dropped from the head | Yes |  |
+
+##### Slice
+
+Slice a window from the quad set.
+
+Parameters:
+
+| Name | Description | Required | Default |
+|----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| From | A start index from which we will take quads | Yes |  |
+| Until | A final index (exclusive) to which we will take quads | Yes |  |
+
+##### Discretize (...)
+
+Discretize all numeric literal values at the object position only for such quads conforming defined conditions. There are three discretization algorithms (for more details see the [http](../http) module).
+
+Parameters:
+
+| Name | Description | Required | Default |
+|----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| Subject | A condition for the subject of each quad | No |  |
+| Predicate | A condition for the predicate of each quad | No |  |
+| Object | A condition for the object of each quad | No |  |
+| Graph | A condition for the name of the graph of each quad | No |  |
+| Inverse | If the inversed is checked (true) then the conditions are inversed (negated). | No | false |
+| Number of bins | Only for equal-distance and equal-frequency: Number of intervals to be created from all numbers. | Yes |  |
+| Support |  Only for equal-size: Minimal support (relative, e.g., 0.2 = 20%) for each interval to be created. | Yes |  |
+
+##### Cache
+
+Cache dataset and all previous transformations into a binary file on a disk.
+
+Parameters:
+
+| Name | Description | Required | Default |
+|----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| Path | Path in the workspace where the cache file will be saved | Yes |  |
