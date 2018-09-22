@@ -38,7 +38,7 @@ You can copy datasets into the "workspace" directory in the running docker conta
 > docker cp path/to/dataset rdfrules:/root/webapp/workspace
 ```
 
-## Tutorial
+## About RdfRules GUI
 
 The GUI of RdfRules is suitable for fast pipeline construction of any mining task. If you click on the plus symbol you can add an operation to your pipeline. Operations are divided into two categories: **transformations** and **actions**. Transformations transforms results of previous operations whereas actions are final operations which launch the whole pipeline with all defined transformations. Hence, each pipeline must end with just one action operation and may contain any number of transformations.
 
