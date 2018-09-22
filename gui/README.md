@@ -283,7 +283,7 @@ Parameters:
 | Constaint -> Name | Name of a constraint to be used | Yes |  |
 | Threshold -> Values | Values for "Only predicates" and "Without predicates" constraints. | No |  |
 
-For patterns of individual atom items we can use several predefined types with values. See the [http](../http) module for more details about patterns, thresholds and constraints. 
+For patterns of individual atom items we can use several predefined types with values. See the [http](../http) module and the [root](../) for more details about patterns, thresholds and constraints. 
 
 #### Actions
 
