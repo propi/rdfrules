@@ -184,3 +184,54 @@ Parameters:
 | Name | Description | Required | Default |
 |----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
 | Path | Path in the workspace where the cache file will be saved | Yes |  |
+
+##### Index
+
+Transform data into the in-memory index from which we are able to mine rules.
+
+#### Actions
+
+##### Cache
+
+Cache dataset and all previous transformations into a binary file on a disk.
+
+Parameters:
+
+| Name | Description | Required | Default |
+|----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| Path | Path in the workspace where the cache file will be saved | Yes |  |
+
+##### Export
+
+Export dataset and all previous transformations into a file in an RDF format.
+
+Parameters:
+
+| Name | Description | Required | Default |
+|----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| Path | Path in the workspace where the file will be saved | Yes |  |
+| RDF Format | RdfRules is able to recognize RDF format from the file extension. But if the extension is unknown you can specify the RDF format explicitly. | No | (auto) |
+
+##### Get quads
+
+Get all quads of the dataset. The result list is limited to first 10 000 quads.
+
+##### Size
+
+Get number of all quads.
+
+##### Types
+
+Get all predicates and their range types with number of objects for each type.
+
+##### Histogram
+
+You can check what items (subject, predicate and object) should be aggregated. For example, if you check only the object type then all quads will be aggregated by objects and it shows histogram for all these aggregated objects.
+
+Parameters:
+
+| Name | Description | Required | Default |
+|----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| Subject | Aggregate values by subjects | No |  |
+| Predicate | Aggregate values by predicates | No |  |
+| Object | Aggregate values by objects | No |  |
