@@ -81,4 +81,50 @@ Parameters:
 |----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
 | Choose a file from the workspace | You can choose one file from the workspace to be loaded as an index. | Yes |  |
 
+##### Merge datasets
+
+If you load a graph or dataset then all following operations are related only to the last loaded graph or dataset. If you need to define operations regarding all previously loaded graphs and datasets you need to merge all to one dataset. This operation is doing just that. 
+
+##### Map quads
+
+Map items of quads into other items by a filter with conditions and defined replacements. You can specify a condition for matching resources, texts, numbers, booleans or intervals. Within resource and text conditions we can use a regular expression for filtering. In regular expressions we can capture groups by brackets and then refer to them in replacement by the symbol $*\<QuadItem\>\<NumberOfGroup\>*. For example: $s1 refers to group 1 in the subject, $p0 refers to whole matched text in the predicate, $o2 refers to group 2 in the object, $g1 refers to group 1 in the graph.
+
+Condition types:
+
+Type | Search by regexp or condition | Replacement with reference | Description |
+---- | ----------------------------- | -------------------------- | ----------- |
+RESOURCE | ```"<some-uri>"```, ```"prefix:(localName)"``` | ```"<some-uri-$p0>"```, ```"_:$1"``` | Resource must start and end with angle brackets or it can be a local name with a prefix. Replacement can be only the full URI or blank node (prefixed URI is not allowed).
+TEXT | ```"\"some (text)\""``` | ```"\"some text $o1\""``` | Text must start and end with double quotes.
+NUMBER | ```"-20.5"``` | ```"$o0 + 5"``` | Text starts with number. We can only capture the whole number and regular expression is not supported.
+NUMBER | ```"> 20"```, ```"(10;20]"``` | ```"$o0 - 5"``` | For number we can use conditions: >, <, >=, <=, or intervals: (x;y), \[x;y\]
+BOOLEAN | ```"true"``` | ```"false"``` | For boolean we can use only exact matching: true or false.
+INTERVAL | ```"i[x;y)"``` | ```"($o1;$o2)"``` | Intervals must match the pattern. Both borders of the intervals are captured, we can refer to them in replacement.
+
+Parameters:
+
+| Name | Description | Required | Default |
+|----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| Search -> Subject | A condition for the subject of each quad | No |  |
+| Search -> Predicate | A condition for the predicate of each quad | No |  |
+| Search -> Object | A condition for the object of each quad | No |  |
+| Search -> Graph | A condition for the name of the graph of each quad | No |  |
+| Search -> Inverse | If the inversed is checked (true) then the conditions are inversed (negated). | No | false |
+| Replacement -> Subject | A replacement for all matched subjects | No |  |
+| Replacement -> Predicate | A replacement for all matched predicates | No |  |
+| Replacement -> Object | A replacement for all matched objects | No |  |
+| Replacement -> Graph | A replacement for all matched graphs | No |  |
+
+##### Filter quads
+
+Filter all quads by conditions. Conditions can be grouped and separated by the logical OR. Rules for conditions are defined in the "Map quads" operation.
+
+Parameters:
+
+| Name | Description | Required | Default |
+|----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| Subject | A condition for the subject of each quad | No |  |
+| Predicate | A condition for the predicate of each quad | No |  |
+| Object | A condition for the object of each quad | No |  |
+| Graph | A condition for the name of the graph of each quad | No |  |
+| Inverse | If the inversed is checked (true) then the conditions are inversed (negated). | No | false |
 
