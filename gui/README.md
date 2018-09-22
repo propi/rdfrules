@@ -40,4 +40,45 @@ You can copy datasets into the "workspace" directory in the running docker conta
 
 ## Tutorial
 
-Under construction...
+The GUI of RdfRules is suitable for fast pipeline construction of any mining task. If you click on the plus symbol you can add an operation to your pipeline. Operations are divided into two categories: **transformations** and **actions**. Transformations transforms results of previous operations whereas actions are final operations which launch the whole pipeline with all defined transformations. Hence, each pipeline must end with just one action operation and may contain any number of transformations.
+
+### Data operations
+
+#### Transformations
+
+##### Load graph
+
+It loads an RDF graph which contains a set of triples.
+
+Parameters:
+
+| Name | Description | Required | Default |
+|----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| Choose a file from the workspace | You can choose one file from the workspace to be loaded as a graph. | No |  |
+| URL | If you specify this parameter then the graph is loaded from the remote URL. | No |  |
+| RDF format | RdfRules is able to recognize RDF format from the file extension. But if the extension is unknown you can specify the RDF format explicitly. | No | (auto) |
+| Graph name | URI of the loaded graph. A value must have resource URI format in angle brackets, e.g., \<dbpedia\> | No | \<\> |
+  
+##### Load dataset
+
+It loads an RDF dataset which can contain a set of quads. Dataset is considered as a set of several named graphs. It is suitable to load N-Quads, JSON-LD, TriG and TriX and preserve naming of graphs in the dataset.
+
+Parameters:
+
+| Name | Description | Required | Default |
+|----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| Choose a file from the workspace | You can choose one file from the workspace to be loaded as a graph. | No |  |
+| URL | If you specify this parameter then the graph is loaded from the remote URL. | No |  |
+| RDF format | RdfRules is able to recognize RDF format from the file extension. But if the extension is unknown you can specify the RDF format explicitly. | No | (auto) |
+
+##### Load index
+
+Before mining, the input datasets must be indexed into memory. It is possible to serialize this index into a file and then load back this index without any need to work with graphs and datasets. This operation only loads an index from a file and allows to skip data operations.
+
+Parameters:
+
+| Name | Description | Required | Default |
+|----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| Choose a file from the workspace | You can choose one file from the workspace to be loaded as an index. | Yes |  |
+
+
