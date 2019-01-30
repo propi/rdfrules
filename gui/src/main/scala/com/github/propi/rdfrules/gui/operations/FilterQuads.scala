@@ -15,7 +15,7 @@ class FilterQuads(fromOperation: Operation) extends Operation {
       new OptionalText[String]("predicate", "Predicate"),
       new OptionalText[String]("object", "Object"),
       new OptionalText[String]("graph", "Graph"),
-      new Checkbox("inverse", "Inverse")
+      new Checkbox("inverse", "Negation")
     ))
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))

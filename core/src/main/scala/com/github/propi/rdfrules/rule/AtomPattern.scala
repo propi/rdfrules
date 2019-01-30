@@ -68,7 +68,7 @@ object AtomPattern {
     }
 
     case class Constant(constant: TripleItem) extends AtomItemPattern {
-      def mapped(implicit mapper: TripleItemHashIndex): Mapped.Constant = Mapped.Constant(Atom.Constant(mapper.getIndex(constant)))
+      def mapped(implicit mapper: TripleItemHashIndex): Mapped.Constant = Mapped.Constant(Atom.Constant(mapper.getIndex(constant.resolved)))
     }
 
     implicit def apply(tripleItem: TripleItem): AtomItemPattern = Constant(tripleItem)

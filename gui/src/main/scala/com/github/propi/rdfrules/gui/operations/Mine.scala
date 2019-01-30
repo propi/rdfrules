@@ -12,7 +12,7 @@ class Mine(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.Mine
   val properties: Constants[Property] = Constants(
     new DynamicGroup("thresholds", "Thresholds", () => Constants(
-      new Select("name", "Name", Constants("MinHeadSize" -> "Min head size", "MinHeadCoverage" -> "Min head coverage", "MaxRuleLength" -> "Max rule length", "TopK" -> "Top-k", "Timeout" -> "Timeout")),
+      new Select("name", "Name", Constants("MinHeadSize" -> "Min head size", "MinHeadCoverage" -> "Min head coverage", "MinSupport" -> "Min support", "MaxRuleLength" -> "Max rule length", "TopK" -> "Top-k", "Timeout" -> "Timeout")),
       new FixedText[Double]("value", "Value")
     )),
     new DynamicGroup("patterns", "Patterns", () => Pattern()),

@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.data
 
+import com.github.propi.rdfrules.index.TripleItemHashIndex
 import com.github.propi.rdfrules.utils.BasicExtractors.AnyToDouble
 import eu.easyminer.discretization.impl.{IntervalBound, Interval => DiscretizationInterval}
 import org.apache.jena.datatypes.RDFDatatype
@@ -11,12 +12,16 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 3. 10. 2017.
   */
-sealed trait TripleItem
+sealed trait TripleItem {
+  def resolved(implicit mapper: TripleItemHashIndex): TripleItem = this
+}
 
 object TripleItem {
 
   sealed trait Uri extends TripleItem {
     def hasSameUriAs(uri: Uri): Boolean
+
+    override def resolved(implicit mapper: TripleItemHashIndex): Uri = this
   }
 
   object Uri {
@@ -53,6 +58,12 @@ object TripleItem {
     def hasSameUriAs(uri: Uri): Boolean = toLongUri.hasSameUriAs(uri)
 
     def toPrefix: Prefix = Prefix(prefix, nameSpace)
+
+    override def resolved(implicit mapper: TripleItemHashIndex): Uri = if (nameSpace.isEmpty) {
+      mapper.getNamespace(prefix).map(TripleItem.PrefixedUri(prefix, _, localName)).getOrElse(TripleItem.Uri(localName))
+    } else {
+      this
+    }
 
     override def hashCode(): Int = toLongUri.hashCode()
 

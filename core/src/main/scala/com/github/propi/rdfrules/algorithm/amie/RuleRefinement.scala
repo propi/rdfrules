@@ -133,7 +133,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       // - then we can count all projections for this fresh atom and then only check existence of rest atoms in the rule
       //for other fresh atoms we need to find instances for unknown variables (not for dangling variable)
       val (countableFreshAtoms, possibleFreshAtoms) = getPossibleFreshAtoms.filter(x => patternFilter.matchFreshAtom(x)).toList.partition(freshAtom => List(freshAtom.subject, freshAtom.`object`).forall(x => x == rule.head.subject || x == rule.head.`object` || x == dangling))
-      val minSupport = rule.headSize * minHeadCoverage
+      val minSupport = math.max(rule.headSize * minHeadCoverage, settings.minSupport.getOrElse(1))
       val bodySet = rule.body.toSet
       //maxSupport is variable where the maximal support from all extension rules is saved
       var maxSupport = 0
@@ -392,7 +392,8 @@ object RuleRefinement {
     @volatile private var _minHeadCoverage: Double = rulesMining.thresholds.apply[Threshold.MinHeadCoverage].value
 
     val patterns: List[RulePattern.Mapped] = rulesMining.patterns.map(_.mapped)
-    val minSupport: Int = rulesMining.thresholds.apply[Threshold.MinHeadSize].value
+    val minHeadSize: Int = rulesMining.thresholds.apply[Threshold.MinHeadSize].value
+    val minSupport: Option[Int] = rulesMining.thresholds.get[Threshold.MinSupport].map(_.value)
     val isWithInstances: Boolean = rulesMining.constraints.exists[RuleConstraint.WithInstances]
     val maxRuleLength: Int = rulesMining.thresholds.apply[Threshold.MaxRuleLength].value
     val withDuplicitPredicates: Boolean = !rulesMining.constraints.exists[RuleConstraint.WithoutDuplicitPredicates]

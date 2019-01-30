@@ -14,8 +14,9 @@ import scala.scalajs.js
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
 class ChooseFileFromWorkspace(files: Future[Constants[FileValue]],
-                                   val name: String,
-                                   val title: String = "Choose a file from the workspace") extends Property {
+                              val name: String,
+                              val title: String = "Choose a file from the workspace",
+                              val description: String = "") extends Property {
 
   private implicit val ec: ExecutionContext = ExecutionContext.global
 
@@ -23,6 +24,8 @@ class ChooseFileFromWorkspace(files: Future[Constants[FileValue]],
 
   private val loadedFiles: Var[Option[Constants[FileValue]]] = Var(None)
   private val selectedFile: Var[Option[FileValue.File]] = Var(None)
+
+  def validate(): Option[String] = None
 
   def toJson: js.Any = selectedFile.value match {
     case Some(file) => file.path
@@ -33,7 +36,12 @@ class ChooseFileFromWorkspace(files: Future[Constants[FileValue]],
   private def bindingFileValue(fileValue: FileValue): Binding[Div] = fileValue match {
     case file: FileValue.File =>
       <div class="file">
-        <a onclick={_: Event => selectedFile.value = Some(file)}>
+        <a onclick={_: Event =>
+          if (selectedFile.value.exists(_.path == file.path)) {
+            selectedFile.value = None
+          } else {
+            selectedFile.value = Some(file)
+          }}>
           {val x = selectedFile.bind
         if (x.contains(file)) {
           <strong>

@@ -18,7 +18,6 @@ import scala.language.implicitConversions
 trait Json {
 
   implicit val tripleItemJsonWriter: RootJsonWriter[TripleItem] = {
-    case x: TripleItem.PrefixedUri => JsString(x.toLongUri.toString)
     case TripleItem.NumberDouble(x) => JsNumber(x)
     case TripleItem.BooleanValue(x) => JsBoolean(x)
     case x: TripleItem => JsString(x.toString)

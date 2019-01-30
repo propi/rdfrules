@@ -10,7 +10,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 class CacheDataset(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.CacheDataset
   val properties: Constants[Property] = Constants(
-    new FixedText[String]("path", "Path")
+    new FixedText[String]("path", "Path", description = "A relative path to a file related to the workspace where the serialized dataset should be saved.")
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 }

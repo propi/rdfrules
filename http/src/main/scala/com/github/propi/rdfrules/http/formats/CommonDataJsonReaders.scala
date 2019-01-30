@@ -104,6 +104,7 @@ object CommonDataJsonReaders {
     fields("name").convertTo[String] match {
       case "MinHeadSize" => Threshold.MinHeadSize(fields("value").convertTo[Int])
       case "MinHeadCoverage" => Threshold.MinHeadCoverage(fields("value").convertTo[Double])
+      case "MinSupport" => Threshold.MinSupport(fields("value").convertTo[Int])
       case "MaxRuleLength" => Threshold.MaxRuleLength(fields("value").convertTo[Int])
       case "TopK" => Threshold.TopK(fields("value").convertTo[Int])
       case "Timeout" => Threshold.Timeout(fields("value").convertTo[Int])

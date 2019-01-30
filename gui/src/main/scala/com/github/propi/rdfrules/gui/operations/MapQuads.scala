@@ -15,7 +15,7 @@ class MapQuads(fromOperation: Operation) extends Operation {
       new OptionalText[String]("predicate", "Predicate"),
       new OptionalText[String]("object", "Object"),
       new OptionalText[String]("graph", "Graph"),
-      new Checkbox("inverse", "Inverse")
+      new Checkbox("inverse", "Negation")
     )),
     new Group("replacement", "Replacement", Constants(
       new OptionalText[String]("subject", "Subject"),

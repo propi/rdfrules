@@ -11,9 +11,11 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class Checkbox(val name: String, val title: String, default: Boolean = false) extends Property {
+class Checkbox(val name: String, val title: String, default: Boolean = false, val description: String = "") extends Property {
 
   private var isChecked: Boolean = default
+
+  def validate(): Option[String] = None
 
   def toJson: js.Any = isChecked
 

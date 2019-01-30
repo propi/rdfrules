@@ -20,6 +20,12 @@ object Threshold {
 
   implicit object MinHeadSize extends Key[MinHeadSize]
 
+  case class MinSupport(value: Int) extends Threshold {
+    def companion: MinSupport.type = MinSupport
+  }
+
+  implicit object MinSupport extends Key[MinSupport]
+
   case class MinHeadCoverage(value: Double) extends Threshold {
     def companion: MinHeadCoverage.type = MinHeadCoverage
   }
@@ -51,6 +57,7 @@ object Threshold {
   def validate(threshold: Threshold): Threshold = threshold match {
     case MinHeadSize(x) if x < 1 => MinHeadSize(1)
     case MaxRuleLength(x) if x < 2 => MaxRuleLength(2)
+    case MinSupport(x) if x < 1 => MinSupport(1)
     case MinHeadCoverage(x) if x < 0.001 => MinHeadCoverage(0.001)
     case MinHeadCoverage(x) if x > 1 => MinHeadCoverage(1)
     case TopK(x) if x < 1 => TopK(1)

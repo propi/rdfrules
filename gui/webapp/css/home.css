@@ -144,16 +144,26 @@ main {
   margin-bottom: 1.5em;
   cursor: default;
 }
-.canvas .operations .operation .launch {
+.canvas .operations .operation .action-buttons {
   cursor: pointer;
   position: absolute;
   left: 50%;
   transform: translate(-50%, 100%);
   font-size: 1em;
   bottom: 0;
+  white-space: nowrap;
+}
+.canvas .operations .operation .action-buttons .launch,
+.canvas .operations .operation .action-buttons .result {
   background-color: #ecffe5;
   border: 2px solid #000000;
   padding: 0.2em 0.5em;
+  display: inline-block;
+  margin: auto 0.1em;
+  border-top: 1px solid black;
+}
+.canvas .operations .operation .action-buttons .result.hidden {
+  display: none;
 }
 .canvas .operations .operation .add {
   cursor: pointer;
@@ -171,6 +181,16 @@ main {
   right: 0.2em;
   top: 0;
   cursor: pointer;
+}
+.canvas .operations .operation .error {
+  color: red;
+  position: absolute;
+  right: 1.3em;
+  top: 0;
+  cursor: help;
+}
+.canvas .operations .operation .error.hidden {
+  display: none;
 }
 .canvas .operations .operation.has-next:after {
   content: " ";
@@ -265,6 +285,25 @@ main {
 .properties table th {
   font-weight: normal;
   text-align: right;
+}
+.properties table th .title {
+  display: flex;
+  justify-content: space-between;
+}
+.properties table th .title .hints {
+  display: flex;
+  margin-right: 0.5em;
+}
+.properties table th .title .hints div.error,
+.properties table th .title .hints div.description {
+  cursor: help;
+}
+.properties table th .title .hints div.error.hidden,
+.properties table th .title .hints div.description.hidden {
+  display: none;
+}
+.properties table th .title .hints div.error i {
+  color: red;
 }
 .properties table td {
   width: 75%;
@@ -443,5 +482,20 @@ main {
 .action-progress .result .rule .measures {
   font-size: 0.9em;
   font-style: italic;
+}
+.whint {
+  position: fixed;
+  z-index: 200;
+  border: 2px solid #383838;
+  padding: 0.6em;
+  font-size: 0.68em;
+  background-color: #548dff;
+  border-radius: 10px;
+  color: white;
+  max-width: 400px;
+  font-family: monospace;
+}
+.whint.hidden {
+  display: none;
 }
 /*# sourceMappingURL=home.css.map */

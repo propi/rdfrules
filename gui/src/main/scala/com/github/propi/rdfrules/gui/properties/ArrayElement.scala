@@ -11,9 +11,11 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class ArrayElement(val name: String, val title: String, property: () => Property) extends Property {
+class ArrayElement(val name: String, val title: String, property: () => Property, val description: String = "") extends Property {
 
   private val groups: Vars[Property] = Vars.empty
+
+  def validate(): Option[String] = groups.value.iterator.map(_.validate()).find(_.nonEmpty).flatten.map(x => s"There is an error within '$title' properties: $x")
 
   def toJson: js.Any = js.Array(groups.value.flatMap { property =>
     val x = property.toJson

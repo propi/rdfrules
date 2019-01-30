@@ -31,6 +31,7 @@ object OperationInfo {
       LoadGraph,
       LoadDataset,
       MergeDatasets,
+      AddPrefixes,
       MapQuads,
       FilterQuads,
       TakeQuads,
@@ -44,6 +45,7 @@ object OperationInfo {
       CacheDatasetAction,
       ExportQuads,
       GetQuads,
+      Prefixes,
       DatasetSize,
       Types,
       Histogram
@@ -92,6 +94,13 @@ object OperationInfo {
     val title: String = "Load ruleset"
 
     def buildOperation(from: Operation): Operation = new LoadRuleset(from)
+  }
+
+  object AddPrefixes extends DatasetTransformation {
+    val name: String = "AddPrefixes"
+    val title: String = "Add prefixes"
+
+    def buildOperation(from: Operation): Operation = new AddPrefixes(from)
   }
 
   object MergeDatasets extends DatasetTransformation {
@@ -183,6 +192,13 @@ object OperationInfo {
     val title: String = "Get quads"
 
     def buildOperation(from: Operation): Operation = new actions.GetQuads(from)
+  }
+
+  object Prefixes extends Action {
+    val name: String = "Prefixes"
+    val title: String = "Get prefixes"
+
+    def buildOperation(from: Operation): Operation = new actions.Prefixes(from)
   }
 
   object DatasetSize extends Action {

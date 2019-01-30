@@ -10,7 +10,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 class CacheIndex(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.CacheIndex
   val properties: Constants[Property] = Constants(
-    new FixedText[String]("path", "Path")
+    new FixedText[String]("path", "Path", description = "A relative path to a file related to the workspace where the serialized index should be saved.")
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 }

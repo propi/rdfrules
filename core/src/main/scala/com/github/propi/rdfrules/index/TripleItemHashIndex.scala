@@ -5,7 +5,9 @@ import com.github.propi.rdfrules.data.{Quad, Triple, TripleItem}
 /**
   * Created by Vaclav Zeman on 12. 3. 2018.
   */
-class TripleItemHashIndex private(map: collection.Map[Int, TripleItem], sameAs: collection.Map[TripleItem, Int]) {
+class TripleItemHashIndex private(map: collection.Map[Int, TripleItem], sameAs: collection.Map[TripleItem, Int], prefixMap: collection.Map[String, String]) {
+
+  def getNamespace(prefix: String): Option[String] = prefixMap.get(prefix)
 
   def getIndex(x: TripleItem): Int = getIndexOpt(x).get
 
@@ -27,12 +29,22 @@ class TripleItemHashIndex private(map: collection.Map[Int, TripleItem], sameAs: 
 object TripleItemHashIndex {
 
   def fromIndexedItem(col: Traversable[(Int, TripleItem)]): TripleItemHashIndex = {
-    new TripleItemHashIndex(collection.mutable.HashMap.empty[Int, TripleItem] ++= col, Map.empty)
+    val hmap = collection.mutable.HashMap.empty[Int, TripleItem]
+    val pmap = collection.mutable.HashMap.empty[String, String]
+    for (kv <- col) {
+      kv._2 match {
+        case TripleItem.PrefixedUri(prefix, nameSpace, _) if !pmap.contains(prefix) => pmap.update(prefix, nameSpace)
+        case _ =>
+      }
+      hmap += kv
+    }
+    new TripleItemHashIndex(hmap, Map.empty, pmap)
   }
 
   def apply(col: Traversable[Quad]): TripleItemHashIndex = {
     val sameAs = collection.mutable.HashMap.empty[TripleItem, Int]
     val map = collection.mutable.HashMap.empty[Int, TripleItem]
+    val pmap = collection.mutable.HashMap.empty[String, String]
 
     /**
       * Get id of a triple item.
@@ -50,6 +62,9 @@ object TripleItemHashIndex {
       .get
 
     for (Quad(Triple(s, p, o), g) <- col) {
+      for (TripleItem.PrefixedUri(prefix, nameSpace, _) <- List(s, p, o, g) if !pmap.contains(prefix)) {
+        pmap.update(prefix, nameSpace)
+      }
       if (p.hasSameUriAs("http://www.w3.org/2002/07/owl#sameAs")) {
         val (idSubject, subjectIsAdded) = getId(s)
         if (!subjectIsAdded) map += (idSubject -> s)
@@ -75,7 +90,7 @@ object TripleItemHashIndex {
       }
     }
 
-    new TripleItemHashIndex(map, sameAs)
+    new TripleItemHashIndex(map, sameAs, pmap)
   }
 
 }

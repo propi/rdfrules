@@ -10,7 +10,7 @@ import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 class Histogram(s: Boolean, p: Boolean, o: Boolean) extends Task[Dataset, Seq[(data.Histogram.Key, Int)]] {
   val companion: TaskDefinition = Histogram
 
-  def execute(input: Dataset): Seq[(data.Histogram.Key, Int)] = input.histogram(s, p, o).iterator.toSeq
+  def execute(input: Dataset): Seq[(data.Histogram.Key, Int)] = input.histogram(s, p, o).iterator.toSeq.sortBy(_._2)(implicitly[Ordering[Int]].reverse).take(10000)
 }
 
 object Histogram extends TaskDefinition {

@@ -132,16 +132,25 @@ main {
       padding: 0.7em 1.5em;
       margin-bottom: 1.5em;
       cursor: default;
-      .launch {
+      .action-buttons {
         cursor: pointer;
         position: absolute;
         left: 50%;
         transform: translate(-50%, 100%);
         font-size: 1em;
         bottom: 0;
-        background-color: #ecffe5;
-        border: 2px solid #000000;
-        padding: 0.2em 0.5em;
+        white-space: nowrap;
+        .launch, .result {
+          background-color: #ecffe5;
+          border: 2px solid #000000;
+          padding: 0.2em 0.5em;
+          display: inline-block;
+          margin: auto 0.1em;
+          border-top: 1px solid black;
+        }
+        .result.hidden {
+          display: none;
+        }
       }
       .add {
         cursor: pointer;
@@ -159,6 +168,16 @@ main {
         right: 0.2em;
         top: 0;
         cursor: pointer;
+      }
+      .error {
+        color: red;
+        position: absolute;
+        right: 1.3em;
+        top: 0;
+        cursor: help;
+        &.hidden {
+          display: none;
+        }
       }
     }
     .operation.has-next {
@@ -244,6 +263,23 @@ main {
     th {
       font-weight: normal;
       text-align: right;
+      .title {
+        display: flex;
+        justify-content: space-between;
+        .hints {
+          display: flex;
+          margin-right: 0.5em;
+          div.error, div.description {
+            cursor: help;
+            &.hidden {
+              display: none;
+            }
+          }
+          div.error i {
+            color: red;
+          }
+        }
+      }
     }
     td {
       width: 75%;
@@ -298,6 +334,7 @@ main {
     margin-bottom: 0.5em;
   }
 }
+
 .properties.sub {
   padding: 0;
   > table {
@@ -414,5 +451,21 @@ main {
         font-style: italic;
       }
     }
+  }
+}
+
+.whint {
+  position: fixed;
+  z-index: 200;
+  border: 2px solid #383838;
+  padding: 0.6em;
+  font-size: 0.68em;
+  background-color: #548dff;
+  border-radius: 10px;
+  color: white;
+  max-width: 400px;
+  font-family: monospace;
+  &.hidden {
+    display: none;
   }
 }

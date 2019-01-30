@@ -12,7 +12,7 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class Select(val name: String, val title: String, items: Constants[(String, String)], default: Option[String] = None, onSelect: String => Unit = _ => {}) extends Property {
+class Select(val name: String, val title: String, items: Constants[(String, String)], default: Option[String] = None, onSelect: String => Unit = _ => {}, val description: String = "") extends Property {
 
   private var selectedItem: Option[String] = default
   private val preparedItems: Constants[(String, String)] = if (default.isEmpty) {
@@ -20,6 +20,8 @@ class Select(val name: String, val title: String, items: Constants[(String, Stri
   } else {
     items
   }
+
+  def validate(): Option[String] = None
 
   def toJson: js.Any = selectedItem match {
     case Some(x) => x
