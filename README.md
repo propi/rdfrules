@@ -15,6 +15,14 @@ RdfRules is divided into four main modules. They are:
  
  Detailed information about these modules with deployment instructions are described in their subfolders...
  
+ ### Quick and easy run of RdfRules
+ 
+ 1. Clone or download this github repository
+ 2. Run RdfRules HTTP API
+    - On Linux: ```./gui/dist/bin/main```
+    - On Windows: run this file ```./gui/dist/bin/main.bat```
+ 3. Open ```./gui/webapp/index.html``` in a modern Internet browser
+ 
  ## Design and Architecture
  
 ![RdfRules main processes](rdfrules-processes.png)
