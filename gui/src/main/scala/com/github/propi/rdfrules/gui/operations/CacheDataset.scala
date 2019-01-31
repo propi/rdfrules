@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.gui.operations
 
 import com.github.propi.rdfrules.gui.properties._
+import com.github.propi.rdfrules.gui.utils.CommonValidators.NonEmpty
 import com.github.propi.rdfrules.gui.{Operation, OperationInfo, Property}
 import com.thoughtworks.binding.Binding.{Constants, Var}
 
@@ -10,7 +11,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 class CacheDataset(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.CacheDataset
   val properties: Constants[Property] = Constants(
-    new FixedText[String]("path", "Path", description = "A relative path to a file related to the workspace where the serialized dataset should be saved.")
+    new FixedText[String]("path", "Path", description = "A relative path to a file related to the workspace where the serialized dataset should be saved.", validator = NonEmpty)
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 }

@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.gui.operations
 
 import com.github.propi.rdfrules.gui.properties._
+import com.github.propi.rdfrules.gui.utils.CommonValidators.GreaterThanOrEqualsTo
 import com.github.propi.rdfrules.gui.{Operation, OperationInfo, Property}
 import com.thoughtworks.binding.Binding.{Constants, Var}
 import com.github.propi.rdfrules.gui.utils.StringConverters._
@@ -11,8 +12,8 @@ import com.github.propi.rdfrules.gui.utils.StringConverters._
 class SliceQuads(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.SliceQuads
   val properties: Constants[Property] = Constants(
-    new FixedText[Int]("start", "From"),
-    new FixedText[Int]("end", "Until")
+    new FixedText[Int]("start", "From", validator = GreaterThanOrEqualsTo[Int](0)),
+    new FixedText[Int]("end", "Until", validator = GreaterThanOrEqualsTo[Int](0))
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 }

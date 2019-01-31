@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Property
-import com.thoughtworks.binding.Binding.{Constants, Vars}
+import com.thoughtworks.binding.Binding.{Constants, Var, Vars}
 import com.thoughtworks.binding.{Binding, dom}
 import org.scalajs.dom.Event
 import org.scalajs.dom.html.Div
@@ -11,9 +11,13 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class DynamicGroup(val name: String, val title: String, properties: () => Constants[Property], val description: String = "") extends Property {
+class DynamicGroup(val name: String, val title: String, properties: () => Constants[Property], description: String = "") extends Property {
 
   private val groups: Vars[Constants[Property]] = Vars.empty
+
+  val descriptionVar: Binding.Var[String] = Var(description)
+
+  def getGroups: Seq[Constants[Property]] = groups.value
 
   def validate(): Option[String] = groups.value.iterator.flatMap(_.value.iterator).map(_.validate()).find(_.nonEmpty).flatten.map(x => s"There is an error within '$title' properties: $x")
 

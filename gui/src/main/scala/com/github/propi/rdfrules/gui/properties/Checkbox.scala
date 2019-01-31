@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Property
+import com.thoughtworks.binding.Binding.Var
 import com.thoughtworks.binding.{Binding, dom}
 import org.scalajs.dom.Event
 import org.scalajs.dom.html.Div
@@ -11,9 +12,13 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class Checkbox(val name: String, val title: String, default: Boolean = false, val description: String = "") extends Property {
+class Checkbox(val name: String, val title: String, default: Boolean = false, description: String = "") extends Property {
 
-  private var isChecked: Boolean = default
+  private var _isChecked: Boolean = default
+
+  val descriptionVar: Binding.Var[String] = Var(description)
+
+  def isChecked: Boolean = _isChecked
 
   def validate(): Option[String] = None
 
@@ -22,7 +27,7 @@ class Checkbox(val name: String, val title: String, default: Boolean = false, va
   @dom
   final def valueView: Binding[Div] = {
     <div>
-      <input type="checkbox" class="checkbox" checked={isChecked} onchange={e: Event => isChecked = e.srcElement.asInstanceOf[HTMLInputElement].checked}/>
+      <input type="checkbox" class="checkbox" checked={_isChecked} onchange={e: Event => _isChecked = e.target.asInstanceOf[HTMLInputElement].checked}/>
     </div>
   }
 

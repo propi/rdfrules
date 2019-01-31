@@ -249,10 +249,11 @@ main {
 }
 .following-operations .transformations .operation-info,
 .following-operations .actions .operation-info {
+  position: relative;
   border: 2px solid #b5b5b5;
   border-radius: 5px;
   white-space: nowrap;
-  padding: 0.7em 1em;
+  padding: 0.8em 1.5em;
   margin: 0.5em;
   background-color: cornsilk;
   cursor: pointer;
@@ -260,6 +261,14 @@ main {
 .following-operations .transformations .operation-info.action,
 .following-operations .actions .operation-info.action {
   background-color: #ecffe5;
+}
+.following-operations .transformations .operation-info .help,
+.following-operations .actions .operation-info .help {
+  position: absolute;
+  right: 2px;
+  top: 1px;
+  cursor: help;
+  color: #7e7e7e;
 }
 .properties {
   -webkit-box-sizing: border-box;
@@ -496,6 +505,16 @@ main {
   font-family: monospace;
 }
 .whint.hidden {
+  display: none;
+}
+.whint .close {
+  float: right;
+  margin-left: 0.7em;
+  margin-bottom: 0.4em;
+  font-size: 1.2em;
+  cursor: pointer;
+}
+.whint .close.hidden {
   display: none;
 }
 /*# sourceMappingURL=home.css.map */

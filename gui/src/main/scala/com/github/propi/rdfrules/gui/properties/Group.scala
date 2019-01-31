@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Property
 import com.thoughtworks.binding.{Binding, dom}
-import com.thoughtworks.binding.Binding.Constants
+import com.thoughtworks.binding.Binding.{Constants, Var}
 import org.scalajs.dom.html.Div
 
 import scala.scalajs.js
@@ -10,7 +10,9 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class Group(val name: String, val title: String, properties: Constants[Property], val description: String = "") extends Property {
+class Group(val name: String, val title: String, properties: Constants[Property], description: String = "") extends Property {
+
+  val descriptionVar: Binding.Var[String] = Var(description)
 
   def validate(): Option[String] = properties.value.iterator.map(_.validate()).find(_.nonEmpty).flatten.map(x => s"There is an error within '$title' properties: $x")
 

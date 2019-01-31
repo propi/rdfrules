@@ -2,10 +2,12 @@ package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Property
 import com.github.propi.rdfrules.gui.Workspace.FileValue
+import com.github.propi.rdfrules.gui.utils.Validate.{NoValidator, Validator}
 import com.thoughtworks.binding.Binding.{Constants, Var}
 import com.thoughtworks.binding.{Binding, dom}
 import org.scalajs.dom.Event
 import org.scalajs.dom.html.Div
+import com.github.propi.rdfrules.gui.utils.Validate._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
@@ -16,7 +18,8 @@ import scala.scalajs.js
 class ChooseFileFromWorkspace(files: Future[Constants[FileValue]],
                               val name: String,
                               val title: String = "Choose a file from the workspace",
-                              val description: String = "") extends Property {
+                              description: String = "",
+                              validator: Validator[String] = NoValidator[String]()) extends Property {
 
   private implicit val ec: ExecutionContext = ExecutionContext.global
 
@@ -25,7 +28,15 @@ class ChooseFileFromWorkspace(files: Future[Constants[FileValue]],
   private val loadedFiles: Var[Option[Constants[FileValue]]] = Var(None)
   private val selectedFile: Var[Option[FileValue.File]] = Var(None)
 
-  def validate(): Option[String] = None
+  val descriptionVar: Binding.Var[String] = Var(description)
+
+  def getSelectedFile: Option[FileValue.File] = selectedFile.value
+
+  def validate(): Option[String] = {
+    val msg = validator.validate(selectedFile.value.map(_.path).getOrElse("")).errorMsg
+    errorMsg.value = msg
+    msg
+  }
 
   def toJson: js.Any = selectedFile.value match {
     case Some(file) => file.path

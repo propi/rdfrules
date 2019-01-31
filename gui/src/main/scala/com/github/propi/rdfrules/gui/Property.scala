@@ -1,8 +1,9 @@
 package com.github.propi.rdfrules.gui
 
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding
+import com.thoughtworks.binding.Binding.Var
 import com.thoughtworks.binding.{Binding, dom}
-import org.scalajs.dom.MouseEvent
+import org.scalajs.dom.{Event, MouseEvent}
 import org.scalajs.dom.html.{Div, TableRow}
 
 import scala.scalajs.js
@@ -13,7 +14,7 @@ import scala.scalajs.js
 trait Property {
   val name: String
   val title: String
-  val description: String
+  val descriptionVar: Var[String]
 
   val errorMsg: ReactiveBinding.Var[Option[String]] = ReactiveBinding.Var(None)
 
@@ -29,10 +30,10 @@ trait Property {
       <th>
         <div class="title">
           <div class="hints">
-            <div class={"error" + (if (errorMsg.binding.bind.isEmpty) " hidden" else "")} onmousemove={e: MouseEvent => Main.canvas.openHint(errorMsg.value.getOrElse(""), e)} onmouseout={_: MouseEvent => Main.canvas.closeHint()}>
+            <div class={"error" + (if (errorMsg.binding.bind.isEmpty) " hidden" else "")} onmousemove={e: MouseEvent => Main.canvas.openHint(errorMsg.value.getOrElse(""), e)} onmouseout={_: MouseEvent => Main.canvas.closeHint()} onclick={_: Event => Main.canvas.fixHint()}>
               <i class="material-icons">error</i>
             </div>
-            <div class={"description" + (if (description.isEmpty) " hidden" else "")} onmousemove={e: MouseEvent => Main.canvas.openHint(description, e)} onmouseout={_: MouseEvent => Main.canvas.closeHint()}>
+            <div class={"description" + (if (descriptionVar.bind.isEmpty) " hidden" else "")} onmousemove={e: MouseEvent => Main.canvas.openHint(descriptionVar.value, e)} onmouseout={_: MouseEvent => Main.canvas.closeHint()} onclick={_: Event => Main.canvas.fixHint()}>
               <i class="material-icons">help</i>
             </div>
           </div>

@@ -18,7 +18,6 @@ trait Operation {
   val info: OperationInfo
   val properties: Constants[Property]
   val previousOperation: Var[Option[Operation]]
-  val description: Var[String] = Var("")
   val errorMsg: Var[Option[String]] = Var(None)
 
   def buildActionProgress(id: Future[String]): Option[ActionProgress] = None
@@ -125,15 +124,15 @@ trait Operation {
     }}<a class="del" onclick={e: Event => delete(); e.stopPropagation();}>
       <i class="material-icons">delete</i>
     </a>
-      <a class={"error" + (if (errorMsg.bind.isEmpty) " hidden" else "")} onmousemove={e: MouseEvent => Main.canvas.openHint(errorMsg.value.getOrElse(""), e)} onmouseout={_: MouseEvent => Main.canvas.closeHint()}>
+      <a class={"error" + (if (errorMsg.bind.isEmpty) " hidden" else "")} onmousemove={e: MouseEvent => Main.canvas.openHint(errorMsg.value.getOrElse(""), e)} onmouseout={_: MouseEvent => Main.canvas.closeHint()} onclick={e: Event =>
+        e.stopPropagation()
+        Main.canvas.fixHint()}>
         <i class="material-icons">error</i>
       </a>
       <strong class="title">
         {info.title}
       </strong>
-      <span class="description">
-        {description.bind}
-      </span>
+      <span class="description"></span>
     </div>
   }
 
@@ -166,7 +165,10 @@ trait Operation {
       nextOperation.value = Some(newOperation)
       Main.canvas.addOperation(newOperation)
       Main.canvas.closeModal()}>
-      {operationInfo.title}
+      <i class="material-icons help" onmousemove={e: MouseEvent => Main.canvas.openHint(operationInfo.description, e)} onmouseout={_: MouseEvent =>
+        Main.canvas.closeHint()} onclick={e: Event =>
+        e.stopPropagation()
+        Main.canvas.fixHint()}>help</i>{operationInfo.title}
     </div>
   }
 

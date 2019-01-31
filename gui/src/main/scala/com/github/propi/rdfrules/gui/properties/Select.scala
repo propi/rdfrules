@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Property
-import com.thoughtworks.binding.Binding.Constants
+import com.thoughtworks.binding.Binding.{Constants, Var}
 import com.thoughtworks.binding.{Binding, dom}
 import org.scalajs.dom.Event
 import org.scalajs.dom.html.Div
@@ -12,7 +12,9 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class Select(val name: String, val title: String, items: Constants[(String, String)], default: Option[String] = None, onSelect: String => Unit = _ => {}, val description: String = "") extends Property {
+class Select(val name: String, val title: String, items: Constants[(String, String)], default: Option[String] = None, onSelect: String => Unit = _ => {}, description: String = "") extends Property {
+
+  val descriptionVar: Binding.Var[String] = Var(description)
 
   private var selectedItem: Option[String] = default
   private val preparedItems: Constants[(String, String)] = if (default.isEmpty) {
@@ -32,7 +34,7 @@ class Select(val name: String, val title: String, items: Constants[(String, Stri
   final def valueView: Binding[Div] = {
     <div>
       <select onchange={e: Event =>
-        val x = e.srcElement.asInstanceOf[HTMLSelectElement].value
+        val x = e.target.asInstanceOf[HTMLSelectElement].value
         onSelect(x)
         selectedItem = if (x.isEmpty) None else Some(x)}>
         {for (item <- preparedItems) yield

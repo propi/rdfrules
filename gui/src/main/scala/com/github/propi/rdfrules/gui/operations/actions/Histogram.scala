@@ -12,11 +12,25 @@ import scala.concurrent.Future
 class Histogram(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.Histogram
   val properties: Constants[Property] = Constants(
-    new Checkbox("subject", "Subject"),
-    new Checkbox("predicate", "Predicate"),
-    new Checkbox("object", "Object")
+    new Checkbox("subject", "Subject", description = "Aggregate quads by subjects."),
+    new Checkbox("predicate", "Predicate", description = "Aggregate quads by predicates."),
+    new Checkbox("object", "Object", description = "Aggregate quads by objects.")
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
+
+  override def validate(): Boolean = {
+    if (super.validate()) {
+      val isValid = properties.value.iterator.collect {
+        case x: Checkbox => x.isChecked
+      }.exists(x => x)
+      if (!isValid) {
+        errorMsg.value = Some("No aggregate triple item is selected.")
+      }
+      isValid
+    } else {
+      false
+    }
+  }
 
   override def buildActionProgress(id: Future[String]): Option[ActionProgress] = Some(new results.Histogram(info.title, id))
 }

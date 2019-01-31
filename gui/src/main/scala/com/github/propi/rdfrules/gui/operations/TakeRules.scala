@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.gui.operations
 
 import com.github.propi.rdfrules.gui.properties._
+import com.github.propi.rdfrules.gui.utils.CommonValidators.GreaterThan
 import com.github.propi.rdfrules.gui.utils.StringConverters._
 import com.github.propi.rdfrules.gui.{Operation, OperationInfo, Property}
 import com.thoughtworks.binding.Binding.{Constants, Var}
@@ -11,7 +12,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 class TakeRules(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.TakeRules
   val properties: Constants[Property] = Constants(
-    new FixedText[Int]("value", "Take first N rules", "10")
+    new FixedText[Int]("value", "Take first N rules", "10", validator = GreaterThan[Int](0))
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 }

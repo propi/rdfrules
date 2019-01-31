@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.gui.operations
 
-import com.github.propi.rdfrules.gui.properties.{ChooseFileFromWorkspace, OptionalText, Select}
+import com.github.propi.rdfrules.gui.properties._
 import com.github.propi.rdfrules.gui.utils.CommonValidators.RegExp
 import com.github.propi.rdfrules.gui.{Operation, OperationInfo, Property, Workspace}
 import com.thoughtworks.binding.Binding.{Constants, Var}
@@ -17,4 +17,19 @@ class LoadGraph(fromOperation: Operation) extends Operation {
     new OptionalText[String]("graphName", "Graph name", description = "Name for this loaded graph. It must have the URI notation in angle brackets, e.g., <dbpedia> or <http://dbpedia.org>.", validator = RegExp("<.*>", true))
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
+
+  override def validate(): Boolean = {
+    if (super.validate()) {
+      val isValid = Iterator(properties.value.lift(0), properties.value.lift(1)).flatten.collect {
+        case x: ChooseFileFromWorkspace => x.getSelectedFile.map(_.path).getOrElse("")
+        case x: Text => x.getText
+      }.exists(_.nonEmpty)
+      if (!isValid) {
+        errorMsg.value = Some("No source is selected.")
+      }
+      isValid
+    } else {
+      false
+    }
+  }
 }

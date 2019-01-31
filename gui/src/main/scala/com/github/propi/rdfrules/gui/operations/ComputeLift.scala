@@ -12,7 +12,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 class ComputeLift(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.ComputeLift
   val properties: Constants[Property] = Constants(
-    new OptionalText[Double]("min", "Min confidence", "0.5", "A minimal cofidence threshold. This operation first counts the standard confidence for all rules and filter them by this minimal threshold, then it counts the lift measure by the computed cofindence. The value range is between 0.01 and 1 included. Default value is set to 0.5.", RegExp("1(\\.0+)?|0\\.0[1-9]\\d*|0\\.[1-9]\\d*", true))
+    new OptionalText[Double]("min", "Min confidence", "0.5", "A minimal confidence threshold. This operation first counts the standard confidence for all rules and filter them by this minimal threshold, then it counts the lift measure by the computed cofindence. The value range is between 0.01 and 1 included. Default value is set to 0.5.", RegExp("1(\\.0+)?|0\\.0[1-9]\\d*|0\\.[1-9]\\d*", true))
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 }
