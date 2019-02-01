@@ -1,12 +1,13 @@
 package com.github.propi.rdfrules.gui.results
 
-import com.github.propi.rdfrules.gui.ActionProgress
 import com.github.propi.rdfrules.gui.results.Rules.{Atom, Rule}
-import com.thoughtworks.binding.Binding.Constants
+import com.github.propi.rdfrules.gui.{ActionProgress, Downloader}
+import com.thoughtworks.binding.Binding.{Constants, Var}
 import com.thoughtworks.binding.{Binding, dom}
-import org.scalajs.dom.html.{Div, Span}
-import org.scalajs.dom.raw.HTMLSpanElement
-import org.scalajs.{dom => dom2}
+import org.scalajs.dom.Event
+import org.scalajs.dom.html.Div
+import org.scalajs.dom.raw.HTMLSelectElement
+import com.github.propi.rdfrules.gui.utils.StringConverters._
 
 import scala.concurrent.Future
 import scala.scalajs.js
@@ -15,6 +16,8 @@ import scala.scalajs.js
   * Created by Vaclav Zeman on 14. 9. 2018.
   */
 class Rules(val title: String, val id: Future[String]) extends ActionProgress with Pagination[(Rule, Int)] {
+
+  private val selectedCluster: Var[Option[Int]] = Var(None)
 
   /*@dom
   private def viewAtom(atom: Atom): Binding[Div] = <div class="atom">
@@ -52,6 +55,32 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
 
   private def viewAtom(atom: Atom): String = s"( ${atom.subject.value} ${atom.predicate} ${atom.`object`.value}${atom.graphs.toOption.map(x => if (x.length == 1) x.head else x.mkString(", ")).map(" " + _).getOrElse("")} )"
 
+  private def exportJson(rules: Seq[js.Dynamic]): Unit = {
+    Downloader.download("rules.json", js.Array(rules: _*))
+  }
+
+  private def exportText(rules: Seq[js.Dynamic]): Unit = {
+    val textRules = rules.view.map(_.asInstanceOf[Rule]).map { rule =>
+      rule.body.map(viewAtom).mkString(" ^ ") + " => " + viewAtom(rule.head) + " | " + rule.measures.view.map(x => s"${x.name}: ${x.value}").mkString(", ")
+    }
+    Downloader.download("rules.txt", textRules)
+  }
+
+  private def getClusters(rules: Seq[js.Dynamic]): Seq[(Int, Int)] = {
+    rules.view
+      .map(_.asInstanceOf[Rule])
+      .flatMap(_.measures.find(_.name == "Cluster").map(_.value.toInt))
+      .groupBy(x => x)
+      .mapValues(_.size)
+      .toList
+      .sortBy(_._1)
+  }
+
+  private def getRulesByCluster(rules: Seq[js.Dynamic], cluster: Option[Int]): Seq[js.Dynamic] = cluster match {
+    case Some(cluster) => rules.view.filter(_.asInstanceOf[Rule].measures.exists(x => x.name == "Cluster" && x.value == cluster))
+    case None => rules
+  }
+
   @dom
   def viewRecord(record: (Rule, Int)): Binding[Div] = <div class="rule">
     <div class="text">
@@ -78,14 +107,29 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
     <div class="rules-amount">
       <span class="text">Number of rules:</span>
       <span class="number">
-        {result.value.size.toString}
+        {getRulesByCluster(result.value, selectedCluster.bind).size.toString}
       </span>
     </div>
+    <div class="rules-tools">
+      <a href="#" onclick={e: Event =>
+        e.preventDefault()
+        exportJson(getRulesByCluster(result.value, selectedCluster.value))}>Export as JSON</a>
+      <a href="#" onclick={e: Event =>
+        e.preventDefault()
+        exportText(getRulesByCluster(result.value, selectedCluster.value))}>Export as TEXT</a>{val clusters = getClusters(result.value)
+    <select class={"clusters" + (if (clusters.isEmpty) " hidden" else "")} onchange={e: Event =>
+      selectedCluster.value = stringToTryInt(e.target.asInstanceOf[HTMLSelectElement].value).toOption
+      setPage(1)}>
+      <option value="">All clusters</option>{for (cluster <- Constants(clusters: _*)) yield <option value={"" + cluster._1} selected={selectedCluster.bind.contains(cluster._1)}>
+      {"Cluster " + cluster._1 + " (" + cluster._2 + ")"}
+    </option>}
+    </select>}
+    </div>
     <div class="rules-body">
-      {viewRecords(result.value.view.map(_.asInstanceOf[Rule]).zipWithIndex).bind}
+      {viewRecords(getRulesByCluster(result.value, selectedCluster.bind).view.map(_.asInstanceOf[Rule]).zipWithIndex).bind}
     </div>
     <div class="rules-pages">
-      {viewPages(result.value.size).bind}
+      {viewPages(getRulesByCluster(result.value, selectedCluster.bind).size).bind}
     </div>
   </div>
 

@@ -15,6 +15,8 @@ trait Pagination[T] {
 
   def viewRecord(record: T): Binding[Div]
 
+  def setPage(x: Int): Unit = page.value = x
+
   @dom
   def viewRecords(records: Seq[T]): Binding[Div] = {
     val p = page.bind
