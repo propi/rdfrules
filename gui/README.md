@@ -32,7 +32,7 @@ In the `/dist/bin` directory, there should be created a `workspace` directory wh
 
 The GUI is available on this address: http://localhost:8899/api/webapp
 
-You can copy datasets into the "workspace" directory in the running docker container by this command:
+You can copy datasets into the `workspace` directory in the running docker container by this command:
 
 ```
 > docker cp path/to/dataset rdfrules:/root/webapp/workspace
