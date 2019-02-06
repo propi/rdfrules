@@ -1,0 +1,563 @@
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  src: url(../fonts/MaterialIcons-Regular.eot);
+  /* For IE6-8 */
+  src: local('Material Icons'), local('MaterialIcons-Regular'), url(../fonts/MaterialIcons-Regular.woff2) format('woff2'), url(../fonts/MaterialIcons-Regular.woff) format('woff'), url(../fonts/MaterialIcons-Regular.ttf) format('truetype');
+}
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 1em;
+  vertical-align: middle;
+  display: inline-block;
+  line-height: 1em;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  /* Support for all WebKit browsers. */
+  -webkit-font-smoothing: antialiased;
+  /* Support for Safari and Chrome. */
+  text-rendering: optimizeLegibility;
+  /* Support for Firefox. */
+  -moz-osx-font-smoothing: grayscale;
+  /* Support for IE. */
+  font-feature-settings: 'liga';
+}
+.persist-size {
+  -webkit-box-sizing: border-box;
+  /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;
+  /* Firefox, other Gecko */
+  box-sizing: border-box;
+  /* Opera/IE 8+ */
+}
+html,
+body {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  font-family: serif;
+  background-color: #FAFAFA;
+  font-size: 6vw;
+  font-size: 6vmin;
+  color: #1c1c1c;
+}
+@media (min-width: 993px) {
+  html,
+  body {
+    font-size: 20px;
+  }
+}
+* {
+  margin: 0;
+  padding: 0;
+}
+header {
+  -webkit-box-sizing: border-box;
+  /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;
+  /* Firefox, other Gecko */
+  box-sizing: border-box;
+  /* Opera/IE 8+ */
+  height: 10%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1em;
+  background-color: #e6eeff;
+  border-bottom: 2px solid black;
+}
+header h1 {
+  font-size: 5vh;
+}
+header .version {
+  font-size: 3vh;
+  font-style: italic;
+  color: gray;
+}
+main {
+  height: 90%;
+}
+.canvas {
+  height: 100%;
+  position: relative;
+}
+.canvas .modal {
+  position: absolute;
+  overflow: auto;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+  background-color: white;
+}
+.canvas .modal .close {
+  right: 0.2em;
+  font-size: 2em;
+  cursor: pointer;
+  position: absolute;
+  z-index: 101;
+}
+.canvas .modal.closed {
+  display: none;
+}
+.canvas .content {
+  -webkit-box-sizing: border-box;
+  /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;
+  /* Firefox, other Gecko */
+  box-sizing: border-box;
+  /* Opera/IE 8+ */
+  height: 100%;
+  overflow: auto;
+  z-index: 1;
+  padding: 1em 0;
+}
+.canvas .operations {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100%;
+  width: 100%;
+}
+.canvas .operations .operation {
+  -webkit-box-sizing: border-box;
+  /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;
+  /* Firefox, other Gecko */
+  box-sizing: border-box;
+  /* Opera/IE 8+ */
+  width: 85%;
+  max-width: 25em;
+  border: 2px solid #000000;
+  border-radius: 5px;
+  background-color: #ebebeb;
+  text-align: center;
+  position: relative;
+  padding: 0.7em 1.5em;
+  margin-bottom: 1.5em;
+  cursor: default;
+}
+.canvas .operations .operation .action-buttons {
+  cursor: pointer;
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, 100%);
+  font-size: 1em;
+  bottom: 0;
+  white-space: nowrap;
+}
+.canvas .operations .operation .action-buttons .launch,
+.canvas .operations .operation .action-buttons .result {
+  background-color: #ecffe5;
+  border: 2px solid #000000;
+  padding: 0.2em 0.5em;
+  display: inline-block;
+  margin: auto 0.1em;
+  border-top: 1px solid black;
+}
+.canvas .operations .operation .action-buttons .result.hidden {
+  display: none;
+}
+.canvas .operations .operation .add {
+  cursor: pointer;
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, 0);
+  font-size: 1.5em;
+  bottom: -1em;
+}
+.canvas .operations .operation .add.hidden {
+  display: none;
+}
+.canvas .operations .operation .del {
+  position: absolute;
+  right: 0.2em;
+  top: 0;
+  cursor: pointer;
+}
+.canvas .operations .operation .error {
+  color: red;
+  position: absolute;
+  right: 1.3em;
+  top: 0;
+  cursor: help;
+}
+.canvas .operations .operation .error.hidden {
+  display: none;
+}
+.canvas .operations .operation.has-next:after {
+  content: " ";
+  display: block;
+  position: absolute;
+  left: 0;
+  bottom: -1.5em;
+  height: 1.3em;
+  width: 100%;
+  background: url(../images/arrow-down.png) no-repeat center;
+  background-size: contain;
+}
+.canvas .operations .operation.root {
+  font-size: 2em;
+  border: 0;
+  background: none;
+  margin: 0;
+}
+.canvas .operations .operation.root .add {
+  bottom: 0;
+}
+.canvas .operations .operation.root .del {
+  display: none;
+}
+.canvas .operations .operation.hidden {
+  display: none;
+}
+.following-operations {
+  -webkit-box-sizing: border-box;
+  /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;
+  /* Firefox, other Gecko */
+  box-sizing: border-box;
+  /* Opera/IE 8+ */
+  min-height: 100%;
+  width: 100%;
+  padding-top: 3em;
+}
+.following-operations h3 {
+  font-size: 1.3em;
+  text-align: center;
+  font-weight: bold;
+}
+.following-operations h3.hidden {
+  display: none;
+}
+.following-operations .transformations,
+.following-operations .actions {
+  padding: 1em 1em 2em 1em;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  max-width: 1024px;
+  margin: auto;
+}
+.following-operations .transformations .operation-info,
+.following-operations .actions .operation-info {
+  position: relative;
+  border: 2px solid #b5b5b5;
+  border-radius: 5px;
+  white-space: nowrap;
+  padding: 0.8em 1.5em;
+  margin: 0.5em;
+  background-color: cornsilk;
+  cursor: pointer;
+}
+.following-operations .transformations .operation-info.action,
+.following-operations .actions .operation-info.action {
+  background-color: #ecffe5;
+}
+.following-operations .transformations .operation-info .help,
+.following-operations .actions .operation-info .help {
+  position: absolute;
+  right: 2px;
+  top: 1px;
+  cursor: help;
+  color: #7e7e7e;
+}
+.properties {
+  -webkit-box-sizing: border-box;
+  /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;
+  /* Firefox, other Gecko */
+  box-sizing: border-box;
+  /* Opera/IE 8+ */
+  padding-top: 4em;
+  padding-bottom: 2em;
+}
+.properties table {
+  border: 2px solid black;
+  border-collapse: collapse;
+  margin: auto;
+  width: 90%;
+}
+.properties table td,
+.properties table th {
+  border: 2px solid black;
+  padding: 0.5em;
+}
+.properties table th {
+  font-weight: normal;
+  text-align: right;
+}
+.properties table th .title {
+  display: flex;
+  justify-content: space-between;
+}
+.properties table th .title .hints {
+  display: flex;
+  margin-right: 0.5em;
+}
+.properties table th .title .hints div.error,
+.properties table th .title .hints div.description {
+  cursor: help;
+}
+.properties table th .title .hints div.error.hidden,
+.properties table th .title .hints div.description.hidden {
+  display: none;
+}
+.properties table th .title .hints div.error i {
+  color: red;
+}
+.properties table td {
+  width: 75%;
+}
+.properties table td a.add,
+.properties table td a.del {
+  cursor: pointer;
+}
+.properties table td table {
+  width: 100%;
+}
+.properties table td table th {
+  width: 1%;
+  white-space: nowrap;
+}
+.properties table td table td {
+  width: auto;
+}
+.properties .choose-file {
+  padding: 0.5em;
+}
+.properties .choose-file .directory {
+  cursor: default;
+}
+.properties .choose-file .directory .name {
+  font-style: italic;
+}
+.properties .choose-file .directory .files {
+  padding-left: 1em;
+}
+.properties .choose-file .file {
+  cursor: pointer;
+}
+.properties .choose-file .file:before {
+  content: '-';
+}
+.properties input,
+.properties select {
+  -webkit-box-sizing: border-box;
+  /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;
+  /* Firefox, other Gecko */
+  box-sizing: border-box;
+  /* Opera/IE 8+ */
+  width: 100%;
+  padding: 0.3em 0.5em;
+  border: 1px solid #cecece;
+  font-size: 0.8em;
+}
+.properties input.checkbox {
+  width: 1.3em;
+  height: 1.3em;
+}
+.dynamic-group > table {
+  margin-bottom: 0.5em;
+}
+.properties.sub {
+  padding: 0;
+}
+.properties.sub > table {
+  margin-bottom: 0;
+}
+.action-progress {
+  width: 90%;
+  margin: auto;
+  padding-top: 3em;
+}
+.action-progress.waiting {
+  text-align: center;
+}
+.action-progress h2 {
+  font-weight: bold;
+  font-size: 1.5em;
+  margin: 0.2em 0 0.6em 0;
+  border-bottom: 1px solid darkgray;
+}
+.action-progress h3 {
+  font-weight: bold;
+  font-size: 1.2em;
+  margin: 0.2em 0;
+}
+.action-progress ul.meta {
+  list-style: none;
+  margin-bottom: 1em;
+}
+.action-progress ul.meta .hidden {
+  display: none;
+}
+.action-progress ul.meta .loading {
+  width: 5em;
+}
+.action-progress ul.meta .loading img {
+  width: 100%;
+}
+.action-progress ul.logs {
+  background-color: whitesmoke;
+  border: 1px solid gray;
+  height: 25vh;
+  min-height: 130px;
+  overflow: auto;
+  margin-bottom: 2em;
+  list-style: none;
+  font-size: 0.8em;
+}
+.action-progress .result {
+  margin-bottom: 1em;
+}
+.action-progress .result .rules-tools a,
+.action-progress .result .rules-tools select,
+.action-progress .result .rules-tools input {
+  display: inline-block;
+}
+.action-progress .result .rules-tools a {
+  margin-right: 0.3em;
+}
+.action-progress .result .rules-tools select.clusters {
+  -webkit-box-sizing: border-box;
+  /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;
+  /* Firefox, other Gecko */
+  box-sizing: border-box;
+  /* Opera/IE 8+ */
+  height: 1.5em;
+  font-size: 0.8em;
+  margin-left: 0.5em;
+}
+.action-progress .result .rules-tools select.clusters.hidden {
+  display: none;
+}
+.action-progress .result .rules-tools input.fulltext {
+  -webkit-box-sizing: border-box;
+  /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;
+  /* Firefox, other Gecko */
+  box-sizing: border-box;
+  /* Opera/IE 8+ */
+  height: 1.5em;
+  font-size: 0.8em;
+  width: 15em;
+  margin-left: 0.5em;
+}
+.action-progress .result .records {
+  margin: 1em 0;
+}
+.action-progress .result .pages .page {
+  -webkit-box-sizing: border-box;
+  /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;
+  /* Firefox, other Gecko */
+  box-sizing: border-box;
+  /* Opera/IE 8+ */
+  display: inline-block;
+  font-size: 0.8em;
+  border: 1px solid #eaeaea;
+  padding: 0.1em 0.3em;
+  background-color: #fffeef;
+  cursor: pointer;
+  margin: 0 0.5em 0.5em 0;
+  min-width: 2.3em;
+  text-align: center;
+}
+.action-progress .result .pages .page.active {
+  background-color: #f6f6ff;
+}
+.action-progress .result .pages .page:hover {
+  background-color: #f4ffdf;
+}
+.action-progress .result .quad {
+  display: flex;
+}
+.action-progress .result .quad .subject,
+.action-progress .result .quad .predicate,
+.action-progress .result .quad .object,
+.action-progress .result .quad .graph {
+  padding-right: 0.8em;
+}
+.action-progress .result .quad:after {
+  content: '.';
+}
+.action-progress .result .type {
+  margin-bottom: 0.5em;
+}
+.action-progress .result .type .predicate-types {
+  font-size: 0.9em;
+  font-style: italic;
+}
+.action-progress .result .item {
+  margin-bottom: 0.5em;
+}
+.action-progress .result .item .info {
+  display: flex;
+}
+.action-progress .result .item .info .subject {
+  padding-right: 0.5em;
+}
+.action-progress .result .item .info .predicate {
+  padding-right: 0.5em;
+}
+.action-progress .result .item .info .object:after {
+  content: ':';
+}
+.action-progress .result .item .info .amount:before {
+  content: '\00a0';
+}
+.action-progress .result .item .bar {
+  background-color: #ff6060;
+  min-width: 4em;
+  width: 1%;
+  font-size: 0.9em;
+  color: white;
+  padding-right: 0.3em;
+  box-sizing: border-box;
+  text-align: right;
+  border-radius: 0 5px 5px 0;
+}
+.action-progress .result .rule {
+  margin-bottom: 0.5em;
+}
+.action-progress .result .rule .measures {
+  font-size: 0.9em;
+  font-style: italic;
+}
+.whint {
+  position: fixed;
+  z-index: 200;
+  border: 2px solid #383838;
+  padding: 0.6em;
+  font-size: 0.68em;
+  background-color: #548dff;
+  border-radius: 10px;
+  color: white;
+  max-width: 400px;
+  font-family: monospace;
+}
+.whint.hidden {
+  display: none;
+}
+.whint .close {
+  float: right;
+  margin-left: 0.7em;
+  margin-bottom: 0.4em;
+  font-size: 1.2em;
+  cursor: pointer;
+}
+.whint .close.hidden {
+  display: none;
+}
+/*# sourceMappingURL=home.css.map */
