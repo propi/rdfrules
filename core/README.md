@@ -1,6 +1,6 @@
-# RdfRules Core - Scala API
+# RDFRules Core - Scala API
 
-This is the core of the RdfRules tool written in the Scala language. It has implemented main functionalities and four basic abstractions defined in the [root](https://github.com/propi/rdfrules).
+This is the core of the RDFRules tool written in the Scala language. It has implemented main functionalities and four basic abstractions defined in the [root](https://github.com/propi/rdfrules).
 
 ## Getting Started
 
