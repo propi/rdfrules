@@ -371,6 +371,15 @@ main {
   ul.meta {
     list-style: none;
     margin-bottom: 1em;
+    .hidden {
+      display: none;
+    }
+    .loading {
+      width: 5em;
+      img {
+        width: 100%;
+      }
+    }
   }
   ul.logs {
     background-color: whitesmoke;
@@ -384,6 +393,30 @@ main {
   }
   .result {
     margin-bottom: 1em;
+    .rules-tools {
+      a, select, input {
+        display: inline-block;
+      }
+      a {
+        margin-right: 0.3em;
+      }
+      select.clusters {
+        .persist-size;
+        height: 1.5em;
+        font-size: 0.8em;
+        margin-left: 0.5em;
+        &.hidden {
+          display: none;
+        }
+      }
+      input.fulltext {
+        .persist-size;
+        height: 1.5em;
+        font-size: 0.8em;
+        width: 15em;
+        margin-left: 0.5em;
+      }
+    }
     .records {
       margin: 1em 0;
     }

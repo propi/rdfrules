@@ -9,6 +9,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
 import scala.scalajs.js.timers._
 import scala.util.{Failure, Success, Try}
+import org.scalajs.dom.document
+import org.scalajs.dom.raw.HTMLUListElement
 
 /**
   * Created by Vaclav Zeman on 14. 9. 2018.
@@ -25,8 +27,23 @@ trait ActionProgress {
       progress.value = Some(Success(result))
       if (result.finished.isEmpty) {
         setTimeout(3000)(getStatus(id))
+        setTimeout(500) {
+          val x = document.getElementById("logs").asInstanceOf[HTMLUListElement]
+          if (x != null) x.scrollTop = x.scrollHeight
+        }
       }
     case Failure(th) => progress.value = Some(Failure(th))
+  }
+
+  private def getDuration(start: String, end: String): String = {
+    val duration = math.ceil((new js.Date(end).getTime() - new js.Date(start).getTime()) / 1000).toInt
+    if (duration > 60) {
+      val mins = math.floor(duration / 60.0).toInt
+      val secs = duration - mins * 60
+      s"$mins min $secs sec"
+    } else {
+      s"$duration sec"
+    }
   }
 
   id.onComplete {
@@ -47,8 +64,16 @@ trait ActionProgress {
           <li>Started:
             {result.started}
           </li>
-          <li>Finished:
+          <li class={"loading" + (if (result.finished.isEmpty) "" else " hidden")}>
+            <img src="images/loading.gif"/>
+          </li>
+          <li class={if (result.finished.nonEmpty) "" else " hidden"}>
+            Finished:
             {result.finished.getOrElse("")}
+          </li>
+          <li class={if (result.finished.nonEmpty) "" else " hidden"}>
+            Duration:
+            {getDuration(result.started, result.finished.getOrElse(result.started))}
           </li>
         </ul>
         <h3>Result</h3>
@@ -59,7 +84,7 @@ trait ActionProgress {
         }}
         </div>
         <h3>Logs</h3>
-        <ul class="logs">
+        <ul class="logs" id="logs">
           {for (log <- result.getLogs) yield
           <li>
             <span class="time">

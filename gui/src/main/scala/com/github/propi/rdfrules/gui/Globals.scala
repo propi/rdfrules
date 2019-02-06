@@ -1,5 +1,7 @@
 package com.github.propi.rdfrules.gui
 
+import org.scalajs.dom.Blob
+
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSGlobalScope
 
@@ -10,4 +12,6 @@ import scala.scalajs.js.annotation.JSGlobalScope
 @JSGlobalScope
 object Globals extends js.Object {
   var endpoint: String = js.native
+  def stripText(x: String): String = js.native
+  def saveAs(blob: Blob, filename: String): Unit = js.native
 }

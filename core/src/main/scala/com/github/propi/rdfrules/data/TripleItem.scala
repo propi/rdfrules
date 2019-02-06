@@ -30,7 +30,7 @@ object TripleItem {
 
   case class LongUri(uri: String) extends Uri {
     def toPrefixedUri: PrefixedUri = {
-      val PrefixedUriPattern = "(.+/)(.+)".r
+      val PrefixedUriPattern = "(.+[/#])(.+)".r
       uri match {
         case PrefixedUriPattern(nameSpace, localName) => PrefixedUri("", nameSpace, localName)
         case _ => throw new IllegalArgumentException

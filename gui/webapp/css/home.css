@@ -398,6 +398,15 @@ main {
   list-style: none;
   margin-bottom: 1em;
 }
+.action-progress ul.meta .hidden {
+  display: none;
+}
+.action-progress ul.meta .loading {
+  width: 5em;
+}
+.action-progress ul.meta .loading img {
+  width: 100%;
+}
 .action-progress ul.logs {
   background-color: whitesmoke;
   border: 1px solid gray;
@@ -410,6 +419,40 @@ main {
 }
 .action-progress .result {
   margin-bottom: 1em;
+}
+.action-progress .result .rules-tools a,
+.action-progress .result .rules-tools select,
+.action-progress .result .rules-tools input {
+  display: inline-block;
+}
+.action-progress .result .rules-tools a {
+  margin-right: 0.3em;
+}
+.action-progress .result .rules-tools select.clusters {
+  -webkit-box-sizing: border-box;
+  /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;
+  /* Firefox, other Gecko */
+  box-sizing: border-box;
+  /* Opera/IE 8+ */
+  height: 1.5em;
+  font-size: 0.8em;
+  margin-left: 0.5em;
+}
+.action-progress .result .rules-tools select.clusters.hidden {
+  display: none;
+}
+.action-progress .result .rules-tools input.fulltext {
+  -webkit-box-sizing: border-box;
+  /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;
+  /* Firefox, other Gecko */
+  box-sizing: border-box;
+  /* Opera/IE 8+ */
+  height: 1.5em;
+  font-size: 0.8em;
+  width: 15em;
+  margin-left: 0.5em;
 }
 .action-progress .result .records {
   margin: 1em 0;

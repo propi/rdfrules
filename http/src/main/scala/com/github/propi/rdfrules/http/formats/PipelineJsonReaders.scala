@@ -65,7 +65,7 @@ object PipelineJsonReaders {
   implicit val filterQuadsReader: RootJsonReader[data.FilterQuads] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new data.FilterQuads(
-      fields("or").convertTo[JsArray].elements.map(json => json.convertTo[QuadMatcher] -> fields.get("inverse").exists(_.convertTo[Boolean]))
+      fields("or").convertTo[JsArray].elements.map(json => json.convertTo[QuadMatcher] -> json.asJsObject.fields.get("inverse").exists(_.convertTo[Boolean]))
     )
   }
 

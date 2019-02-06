@@ -26,7 +26,9 @@ object Deserializer {
   def deserialize[T](is: InputStream)(implicit deserializer: Deserializer[T], serializationSize: SerializationSize[T]): T = {
     if (serializationSize.size >= 0) {
       val readBytes = new Array[Byte](serializationSize.size)
-      if (is.read(readBytes) == -1) {
+      if (serializationSize.size == 0) {
+        deserializer.deserialize(readBytes)
+      } else if (is.read(readBytes) == -1) {
         throw new EOFException()
       } else {
         deserializer.deserialize(readBytes)

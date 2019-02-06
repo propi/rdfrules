@@ -1,9 +1,9 @@
 package com.github.propi.rdfrules.gui
 
+import org.scalajs.dom.raw.{Blob, BlobPropertyBag}
+
 import scala.scalajs.js
-import scala.scalajs.js.{JSON, URIUtils}
-import org.scalajs.dom.document
-import org.scalajs.dom.html.Anchor
+import scala.scalajs.js.JSON
 
 /**
   * Created by Vaclav Zeman on 1. 2. 2019.
@@ -11,13 +11,15 @@ import org.scalajs.dom.html.Anchor
 object Downloader {
 
   def download(filename: String, data: String, mime: String): Unit = {
-    val el = document.createElement("a").asInstanceOf[Anchor]
+    val blob = new Blob(js.Array[js.Any](data), BlobPropertyBag(`type` = mime))
+    Globals.saveAs(blob, filename)
+    /*val el = document.createElement("a").asInstanceOf[Anchor]
     el.href = "data:" + mime + "," + URIUtils.encodeURIComponent(data)
     el.setAttribute("download", filename)
     el.style.display = "none"
     document.body.appendChild(el)
     el.click()
-    document.body.removeChild(el)
+    document.body.removeChild(el)*/
   }
 
   def download(filename: String, data: js.Any): Unit = {

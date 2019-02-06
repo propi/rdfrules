@@ -36,7 +36,12 @@ object Workspace {
     getTreeInDirectory(directory)
   }
 
-  def path(relativePath: String): String = new File(directory, relativePath.trim.replaceAll("(^|/)\\.\\.(/|$)", "")).getAbsolutePath
+  def path(relativePath: String): String = {
+    val file = new File(directory, relativePath.trim.replaceAll("(^|/)\\.\\.(/|$)", ""))
+    val parent = file.getParentFile
+    if (!parent.isDirectory) parent.mkdirs()
+    file.getAbsolutePath
+  }
 
   sealed trait FileTree {
     val name: String
