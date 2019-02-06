@@ -20,7 +20,7 @@ or
 > main.bat   #for Windows
 ```
 
-In the "dist/bin" directory, there should be created a "workspace" directory where you can put datasets for analysis. Then, if you click on the "Load graph" or "Load dataset" operation, the content of the "workspace" directory is displayed and you can select datasets to be loaded.
+In the `/dist/bin` directory, there should be created a `workspace` directory where you can put datasets for analysis. Then, if you click on the "Load graph" or "Load dataset" operation, the content of the `workspace` directory is displayed and you can select datasets to be loaded.
 
 ### Option 3: Run RDFRules HTTP API + GUI in Docker
 
