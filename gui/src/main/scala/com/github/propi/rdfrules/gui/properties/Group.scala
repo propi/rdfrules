@@ -16,6 +16,13 @@ class Group(val name: String, val title: String, properties: Constants[Property]
 
   def validate(): Option[String] = properties.value.iterator.map(_.validate()).find(_.nonEmpty).flatten.map(x => s"There is an error within '$title' properties: $x")
 
+  def setValue(data: js.Dynamic): Unit = {
+    for (prop <- properties.value) {
+      val propData = data.selectDynamic(prop.name)
+      if (!js.isUndefined(propData)) prop.setValue(propData)
+    }
+  }
+
   def toJson: js.Any = js.Dictionary(properties.value.map(x => x.name -> x.toJson).filter(x => !js.isUndefined(x._2)): _*)
 
   @dom

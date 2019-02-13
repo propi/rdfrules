@@ -25,6 +25,11 @@ class DiscretizeEqualDistance(fromOperation: Operation) extends Operation {
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 
+  override def setValue(data: js.Dynamic): Unit = {
+    data.bins = data.task.bins
+    super.setValue(data)
+  }
+
   override protected def propertiesToJson: Dictionary[js.Any] = {
     val x = super.propertiesToJson
     val bins = x.remove("bins").get

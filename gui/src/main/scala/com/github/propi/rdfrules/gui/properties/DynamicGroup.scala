@@ -21,6 +21,17 @@ class DynamicGroup(val name: String, val title: String, properties: () => Consta
 
   def validate(): Option[String] = groups.value.iterator.flatMap(_.value.iterator).map(_.validate()).find(_.nonEmpty).flatten.map(x => s"There is an error within '$title' properties: $x")
 
+  def setValue(data: js.Dynamic): Unit = {
+    for (x <- data.asInstanceOf[js.Array[js.Dynamic]]) {
+      val props = properties()
+      for (prop <- props.value) {
+        val propData = x.selectDynamic(prop.name)
+        if (!js.isUndefined(propData)) prop.setValue(propData)
+      }
+      groups.value += props
+    }
+  }
+
   def toJson: js.Any = js.Array(groups.value.map(properties => js.Dictionary(properties.value.map(x => x.name -> x.toJson).filter(x => !js.isUndefined(x._2)): _*)): _*)
 
   @dom

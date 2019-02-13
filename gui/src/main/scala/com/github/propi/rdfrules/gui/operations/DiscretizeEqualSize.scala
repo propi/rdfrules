@@ -24,6 +24,11 @@ class DiscretizeEqualSize(fromOperation: Operation) extends Operation {
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 
+  override def setValue(data: js.Dynamic): Unit = {
+    data.support = data.task.support
+    super.setValue(data)
+  }
+
   override protected def propertiesToJson: Dictionary[js.Any] = {
     val x = super.propertiesToJson
     val support = x.remove("support").get

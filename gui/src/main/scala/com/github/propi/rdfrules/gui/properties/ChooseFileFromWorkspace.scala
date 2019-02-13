@@ -30,6 +30,11 @@ class ChooseFileFromWorkspace(files: Future[Constants[FileValue]],
 
   val descriptionVar: Binding.Var[String] = Var(description)
 
+  def setValue(data: js.Dynamic): Unit = {
+    val path = data.asInstanceOf[String]
+    selectedFile.value = Some(FileValue.File(path.replaceFirst(".*/", ""), path))
+  }
+
   def getSelectedFile: Option[FileValue.File] = selectedFile.value
 
   def validate(): Option[String] = {

@@ -24,6 +24,8 @@ trait Property {
 
   def validate(): Option[String]
 
+  def setValue(data: js.Dynamic): Unit
+
   @dom
   def view: Binding[TableRow] = {
     <tr>

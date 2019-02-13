@@ -18,6 +18,10 @@ class Checkbox(val name: String, val title: String, default: Boolean = false, de
 
   val descriptionVar: Binding.Var[String] = Var(description)
 
+  def setValue(data: js.Dynamic): Unit = {
+    _isChecked = data.asInstanceOf[Boolean]
+  }
+
   def isChecked: Boolean = _isChecked
 
   def validate(): Option[String] = None

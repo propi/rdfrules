@@ -3,6 +3,8 @@ package com.github.propi.rdfrules.gui
 import com.github.propi.rdfrules.gui.operations._
 import com.thoughtworks.binding.Binding.Constants
 
+import scala.scalajs.js
+
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
@@ -412,6 +414,62 @@ object OperationInfo {
     val description: String = "Get number of rules from the ruleset."
 
     def buildOperation(from: Operation): Operation = new actions.RulesetSize(from)
+  }
+
+  def apply(op: js.Dynamic): Option[OperationInfo] = {
+    val name = op.name.asInstanceOf[String]
+    val ops = Iterator(
+      LoadGraph,
+      LoadDataset,
+      LoadIndex,
+      MergeDatasets,
+      AddPrefixes,
+      MapQuads,
+      FilterQuads,
+      TakeQuads,
+      DropQuads,
+      SliceQuads,
+      CacheDataset,
+      Index,
+      CacheDatasetAction,
+      ExportQuads,
+      GetQuads,
+      Prefixes,
+      DatasetSize,
+      Types,
+      Histogram,
+      CacheIndex,
+      ToDataset,
+      Mine,
+      CacheIndexAction,
+      LoadRuleset,
+      FilterRules,
+      TakeRules,
+      DropRules,
+      SliceRules,
+      Sorted,
+      Sort,
+      ComputeConfidence,
+      ComputePcaConfidence,
+      ComputeLift,
+      MakeClusters,
+      GraphBasedRules,
+      CacheRuleset,
+      CacheRulesetAction,
+      ExportRules,
+      GetRules,
+      RulesetSize
+    )
+    if (name == "Discretize") {
+      op.parameters.task.name.asInstanceOf[String] match {
+        case "EquidistanceDiscretizationTask" => Some(DiscretizeEqualDistance)
+        case "EquifrequencyDiscretizationTask" => Some(DiscretizeEqualFrequency)
+        case "EquisizeDiscretizationTask" => Some(DiscretizeEqualSize)
+        case _ => None
+      }
+    } else {
+      ops.find(_.name == name)
+    }
   }
 
 }

@@ -111,7 +111,14 @@ main {
     height: 100%;
     overflow: auto;
     z-index: 1;
-    padding: 1em 0;
+    padding-top: 2.5em;
+    //padding-bottom: 1em;
+    position: relative;
+    &:after {
+      content: ' ';
+      display: block;
+      height: 1em;
+    }
   }
   .operations {
     display: flex;
@@ -181,7 +188,19 @@ main {
       }
     }
     .operation.has-next {
-      &:after {
+      .add {
+        display: block;
+        font-size: 1em;
+        height: 1.3em;
+        bottom: -1.45em;
+        width: 100%;
+        background: url(../images/arrow-down.png) no-repeat center;
+        background-size: contain;
+        i {
+          display: none;
+        }
+      }
+      /*&:after {
         content: " ";
         display: block;
         position: absolute;
@@ -191,7 +210,7 @@ main {
         width: 100%;
         background: url(../images/arrow-down.png) no-repeat center;
         background-size: contain;
-      }
+      }*/
     }
     .operation.root {
       font-size: 2em;
@@ -518,5 +537,22 @@ main {
     &.hidden {
       display: none;
     }
+  }
+}
+
+.tools {
+  .persist-size;
+  position: absolute;
+  width: 100%;
+  top: 0;
+  text-align: right;
+  line-height: 1.7em;
+  padding-right: 0.5em;
+  #importfile {
+    display: none;
+  }
+  i {
+    font-size: 1.3em;
+    cursor: pointer;
   }
 }

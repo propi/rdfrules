@@ -116,7 +116,13 @@ main {
   height: 100%;
   overflow: auto;
   z-index: 1;
-  padding: 1em 0;
+  padding-top: 2.5em;
+  position: relative;
+}
+.canvas .content:after {
+  content: ' ';
+  display: block;
+  height: 1em;
 }
 .canvas .operations {
   display: flex;
@@ -192,16 +198,30 @@ main {
 .canvas .operations .operation .error.hidden {
   display: none;
 }
-.canvas .operations .operation.has-next:after {
-  content: " ";
+.canvas .operations .operation.has-next {
+  /*&:after {
+        content: " ";
+        display: block;
+        position: absolute;
+        left: 0;
+        bottom: -1.5em;
+        height: 1.3em;
+        width: 100%;
+        background: url(../images/arrow-down.png) no-repeat center;
+        background-size: contain;
+      }*/
+}
+.canvas .operations .operation.has-next .add {
   display: block;
-  position: absolute;
-  left: 0;
-  bottom: -1.5em;
+  font-size: 1em;
   height: 1.3em;
+  bottom: -1.45em;
   width: 100%;
   background: url(../images/arrow-down.png) no-repeat center;
   background-size: contain;
+}
+.canvas .operations .operation.has-next .add i {
+  display: none;
 }
 .canvas .operations .operation.root {
   font-size: 2em;
@@ -559,5 +579,26 @@ main {
 }
 .whint .close.hidden {
   display: none;
+}
+.tools {
+  -webkit-box-sizing: border-box;
+  /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;
+  /* Firefox, other Gecko */
+  box-sizing: border-box;
+  /* Opera/IE 8+ */
+  position: absolute;
+  width: 100%;
+  top: 0;
+  text-align: right;
+  line-height: 1.7em;
+  padding-right: 0.5em;
+}
+.tools #importfile {
+  display: none;
+}
+.tools i {
+  font-size: 1.3em;
+  cursor: pointer;
 }
 /*# sourceMappingURL=home.css.map */

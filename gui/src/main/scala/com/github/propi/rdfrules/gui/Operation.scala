@@ -2,9 +2,8 @@ package com.github.propi.rdfrules.gui
 
 import com.thoughtworks.binding.Binding.{Constants, Var}
 import com.thoughtworks.binding.{Binding, dom}
+import org.scalajs.dom.html.{Anchor, Div}
 import org.scalajs.dom.{Event, MouseEvent}
-import org.scalajs.dom.html.Div
-import org.scalajs.dom.html.Anchor
 
 import scala.concurrent.Future
 import scala.scalajs.js
@@ -22,6 +21,16 @@ trait Operation {
 
   def buildActionProgress(id: Future[String]): Option[ActionProgress] = None
 
+  def validateAll(): Boolean = {
+    def validateOperation(operation: Operation): Boolean = {
+      val prevValid = operation.previousOperation.value.forall(validateOperation)
+      val curValid = operation.validate()
+      prevValid && curValid
+    }
+
+    validateOperation(this)
+  }
+
   def validate(): Boolean = {
     val msg = properties.value.iterator.map(_.validate()).find(_.nonEmpty).flatten
     errorMsg.value = msg
@@ -31,18 +40,45 @@ trait Operation {
   private val nextOperation: Var[Option[Operation]] = Var(None)
   private val actionProgress: Var[Option[ActionProgress]] = Var(None)
 
+  def getNextOperation: Option[Operation] = nextOperation.value
+
+  def setValue(data: js.Dynamic): Unit = {
+    for (prop <- properties.value) {
+      val propData = data.selectDynamic(prop.name)
+      if (!js.isUndefined(propData)) prop.setValue(propData)
+    }
+  }
+
+  def appendOperation(operationInfo: OperationInfo): Operation = {
+    val newOps = operationInfo.buildOperation(self)
+    for (x <- nextOperation.value) {
+      newOps.nextOperation.value = Some(x)
+      x.previousOperation.value = Some(newOps)
+    }
+    nextOperation.value = Some(newOps)
+    newOps
+  }
+
   private def delete(): Unit = {
-    nextOperation.value.foreach(_.delete())
-    nextOperation.value = None
-    previousOperation.value.foreach(_.nextOperation.value = None)
-    Main.canvas.deleteLastOperation()
+    (previousOperation.value, nextOperation.value) match {
+      case (Some(prev), Some(next)) if prev.info.followingOperations.value.contains(next.info) =>
+        prev.nextOperation.value = Some(next)
+        next.previousOperation.value = Some(prev)
+        Main.canvas.deleteOperation(self)
+      case (_, Some(next)) =>
+        next.delete()
+        delete()
+      case _ =>
+        previousOperation.value.foreach(_.nextOperation.value = None)
+        Main.canvas.deleteLastOperation()
+    }
   }
 
   protected def propertiesToJson: js.Dictionary[js.Any] = {
     js.Dictionary(properties.value.map(x => x.name -> x.toJson).filter(x => !js.isUndefined(x._2)): _*)
   }
 
-  private def toJson(list: List[js.Any]): List[js.Any] = {
+  def toJson(list: List[js.Any]): List[js.Any] = {
     val json = js.Dynamic.literal(name = info.name, parameters = propertiesToJson)
     previousOperation.value match {
       case Some(op) => op.toJson(json :: list)
@@ -51,13 +87,7 @@ trait Operation {
   }
 
   private def launchAction(): Boolean = {
-    def validateOperation(operation: Operation): Boolean = {
-      val prevValid = operation.previousOperation.value.forall(validateOperation)
-      val curValid = operation.validate()
-      prevValid && curValid
-    }
-
-    val isValid = validateOperation(this)
+    val isValid = validateAll()
     if (isValid) {
       buildActionProgress(Task.sendTask(js.Array(toJson(Nil): _*))).foreach(x => actionProgress.value = Some(x))
     }
@@ -110,7 +140,7 @@ trait Operation {
       }}>
       {info.`type` match {
       case Operation.Type.Transformation =>
-        <a class={"add" + (if (nextOperation.bind.nonEmpty) " hidden" else "")} onclick={e: Event => Main.canvas.openModal(viewFollowingOperations); e.stopPropagation();}>
+        <a class="add" onclick={e: Event => Main.canvas.openModal(viewFollowingOperations); e.stopPropagation();}>
           <i class="material-icons">add_circle_outline</i>
         </a>
       case Operation.Type.Action =>
@@ -161,9 +191,7 @@ trait Operation {
   @dom
   private def viewOperationInfo(operationInfo: OperationInfo): Binding[Div] = {
     <div class={operationInfo.`type` + " operation-info"} onclick={_: Event =>
-      val newOperation = operationInfo.buildOperation(self)
-      nextOperation.value = Some(newOperation)
-      Main.canvas.addOperation(newOperation)
+      Main.canvas.addOperation(appendOperation(operationInfo))
       Main.canvas.closeModal()}>
       <i class="material-icons help" onmousemove={e: MouseEvent => Main.canvas.openHint(operationInfo.description, e)} onmouseout={_: MouseEvent =>
         Main.canvas.closeHint()} onclick={e: Event =>
@@ -177,11 +205,11 @@ trait Operation {
     <div class="following-operations">
       <h3>Transformations</h3>
       <div class="transformations">
-        {for (operationInfo <- Constants(info.followingOperations.value.filter(_.`type` == Operation.Type.Transformation): _*)) yield viewOperationInfo(operationInfo).bind}
+        {for (operationInfo <- Constants(info.followingOperations.value.filter(x => x.`type` == Operation.Type.Transformation && nextOperation.value.forall(y => x.followingOperations.value.contains(y.info))): _*)) yield viewOperationInfo(operationInfo).bind}
       </div>
       <h3 class={if (info.followingOperations.value.exists(_.`type` == Operation.Type.Action)) "" else "hidden"}>Actions</h3>
       <div class="actions">
-        {for (operationInfo <- Constants(info.followingOperations.value.filter(_.`type` == Operation.Type.Action): _*)) yield viewOperationInfo(operationInfo).bind}
+        {for (operationInfo <- Constants(info.followingOperations.value.filter(x => x.`type` == Operation.Type.Action && nextOperation.value.forall(y => x.followingOperations.value.contains(y.info))): _*)) yield viewOperationInfo(operationInfo).bind}
       </div>
     </div>
   }

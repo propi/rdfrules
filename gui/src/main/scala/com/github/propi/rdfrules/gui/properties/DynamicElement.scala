@@ -28,6 +28,12 @@ class DynamicElement(properties: Constants[Property], description: String = "") 
     None
   }
 
+  def setValue(data: js.Dynamic): Unit = {
+    if (active.value >= 0) {
+      properties.value(active.value).setValue(data)
+    }
+  }
+
   @dom
   def valueView: Binding[Div] = {
     val activeIndex = active.bind

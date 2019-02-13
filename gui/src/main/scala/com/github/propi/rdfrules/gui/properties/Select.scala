@@ -25,6 +25,12 @@ class Select(val name: String, val title: String, items: Constants[(String, Stri
 
   def validate(): Option[String] = None
 
+  def setValue(data: js.Dynamic): Unit = {
+    val x = data.toString
+    onSelect(x)
+    selectedItem = Some(x)
+  }
+
   def toJson: js.Any = selectedItem match {
     case Some(x) => x
     case None => js.undefined

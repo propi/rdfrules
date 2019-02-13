@@ -23,6 +23,15 @@ class ArrayElement(val name: String, val title: String, property: () => Property
     msg
   }
 
+  def setValue(data: js.Dynamic): Unit = {
+    for (x <- data.asInstanceOf[js.Array[js.Dynamic]]) {
+      val newProperty = property()
+      newProperty.errorMsg.addListener((_: Option[String], _: Option[String]) => validate())
+      newProperty.setValue(x)
+      groups.value += newProperty
+    }
+  }
+
   def toJson: js.Any = js.Array(groups.value.flatMap { property =>
     val x = property.toJson
     if (js.isUndefined(x)) None else Some(x)
