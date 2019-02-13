@@ -1,6 +1,6 @@
-# RdfRules: Java API
+# RDFRules: Java API
 
-This is the Java API of the RdfRules tool. It has implemented several facades over the Scala core.
+This is the Java API of the RDFRules tool. It has implemented several facades over the Scala core.
 
 ## Getting Started
 

@@ -1,35 +1,35 @@
-# RdfRules
+# RDFRules
 
-RdfRules is a fast analytics engine for rule mining in RDF knowledge graphs. It offers tools for complex rule mining process including RDF data pre-processing and rules post-processing. The core of RdfRules is written in the Scala language. Besides the Scala API,
-RdfRules also provides a Java API, REST web service and a graphical user interface via a web browser. RdfRules uses the [AMIE+](https://www.mpi-inf.mpg.de/departments/databases-and-information-systems/research/yago-naga/amie/) algorithm with several extensions as a basis for a complete solution for linked data mining.
+RDFRules is a fast analytics engine for rule mining in RDF knowledge graphs. It offers tools for complex rule mining process including RDF data pre-processing and rules post-processing. The core of RDFRules is written in the Scala language. Besides the Scala API,
+RDFRules also provides a Java API, REST web service and a graphical user interface via a web browser. RDFRules uses the [AMIE+](https://www.mpi-inf.mpg.de/departments/databases-and-information-systems/research/yago-naga/amie/) algorithm with several extensions as a basis for a complete solution for linked data mining.
 
 ## Getting started
 
 Requirements: Java 8+
 
-RdfRules is divided into four main modules. They are:
- - [Scala API](core): It is sutable for Scala programmers and for use RdfRules as a framework to invoke mining processes from Scala code.
+RDFRules is divided into four main modules. They are:
+ - [Scala API](core): It is sutable for Scala programmers and for use RDFRules as a framework to invoke mining processes from Scala code.
  - [Java API](java): Similar to Scala API but adapted for Java programmers.
  - [Web Service](http): It is suitable for modular web-based applications and remote access via HTTP.
  - [GUI](gui): It is suitable for anyone who wants to use the tool quickly and easily without any needs for further programming.
  
  Detailed information about these modules with deployment instructions are described in their subfolders...
  
- ### Quick and easy run of RdfRules
+ ### Quick and easy run of RDFRules
  
  1. Clone or download this github repository
- 2. Run RdfRules HTTP API
-    - On Linux: ```./gui/dist/bin/main```
-    - On Windows: run this file ```./gui/dist/bin/main.bat```
- 3. Open ```./gui/webapp/index.html``` in a modern Internet browser
+ 2. Run RDFRules HTTP API
+    - On Linux: ```./dist/bin/main```
+    - On Windows: run this file ```./dist/bin/main.bat```
+ 3. Open ```./dist/webapp/index.html``` in a modern Internet browser
  
  ## Design and Architecture
  
-![RdfRules main processes](rdfrules-processes.png)
+![RDFRules main processes](rdfrules-processes.png)
  
-The architecture of the RdfRules core is composed of four main data abstractions: RdfGraph, RdfDataset, Index and RuleSet. These objects are gradually created during processing of RDF data and rule mining. Each object consists of several operations which either *transform* the current object or perform some *action* to create an output. Hence, these operations are classied as transformations or actions.
+The architecture of the RDFRules core is composed of four main data abstractions: RdfGraph, RdfDataset, Index and RuleSet. These objects are gradually created during processing of RDF data and rule mining. Each object consists of several operations which either *transform* the current object or perform some *action* to create an output. Hence, these operations are classied as transformations or actions.
 
-![RdfRules main processes](rdfrules-abstractions.png)
+![RDFRules main processes](rdfrules-abstractions.png)
 
 ### Transformations
 Any transformation is a lazy operation that converts the current data object to another. For example a transformation in the RdfDataset

@@ -1,12 +1,12 @@
-# RdfRules: Web Service
+# RDFRules: Web Service
 
-This is the HTTP REST web service of the RdfRules tool written in the Scala language with Akka Http. It has implemented http facades over the RdfRules core. All RdfRules operations are performed by a pipeline of tasks defined in one JSON document sent to the HTTP endpoint.
+This is the HTTP REST web service of the RDFRules tool written in the Scala language with Akka Http. It has implemented http facades over the RDFRules core. All RDFRules operations are performed by a pipeline of tasks defined in one JSON document sent to the HTTP endpoint.
 
 ## Getting Started
 
 [![](https://jitpack.io/v/propi/rdfrules.svg)](https://jitpack.io/#propi/rdfrules)
 
-Clone the RdfRules repository and run following SBT commands. It starts the HTTP web server:
+Clone the RDFRules repository and run following SBT commands. It starts the HTTP web server:
 ```sbt
 > project http
 > run
