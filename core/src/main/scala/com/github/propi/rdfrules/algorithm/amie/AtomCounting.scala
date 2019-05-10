@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.index.TripleHashIndex
 import com.github.propi.rdfrules.rule.{Atom, FreshAtom}
+import com.github.propi.rdfrules.utils.extensions.IteratorExtension._
 import com.typesafe.scalalogging.Logger
 
 /**
@@ -126,6 +127,53 @@ trait AtomCounting {
     }
     i
   }
+
+  def selectDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], variableMap: VariableMap = Map.empty): Iterator[Seq[Atom.Constant]] = {
+    if (atoms.isEmpty) {
+      Iterator(headVars.map(variableMap))
+    } else if (headVars.forall(variableMap.contains)) {
+      if (exists(atoms, variableMap)) {
+        selectDistinctPairs(Set.empty, headVars, variableMap)
+      } else {
+        Iterator.empty
+      }
+    } else {
+      val bodyImportantAtoms = atoms.filter(x => headVars.exists(y => x.subject == y || x.`object` == y))
+      val best = bestAtom(bodyImportantAtoms, variableMap)
+      val rest = atoms - best
+      specifyVariableMap(best, variableMap).flatMap(selectDistinctPairs(rest, headVars, _)).distinct
+    }
+  }
+
+  def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double): Int = {
+    countDistinctPairs(atoms, head, maxCount, Map.empty[Atom.Variable, Atom.Constant])
+  }
+
+  def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double, variableMap: VariableMap): Int = {
+    val headVars = List(head.subject, head.`object`).collect {
+      case x: Atom.Variable => x
+    }
+    countDistinctPairs(atoms, headVars, maxCount, variableMap)
+  }
+
+  def countDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], maxCount: Double): Int = {
+    countDistinctPairs(atoms, headVars, maxCount, Map.empty[Atom.Variable, Atom.Constant])
+  }
+
+  def countDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], maxCount: Double, variableMap: VariableMap): Int = {
+    var i = 0
+    val it = selectDistinctPairs(atoms, headVars, variableMap)
+    while (it.hasNext && i <= maxCount) {
+      it.next()
+      i += 1
+      if (i % 500 == 0) logger.trace(s"Atom pairs counting, body size: $i (max body size: $maxCount)")
+    }
+    i
+  }
+
+  def functionality(atom: Atom): Double = tripleIndex.predicates(atom.predicate).subjects.size.toDouble / tripleIndex.predicates(atom.predicate).size
+
+  def inverseFunctionality(atom: Atom): Double = tripleIndex.predicates(atom.predicate).objects.size.toDouble / tripleIndex.predicates(atom.predicate).size
 
   /**
     * Create function for unspecified atom which specifies variable map by specified atom

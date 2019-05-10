@@ -11,7 +11,7 @@ sealed trait ExtendedRule extends Rule {
   val patterns: List[RulePattern.Mapped]
   val measures: TypedKeyMap[Measure]
 
-  def headSize: Int = headTriples.length
+  def headSize: Int = measures(Measure.HeadSize).value
 
   def withPatterns(patterns: List[RulePattern.Mapped]): ExtendedRule
 }
@@ -35,12 +35,13 @@ object ExtendedRule {
   /**
     * Check whether two lists of atoms are isomorphic
     *
-    * @param body1     first list of atoms
-    * @param body2     second list of atoms
-    * @param variables mapping for variables from body2 which are mapped to variables from body1
+    * @param body1 first list of body atoms
+    * @param body2 second list of body atoms
+    * @param head1 first head
+    * @param head2 second head
     * @return boolean
     */
-  def checkBodyEquality(body1: IndexedSeq[Atom], body2: Set[Atom], variables: Map[Atom.Variable, Atom.Variable] = Map.empty): Boolean = {
+  def checkRuleContentsEquality(body1: IndexedSeq[Atom], body2: Set[Atom], head1: Atom, head2: Atom): Boolean = {
     def checkAtomItemsEquality(atomItem1: Atom.Item, atomItem2: Atom.Item, variables: Map[Atom.Variable, Atom.Variable]) = (atomItem1, atomItem2) match {
       case (Atom.Constant(value1), Atom.Constant(value2)) if value1 == value2 => true -> variables
       case (v1: Atom.Variable, v2: Atom.Variable) =>
@@ -49,7 +50,7 @@ object ExtendedRule {
       case _ => false -> variables
     }
 
-    def checkAtomEquality(atom1: Atom, atom2: Atom) = {
+    def checkAtomEquality(atom1: Atom, atom2: Atom, variables: Map[Atom.Variable, Atom.Variable]) = {
       if (atom1.predicate == atom2.predicate) {
         val (eqSubjects, v1) = checkAtomItemsEquality(atom1.subject, atom2.subject, variables)
         if (eqSubjects) {
@@ -63,14 +64,19 @@ object ExtendedRule {
       }
     }
 
-    body1 match {
-      case head +: tail =>
-        body2.exists { atom =>
-          val (eqAtoms, variables) = checkAtomEquality(head, atom)
-          eqAtoms && checkBodyEquality(tail, body2 - atom, variables)
-        }
-      case _ => body2.isEmpty
+    def checkBodyEquality(body1: IndexedSeq[Atom], body2: Set[Atom], variables: Map[Atom.Variable, Atom.Variable]): Boolean = {
+      body1 match {
+        case head +: tail =>
+          body2.exists { atom =>
+            val (eqAtoms, newVariables) = checkAtomEquality(head, atom, variables)
+            eqAtoms && checkBodyEquality(tail, body2 - atom, newVariables)
+          }
+        case _ => body2.isEmpty
+      }
     }
+
+    val (eqHeads, newVariables) = checkAtomEquality(head1, head2, Map.empty)
+    eqHeads && checkBodyEquality(body1, body2, newVariables)
   }
 
   case class ClosedRule(body: IndexedSeq[Atom], head: Atom)
@@ -83,7 +89,7 @@ object ExtendedRule {
     def withPatterns(patterns: List[RulePattern.Mapped]): ExtendedRule = this.copy()(measures, patterns, variables, maxVariable, headTriples)
 
     override def equals(obj: scala.Any): Boolean = obj match {
-      case rule: ClosedRule => checkBodyEquality(body, rule.body.toSet)
+      case rule: ClosedRule => checkRuleContentsEquality(body, rule.body.toSet, head, rule.head)
       case _ => false
     }
 
@@ -99,7 +105,7 @@ object ExtendedRule {
     def withPatterns(patterns: List[RulePattern.Mapped]): ExtendedRule = this.copy()(measures, patterns, variables, maxVariable, headTriples)
 
     override def equals(obj: scala.Any): Boolean = obj match {
-      case rule: DanglingRule => checkBodyEquality(body, rule.body.toSet)
+      case rule: DanglingRule => checkRuleContentsEquality(body, rule.body.toSet, head, rule.head)
       case _ => false
     }
 

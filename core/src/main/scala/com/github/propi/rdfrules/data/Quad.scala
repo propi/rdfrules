@@ -27,7 +27,7 @@ object Quad {
     new core.Quad(graphNode, quad.triple)
   }
 
-  implicit class PimpedQuads(col: QuadTraversableView) {
+  implicit class PimpedQuads(val col: QuadTraversableView) extends AnyVal {
     def prefixes: Traversable[Prefix] = col.flatMap(x => Iterator(x.graph, x.triple.subject, x.triple.predicate, x.triple.`object`)).collect {
       case x: TripleItem.PrefixedUri => x.toPrefix
     }.distinct

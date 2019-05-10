@@ -33,7 +33,7 @@ object SimilarityCounting {
 
   implicit def weightedSimilarityCountingToComb[T](weightedSimilarityCounting: WeightedSimilarityCounting[T]): Comb[T] = new Comb(Vector(weightedSimilarityCounting))
 
-  implicit class PimpedDouble(v: Double) {
+  implicit class PimpedDouble(val v: Double) extends AnyVal {
     def *[T](similarityCounting: SimilarityCounting[T]): WeightedSimilarityCounting[T] = WeightedSimilarityCounting(v, similarityCounting)
   }
 

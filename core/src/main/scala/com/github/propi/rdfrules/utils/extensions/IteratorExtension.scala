@@ -5,7 +5,7 @@ package com.github.propi.rdfrules.utils.extensions
   */
 object IteratorExtension {
 
-  implicit class PimpedIterator[T](it: Iterator[T]) {
+  implicit class PimpedIterator[T](val it: Iterator[T]) extends AnyVal {
     def distinctBy[A](f: T => A): Iterator[T] = new Iterator[T] {
       private val walkedItems = collection.mutable.HashSet.empty[A]
       private var c = Option.empty[T]
@@ -31,6 +31,8 @@ object IteratorExtension {
         Iterator.empty.next()
       }
     }
+
+    def distinct: Iterator[T] = distinctBy(x => x)
   }
 
 }

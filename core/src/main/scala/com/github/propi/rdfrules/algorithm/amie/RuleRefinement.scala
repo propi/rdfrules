@@ -195,7 +195,13 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       // - result is one dangling rule
       //or we create new closed atoms which are created from all items combinations within this rule
       // - result is closed rule
-      val danglings = rule.variables.iterator.map(x => Iterator(FreshAtom(dangling, x), FreshAtom(x, dangling)))
+      //condition for danglings: if not with instances and rule is closed and its lengths equals maxRuleLength - 1 then it should not be refined
+      // - ex: p(b,a) => p(a,b) then p(a,c) ^ p(b,a) => p(a,b) is useless because it always generate dangling rules
+      val danglings = if (!isWithInstances && rule.ruleLength + 1 >= maxRuleLength) {
+        Iterator.empty
+      } else {
+        rule.variables.iterator.map(x => Iterator(FreshAtom(dangling, x), FreshAtom(x, dangling)))
+      }
       val closed = rule.variables.combinations(2).collect { case List(x, y) => Iterator(FreshAtom(x, y), FreshAtom(y, x)) }
       (danglings ++ closed).flatten
     case rule: DanglingRule =>
@@ -205,7 +211,12 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
           // - result is one dangling rule again
           //or we create fresh atoms with existing dangling item with combination of other items
           // - result is closed rule
-          val danglings = Iterator(FreshAtom(dangling1, dangling), FreshAtom(dangling, dangling1))
+          //condition for danglings: if not with instances and rule is dangling and its lengths equals maxRuleLength - 1 then it should not be refined
+          val danglings = if (!isWithInstances && (rule.ruleLength + 1) >= maxRuleLength) {
+            Iterator.empty
+          } else {
+            Iterator(FreshAtom(dangling1, dangling), FreshAtom(dangling, dangling1))
+          }
           val closed = others.iterator.flatMap(x => Iterator(FreshAtom(dangling1, x), FreshAtom(x, dangling1)))
           danglings ++ closed
         case ExtendedRule.TwoDanglings(dangling1, dangling2, _) =>
@@ -213,6 +224,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
           // - result is two danglings rule again
           //or we create fresh atoms only with these dangling items
           // - result is closed rule
+          //condition for danglings: if not with instances and rule is dangling and its lengths equals maxRuleLength - 1 then it should not be refined
           val danglings = if ((rule.ruleLength + 1) < maxRuleLength) rule.variables.danglings.iterator.flatMap(x => Iterator(FreshAtom(dangling, x), FreshAtom(x, dangling))) else Iterator.empty
           val closed = Iterator(FreshAtom(dangling1, dangling2), FreshAtom(dangling2, dangling1))
           danglings ++ closed

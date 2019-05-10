@@ -24,4 +24,6 @@ class HashQueue[T] {
 
   def size: Int = queue.size
 
+  def iterator: Iterator[T] = queue.iterator
+
 }

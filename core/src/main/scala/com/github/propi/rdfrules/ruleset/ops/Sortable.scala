@@ -17,4 +17,8 @@ trait Sortable[T, Coll] extends Transformable[T, Coll] {
     def foreach[U](f2: T => U): Unit = coll.toSeq.sortBy(f).foreach(f2)
   })
 
+  def reversed: Coll = transform(new Traversable[T] {
+    def foreach[U](f: T => U): Unit = coll.toSeq.reverseIterator.foreach(f)
+  })
+
 }

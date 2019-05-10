@@ -8,6 +8,7 @@ import com.github.propi.rdfrules.index.{TripleHashIndex, TripleItemHashIndex}
 import com.github.propi.rdfrules.rule.ExtendedRule.{ClosedRule, DanglingRule}
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.HowLong._
+import com.github.propi.rdfrules.utils.workers.Workers
 import com.github.propi.rdfrules.utils.{Debugger, HashQueue, TypedKeyMap}
 
 import scala.collection.mutable
@@ -48,8 +49,10 @@ class Amie private(_thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
         builder ++= process.getHeads
         builder.result()
       }
+      //val heads = process.getHeads.toIndexedSeq
       //parallel rule mining: for each head we search rules
       debugger.debug("Amie rules mining", heads.length) { ad =>
+        //Await.result(Workers(heads)(head => ad.result()(process.searchRules(head))), Duration.Inf)
         heads.foreach(head => ad.result()(process.searchRules(head)))
       }
       val timeoutReached = process.timeout.exists(process.currentDuration >= _)
@@ -206,12 +209,12 @@ class Amie private(_thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
         //convert all atoms to rules and filter it by min support
         val tm = tripleIndex.predicates(atom.predicate)
         val danglingRule = Some(atom.subject, atom.`object`).collect {
-          case (v1: Atom.Variable, v2: Atom.Variable) => ExtendedRule.TwoDanglings(v1, v2, Nil) -> tm.size
-          case (Atom.Constant(c), v1: Atom.Variable) => ExtendedRule.OneDangling(v1, Nil) -> tm.subjects.get(c).map(_.size).getOrElse(0)
-          case (v1: Atom.Variable, Atom.Constant(c)) => ExtendedRule.OneDangling(v1, Nil) -> tm.objects.get(c).map(_.size).getOrElse(0)
-        }.filter(_._2 >= minSupport).map(x =>
+          case (v1: Atom.Variable, v2: Atom.Variable) => (ExtendedRule.TwoDanglings(v1, v2, Nil), tm.size, tm.size)
+          case (Atom.Constant(c), v1: Atom.Variable) => (ExtendedRule.OneDangling(v1, Nil), tm.size, tm.subjects.get(c).map(_.size).getOrElse(0))
+          case (v1: Atom.Variable, Atom.Constant(c)) => (ExtendedRule.OneDangling(v1, Nil), tm.size, tm.objects.get(c).map(_.size).getOrElse(0))
+        }.filter(x => x._3 >= math.max(minSupport, settings.minHeadCoverage * x._2)).map(x =>
           DanglingRule(Vector.empty, atom)(
-            TypedKeyMap(Measure.HeadSize(x._2), Measure.Support(x._2), Measure.HeadCoverage(1.0)),
+            TypedKeyMap(Measure.HeadSize(x._2), Measure.Support(x._3), Measure.HeadCoverage(x._3.toDouble / x._2)),
             patterns,
             x._1,
             x._1.danglings.max,

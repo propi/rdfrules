@@ -7,7 +7,7 @@ import com.github.propi.rdfrules.utils.IncrementalInt
   */
 object TraversableOnceExtension {
 
-  implicit class PimpedTraversableOnce[T](col: TraversableOnce[T]) {
+  implicit class PimpedTraversableOnce[T](val col: TraversableOnce[T]) extends AnyVal {
 
     def distinct: Traversable[T] = new Traversable[T] {
       def foreach[U](f: T => U): Unit = {
