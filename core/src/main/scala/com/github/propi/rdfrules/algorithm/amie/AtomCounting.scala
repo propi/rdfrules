@@ -2,7 +2,6 @@ package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.index.TripleHashIndex
 import com.github.propi.rdfrules.rule.{Atom, FreshAtom}
-import com.github.propi.rdfrules.utils.extensions.IteratorExtension._
 import com.typesafe.scalalogging.Logger
 
 /**
@@ -128,27 +127,62 @@ trait AtomCounting {
     i
   }
 
+  /**
+    * For input atoms select all instantiated distinct pairs (or sequence) for input variables (headVars)
+    *
+    * @param atoms       all atoms
+    * @param headVars    variables to be instantiated
+    * @param variableMap variable mapping to a concrete constant
+    * @return iterator of instantiated distinct pairs for variables which have covered all atoms
+    */
   def selectDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], variableMap: VariableMap = Map.empty): Iterator[Seq[Atom.Constant]] = {
-    if (atoms.isEmpty) {
-      Iterator(headVars.map(variableMap))
-    } else if (headVars.forall(variableMap.contains)) {
-      if (exists(atoms, variableMap)) {
-        selectDistinctPairs(Set.empty, headVars, variableMap)
+    val foundPairs = collection.mutable.Set.empty[Seq[Atom.Constant]]
+
+    def sdp(atoms: Set[Atom], headVars: Seq[Atom.Variable], variableMap: VariableMap): Iterator[Seq[Atom.Constant]] = {
+      if (headVars.forall(variableMap.contains)) {
+        //if all variables are mapped then we create an instantiated pair
+        val pair = headVars.map(variableMap)
+        if (!foundPairs(pair) && (atoms.isEmpty || exists(atoms, variableMap))) {
+          //if the pair has not been found yet and atoms is empty or there exists a path for remaining atoms then we use this pair
+          foundPairs += pair
+          Iterator(pair)
+        } else {
+          //otherwise return empty
+          Iterator.empty
+        }
       } else {
-        Iterator.empty
+        //choose best atom for faster computing
+        val best = bestAtom(atoms, variableMap)
+        val rest = atoms - best
+        //specify variables in the best atom and process the rest of atoms for each instance
+        specifyVariableMap(best, variableMap).flatMap(sdp(rest, headVars, _))
       }
-    } else {
-      val bodyImportantAtoms = atoms.filter(x => headVars.exists(y => x.subject == y || x.`object` == y))
-      val best = bestAtom(bodyImportantAtoms, variableMap)
-      val rest = atoms - best
-      specifyVariableMap(best, variableMap).flatMap(selectDistinctPairs(rest, headVars, _)).distinct
     }
+
+    sdp(atoms, headVars, variableMap)
   }
 
+  /**
+    * For input atoms count all instantiated distinct pairs (or sequence) for input variables in the head atom
+    *
+    * @param atoms    all atoms
+    * @param head     variables to be instantiated in the head
+    * @param maxCount a threshold for stopping counting
+    * @return number of distinct pairs for variables which have covered all atoms
+    */
   def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double): Int = {
     countDistinctPairs(atoms, head, maxCount, Map.empty[Atom.Variable, Atom.Constant])
   }
 
+  /**
+    * For input atoms count all instantiated distinct pairs (or sequence) for input variables in the head atom
+    *
+    * @param atoms       all atoms
+    * @param head        variables to be instantiated in the head
+    * @param maxCount    a threshold for stopping counting
+    * @param variableMap variable mapping to a concrete constant
+    * @return number of distinct pairs for variables which have covered all atoms
+    */
   def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double, variableMap: VariableMap): Int = {
     val headVars = List(head.subject, head.`object`).collect {
       case x: Atom.Variable => x
@@ -156,11 +190,16 @@ trait AtomCounting {
     countDistinctPairs(atoms, headVars, maxCount, variableMap)
   }
 
-  def countDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], maxCount: Double): Int = {
-    countDistinctPairs(atoms, headVars, maxCount, Map.empty[Atom.Variable, Atom.Constant])
-  }
-
-  def countDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], maxCount: Double, variableMap: VariableMap): Int = {
+  /**
+    * For input atoms count all instantiated distinct pairs (or sequence) for input variables (headVars)
+    *
+    * @param atoms       all atoms
+    * @param headVars    variables to be instantiated
+    * @param maxCount    a threshold for stopping counting
+    * @param variableMap variable mapping to a concrete constant
+    * @return number of distinct pairs for variables which have covered all atoms
+    */
+  def countDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], maxCount: Double, variableMap: VariableMap = Map.empty): Int = {
     var i = 0
     val it = selectDistinctPairs(atoms, headVars, variableMap)
     while (it.hasNext && i <= maxCount) {
@@ -171,8 +210,28 @@ trait AtomCounting {
     i
   }
 
+  /**
+    * This function returns number between 0 and 1 to recognize whether the atom should be inversed or not
+    * Ex.: (?a isActorOf ?b) is inversed to (?b hasActor ?a)
+    * for this: x hasActor a, x hasActor b, x hasActor c; the functionality is 1/3 = 0.33 (inversed func is: 1)
+    * for this: a isActorOf x, b isActorOf x, c isActorOf x; the functionality is 3/3 = 1 (inversed func is 0.33)
+    * This is used for PCA confidence counting:
+    * - if in KB is this type of statement: ?b hasActor ?a then for PCA confidence we predicate ?b = subject (inverse functionality is greater)
+    * - if the statement is: ?a isActorOf ?b then we predicate ?b = object
+    * - so by default we predicate object, but if the inverse functionality is greater, then we need to virtually inverse the atom (swap subject/object)
+    * In a nutshell: the functionality is good to recognize right subject of a statement
+    *
+    * @param atom atom
+    * @return number between 0 and 1
+    */
   def functionality(atom: Atom): Double = tripleIndex.predicates(atom.predicate).subjects.size.toDouble / tripleIndex.predicates(atom.predicate).size
 
+  /**
+    * Inverse of the functionality
+    *
+    * @param atom atom
+    * @return number between 0 and 1
+    */
   def inverseFunctionality(atom: Atom): Double = tripleIndex.predicates(atom.predicate).objects.size.toDouble / tripleIndex.predicates(atom.predicate).size
 
   /**

@@ -115,20 +115,36 @@ public class Ruleset implements
         return asJava(asScala().graphBasedRules());
     }
 
-    public Ruleset computeConfidence(double minConfidence, Debugger debugger) {
-        return asJava(ruleset.computeConfidence(minConfidence, debugger.asScala()));
+    public Ruleset computeConfidence(double minConfidence, int topK, Debugger debugger) {
+        return asJava(ruleset.computeConfidence(minConfidence, topK, debugger.asScala()));
     }
 
     public Ruleset computeConfidence(double minConfidence) {
-        return computeConfidence(minConfidence, Debugger.empty());
+        return computeConfidence(minConfidence, 0, Debugger.empty());
     }
 
-    public Ruleset computePcaConfidence(double minPcaConfidence, Debugger debugger) {
-        return asJava(ruleset.computePcaConfidence(minPcaConfidence, debugger.asScala()));
+    public Ruleset computeConfidence(double minConfidence, int topK) {
+        return computeConfidence(minConfidence, topK, Debugger.empty());
+    }
+
+    public Ruleset computeConfidence(double minConfidence, Debugger debugger) {
+        return computeConfidence(minConfidence, 0, debugger);
+    }
+
+    public Ruleset computePcaConfidence(double minPcaConfidence, int topK, Debugger debugger) {
+        return asJava(ruleset.computePcaConfidence(minPcaConfidence, topK, debugger.asScala()));
     }
 
     public Ruleset computePcaConfidence(double minPcaConfidence) {
-        return computePcaConfidence(minPcaConfidence, Debugger.empty());
+        return computePcaConfidence(minPcaConfidence, 0, Debugger.empty());
+    }
+
+    public Ruleset computePcaConfidence(double minPcaConfidence, int topK) {
+        return computePcaConfidence(minPcaConfidence, topK, Debugger.empty());
+    }
+
+    public Ruleset computePcaConfidence(double minPcaConfidence, Debugger debugger) {
+        return computePcaConfidence(minPcaConfidence, 0, debugger);
     }
 
     public Ruleset computeLift(double minConfidence, Debugger debugger) {

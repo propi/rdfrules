@@ -59,8 +59,15 @@ trait RuleCounting extends AtomCounting {
     logger.debug(s"Head confidence counting for rule: " + rule)
     val average = (rule.head.subject, rule.head.`object`) match {
       //TODO add functionality and inverseFunctionaly to choose which part of atom should take into account
-      //if head is variables atom then average is number of all subjects with the predicate of the head atom DIVIDED number of all subjects
-      case (_: Atom.Variable, _: Atom.Variable) => tripleIndex.predicates(rule.head.predicate).subjects.size.toDouble / tripleIndex.subjects.size
+      //if head is variables atom then average is number of all subjects (or objects depending on functionality) with the predicate of the head atom
+      //DIVIDED
+      //number of all subjects (or objects depending on functionality)
+      case (_: Atom.Variable, _: Atom.Variable) =>
+        if (inverseFunctionality(rule.head) > functionality(rule.head)) {
+          tripleIndex.predicates(rule.head.predicate).objects.size.toDouble / tripleIndex.objects.size
+        } else {
+          tripleIndex.predicates(rule.head.predicate).subjects.size.toDouble / tripleIndex.subjects.size
+        }
       //if head is instance atom then average is number of all possible triples for the head atom DIVIDED number of all subjects with the predicate of the head atom
       case (_: Atom.Variable, Atom.Constant(b)) => tripleIndex.predicates(rule.head.predicate).objects.get(b).map(_.size).getOrElse(0).toDouble / tripleIndex.predicates(rule.head.predicate).subjects.size
       case (Atom.Constant(a), _: Atom.Variable) => tripleIndex.predicates(rule.head.predicate).subjects.get(a).map(_.size).getOrElse(0).toDouble / tripleIndex.predicates(rule.head.predicate).objects.size
@@ -89,7 +96,7 @@ trait RuleCounting extends AtomCounting {
   /**
     * Count pca confidence for the rule.
     * Pca confidence is less restrictive than the standard confidence.
-    * If we count body size then we will be counting with head variables (instantiated) in subject position.
+    * If we count body size then we will be counting with head variables (instantiated) in subject position (or in object possition depending on functionality).
     * Thanks for this constraint we remove negative counterparts from body which can not be connected with head anymore.
     * p1(x, y) -> p2(x, y) if subject x within p1 predicate is not involved within p2 predicate, then we can remove p1(x, y) negative example
     * - then body size will be lower
@@ -121,11 +128,14 @@ trait RuleCounting extends AtomCounting {
       val newVar = (rule.body.iterator ++ Iterator(rule.head)).flatMap(x => Iterator(x.subject, x.`object`)).collect {
         case x: Atom.Variable => x
       }.max.++
+      //if the inverse functionality is greater than functionality then we need to inverse the head atom
       val isInverseFunction = inverseFunctionality(rule.head) > functionality(rule.head)
       val existentialTriple = (rule.head.subject, rule.head.`object`) match {
         case (_: Atom.Variable, _: Atom.Variable) => if (isInverseFunction) {
+          //for inverse functionality we predicate subject, object is fixed ?b
           rule.head.transform(subject = newVar)
         } else {
+          //by default we predicate object, subject is fixed ?a
           rule.head.transform(`object` = newVar)
         }
         case (_: Atom.Variable, _) => rule.head.transform(subject = newVar)

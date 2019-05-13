@@ -5,7 +5,7 @@ import amie.rules.Rule
 import com.github.propi.rdfrules.algorithm.amie.{Amie, AtomCounting, RuleCounting}
 import com.github.propi.rdfrules.data.{Graph, TripleItem}
 import com.github.propi.rdfrules.rule.{AtomPattern, Measure, RuleConstraint, RulePattern, Threshold}
-import com.github.propi.rdfrules.ruleset.ResolvedRule
+import com.github.propi.rdfrules.ruleset.{ResolvedRule, Ruleset}
 import com.github.propi.rdfrules.utils.{Debugger, HowLong, Stringifier}
 import AmieRuleOps._
 
@@ -20,15 +20,15 @@ object OriginalAmieComparison {
     println("*******************")
     println("AMIE")
     println("*******************")
-    //-minpca 0.1 -minc 0.1 -oute
-    val cmd = "-oute -maxad 4 -minhc 0.01 -minpca 0.1 -minc 0.1 experiments/data/yagoFacts.tsv"
+    //-minpca 0.1 -minc 0.1 -oute -const
+    val cmd = "-const -oute -maxad 3 -minhc 0.1 -minpca 0.01 -minc 0.01 experiments/data/yagoFacts.tsv"
     val amie = HowLong.howLong("Original AMIE loading", memUsage = true, forceShow = true) {
       AMIE.getInstance(cmd.split(' '))
     }
     val rules = HowLong.howLong("Original AMIE mining", memUsage = true, forceShow = true) {
       amie.mine()
     }.asScala.map(_.toResolvedRule)
-    rules.sortBy(_.measures).foreach(println)
+    //rules.sortBy(_.measures).foreach(println)
     println("mining rules: " + rules.size)
   }
 
@@ -44,13 +44,16 @@ object OriginalAmieComparison {
     Debugger() { implicit debugger =>
       val rules = HowLong.howLong("RDFRules mining", memUsage = true, forceShow = true) {
         index
-          .mine(Amie().addThreshold(Threshold.MinHeadCoverage(0.1)).addThreshold(Threshold.MaxRuleLength(3)).addConstraint(RuleConstraint.WithInstances(false)))//.addConstraint(RuleConstraint.WithInstances(false)))//.addPattern(AtomPattern(predicate = TripleItem.Uri("participatedIn"), `object` = TripleItem.Uri("Unified_Task_Force")) &: AtomPattern(predicate = TripleItem.Uri("hasGender")) =>: AtomPattern(predicate = TripleItem.Uri("isCitizenOf"))))
-          //.computePcaConfidence(0.1)
-          //.computeConfidence(0.1)
+          .mine(Amie().addThreshold(Threshold.MinHeadCoverage(0.1)).addThreshold(Threshold.MaxRuleLength(3)).addThreshold(Threshold.TopK(100)).addConstraint(RuleConstraint.WithInstances(false)))//.addConstraint(RuleConstraint.WithInstances(false)))//.addPattern(AtomPattern(predicate = TripleItem.Uri("participatedIn"), `object` = TripleItem.Uri("Unified_Task_Force")) &: AtomPattern(predicate = TripleItem.Uri("hasGender")) =>: AtomPattern(predicate = TripleItem.Uri("isCitizenOf"))))
+          .computePcaConfidence(0.01)
+          .computeConfidence(0.01)
           //.computePcaConfidence(0.01)
           .cache
       }.resolvedRules.toIndexedSeq
-      rules.sortBy(_.measures).foreach(println)
+      /*val rules = HowLong.howLong("RDFRules mining", memUsage = true, forceShow = true) {
+        Ruleset.fromCache(index, "testrules.cache").computePcaConfidence(0.1, 100).resolvedRules.toIndexedSeq
+      }*/
+      //rules.sortBy(_.measures).foreach(println)
       println("mining rules: " + rules.size)
     }
   }
@@ -58,7 +61,8 @@ object OriginalAmieComparison {
   def main(args: Array[String]): Unit = {
     //val cmd = "-const -minhc 0.01 -htr <participatedIn> yago2core.10kseedsSample.compressed.notypes.tsv"
     //val cmd = "-const -minhc 0.01 -htr <participatedIn> -nc 1 yago2core.10kseedsSample.compressed.notypes.tsv"
-    //testAmie()
+    //
+    testAmie()
     testRdfRules()
     //testRdfRules()
     HowLong.flushAllResults()

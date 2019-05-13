@@ -8,11 +8,10 @@ import com.github.propi.rdfrules.index.{TripleHashIndex, TripleItemHashIndex}
 import com.github.propi.rdfrules.rule.ExtendedRule.{ClosedRule, DanglingRule}
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.HowLong._
-import com.github.propi.rdfrules.utils.workers.Workers
+import com.github.propi.rdfrules.utils.workers.Workers._
 import com.github.propi.rdfrules.utils.{Debugger, HashQueue, TypedKeyMap}
 
 import scala.collection.mutable
-import scala.collection.parallel.immutable.ParVector
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, Promise}
 import scala.language.postfixOps
@@ -44,16 +43,17 @@ class Amie private(_thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
     val process = new AmieProcess()
     try {
       //get all possible heads
-      val heads = {
+      /*val heads = {
         val builder = ParVector.newBuilder[DanglingRule]
         builder ++= process.getHeads
         builder.result()
-      }
-      //val heads = process.getHeads.toIndexedSeq
+      }*/
+      val heads = process.getHeads.toIndexedSeq
       //parallel rule mining: for each head we search rules
       debugger.debug("Amie rules mining", heads.length) { ad =>
         //Await.result(Workers(heads)(head => ad.result()(process.searchRules(head))), Duration.Inf)
-        heads.foreach(head => ad.result()(process.searchRules(head)))
+        //heads.foreach(head => ad.result()(process.searchRules(head)))
+        heads.parForeach()(head => ad.result()(process.searchRules(head)))
       }
       val timeoutReached = process.timeout.exists(process.currentDuration >= _)
       val rules = Await.result(process.result.getResult, 1 minute)

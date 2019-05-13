@@ -13,7 +13,7 @@ import scala.util.{Failure, Random, Success, Try}
   */
 abstract class WorkerActor[I, O](val id: Int, resultConsumer: ResultConsumer[O])(implicit ec: ExecutionContext) extends Runnable {
 
-  //private val logger = Logger(s"worker $id")
+  //private val logger = Logger(s"Worker $id")
   private val messages = new LinkedBlockingQueue[Message[I, O]]
 
   private def randomItem[T](x: IndexedSeq[T]): Option[T] = if (x.isEmpty) None else Some(x(Random.nextInt(x.length)))
@@ -32,11 +32,11 @@ abstract class WorkerActor[I, O](val id: Int, resultConsumer: ResultConsumer[O])
       messages.take() match {
         //add new worker to registered workers
         case Message.RegisterWorker(x) =>
-          //logger.info(s"$id: register worker ${x.id}")
+          //logger.info(s"register worker ${x.id}")
           if (x != this) registeredWorkers += x
         //this worked obtained piece of work, clear all asked workers and process this work
         case Message.Work(x) =>
-          //logger.info(s"$id: accepted work $x")
+          //logger.info(s"accepted work $x")
           askedWorkers.clear()
           doWork(x).onComplete(this ! Message.WorkCompleted(_))
         //work of this worker is completed, send result to consumer and then ask next worker for other work
