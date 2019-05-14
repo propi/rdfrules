@@ -8,25 +8,25 @@ import com.github.propi.rdfrules.index.{TripleHashIndex, TripleItemHashIndex}
 import com.github.propi.rdfrules.rule.ExtendedRule.{ClosedRule, DanglingRule}
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.HowLong._
-import com.github.propi.rdfrules.utils.workers.Workers._
 import com.github.propi.rdfrules.utils.{Debugger, HashQueue, TypedKeyMap}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future, Promise}
+import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 import scala.language.postfixOps
 
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
-class Amie private(_thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
+class Amie private(parallelism: Int,
+                   _thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
                    _constraints: TypedKeyMap[RuleConstraint] = TypedKeyMap(),
                    _patterns: List[RulePattern] = Nil)
-                  (implicit debugger: Debugger) extends RulesMining(_thresholds, _constraints, _patterns) {
+                  (implicit debugger: Debugger, ec: ExecutionContext) extends RulesMining(_thresholds, _constraints, _patterns) {
 
   protected def transform(thresholds: TypedKeyMap[Threshold],
                           constraints: TypedKeyMap[RuleConstraint],
-                          patterns: List[RulePattern]): RulesMining = new Amie(thresholds, constraints, patterns)
+                          patterns: List[RulePattern]): RulesMining = new Amie(parallelism, thresholds, constraints, patterns)
 
   /**
     * Mine all closed rules from tripleIndex by defined thresholds (hc, support, rule length), optional rule pattern and constraints
@@ -48,13 +48,14 @@ class Amie private(_thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
         builder ++= process.getHeads
         builder.result()
       }*/
-      val heads = process.getHeads.toIndexedSeq
+      //val heads = process.getHeads.toIndexedSeq
       //parallel rule mining: for each head we search rules
-      debugger.debug("Amie rules mining", heads.length) { ad =>
+      /*debugger.debug("Amie rules mining", heads.length) { ad =>
         //Await.result(Workers(heads)(head => ad.result()(process.searchRules(head))), Duration.Inf)
         //heads.foreach(head => ad.result()(process.searchRules(head)))
         heads.parForeach()(head => ad.result()(process.searchRules(head)))
-      }
+      }*/
+      process.searchRules()
       val timeoutReached = process.timeout.exists(process.currentDuration >= _)
       val rules = Await.result(process.result.getResult, 1 minute)
       if (timeoutReached) {
@@ -228,28 +229,66 @@ class Amie private(_thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
     /**
       * Search all expanded rules from a specific rule which satisfies all thresholds, constraints and patterns.
       *
-      * @param initRule a rule to be expanded
-      * @return expanded closed rules
+      * @return expanded closed rules in the result set
       */
-    def searchRules(initRule: ExtendedRule): Unit = {
+    def searchRules(): Unit = debugger.debug("Amie rules mining") { ad =>
       //queue for mined rules which can be also expanded
       //in this queue there can not be any duplicit rules (it speed up computation)
-      val queue = new HashQueue[ExtendedRule].add(initRule)
-      //if the queue is not empty, try expand rules
+      val queue = new HashQueue[ExtendedRule]
+      //add all possible head to the queue
+      getHeads foreach queue.add
+      //first we refine all rules with length 1 (stage 1)
+      //once all rules with length 1 are refined we go to the stage 2 (refine rules with length 2), etc.
+      var stage = 1
+      //if the queue is not empty and the timeout is not reached, go to the stage X
       while (!queue.isEmpty && timeout.forall(_ > currentDuration)) {
-        //get one rule from queue and remove it from that
-        val rule = queue.poll
-        //if the rule is closed we add it to the result set
-        rule match {
-          case closedRule: ClosedRule => result.addRule(closedRule)
-          case _ =>
+        if (stage >= settings.maxRuleLength) {
+          //if it is the final stage then it means no refinements, we only add all closed rules to the result set
+          while (!queue.isEmpty) {
+            queue.poll match {
+              case closedRule: ClosedRule => result.addRule(closedRule)
+              case _ =>
+            }
+          }
+        } else {
+          //refinement stage
+          //starts P jobs in parallel where P is number of processors
+          //each job refines rules from queue with length X where X is the stage number.
+          val jobs = for (_ <- 0 until parallelism) yield Future {
+            Stream.continually {
+              //poll head rule from queue with length X (wher X is the stage number)
+              //if queue is empty or head rule has length greater than X, return None
+              queue.synchronized {
+                if (!queue.isEmpty && queue.peek.ruleLength == stage) Some(queue.poll) else None
+              }
+            }.takeWhile(_.isDefined && timeout.forall(_ > currentDuration)).map(_.get).foreach { rule =>
+              //we continually take all defined (and valid) rules from queue until end of the stage or reaching of the timeout
+              //if the rule is closed we add it to the result set
+              rule match {
+                case closedRule: ClosedRule => result.addRule(closedRule)
+                case _ =>
+              }
+              //if rule length is lower than max rule length we can expand this rule with one atom (in this refine phase it always applies)
+              //if we use the topK approach the minHeadCoverage may change during mining; therefore we need to check minHC threshold for the current rule
+              if (result.isRefinable(rule)) {
+                //refine the rule and add all expanded variants into the queue
+                howLong("Rule expansion", true)(for (rule <- rule.refine) {
+                  val (beforeSize, currentSize) = queue.synchronized {
+                    val beforeSize = queue.size
+                    queue.add(rule)
+                    beforeSize -> queue.size
+                  }
+                  if (currentSize > beforeSize && rule.isInstanceOf[ClosedRule]) ad.done(s"found rules (queue size: $currentSize)")
+                  //if (currentSize > beforeSize) ad.done(s"refinements (queue size: $currentSize)")
+                })
+              }
+            }
+          }
+          //wait for all jobs in the current stage
+          Await.result(Future.sequence(jobs), Duration.Inf)
         }
-        //if rule length is lower than max rule length we can expand this rule with one atom
-        //if we use the topK approach the minHeadCoverage may change during mining; therefore we need to check minHC threshold for the current rule
-        if (rule.ruleLength < settings.maxRuleLength && result.isRefinable(rule)) {
-          //refine the rule and add all expanded variants into the queue
-          howLong("Rule expansion", true)(for (rule <- rule.refine) queue.add(rule))
-        }
+        //stage is completed, go to the next stage
+        stage += 1
       }
     }
 
@@ -259,9 +298,16 @@ class Amie private(_thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
 
 object Amie {
 
-  def apply()(implicit debugger: Debugger): RulesMining = new Amie()
-    .addThreshold(Threshold.MinHeadSize(100))
-    .addThreshold(Threshold.MinHeadCoverage(0.01))
-    .addThreshold(Threshold.MaxRuleLength(3))
+  def apply(parallelism: Int = Runtime.getRuntime.availableProcessors())(implicit debugger: Debugger, ec: ExecutionContext = ExecutionContext.global): RulesMining = {
+    val normParallelism = if (parallelism < 1 || parallelism > Runtime.getRuntime.availableProcessors()) {
+      Runtime.getRuntime.availableProcessors()
+    } else {
+      parallelism
+    }
+    new Amie(parallelism = normParallelism)
+      .addThreshold(Threshold.MinHeadSize(100))
+      .addThreshold(Threshold.MinHeadCoverage(0.01))
+      .addThreshold(Threshold.MaxRuleLength(3))
+  }
 
 }

@@ -8,9 +8,9 @@ import PrettyDuration._
 /**
   * Created by propan on 20. 3. 2017.
   */
-trait HowLong {
+object HowLong {
 
-  private val logger = Logger[HowLong]
+  private val logger = Logger[HowLong.type]
 
   case class Stats(count: Int, totalTime: Duration, maxTime: Duration, memUsage: Long) {
     lazy val averageTime: Duration = Duration.fromNanos(totalTime.toNanos / count.toDouble)
@@ -21,7 +21,7 @@ trait HowLong {
     def +(timeMem: (Duration, Long)): Stats = (this + timeMem._1).copy(memUsage = memUsage + timeMem._2)
 
     override def toString: String = {
-      val x = s"(count: $count, totalTime: ${totalTime.pretty}, averageTime: ${averageTime.pretty}"
+      val x = s"(count: $count, totalTime: ${totalTime.pretty}, maxTime: ${maxTime.pretty}, averageTime: ${averageTime.pretty}"
       if (memUsage != 0) {
         x + s", memUsage: ${memUsage / 1000000.0} MB)"
       } else {
@@ -67,6 +67,8 @@ trait HowLong {
     f
   }
 
+  def get(message: String): Option[Stats] = times.get(message)
+
   def flushAllResults(): Unit = {
     for ((message, stats) <- times) {
       logger.info("TOTAL - " + message + ": " + stats)
@@ -75,5 +77,3 @@ trait HowLong {
   }
 
 }
-
-object HowLong extends HowLong

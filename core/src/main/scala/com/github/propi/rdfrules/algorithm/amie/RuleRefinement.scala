@@ -7,7 +7,7 @@ import com.github.propi.rdfrules.rule.ExtendedRule.{ClosedRule, DanglingRule}
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.HowLong._
 import com.github.propi.rdfrules.utils.extensions.IteratorExtension._
-import com.github.propi.rdfrules.utils.{Debugger, IncrementalInt}
+import com.github.propi.rdfrules.utils.{Debugger, IncrementalInt, Stringifier}
 
 import scala.collection.mutable
 import scala.language.implicitConversions
@@ -143,7 +143,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
         (s, o) => specifyVariableMapWithAtom(rule.head.transform(subject = Atom.Constant(s), `object` = Atom.Constant(o)), Map.empty)
       }
       debugger.debug("Rule expansion: " + rule, rule.headSize + 1) { ad =>
-        if (logger.underlying.isTraceEnabled) logger.trace("Rule expansion - " + rule + "\n" + "countable: " + countableFreshAtoms + "\n" + "possible: " + possibleFreshAtoms)
+        //if (logger.underlying.isTraceEnabled) logger.trace("Rule expansion - " + rule + "\n" + "countable: " + countableFreshAtoms + "\n" + "possible: " + possibleFreshAtoms)
         //if duplicit predicates are allowed then
         //for all fresh atoms return all extensions with duplicit predicates by more efficient way
         howLong("Rule expansion - count duplicit", true) {
@@ -169,7 +169,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
           }
         }
       }
-      if (logger.underlying.isTraceEnabled) logger.trace("Rule expansion - total projections: " + projections.size)
+      if (logger.underlying.isTraceEnabled) logger.trace("Rule expansion " + Stringifier[Rule](rule) + ": total projections = " + projections.size)
       //filter all projections by minimal support and remove all duplicit projections
       //then create new rules from all projections (atoms)
       val ruleFilter = new MinSupportRuleFilter(minSupport) & new NoDuplicitRuleFilter(rule.head, bodySet) & new NoRepeatedGroups(withDuplicitPredicates, bodySet + rule.head, rulePredicates) & patternFilter
@@ -400,7 +400,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
 
 object RuleRefinement {
 
-  class Settings(rulesMining: RulesMining)(implicit val debugger: Debugger, mapper: TripleItemHashIndex) {
+  class Settings(rulesMining: RulesMining)(implicit val debugger: Debugger, val mapper: TripleItemHashIndex) {
     @volatile private var _minHeadCoverage: Double = rulesMining.thresholds.apply[Threshold.MinHeadCoverage].value
 
     val patterns: List[RulePattern.Mapped] = rulesMining.patterns.map(_.mapped)

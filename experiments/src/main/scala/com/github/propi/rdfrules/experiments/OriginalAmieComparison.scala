@@ -2,12 +2,13 @@ package com.github.propi.rdfrules.experiments
 
 import amie.mining.AMIE
 import amie.rules.Rule
-import com.github.propi.rdfrules.algorithm.amie.{Amie, AtomCounting, RuleCounting}
+import com.github.propi.rdfrules.algorithm.amie.{Amie, AtomCounting, RuleCounting, RuleRefinement}
 import com.github.propi.rdfrules.data.{Graph, TripleItem}
 import com.github.propi.rdfrules.rule.{AtomPattern, Measure, RuleConstraint, RulePattern, Threshold}
 import com.github.propi.rdfrules.ruleset.{ResolvedRule, Ruleset}
 import com.github.propi.rdfrules.utils.{Debugger, HowLong, Stringifier}
 import AmieRuleOps._
+import com.github.propi.rdfrules.rule
 
 import scala.collection.JavaConverters._
 
@@ -20,8 +21,8 @@ object OriginalAmieComparison {
     println("*******************")
     println("AMIE")
     println("*******************")
-    //-minpca 0.1 -minc 0.1 -oute -const
-    val cmd = "-const -oute -maxad 3 -minhc 0.1 -minpca 0.01 -minc 0.01 experiments/data/yagoFacts.tsv"
+    //-minpca 0.1 -minc 0.1 -oute -const -htr <dealsWith>
+    val cmd = "-oute -maxad 3 -minhc 0.01 -minpca 0.1 -minc 0.1 experiments/data/mappingbased_objects_sample.tsv"
     val amie = HowLong.howLong("Original AMIE loading", memUsage = true, forceShow = true) {
       AMIE.getInstance(cmd.split(' '))
     }
@@ -37,22 +38,26 @@ object OriginalAmieComparison {
     println("RDFRules")
     println("*******************")
 
-    val index = Graph("experiments/data/yagoFacts.tsv").index().withEvaluatedLazyVals
-    HowLong.howLong("RDFRules loading", memUsage = true, forceShow = true) {
-      index.tripleMap(x => println("loaded triples: " + x.size))
-    }
     Debugger() { implicit debugger =>
+      val index = Graph("experiments/data/mappingbased_objects_sample.tsv").index().withEvaluatedLazyVals
+      HowLong.howLong("RDFRules loading", memUsage = true, forceShow = true) {
+        index.tripleMap(x => println("loaded triples: " + x.size))
+      }
       val rules = HowLong.howLong("RDFRules mining", memUsage = true, forceShow = true) {
         index
-          .mine(Amie().addThreshold(Threshold.MinHeadCoverage(0.1)).addThreshold(Threshold.MaxRuleLength(3)).addThreshold(Threshold.TopK(100)).addConstraint(RuleConstraint.WithInstances(false)))//.addConstraint(RuleConstraint.WithInstances(false)))//.addPattern(AtomPattern(predicate = TripleItem.Uri("participatedIn"), `object` = TripleItem.Uri("Unified_Task_Force")) &: AtomPattern(predicate = TripleItem.Uri("hasGender")) =>: AtomPattern(predicate = TripleItem.Uri("isCitizenOf"))))
-          .computePcaConfidence(0.01)
-          .computeConfidence(0.01)
+          .mine(Amie().addThreshold(Threshold.MinHeadCoverage(0.01)).addThreshold(Threshold.MaxRuleLength(3)))//.addPattern(AtomPattern(predicate = TripleItem.Uri("http://dbpedia.org/ontology/child")) =>: Option.empty[AtomPattern]))
+          .computePcaConfidence(0.1)
+          .computeConfidence(0.1)
           //.computePcaConfidence(0.01)
           .cache
       }.resolvedRules.toIndexedSeq
       /*val rules = HowLong.howLong("RDFRules mining", memUsage = true, forceShow = true) {
         Ruleset.fromCache(index, "testrules.cache").computePcaConfidence(0.1, 100).resolvedRules.toIndexedSeq
       }*/
+      /*index.tripleItemMap { implicit mapper =>
+        RuleRefinement.badRules.iterator.map(rule.Rule.Simple(_)).map(ResolvedRule.apply(_)).foreach(println)
+      }*/
+
       //rules.sortBy(_.measures).foreach(println)
       println("mining rules: " + rules.size)
     }
