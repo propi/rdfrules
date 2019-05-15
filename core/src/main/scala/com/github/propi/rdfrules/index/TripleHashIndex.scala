@@ -4,7 +4,6 @@ import com.github.propi.rdfrules.data.Quad
 import com.github.propi.rdfrules.index.TripleHashIndex._
 import com.github.propi.rdfrules.rule.{Atom, TripleItemPosition}
 import com.github.propi.rdfrules.utils.Debugger
-import it.unimi.dsi.fastutil.Hash
 import it.unimi.dsi.fastutil.ints.{Int2ReferenceOpenHashMap, IntOpenHashSet}
 
 import scala.collection.JavaConverters._
@@ -155,7 +154,7 @@ object TripleHashIndex {
   type TripleItemMapWithGraphsAndSet = HashMap[AnyWithGraphs[HashSet]]
   type TripleItemMapWithGraphsAndMap = HashMap[AnyWithGraphs[TripleItemMap]]
 
-  abstract class HashSet(set: java.util.Set[java.lang.Integer]) {
+  abstract class HashSet(set: java.util.Set[Integer]) {
     def iterator: Iterator[Int] = set.iterator().asScala.map(_.intValue())
 
     def apply(x: Int): Boolean = set.contains(x)
@@ -166,9 +165,11 @@ object TripleHashIndex {
       case x: IntOpenHashSet => x.trim()
       case _ =>
     }
+
+    def isEmpty: Boolean = set.isEmpty
   }
 
-  class MutableHashSet(set: java.util.Set[java.lang.Integer] = new IntOpenHashSet()) extends HashSet(set) {
+  class MutableHashSet(set: java.util.Set[Integer] = new IntOpenHashSet()) extends HashSet(set) {
     def +=(x: Int): Unit = set.add(x)
   }
 
@@ -180,7 +181,7 @@ object TripleHashIndex {
 
   implicit def anyWithGraphsTo[T](hashSetWithGraphs: AnyWithGraphs[T]): T = hashSetWithGraphs.value
 
-  abstract class HashMap[V](map: java.util.Map[java.lang.Integer, V]) {
+  abstract class HashMap[V](map: java.util.Map[Integer, V]) {
     def apply(key: Int): V = {
       val x = map.get(key)
       if (x == null) throw new NoSuchElementException else x
@@ -208,7 +209,7 @@ object TripleHashIndex {
     }
   }
 
-  class MutableHashMap[V](map: java.util.Map[java.lang.Integer, V] = new Int2ReferenceOpenHashMap[V](Hash.DEFAULT_INITIAL_SIZE, 0.9f)) extends HashMap(map) {
+  class MutableHashMap[V](map: java.util.Map[Integer, V] = new Int2ReferenceOpenHashMap[V]()) extends HashMap(map) {
     def getOrElseUpdate(key: Int, default: => V): V = {
       var v = map.get(key)
       if (v == null) {

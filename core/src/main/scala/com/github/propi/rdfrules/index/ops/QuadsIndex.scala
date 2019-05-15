@@ -15,8 +15,8 @@ trait QuadsIndex {
       for {
         (p, m1) <- thi.predicates.iterator
         (s, m2) <- m1.subjects.iterator
-        (o, m3) <- m2.iterator
-        g <- m3.iterator
+        (o, _) <- m2.iterator
+        g <- thi.getGraphs(s, p, o).iterator
       } {
         f(CompressedQuad(s, p, o, g))
       }

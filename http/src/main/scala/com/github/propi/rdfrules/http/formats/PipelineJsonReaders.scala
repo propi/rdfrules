@@ -173,7 +173,7 @@ object PipelineJsonReaders {
     new ruleset.FilterRules(
       fields.get("measures").iterator.flatMap(_.convertTo[JsArray].elements).map { json =>
         val fields = json.asJsObject.fields
-        fields("measure") -> fields("value").convertTo[String]
+        fields("name") -> fields("value").convertTo[String]
       }.collect {
         case (JsString("RuleLength"), TripleItemMatcher.Number(x)) => None -> x
         case (measure, TripleItemMatcher.Number(x)) => Some(measure.convertTo[TypedKeyMap.Key[Measure]]) -> x

@@ -1,7 +1,5 @@
 package com.github.propi.rdfrules.experiments
 
-import java.util
-
 import amie.mining.AMIE
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.data.Graph
@@ -44,7 +42,7 @@ object OriginalAmieComparison {
       }
       val rules = HowLong.howLong("RDFRules mining", memUsage = true, forceShow = true) {
         index
-          .mine(Amie().addThreshold(Threshold.MinHeadCoverage(0.02)).addThreshold(Threshold.MaxRuleLength(3)).addConstraint(RuleConstraint.WithInstances(false)))//.addPattern(AtomPattern(predicate = TripleItem.Uri("http://dbpedia.org/ontology/child")) =>: Option.empty[AtomPattern]))
+          .mine(Amie().addThreshold(Threshold.MinHeadCoverage(0.05)).addThreshold(Threshold.MaxRuleLength(3)).addConstraint(RuleConstraint.WithInstances(false)))//.addPattern(AtomPattern(predicate = TripleItem.Uri("http://dbpedia.org/ontology/child")) =>: Option.empty[AtomPattern]))
           .computePcaConfidence(0.1)
           .computeConfidence(0.1)
           //.computePcaConfidence(0.01)
