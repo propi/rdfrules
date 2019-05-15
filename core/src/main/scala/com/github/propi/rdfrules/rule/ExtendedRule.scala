@@ -105,7 +105,10 @@ object ExtendedRule {
     def withPatterns(patterns: List[RulePattern.Mapped]): ExtendedRule = this.copy()(measures, patterns, variables, maxVariable, headTriples)
 
     override def equals(obj: scala.Any): Boolean = obj match {
-      case rule: DanglingRule => checkRuleContentsEquality(body, rule.body.toSet, head, rule.head)
+      case rule: DanglingRule if ruleLength == rule.ruleLength &&
+        measures.get[Measure.HeadSize] == rule.measures.get[Measure.HeadSize] &&
+        measures.get[Measure.Support] == rule.measures.get[Measure.Support] =>
+        checkRuleContentsEquality(body, rule.body.toSet, head, rule.head)
       case _ => false
     }
 

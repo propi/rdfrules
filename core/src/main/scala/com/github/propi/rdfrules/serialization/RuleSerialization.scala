@@ -56,7 +56,7 @@ object RuleSerialization {
   implicit val atomGraphBasedDeserializer: Deserializer[Atom.GraphBased] = (v: Array[Byte]) => {
     val bais = new ByteArrayInputStream(v)
     val (atom, graphs) = Deserializer.deserialize[(Atom.Basic, Traversable[Int])](bais)
-    val graphsSet = new MutableHashSet[Int]
+    val graphsSet = new MutableHashSet
     graphs.foreach(graphsSet += _)
     Atom.GraphBased(atom.subject, atom.predicate, atom.`object`)(graphsSet)
   }
