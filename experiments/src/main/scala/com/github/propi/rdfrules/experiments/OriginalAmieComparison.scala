@@ -1,13 +1,14 @@
 package com.github.propi.rdfrules.experiments
 
-import java.util
-
 import amie.mining.AMIE
-import com.github.propi.rdfrules.algorithm.amie.Amie
-import com.github.propi.rdfrules.data.Graph
-import com.github.propi.rdfrules.experiments.AmieRuleOps._
-import com.github.propi.rdfrules.rule.{RuleConstraint, Threshold}
-import com.github.propi.rdfrules.utils.{Debugger, HowLong}
+import amie.rules.Rule
+import com.github.propi.rdfrules.algorithm.amie.{Amie, AtomCounting, RuleCounting, RuleRefinement}
+import com.github.propi.rdfrules.data.{Graph, TripleItem}
+import com.github.propi.rdfrules.rule.{AtomPattern, Measure, RuleConstraint, RulePattern, Threshold}
+import com.github.propi.rdfrules.ruleset.{ResolvedRule, Ruleset}
+import com.github.propi.rdfrules.utils.{Debugger, HowLong, Stringifier}
+import AmieRuleOps._
+import com.github.propi.rdfrules.rule
 
 import scala.collection.JavaConverters._
 
@@ -21,7 +22,7 @@ object OriginalAmieComparison {
     println("AMIE")
     println("*******************")
     //-minpca 0.1 -minc 0.1 -oute -const -htr <dealsWith>
-    val cmd = "-const -oute -maxad 3 -minhc 0.05 -minpca 0.1 -minc 0.1 experiments/data/mappingbased_objects_sample.tsv"
+    val cmd = "-oute -maxad 3 -minhc 0.01 -minpca 0.1 -minc 0.1 experiments/data/mappingbased_objects_sample.tsv"
     val amie = HowLong.howLong("Original AMIE loading", memUsage = true, forceShow = true) {
       AMIE.getInstance(cmd.split(' '))
     }
@@ -44,7 +45,7 @@ object OriginalAmieComparison {
       }
       val rules = HowLong.howLong("RDFRules mining", memUsage = true, forceShow = true) {
         index
-          .mine(Amie().addThreshold(Threshold.MinHeadCoverage(0.02)).addThreshold(Threshold.MaxRuleLength(3)).addConstraint(RuleConstraint.WithInstances(false)))//.addPattern(AtomPattern(predicate = TripleItem.Uri("http://dbpedia.org/ontology/child")) =>: Option.empty[AtomPattern]))
+          .mine(Amie().addThreshold(Threshold.MinHeadCoverage(0.01)).addThreshold(Threshold.MaxRuleLength(3)))//.addPattern(AtomPattern(predicate = TripleItem.Uri("http://dbpedia.org/ontology/child")) =>: Option.empty[AtomPattern]))
           .computePcaConfidence(0.1)
           .computeConfidence(0.1)
           //.computePcaConfidence(0.01)
@@ -66,7 +67,7 @@ object OriginalAmieComparison {
     //val cmd = "-const -minhc 0.01 -htr <participatedIn> yago2core.10kseedsSample.compressed.notypes.tsv"
     //val cmd = "-const -minhc 0.01 -htr <participatedIn> -nc 1 yago2core.10kseedsSample.compressed.notypes.tsv"
     //
-    //testAmie()
+    testAmie()
     testRdfRules()
     //testRdfRules()
     HowLong.flushAllResults()

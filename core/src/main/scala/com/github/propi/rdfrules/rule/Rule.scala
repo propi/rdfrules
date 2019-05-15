@@ -33,7 +33,7 @@ trait Rule {
           case _ => 0
         })
     }.foldLeft(0)(_ ^ _)
-    (bodyHashCode * body.size * 31) + headSize * 2 + support
+    bodyHashCode + body.size * headSize + support
   }
 
 }
