@@ -41,7 +41,7 @@ object Atom {
     def transform(subject: Item = subject, predicate: Int = predicate, `object`: Item = `object`): Basic = Basic(subject, predicate, `object`)
   }
 
-  case class GraphBased private(subject: Atom.Item, predicate: Int, `object`: Atom.Item)(graphs: HashSet[Int]) extends Atom {
+  case class GraphBased private(subject: Atom.Item, predicate: Int, `object`: Atom.Item)(graphs: HashSet) extends Atom {
     def containsGraph(x: Int): Boolean = graphs(x)
 
     def graphsIterator: Iterator[Int] = graphs.iterator
