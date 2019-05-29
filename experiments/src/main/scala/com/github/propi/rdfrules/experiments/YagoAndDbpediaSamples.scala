@@ -16,7 +16,7 @@ object YagoAndDbpediaSamples {
     def name: String = "Logical rules mining from a YAGO sample with default params"
 
     protected def example: Ruleset = {
-      Dataset(Example.experimentsDir + "yago.tsv")
+      Dataset(Example.experimentsDir + "yago.tsv.bz2")
         .mine(Amie())
         .sorted
         .take(10)
@@ -27,7 +27,7 @@ object YagoAndDbpediaSamples {
     def name: String = "Logical rules mining from a YAGO sample with the top-k approach."
 
     protected def example: Ruleset = {
-      Dataset(Example.experimentsDir + "yago.tsv")
+      Dataset(Example.experimentsDir + "yago.tsv.bz2")
         .mine(Amie().addThreshold(Threshold.TopK(10)))
         .sorted
     }
@@ -37,7 +37,7 @@ object YagoAndDbpediaSamples {
     def name: String = "Logical rules mining from a YAGO sample with many mining params."
 
     protected def example: Ruleset = {
-      val dataset = Dataset(Example.experimentsDir + "yago.tsv")
+      val dataset = Dataset(Example.experimentsDir + "yago.tsv.bz2")
       dataset.mine(Amie()
         .addThreshold(Threshold.MinHeadSize(80))
         .addThreshold(Threshold.MinHeadCoverage(0.001))
@@ -59,9 +59,9 @@ object YagoAndDbpediaSamples {
     def name: String = "Logical rules mining only from a YAGO graph."
 
     protected def example: Ruleset = {
-      val dataset = Graph("yago", Example.experimentsDir + "yagoLiteralFacts.tsv").toDataset +
-        Graph("yago", Example.experimentsDir + "yagoFacts.tsv") +
-        Graph("yago", Example.experimentsDir + "yagoDBpediaInstances.tsv")
+      val dataset = Graph("yago", Example.experimentsDir + "yagoLiteralFacts.tsv.bz2").toDataset +
+        Graph("yago", Example.experimentsDir + "yagoFacts.tsv.bz2") +
+        Graph("yago", Example.experimentsDir + "yagoDBpediaInstances.tsv.bz2")
       dataset.mine(Amie()
         .addThreshold(Threshold.MinHeadCoverage(0.2)))
         .sorted
@@ -72,11 +72,11 @@ object YagoAndDbpediaSamples {
     def name: String = "Logical rules mining across two linked graphs: YAGO and DBpedia"
 
     protected def example: Ruleset = {
-      val dataset = Graph("yago", Example.experimentsDir + "yagoLiteralFacts.tsv").toDataset +
-        Graph("yago", Example.experimentsDir + "yagoFacts.tsv") +
-        Graph("yago", Example.experimentsDir + "yagoDBpediaInstances.tsv") +
-        Graph("dbpedia", Example.experimentsDir + "mappingbased_objects_sample.ttl") +
-        Graph("dbpedia", Example.experimentsDir + "mappingbased_literals_sample.ttl")
+      val dataset = Graph("yago", Example.experimentsDir + "yagoLiteralFacts.tsv.bz2").toDataset +
+        Graph("yago", Example.experimentsDir + "yagoFacts.tsv.bz2") +
+        Graph("yago", Example.experimentsDir + "yagoDBpediaInstances.tsv.bz2") +
+        Graph("dbpedia", Example.experimentsDir + "mappingbased_objects_sample.tsv.bz2") +
+        Graph("dbpedia", Example.experimentsDir + "mappingbased_literals_sample.ttl.bz2")
       dataset.mine(Amie()
         .addThreshold(Threshold.MinHeadCoverage(0.2))
         .addPattern(AtomPattern(graph = TripleItem.Uri("dbpedia")) =>: AtomPattern(graph = TripleItem.Uri("yago")))

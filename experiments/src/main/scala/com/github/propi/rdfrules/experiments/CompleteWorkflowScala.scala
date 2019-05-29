@@ -16,8 +16,8 @@ object CompleteWorkflowScala {
 
     protected def example: Ruleset = {
       val ruleset = (Dataset() +
-        Graph("yago", Example.experimentsDir + "yagoLiteralFacts.tsv") +
-        Graph("yago", Example.experimentsDir + "yagoFacts.tsv"))
+        Graph("yago", Example.experimentsDir + "yagoLiteralFacts.tsv.bz2") +
+        Graph("yago", Example.experimentsDir + "yagoFacts.tsv.bz2"))
         .filter(!_.triple.predicate.hasSameUriAs("participatedIn"))
         .discretize(DiscretizationTask.Equifrequency(3))(_.triple.predicate.hasSameUriAs("hasNumberOfPeople"))
         .mine(Amie()

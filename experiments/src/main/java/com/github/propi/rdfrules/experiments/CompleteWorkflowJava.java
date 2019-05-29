@@ -33,8 +33,8 @@ public class CompleteWorkflowJava {
     public static void main(String[] args) {
         Debugger.use(debugger -> {
             Ruleset ruleset = Dataset.empty()
-                    .add(Graph.fromFile(new TripleItem.LongUri("yago"), Example$.MODULE$.experimentsDir() + "yagoLiteralFacts.tsv"))
-                    .add(Graph.fromFile(new TripleItem.LongUri("yago"), Example$.MODULE$.experimentsDir() + "yagoFacts.tsv"))
+                    .add(Graph.fromFile(new TripleItem.LongUri("yago"), Example$.MODULE$.experimentsDir() + "yagoLiteralFacts.tsv.bz2"))
+                    .add(Graph.fromFile(new TripleItem.LongUri("yago"), Example$.MODULE$.experimentsDir() + "yagoFacts.tsv.bz2"))
                     .filter(quad -> !quad.getTriple().getPredicate().hasSameUriAs("participatedIn"))
                     .discretize(new DiscretizationTask.Equifrequency(3), quad -> quad.getTriple().getPredicate().hasSameUriAs("hasNumberOfPeople"))
                     .mine(RulesMining.amie(debugger)

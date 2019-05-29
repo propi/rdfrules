@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.experiments.benchmark
 
-import com.github.propi.rdfrules.utils.HowLong
+import scala.concurrent.duration.Duration
 
 /**
   * Created by Vaclav Zeman on 14. 5. 2019.
@@ -13,18 +13,22 @@ trait Task[I1, I2, O1, O2] {
 
   protected def taskBody(input: I2): O1
 
-  final def execute(input: I1): (HowLong.Stats, O2) = {
+  private def getCurrentMemory = Runtime.getRuntime.totalMemory() - Runtime.getRuntime.freeMemory()
+
+  final def execute(input: I1): (Seq[Metric], O2) = {
     val preProcessedInput = preProcess(input)
-    val output = postProcess(HowLong.howLong(name, memUsage = true, forceShow = true) {
-      taskBody(preProcessedInput)
-    })
-    HowLong.get(name).get -> output
+    val beforeUsedMem = {
+      System.gc()
+      getCurrentMemory
+    }
+    val time = System.nanoTime()
+    val x = taskBody(preProcessedInput)
+    val runningTime = Duration.fromNanos(System.nanoTime() - time)
+    val afterUsedMem = {
+      System.gc()
+      getCurrentMemory
+    }
+    List(Metric.Duration("time", runningTime), Metric.Memory("memory", afterUsedMem - beforeUsedMem)) -> postProcess(x)
   }
-
-}
-
-object Task {
-
-  object NoInput
 
 }

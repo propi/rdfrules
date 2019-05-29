@@ -19,12 +19,13 @@ object PrettyDuration {
       duration match {
         case d: FiniteDuration =>
           val nanos = d.toNanos
-          val unit = chooseUnit(nanos)
-          val value = nanos.toDouble / NANOSECONDS.convert(1, unit)
+          val absNanos = math.abs(nanos)
+          val unit = chooseUnit(absNanos)
+          val value = absNanos.toDouble / NANOSECONDS.convert(1, unit)
 
           s"%.${precision}g %s%s".formatLocal(
             Locale.ROOT,
-            value,
+            value * math.signum(nanos),
             abbreviate(unit),
             if (includeNanos) s" ($nanos ns)" else "")
 

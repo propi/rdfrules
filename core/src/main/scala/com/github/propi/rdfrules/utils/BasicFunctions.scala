@@ -47,4 +47,6 @@ object BasicFunctions {
     checkNextChar(x.toList, "", "")
   }
 
+  def round(x: Double, precision: Int): Double = BigDecimal(x).setScale(precision, BigDecimal.RoundingMode.HALF_UP).toDouble
+
 }

@@ -13,3 +13,5 @@ trait DefaultMiningSettings {
   val numberOfThreads: Int = Runtime.getRuntime.availableProcessors()
 
 }
+
+object DefaultMiningSettings extends DefaultMiningSettings

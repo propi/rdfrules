@@ -3,9 +3,9 @@ package com.github.propi.rdfrules.data
 import java.io.File
 
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
-import com.github.propi.rdfrules.data.RdfSource.Tsv
 import com.github.propi.rdfrules.utils.OutputStreamBuilder
-import org.apache.jena.riot.RDFFormat
+
+import scala.util.Try
 
 /**
   * Created by Vaclav Zeman on 4. 10. 2017.
@@ -24,14 +24,22 @@ object RdfWriter {
     def writeToOutputStream(quads: QuadTraversableView, outputStreamBuilder: OutputStreamBuilder): Unit = throw new IllegalStateException("No specified RdfWriter.")
   }
 
-  def apply(file: File): RdfWriter = file.getName.replaceAll(".*\\.", "").toLowerCase match {
-    case "nt" => RDFFormat.NTRIPLES_UTF8
-    case "nq" => RDFFormat.NQUADS_UTF8
-    case "ttl" => RDFFormat.TURTLE_FLAT
-    case "trig" => RDFFormat.TRIG_BLOCKS
-    case "trix" => RDFFormat.TRIX
-    case "tsv" => Tsv
+  private def restrictedRdfSource(extension: String): RdfSource = extension match {
+    case "nt" | "nq" | "ttl" | "trig" | "trix" | "tsv" => RdfSource(extension)
     case x => throw new IllegalArgumentException(s"Unsupported RDF format for streaming writing: $x")
+  }
+
+  def apply(file: File): RdfWriter = {
+    val Ext2 = ".+[.](.+)[.](.+)".r
+    val Ext1 = ".+[.](.+)".r
+    file.getName.toLowerCase match {
+      case Ext2(ext1, ext2) => Try(Compression(ext2)).toOption match {
+        case Some(compression) => restrictedRdfSource(ext1).compressedBy(compression)
+        case None => restrictedRdfSource(ext2)
+      }
+      case Ext1(ext1) => restrictedRdfSource(ext1)
+      case _ => throw new IllegalArgumentException(s"No file extension to detect an RDF format.")
+    }
   }
 
 }

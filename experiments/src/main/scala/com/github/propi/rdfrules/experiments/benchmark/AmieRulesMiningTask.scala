@@ -26,8 +26,8 @@ trait AmieRulesMiningTask extends Task[String, AMIE, util.List[Rule], IndexedSeq
     }
   }
 
-  protected def taskBody(input: AMIE): util.List[Rule] = input.mine()
+  final protected def taskBody(input: AMIE): util.List[Rule] = input.mine()
 
-  protected def postProcess(result: util.List[Rule]): IndexedSeq[ResolvedRule] = result.iterator().asScala.map(_.toResolvedRule).toIndexedSeq
+  final protected def postProcess(result: util.List[Rule]): IndexedSeq[ResolvedRule] = result.iterator().asScala.map(_.toResolvedRule).toIndexedSeq
 
 }

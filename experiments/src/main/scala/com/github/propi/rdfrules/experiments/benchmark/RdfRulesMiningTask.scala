@@ -17,7 +17,7 @@ trait RdfRulesMiningTask[T] extends Task[Index, Index, Ruleset, T] with TaskPreP
   implicit val debugger: Debugger
   val withConstantsAtTheObjectPosition: Boolean = false
 
-  val minLift: Double = 0.0
+  val countLift: Boolean = false
 
   private def createDefaultMiningTask: RulesMining = Function.chain[RulesMining](List(
     _.addThreshold(Threshold.MinHeadCoverage(minHeadCoverage)),
@@ -37,7 +37,7 @@ trait RdfRulesMiningTask[T] extends Task[Index, Index, Ruleset, T] with TaskPreP
     Function.chain[Ruleset](List(
       x => if (minConfidence <= 0.0) x else x.computeConfidence(minConfidence),
       x => if (minPcaConfidence <= 0.0) x else x.computePcaConfidence(minPcaConfidence),
-      x => if (minLift <= 0.0 || minConfidence <= 0.0) x else x.computeLift(minConfidence)
+      x => if (!countLift || minConfidence <= 0.0) x else x.computeLift(minConfidence)
     ))(ruleset)
   }
 
