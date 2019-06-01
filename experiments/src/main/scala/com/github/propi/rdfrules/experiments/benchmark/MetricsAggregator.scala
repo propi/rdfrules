@@ -16,10 +16,12 @@ object MetricsAggregator {
       val col = variables.collect {
         case x: Metric.Simple => x
       }
+      val max = col.maxBy(_.doubleValue)
+      val min = col.minBy(_.doubleValue)
       val avg = col.reduceLeft(_ + _) / col.length
       val variance = col.map(x => math.pow(x.doubleValue - avg.doubleValue, 2)).sum / col.length
       val stdDev = math.sqrt(variance)
-      Metric.Stats(avg, avg.update(stdDev))
+      Metric.Stats(avg, avg.update(stdDev), min, max)
     }.values.toSeq
   }
 

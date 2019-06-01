@@ -103,7 +103,7 @@ object Metric {
     }
   }
 
-  case class Stats(avg: Simple, stdDev: Simple) extends Complex {
+  case class Stats(avg: Simple, stdDev: Simple, min: Simple, max: Simple) extends Complex {
     val name: String = avg.name
 
     def doubleValue: Double = avg.doubleValue
@@ -150,7 +150,7 @@ object Metric {
   val basicStringifier: Stringifier[Metric] = {
     case x: Simple => s"${x.name}: ${x.prettyValue}"
     case x: Complex => x match {
-      case Stats(avg, stdDev) => s"${x.name}: ${avg.prettyValue} (stdDev: ${stdDev.prettyValue})"
+      case Stats(avg, stdDev, min, max) => s"${x.name}: ${avg.prettyValue} (stdDev: ${stdDev.prettyValue}, min: ${min.prettyValue}, max: ${max.prettyValue})"
       case Comparison(metric, absDiff, relDiff) => Stringifier(metric)(basicStringifier) + ", " + Stringifier(absDiff)(signSimpleStringifier) + s" (${Stringifier[Metric](Number("", relDiff * 100))(signSimpleStringifier)}%)"
     }
   }

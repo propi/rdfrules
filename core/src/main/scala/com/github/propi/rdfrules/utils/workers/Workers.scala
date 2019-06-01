@@ -61,7 +61,7 @@ object Workers {
       worker ! Message.RegisterWorker(workerToRegister)
     }
     //split works to smaller chunks
-    val it = work.iterator.grouped(math.ceil(work.length / workers.length.toDouble).toInt)
+    val it = if (work.isEmpty) Iterator.empty else work.iterator.grouped(math.ceil(work.length / workers.length.toDouble).toInt)
     //send splitted work to each worker
     for (worker <- workers) {
       if (it.hasNext) {

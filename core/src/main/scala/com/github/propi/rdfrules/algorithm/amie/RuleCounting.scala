@@ -25,9 +25,9 @@ trait RuleCounting extends AtomCounting {
     both are valid paths for the rule, but for (A, B) support = 1 and bodysize = 2; confidence = 0.5 - but it should be 1
     because C1 and C2 are connectable with A and B
     */
-    //minimal allowed confidence is 1%
-    if (minConfidence < 0.01) {
-      withConfidence(0.01, allPaths)
+    //minimal allowed confidence is 0.1%
+    if (minConfidence < 0.001) {
+      withConfidence(0.001, allPaths)
     } else {
       logger.debug(s"Confidence counting for rule: " + rule)
       val support = rule.measures[Measure.Support].value
@@ -106,9 +106,9 @@ trait RuleCounting extends AtomCounting {
     * @return New rule with counted pca confidence
     */
   def withPcaConfidence(minPcaConfidence: Double, allPaths: Boolean = false): Rule.Simple = {
-    //minimal allowed confidence is 1%
-    if (minPcaConfidence < 0.01) {
-      withPcaConfidence(0.01, allPaths)
+    //minimal allowed confidence is 0.1%
+    if (minPcaConfidence < 0.001) {
+      withPcaConfidence(0.001, allPaths)
     } else {
       logger.debug(s"PCA confidence counting for rule: " + rule)
       /*

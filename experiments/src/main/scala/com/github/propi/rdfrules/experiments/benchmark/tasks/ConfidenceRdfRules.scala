@@ -22,6 +22,6 @@ class ConfidenceRdfRules[T](val name: String,
     x => if (minConfidence > 0.0) x.computeConfidence(minConfidence, topK) else x,
     x => if (minPcaConfidence > 0.0) x.computePcaConfidence(minPcaConfidence, topK) else x,
     x => if (countLift && minConfidence > 0.0) x.computeLift(minConfidence) else x
-  ))(input)
+  ))(input).cache
 
 }
