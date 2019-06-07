@@ -9,7 +9,9 @@ import com.github.propi.rdfrules.utils.Debugger
   */
 class MinHcRdfRules[T](val name: String,
                        override val minHeadCoverage: Double = DefaultMiningSettings.minHeadCoverage,
-                       override val allowConstants: Boolean = DefaultMiningSettings.allowConstants)(implicit val debugger: Debugger) extends RdfRulesMiningTask[T] {
+                       override val allowConstants: Boolean = DefaultMiningSettings.allowConstants,
+                       override val numberOfThreads: Int = DefaultMiningSettings.numberOfThreads)
+                      (implicit val debugger: Debugger) extends RdfRulesMiningTask[T] {
 
   self: TaskPostProcessor[Ruleset, T] =>
 

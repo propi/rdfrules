@@ -31,4 +31,6 @@ lazy val gui = project
 
 lazy val experiments = project
   .in(file("experiments"))
+  .settings(packMain := Map("main" -> "com.github.propi.rdfrules.experiments.OriginalAmieComparison"))
+  .enablePlugins(PackPlugin)
   .dependsOn(java)

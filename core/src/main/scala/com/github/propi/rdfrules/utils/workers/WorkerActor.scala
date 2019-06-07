@@ -121,7 +121,7 @@ abstract class WorkerActor[I, O](val id: Int, resultConsumer: ResultConsumer[O])
     if (!stopped) {
       randomItem(registeredWorkers) match {
         case Some(worker) => worker ! Message.StoppingToken(id, (registeredWorkers - worker).toList)
-        case None => stopped = true
+        case None => this ! Message.StoppingToken(id - 1, Nil)
       }
     }
     //STOPPING PHASE
@@ -133,7 +133,7 @@ abstract class WorkerActor[I, O](val id: Int, resultConsumer: ResultConsumer[O])
           sender ! Message.NoWork(this)
         //process obtained stopping token
         case st@Message.StoppingToken(_, _) =>
-          //logger.info(s"$id: stopping token obrained in stopping state - $st")
+          //logger.info(s"$id: stopping token obtained in stopping state - $st")
           processStoppingToken(st)
         //if this worker obtains stop message then go to the stopped phase immediately
         case Message.Stop() =>

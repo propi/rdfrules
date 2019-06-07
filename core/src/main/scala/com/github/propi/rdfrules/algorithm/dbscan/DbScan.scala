@@ -1,15 +1,23 @@
 package com.github.propi.rdfrules.algorithm.dbscan
 
+import java.util.concurrent.ForkJoinPool
+
 import com.github.propi.rdfrules.algorithm.Clustering
 import com.github.propi.rdfrules.utils.Debugger
 import com.github.propi.rdfrules.utils.Debugger.ActionDebugger
 
+import scala.collection.parallel.ForkJoinTaskSupport
+
 /**
   * Created by Vaclav Zeman on 31. 7. 2017.
   */
-class DbScan[T] private(minNeighbours: Int, minSimilarity: Double)(implicit similarity: SimilarityCounting[T], debugger: Debugger) extends Clustering[T] {
+class DbScan[T] private(minNeighbours: Int, minSimilarity: Double, parallelism: Int)(implicit similarity: SimilarityCounting[T], debugger: Debugger) extends Clustering[T] {
 
-  private def searchReachables(point: T, data: Seq[T]) = data.par.partition(similarity(point, _) >= minSimilarity)
+  private def searchReachables(point: T, data: Seq[T]) = {
+    val parSeq = data.par
+    parSeq.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(parallelism))
+    parSeq.partition(similarity(point, _) >= minSimilarity)
+  }
 
   @scala.annotation.tailrec
   private def makeCluster(remainingPoints: IndexedSeq[T], cluster: IndexedSeq[T], nonCluster: Seq[T])(implicit ad: ActionDebugger): (IndexedSeq[T], Seq[T]) = if (remainingPoints.isEmpty) {
@@ -74,6 +82,6 @@ class DbScan[T] private(minNeighbours: Int, minSimilarity: Double)(implicit simi
 
 object DbScan {
 
-  def apply[T](minNeighbours: Int = 5, minSimilarity: Double = 0.9)(implicit similarity: SimilarityCounting[T], debugger: Debugger): Clustering[T] = new DbScan(minNeighbours, minSimilarity)
+  def apply[T](minNeighbours: Int = 5, minSimilarity: Double = 0.9, parallelism: Int = Runtime.getRuntime.availableProcessors())(implicit similarity: SimilarityCounting[T], debugger: Debugger): Clustering[T] = new DbScan(minNeighbours, minSimilarity, parallelism)
 
 }

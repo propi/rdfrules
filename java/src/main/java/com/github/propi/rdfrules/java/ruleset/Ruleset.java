@@ -176,6 +176,7 @@ public class Ruleset implements
         return new Ruleset(ruleset.makeClusters(DbScan$.MODULE$.apply(
                 minNeighbours,
                 minSimilarity,
+                getParallelism(),
                 similarityCounting.asScala(),
                 debugger.asScala()
         )));
@@ -205,6 +206,7 @@ public class Ruleset implements
         return new Ruleset(ruleset.makeClusters(DbScan$.MODULE$.apply(
                 DbScan$.MODULE$.apply$default$1(),
                 DbScan$.MODULE$.apply$default$2(),
+                getParallelism(),
                 SimilarityCounting.DEFAULT().asScala(),
                 debugger.asScala()
         )));
@@ -269,6 +271,14 @@ public class Ruleset implements
 
     public void exportToText(String file) {
         asScala().export(file, ReadersWriters.rulesTextWriter());
+    }
+
+    public Ruleset setParallelism(int parallelism) {
+        return new Ruleset(ruleset.setParallelism(parallelism));
+    }
+
+    public int getParallelism() {
+        return ruleset.parallelism();
     }
 
 }

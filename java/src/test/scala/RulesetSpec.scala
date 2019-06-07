@@ -28,7 +28,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
   it should "count pca confidence" in {
     val rules = ruleset.computePcaConfidence(0.9)
     rules.forEach(rule => rule.getPcaConfidence.doubleValue() should be >= 0.9)
-    rules.size shouldBe 1067
+    rules.size shouldBe 950
   }
 
   it should "count lift" in {
@@ -79,7 +79,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
     ruleset.export("output.json")
     source = Source.fromFile("output.json", "UTF-8")
     try {
-      source.getLines().size shouldBe 437722
+      source.getLines().size shouldBe 441066
     } finally {
       source.close()
     }
@@ -90,14 +90,16 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
     var x = ruleset
       .filter(RulePattern.create().prependBodyAtom(new AtomPattern().withPredicate(new TripleItem.LongUri("livesIn"))))
       .cache()
-    x.getResolvedRules.asScala.map(_.getBody.asScala.last.getPredicate) should contain only new TripleItem.LongUri("livesIn")
-    x.size shouldBe 371
+    for (rule <- x.getResolvedRules.asScala) {
+      rule.getBody.asScala.map(_.getPredicate) should contain(new TripleItem.LongUri("livesIn"))
+    }
+    x.size shouldBe 1091
     x = ruleset.filter(
       RulePattern.create(new AtomPattern().withPredicate(new TripleItem.LongUri("hasCapital"))).prependBodyAtom(new AtomPattern().withPredicate(new RulePattern.Constant(new TripleItem.LongUri("livesIn")))),
       RulePattern.create(new AtomPattern().withPredicate(new TripleItem.LongUri("isMarriedTo")))
     ).cache()
     x.getResolvedRules.asScala.map(_.getHead.getPredicate) should contain allOf(new TripleItem.LongUri("hasCapital"), new TripleItem.LongUri("isMarriedTo"))
-    x.size shouldBe 3
+    x.size shouldBe 4
   }
 
   it should "find most similar or dissimilar rules" in {

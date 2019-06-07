@@ -32,12 +32,12 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
       }
     }
     val mem = MemoryMeasurer.measureBytes(index)
-    mem should be(6000000L +- 100000)
+    mem should be(4600000L +- 100000)
     index.tripleItemMap { tihi =>
       tihi.iterator.size shouldBe 42980
       tihi.iterator.size shouldBe dataset1.quads.flatMap(x => List(x.graph, x.triple.subject, x.triple.predicate, x.triple.`object`)).toSet.size
     }
-    MemoryMeasurer.measureBytes(index) shouldBe mem
+    MemoryMeasurer.measureBytes(index) should be(mem +- 100)
   }
 
   it should "create from dataset and load index" in {
@@ -47,7 +47,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
       thi.size shouldBe dataset1.size
     }
     val mem = MemoryMeasurer.measureBytes(index)
-    mem should be(92000000L +- 1000000)
+    mem should be(59000000L +- 1000000)
     val cq = index.tripleItemMap { implicit tim =>
       dataset1.quads.head.toCompressedQuad
     }
@@ -73,12 +73,12 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
       tihi.iterator.size shouldBe 72263
       tihi.iterator.size shouldBe dataset2.quads.flatMap(x => List(x.graph, x.triple.subject, x.triple.predicate, x.triple.`object`)).toSet.size
     }
-    MemoryMeasurer.measureBytes(index) should be(10000000L +- 1000000)
+    MemoryMeasurer.measureBytes(index) should be(8000000L +- 1000000)
     index.tripleMap { thi =>
       thi.size shouldBe dataset2.size
     }
     val indexMemory1 = MemoryMeasurer.measureBytes(index)
-    indexMemory1 should be(210000000L +- 5000000)
+    indexMemory1 should be(110000000L +- 5000000)
     val index2 = index.withEvaluatedLazyVals
     val indexMemory2 = MemoryMeasurer.measureBytes(index2)
     indexMemory1 should be < indexMemory2

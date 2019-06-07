@@ -41,7 +41,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     Debugger.use((t: Debugger) => {
       val index = dataset1.index(t)
       val rules = index.mine(RulesMining.amie(t))
-      rules.size shouldBe 123
+      rules.size shouldBe 124
     })
   }
 
@@ -70,17 +70,17 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
 
   it should "mine with instances" in {
     val rules = dataset1.mine(RulesMining.amie().withoutDuplicitPredicates().withInstances(false))
-    rules.size shouldBe 20634
+    rules.size shouldBe 20643
   }
 
   it should "mine with instances and with duplicit predicates" in {
     val rules = dataset1.mine(RulesMining.amie().withInstances(false))
-    rules.size shouldBe 40960
+    rules.size shouldBe 39924
   }
 
   it should "mine only with object instances" in {
     val rules = dataset1.mine(RulesMining.amie().withoutDuplicitPredicates().withInstances(true))
-    rules.size shouldBe 9955
+    rules.size shouldBe 10031
   }
 
   it should "mine with min length" in {
@@ -160,7 +160,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
         new RulePattern.Constant(new TripleItem.LongUri("imports"))
       ))
     )
-    index.mine(amie.addPattern(pattern)).size() shouldBe 6786
+    index.mine(amie.addPattern(pattern)).size() shouldBe 6847
     //several patterns
     index.mine(RulesMining.amie()
       .withoutDuplicitPredicates()
@@ -170,7 +170,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "mine across two graphs" in {
-    dataset2.mine(RulesMining.amie().withoutDuplicitPredicates()).size() shouldBe 391
+    dataset2.mine(RulesMining.amie().withoutDuplicitPredicates()).size() shouldBe 400
   }
 
   it should "mine across two graphs with pattern" in {

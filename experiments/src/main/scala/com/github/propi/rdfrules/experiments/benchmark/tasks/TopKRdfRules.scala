@@ -13,7 +13,8 @@ class TopKRdfRules[T](val name: String,
                       val topK: Int,
                       override val minHeadCoverage: Double = DefaultMiningSettings.minHeadCoverage,
                       override val allowConstants: Boolean = DefaultMiningSettings.allowConstants,
-                      countConfidences: Boolean = false)
+                      countConfidences: Boolean = false,
+                      override val numberOfThreads: Int = DefaultMiningSettings.numberOfThreads)
                      (implicit val debugger: Debugger) extends RdfRulesMiningTask[T] {
 
   self: TaskPostProcessor[Ruleset, T] =>

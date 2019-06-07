@@ -42,41 +42,57 @@ object ExtendedRule {
     * @return boolean
     */
   def checkRuleContentsEquality(body1: IndexedSeq[Atom], body2: Set[Atom], head1: Atom, head2: Atom): Boolean = {
-    def checkAtomItemsEquality(atomItem1: Atom.Item, atomItem2: Atom.Item, variables: Map[Atom.Variable, Atom.Variable]) = (atomItem1, atomItem2) match {
-      case (Atom.Constant(value1), Atom.Constant(value2)) if value1 == value2 => true -> variables
-      case (v1: Atom.Variable, v2: Atom.Variable) =>
-        val nv = variables + (v2 -> variables.getOrElse(v2, v1))
-        (nv(v2) == v1) -> nv
-      case _ => false -> variables
+    /**
+      * Check two items
+      *
+      * @param atomItem1      atomItem1
+      * @param atomItem2      atomItem2
+      * @param variables      mapping for second rule
+      * @param variablesItems variables which are objects of mapping
+      * @return
+      */
+    def checkAtomItemsEquality(atomItem1: Atom.Item, atomItem2: Atom.Item, variables: Map[Atom.Variable, Atom.Variable], variablesItems: Set[Atom.Variable]) = (atomItem1, atomItem2) match {
+      case (Atom.Constant(value1), Atom.Constant(value2)) => (value1 == value2, variables, variablesItems)
+      case (v1: Atom.Variable, v2: Atom.Variable) => variables.get(v2) match {
+        //if item of the second rule is mapped then we return the object of mapping and we compare it with first rule item
+        case Some(v2) => (v2 == v1, variables, variablesItems)
+        //if item of the second rule is not mapped and the first rule item is some object of mapping we can not map the second item - it is duplicit mapping
+        //e.g. variables(c -> b), variablesItems(b), we compare b with d, we can not map (d -> b), because b is also the object of mapping
+        //in this case the comparison is always false
+        case None if variablesItems(v1) => (false, variables, variablesItems)
+        //if item of the second rule is not mapped and the first rule item is not some object of mapping we map second item to first item
+        case _ => (true, variables + (v2 -> v1), variablesItems + v1)
+      }
+      case _ => (false, variables, variablesItems)
     }
 
-    def checkAtomEquality(atom1: Atom, atom2: Atom, variables: Map[Atom.Variable, Atom.Variable]) = {
+    def checkAtomEquality(atom1: Atom, atom2: Atom, variables: Map[Atom.Variable, Atom.Variable], variablesItems: Set[Atom.Variable]) = {
       if (atom1.predicate == atom2.predicate) {
-        val (eqSubjects, v1) = checkAtomItemsEquality(atom1.subject, atom2.subject, variables)
+        val (eqSubjects, v1, vi1) = checkAtomItemsEquality(atom1.subject, atom2.subject, variables, variablesItems)
         if (eqSubjects) {
-          val (eqObjects, v2) = checkAtomItemsEquality(atom1.`object`, atom2.`object`, v1)
-          eqObjects -> v2
+          val (eqObjects, v2, vi2) = checkAtomItemsEquality(atom1.`object`, atom2.`object`, v1, vi1)
+          (eqObjects, v2, vi2)
         } else {
-          false -> variables
+          (false, variables, variablesItems)
         }
       } else {
-        false -> variables
+        (false, variables, variablesItems)
       }
     }
 
-    def checkBodyEquality(body1: IndexedSeq[Atom], body2: Set[Atom], variables: Map[Atom.Variable, Atom.Variable]): Boolean = {
+    def checkBodyEquality(body1: IndexedSeq[Atom], body2: Set[Atom], variables: Map[Atom.Variable, Atom.Variable], variablesItems: Set[Atom.Variable]): Boolean = {
       body1 match {
         case head +: tail =>
           body2.exists { atom =>
-            val (eqAtoms, newVariables) = checkAtomEquality(head, atom, variables)
-            eqAtoms && checkBodyEquality(tail, body2 - atom, newVariables)
+            val (eqAtoms, newVariables, newVariablesItems) = checkAtomEquality(head, atom, variables, variablesItems)
+            eqAtoms && checkBodyEquality(tail, body2 - atom, newVariables, newVariablesItems)
           }
         case _ => body2.isEmpty
       }
     }
 
-    val (eqHeads, newVariables) = checkAtomEquality(head1, head2, Map.empty)
-    eqHeads && checkBodyEquality(body1, body2, newVariables)
+    val (eqHeads, newVariables, newVariablesItems) = checkAtomEquality(head1, head2, Map.empty, Set.empty)
+    eqHeads && checkBodyEquality(body1, body2, newVariables, newVariablesItems)
   }
 
   case class ClosedRule(body: IndexedSeq[Atom], head: Atom)

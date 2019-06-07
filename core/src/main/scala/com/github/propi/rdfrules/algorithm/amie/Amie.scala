@@ -5,7 +5,7 @@ import java.util.concurrent.LinkedBlockingQueue
 import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.algorithm.amie.RuleRefinement.{Settings, _}
 import com.github.propi.rdfrules.index.{TripleHashIndex, TripleItemHashIndex}
-import com.github.propi.rdfrules.rule.ExtendedRule.{ClosedRule, DanglingRule}
+import com.github.propi.rdfrules.rule.ExtendedRule.ClosedRule
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.HowLong._
 import com.github.propi.rdfrules.utils.{Debugger, HashQueue, TypedKeyMap}
@@ -18,15 +18,18 @@ import scala.language.postfixOps
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
-class Amie private(parallelism: Int,
+class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
                    _thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
                    _constraints: TypedKeyMap[RuleConstraint] = TypedKeyMap(),
                    _patterns: List[RulePattern] = Nil)
-                  (implicit debugger: Debugger, ec: ExecutionContext) extends RulesMining(_thresholds, _constraints, _patterns) {
+                  (implicit debugger: Debugger, ec: ExecutionContext) extends RulesMining(_parallelism, _thresholds, _constraints, _patterns) {
+
+  self =>
 
   protected def transform(thresholds: TypedKeyMap[Threshold],
                           constraints: TypedKeyMap[RuleConstraint],
-                          patterns: List[RulePattern]): RulesMining = new Amie(parallelism, thresholds, constraints, patterns)
+                          patterns: List[RulePattern],
+                          parallelism: Int): RulesMining = new Amie(parallelism, thresholds, constraints, patterns)
 
   /**
     * Mine all closed rules from tripleIndex by defined thresholds (hc, support, rule length), optional rule pattern and constraints
@@ -42,19 +45,6 @@ class Amie private(parallelism: Int,
     implicit val settings: RuleRefinement.Settings = new Settings(this)(if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) debugger else Debugger.EmptyDebugger, mapper)
     val process = new AmieProcess()
     try {
-      //get all possible heads
-      /*val heads = {
-        val builder = ParVector.newBuilder[DanglingRule]
-        builder ++= process.getHeads
-        builder.result()
-      }*/
-      //val heads = process.getHeads.toIndexedSeq
-      //parallel rule mining: for each head we search rules
-      /*debugger.debug("Amie rules mining", heads.length) { ad =>
-        //Await.result(Workers(heads)(head => ad.result()(process.searchRules(head))), Duration.Inf)
-        //heads.foreach(head => ad.result()(process.searchRules(head)))
-        heads.parForeach()(head => ad.result()(process.searchRules(head)))
-      }*/
       process.searchRules()
       val timeoutReached = process.timeout.exists(process.currentDuration >= _)
       val rules = Await.result(process.result.getResult, 1 minute)
@@ -160,71 +150,16 @@ class Amie private(parallelism: Int,
 
   }
 
-  private class AmieProcess(implicit val tripleIndex: TripleHashIndex, settings: RuleRefinement.Settings, forAtomMatcher: AtomPatternMatcher[Atom]) extends AtomCounting {
+  private class AmieProcess(implicit val tripleIndex: TripleHashIndex, val settings: RuleRefinement.Settings, val forAtomMatcher: AtomPatternMatcher[Atom]) extends HeadsFetcher {
 
-    private val minSupport: Int = thresholds.apply[Threshold.MinHeadSize].value
+    val patterns: List[RulePattern] = self.patterns
+    val thresholds: TypedKeyMap.Immutable[Threshold] = self.thresholds
+
     private val startTime = System.currentTimeMillis()
     val timeout: Option[Long] = thresholds.get[Threshold.Timeout].map(_.duration.toMillis)
     val result: AmieResult = new AmieResult(settings)
 
     def currentDuration: Long = System.currentTimeMillis() - startTime
-
-    /**
-      * Get all possible heads from triple index
-      * All heads are filtered by constraints, patterns and minimal support
-      *
-      * @return atoms in dangling rule form - DanglingRule(no body, one head, one or two variables in head)
-      */
-    def getHeads: Iterator[DanglingRule] = {
-      //enumerate all possible head atoms with variables and instances
-      //all unsatisfied predicates are filtered by constraints
-      val possibleAtoms = {
-        val it = tripleIndex.predicates.keysIterator.filter(settings.isValidPredicate).map(Atom(Atom.Variable(0), _, Atom.Variable(1)))
-        if (settings.isWithInstances) {
-          //if instantiated atoms are allowed then we specify variables by constants
-          //only one variable may be replaced by a constant
-          //result is original variable atom + instantied atoms with constants in subject + instantied atoms with constants in object
-          //we do not instantient subject variable if onlyObjectInstances is true
-          it.flatMap { atom =>
-            val it1 = if (settings.onlyObjectInstances) {
-              Iterator.empty
-            } else {
-              specifySubject(atom).map(_.transform(`object` = Atom.Variable(0)))
-            }
-            val it2 = specifyObject(atom)
-            Iterator(atom) ++ it1 ++ it2
-          }
-        } else {
-          it
-        }
-      }
-      //filter all atoms by patterns and join all valid patterns to the atom
-      possibleAtoms.flatMap { atom =>
-        val validPatterns = settings.patterns.filter(rp => rp.consequent.forall(atomPattern => forAtomMatcher.matchPattern(atom, atomPattern)))
-        if (patterns.isEmpty || validPatterns.nonEmpty) {
-          Iterator(atom -> validPatterns)
-        } else {
-          Iterator.empty
-        }
-      }.flatMap { case (atom, patterns) =>
-        //convert all atoms to rules and filter it by min support
-        val tm = tripleIndex.predicates(atom.predicate)
-        val danglingRule = Some(atom.subject, atom.`object`).collect {
-          case (v1: Atom.Variable, v2: Atom.Variable) => (ExtendedRule.TwoDanglings(v1, v2, Nil), tm.size, tm.size)
-          case (Atom.Constant(c), v1: Atom.Variable) => (ExtendedRule.OneDangling(v1, Nil), tm.size, tm.subjects.get(c).map(_.size).getOrElse(0))
-          case (v1: Atom.Variable, Atom.Constant(c)) => (ExtendedRule.OneDangling(v1, Nil), tm.size, tm.objects.get(c).map(_.size).getOrElse(0))
-        }.filter(x => x._3 >= math.max(minSupport, settings.minHeadCoverage * x._2)).map(x =>
-          DanglingRule(Vector.empty, atom)(
-            TypedKeyMap(Measure.HeadSize(x._2), Measure.Support(x._3), Measure.HeadCoverage(x._3.toDouble / x._2)),
-            patterns,
-            x._1,
-            x._1.danglings.max,
-            getAtomTriples(atom).toIndexedSeq
-          )
-        )
-        danglingRule
-      }
-    }
 
     /**
       * Search all expanded rules from a specific rule which satisfies all thresholds, constraints and patterns.
@@ -291,81 +226,14 @@ class Amie private(parallelism: Int,
       }
     }
 
-    /*
-    def searchRules(): Unit = debugger.debug("Amie rules mining") { ad =>
-      //queue for mined rules which can be also expanded
-      //in this queue there can not be any duplicit rules (it speed up computation)
-      val queue = new HashQueue[ExtendedRule]
-      val lastStageResult = collection.mutable.HashSet.empty[ClosedRule]
-      //add all possible head to the queue
-      getHeads foreach queue.add
-      //first we refine all rules with length 1 (stage 1)
-      //once all rules with length 1 are refined we go to the stage 2 (refine rules with length 2), etc.
-      var stage = 1
-      //if the queue is not empty and the timeout is not reached, go to the stage X
-      while (!queue.isEmpty && timeout.forall(_ > currentDuration)) {
-        //starts P jobs in parallel where P is number of processors
-        //each job refines rules from queue with length X where X is the stage number.
-        val jobs = for (_ <- 0 until parallelism) yield Future {
-          Stream.continually {
-            //poll head rule from queue with length X (wher X is the stage number)
-            //if queue is empty or head rule has length greater than X, return None
-            queue.synchronized {
-              if (!queue.isEmpty && queue.peek.ruleLength == stage) Some(queue.poll) else None
-            }
-          }.takeWhile(_.isDefined && timeout.forall(_ > currentDuration)).map(_.get).filter(result.isRefinable).foreach { rule =>
-            //we continually take all defined (and valid) rules from queue until end of the stage or reaching of the timeout
-            //if rule length is lower than max rule length we can expand this rule with one atom (in this refine phase it always applies)
-            //if we use the topK approach the minHeadCoverage may change during mining; therefore we need to check minHC threshold for the current rule
-            //refine the rule and add all expanded variants into the queue
-            if (stage + 1 < settings.maxRuleLength) {
-              howLong("Rule expansion", true)(for (rule <- rule.refine) {
-                val (beforeSize, currentSize) = queue.synchronized {
-                  val beforeSize = queue.size
-                  queue.add(rule)
-                  beforeSize -> queue.size
-                }
-                if (currentSize > beforeSize && rule.isInstanceOf[ClosedRule]) {
-                  result.addRule(rule.asInstanceOf[ClosedRule])
-                  ad.done(s"found rules (queue size: $currentSize)")
-                }
-              })
-            } else {
-              howLong("Rule expansion", true)(for (rule@ClosedRule(_, _) <- rule.refine) {
-                val (beforeSize, currentSize) = lastStageResult.synchronized {
-                  val beforeSize = lastStageResult.size
-                  lastStageResult += rule
-                  beforeSize -> lastStageResult.size
-                }
-                if (currentSize > beforeSize) {
-                  result.addRule(rule)
-                  ad.done(s"found rules (queue size: $currentSize)")
-                }
-              })
-            }
-          }
-        }
-        //wait for all jobs in the current stage
-        Await.result(Future.sequence(jobs), Duration.Inf)
-        //stage is completed, go to the next stage
-        stage += 1
-      }
-    }
-     */
-
   }
 
 }
 
 object Amie {
 
-  def apply(parallelism: Int = Runtime.getRuntime.availableProcessors())(implicit debugger: Debugger, ec: ExecutionContext = ExecutionContext.global): RulesMining = {
-    val normParallelism = if (parallelism < 1 || parallelism > Runtime.getRuntime.availableProcessors()) {
-      Runtime.getRuntime.availableProcessors()
-    } else {
-      parallelism
-    }
-    new Amie(parallelism = normParallelism)
+  def apply()(implicit debugger: Debugger, ec: ExecutionContext = ExecutionContext.global): RulesMining = {
+    new Amie()
       .addThreshold(Threshold.MinHeadSize(100))
       .addThreshold(Threshold.MinHeadCoverage(0.01))
       .addThreshold(Threshold.MaxRuleLength(3))

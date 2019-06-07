@@ -11,7 +11,8 @@ import com.github.propi.rdfrules.utils.Debugger
   */
 class PatternRdfRules[T](val name: String,
                          override val minHeadCoverage: Double = DefaultMiningSettings.minHeadCoverage,
-                         override val allowConstants: Boolean = DefaultMiningSettings.allowConstants)
+                         override val allowConstants: Boolean = DefaultMiningSettings.allowConstants,
+                         override val numberOfThreads: Int = DefaultMiningSettings.numberOfThreads)
                         (patterns: RulePattern*)
                         (implicit val debugger: Debugger) extends RdfRulesMiningTask[T] {
 

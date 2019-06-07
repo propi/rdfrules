@@ -7,11 +7,12 @@ import com.github.propi.rdfrules.utils.TypedKeyMap
 /**
   * Created by Vaclav Zeman on 14. 3. 2018.
   */
-abstract class RulesMining(_thresholds: TypedKeyMap[Threshold], _constraints: TypedKeyMap[RuleConstraint], _patterns: List[RulePattern]) {
+abstract class RulesMining(_parallelism: Int, _thresholds: TypedKeyMap[Threshold], _constraints: TypedKeyMap[RuleConstraint], _patterns: List[RulePattern]) {
 
   protected def transform(thresholds: TypedKeyMap[Threshold] = _thresholds,
                           constraints: TypedKeyMap[RuleConstraint] = _constraints,
-                          patterns: List[RulePattern] = _patterns): RulesMining
+                          patterns: List[RulePattern] = _patterns,
+                          parallelism: Int = _parallelism): RulesMining
 
   final def addThreshold(threshold: Threshold): RulesMining = transform(thresholds = _thresholds + Threshold.validate(threshold))
 
@@ -24,6 +25,24 @@ abstract class RulesMining(_thresholds: TypedKeyMap[Threshold], _constraints: Ty
   final def constraints: TypedKeyMap.Immutable[RuleConstraint] = _constraints
 
   final def patterns: List[RulePattern] = _patterns
+
+  /**
+    * Set a parallelism level for main mining task (number of workers).
+    * The parallelism should be equal to or lower than the max thread pool size of the execution context
+    *
+    * @param parallelism number of workers
+    * @return
+    */
+  final def setParallelism(parallelism: Int): RulesMining = {
+    val normParallelism = if (parallelism < 1 || parallelism > Runtime.getRuntime.availableProcessors()) {
+      Runtime.getRuntime.availableProcessors()
+    } else {
+      parallelism
+    }
+    transform(parallelism = normParallelism)
+  }
+
+  final def parallelism: Int = _parallelism
 
   def mine(implicit tripleIndex: TripleHashIndex, mapper: TripleItemHashIndex): IndexedSeq[Rule.Simple]
 

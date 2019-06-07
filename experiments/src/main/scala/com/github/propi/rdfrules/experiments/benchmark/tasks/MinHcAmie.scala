@@ -7,4 +7,7 @@ import com.github.propi.rdfrules.experiments.benchmark.{AmieRulesMiningTask, Def
   */
 class MinHcAmie(val name: String,
                 override val minHeadCoverage: Double = DefaultMiningSettings.minHeadCoverage,
-                override val allowConstants: Boolean = DefaultMiningSettings.allowConstants) extends AmieRulesMiningTask
+                override val allowConstants: Boolean = DefaultMiningSettings.allowConstants,
+                override val numberOfThreads: Int = DefaultMiningSettings.numberOfThreads) extends AmieRulesMiningTask {
+
+}

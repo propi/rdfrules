@@ -23,11 +23,11 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
   }
 
   "Index" should "mine directly from index" in {
-    Index(dataset1).mine(Amie()).size shouldBe 123
+    Index(dataset1).mine(Amie()).size shouldBe 124
   }
 
   "Dataset" should "mine directly from dataset" in {
-    dataset1.mine(Amie()).size shouldBe 123
+    dataset1.mine(Amie()).size shouldBe 124
   }
 
   "Ruleset" should "count confidence" in {
@@ -35,14 +35,14 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
     all(rules.map(_.measures[Measure.Confidence].value)) should be >= 0.9
     rules.size shouldBe 166
     val rules2 = ruleset.computeConfidence(0).rules
-    all(rules2.map(_.measures[Measure.Confidence].value)) should be >= 0.01
-    rules2.size shouldBe 9900
+    all(rules2.map(_.measures[Measure.Confidence].value)) should be >= 0.001
+    rules2.size shouldBe 10029
   }
 
   it should "count pca confidence" in {
     val rules = ruleset.computePcaConfidence(0.9).rules
     all(rules.map(_.measures[Measure.PcaConfidence].value)) should be >= 0.9
-    rules.size shouldBe 1067
+    rules.size shouldBe 950
   }
 
   it should "count lift" in {
@@ -113,7 +113,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
     ruleset.export("output.json")
     source = Source.fromFile("output.json", "UTF-8")
     try {
-      source.getLines().size shouldBe 437722
+      source.getLines().size shouldBe 441066
     } finally {
       source.close()
     }
@@ -122,14 +122,16 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
 
   it should "filter by patterns" in {
     var x = ruleset.filter(AtomPattern(predicate = TripleItem.Uri("livesIn")) =>: None)
-    x.resolvedRules.view.map(_.body.last.predicate) should contain only TripleItem.Uri("livesIn")
-    x.size shouldBe 371
+    for (rule <- x.resolvedRules) {
+      rule.body.map(_.predicate) should contain(TripleItem.Uri("livesIn"))
+    }
+    x.size shouldBe 1091
     x = ruleset.filter(
       AtomPattern(predicate = TripleItem.Uri("livesIn")) =>: AtomPattern(predicate = TripleItem.Uri("hasCapital")),
       AtomPattern(predicate = TripleItem.Uri("isMarriedTo"))
     )
     x.resolvedRules.view.map(_.head.predicate) should contain allOf(TripleItem.Uri("hasCapital"), TripleItem.Uri("isMarriedTo"))
-    x.size shouldBe 3
+    x.size shouldBe 4
   }
 
   it should "work with graph-based rules" in {
@@ -159,7 +161,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
     d.export("output.json")
     source = Source.fromFile("output.json", "UTF-8")
     try {
-      source.getLines().size shouldBe 467557
+      source.getLines().size shouldBe 471129
     } finally {
       source.close()
     }

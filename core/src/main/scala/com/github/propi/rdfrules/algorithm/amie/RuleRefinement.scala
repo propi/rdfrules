@@ -27,7 +27,6 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
     */
   lazy val dangling: Atom.Variable = rule.maxVariable.++
 
-
   /**
     * Map of all rule predicates. Each predicate has subject and object variables.
     * For each this variable in a particular position it has list of other items (in subject or object position).
@@ -156,7 +155,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
             //example 1: head size is 10, min support is 5. Only 4 steps are remaining and there are no projection found then we can stop "count projection"
             // - because no projection can have support greater or equal 5
             //example 2: head size is 10, min support is 5, remaining steps 2, projection with maximal support has value 2: 2 + 2 = 4 it is less than 5 - we can stop counting
-            val remains = rule.headSize - x._2
+            val remains = rule.headTriples.length - x._2
             maxSupport + remains >= minSupport
           }.foreach { case ((_subject, _object), _) =>
             //for each triple covering head of this rule, find and count all possible projections for all possible fresh atoms
@@ -403,6 +402,7 @@ object RuleRefinement {
   class Settings(rulesMining: RulesMining)(implicit val debugger: Debugger, val mapper: TripleItemHashIndex) {
     @volatile private var _minHeadCoverage: Double = rulesMining.thresholds.apply[Threshold.MinHeadCoverage].value
 
+    val parallelism: Int = rulesMining.parallelism
     val patterns: List[RulePattern.Mapped] = rulesMining.patterns.map(_.mapped)
     val minHeadSize: Int = rulesMining.thresholds.apply[Threshold.MinHeadSize].value
     val minSupport: Option[Int] = rulesMining.thresholds.get[Threshold.MinSupport].map(_.value)

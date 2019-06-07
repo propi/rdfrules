@@ -10,17 +10,17 @@ import com.github.propi.rdfrules.index.{Index, TripleHashIndex}
 import com.github.propi.rdfrules.rule.{Measure, Rule, RulePattern, RulePatternMatcher}
 import com.github.propi.rdfrules.ruleset.ops.Sortable
 import com.github.propi.rdfrules.serialization.RuleSerialization._
-import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 import com.github.propi.rdfrules.utils.workers.Workers._
+import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
 
 import scala.collection.mutable
 
 /**
   * Created by Vaclav Zeman on 6. 10. 2017.
   */
-class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index)
+class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val parallelism: Int)
   extends Transformable[Rule.Simple, Ruleset]
     with Cacheable[Rule.Simple, Ruleset]
     with Sortable[Rule.Simple, Ruleset] {
@@ -29,7 +29,7 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index)
 
   protected def coll: Traversable[Rule.Simple] = rules
 
-  protected def transform(col: Traversable[Rule.Simple]): Ruleset = new Ruleset(col, index)
+  protected def transform(col: Traversable[Rule.Simple]): Ruleset = new Ruleset(col, index, parallelism)
 
   protected val ordering: Ordering[Rule.Simple] = implicitly[Ordering[Rule.Simple]]
   protected val serializer: Serializer[Rule.Simple] = implicitly[Serializer[Rule.Simple]]
@@ -83,7 +83,7 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index)
       val cached = self.cache
       debugger(cached.size) { ad =>
         //here we use parallel mapping
-        cached.rules.toIndexedSeq.parMap() { rule =>
+        cached.rules.toIndexedSeq.parMap(parallelism) { rule =>
           ad.result()(f(thi)(rule))
         }.foreach(x => f2(x))
       }
@@ -95,7 +95,7 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index)
       val cached = self.cache
       debugger(cached.size) { ad =>
         //here we use topK parallel enumeration with some initThreshold and with a function which updates threshold once the queue head is changed
-        cached.rules.toIndexedSeq.topK(topK, initThreshold, updateThreshold) { (rule, threshold) =>
+        cached.rules.toIndexedSeq.topK(topK, initThreshold, updateThreshold, parallelism) { (rule, threshold) =>
           ad.result()(f(thi)(rule, threshold))
         }.foreach(x => f2(x))
       }
@@ -199,11 +199,27 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index)
 
   def export(file: String)(implicit writer: RulesetWriter): Unit = export(new File(file))
 
+  /**
+    * Set number of workers for parallel tasks (confidences computing)
+    * The parallelism should be equal to or lower than the max thread pool size of the execution context
+    *
+    * @param parallelism number of workers
+    * @return
+    */
+  def setParallelism(parallelism: Int): Ruleset = {
+    val normParallelism = if (parallelism < 1 || parallelism > Runtime.getRuntime.availableProcessors()) {
+      Runtime.getRuntime.availableProcessors()
+    } else {
+      parallelism
+    }
+    new Ruleset(rules, index, normParallelism)
+  }
+
 }
 
 object Ruleset {
 
-  def apply(rules: IndexedSeq[Rule.Simple], index: Index): Ruleset = new Ruleset(rules, index)
+  def apply(rules: IndexedSeq[Rule.Simple], index: Index): Ruleset = new Ruleset(rules, index, Runtime.getRuntime.availableProcessors())
 
   def fromCache(index: Index, is: => InputStream): Ruleset = new Ruleset(
     new Traversable[Rule.Simple] {
@@ -211,7 +227,8 @@ object Ruleset {
         Stream.continually(reader.read()).takeWhile(_.isDefined).map(_.get).foreach(f)
       }
     },
-    index
+    index,
+    Runtime.getRuntime.availableProcessors()
   )
 
   def fromCache(index: Index, file: File): Ruleset = fromCache(index, new FileInputStream(file))

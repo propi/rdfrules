@@ -49,7 +49,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
         amie.mine
       }
     }
-    rules.size shouldBe 123
+    rules.size shouldBe 124
   }
 
   it should "mine without duplicit predicates" in {
@@ -101,7 +101,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
         amie.mine
       }
     }
-    rules.size shouldBe 20634
+    rules.size shouldBe 20643
   }
 
   it should "mine with instances quickly with evaluated lazy vals" in {
@@ -134,8 +134,8 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
       }
     }
     val rulesWithDuplicitPredicates = rules.iterator.count(x => (x.body :+ x.head).map(_.predicate).toSet.size != x.ruleLength)
-    rules.size shouldBe 40960
-    rulesWithDuplicitPredicates shouldBe 20326
+    rules.size shouldBe 39924
+    rulesWithDuplicitPredicates shouldBe 19281
   }
 
   it should "mine only with object instances" in {
@@ -146,7 +146,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
         amie.mine.sortBy(_.measures[Measure.HeadCoverage])(Ordering.by[Measure.HeadCoverage, Double](_.value).reverse)
       }
     }
-    rules.size shouldBe 9955
+    rules.size shouldBe 10031
     rules(1).measures[Measure.HeadCoverage].value shouldBe 0.22784810126582278
   }
 
@@ -165,7 +165,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
         amie.mine
       }
     }
-    rules.size shouldBe 127
+    rules.size shouldBe 139
   }
 
   it should "mine with min head size" in {
@@ -200,7 +200,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
         amie.mine.map(_.withConfidence(0.2)).filter(_.measures.exists[Measure.Confidence])
       }
     }
-    rules.size shouldBe 6
+    rules.size shouldBe 7
     rules.forall(_.measures[Measure.Confidence].value >= 0.2) shouldBe true
   }
 
@@ -230,7 +230,9 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
       val rules = index.tripleMap { implicit thi =>
         amie.addPattern(pattern).mine
       }
-      rules.map(_.body.last.predicate).map(mapper.getTripleItem) should contain only TripleItem.Uri("livesIn")
+      for (rule <- rules) {
+        rule.body.map(_.predicate).map(mapper.getTripleItem) should contain(TripleItem.Uri("livesIn"))
+      }
       rules.size shouldBe 1091
     }
     //constant in object
@@ -239,7 +241,9 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
       val rules = index.tripleMap { implicit thi =>
         amie.addPattern(pattern).mine
       }
-      rules.map(_.body.last.`object`) should contain only Atom.Constant(mapper.getIndex(TripleItem.Uri("Islamabad")))
+      for (rule <- rules) {
+        rule.body.map(_.`object`) should contain(Atom.Constant(mapper.getIndex(TripleItem.Uri("Islamabad"))))
+      }
       rules.size shouldBe 10
     }
     //variable in object
@@ -248,7 +252,9 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
       val rules = index.tripleMap { implicit thi =>
         amie.addPattern(pattern).mine
       }
-      rules.map(_.body.last.`object`) should contain only Atom.Item('b')
+      for (rule <- rules) {
+        rule.body.map(_.`object`) should contain(Atom.Item('b'))
+      }
       rules.size shouldBe 543
     }
     //any variable in object
@@ -257,7 +263,9 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
       val rules = index.tripleMap { implicit thi =>
         amie.addPattern(pattern).mine
       }
-      rules.map(_.body.last.`object`) should contain allOf(Atom.Item('a'), Atom.Item('b'))
+      for (rule <- rules) {
+        rule.body.map(x => mapper.getTripleItem(x.predicate) -> x.`object`) should contain atLeastOneOf(TripleItem.Uri("livesIn") -> Atom.Item('a'), TripleItem.Uri("livesIn") -> Atom.Item('b'), TripleItem.Uri("livesIn") -> Atom.Item('c'))
+      }
       rules.size shouldBe 546
     }
     //any constant in object
@@ -266,7 +274,9 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
       val rules = index.tripleMap { implicit thi =>
         amie.addPattern(pattern).mine
       }
-      rules.map(_.body.last.`object`.isInstanceOf[Atom.Constant]) should contain only true
+      for (rule <- rules) {
+        rule.body.map(_.`object`.isInstanceOf[Atom.Constant]) should contain(true)
+      }
       rules.size shouldBe 545
     }
     //specified consequent
@@ -275,8 +285,8 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
       val rules = index.tripleMap { implicit thi =>
         amie.addPattern(pattern).mine
       }
-      val desiredCouple = TripleItem.Uri("livesIn") -> TripleItem.Uri("hasAcademicAdvisor")
-      rules.map(x => mapper.getTripleItem(x.body.last.predicate) -> mapper.getTripleItem(x.head.predicate)) should contain only desiredCouple
+      val desiredCouple = Some(TripleItem.Uri("livesIn")) -> TripleItem.Uri("hasAcademicAdvisor")
+      rules.map(x => x.body.map(_.predicate).map(mapper.getTripleItem).find(_ == TripleItem.Uri("livesIn")) -> mapper.getTripleItem(x.head.predicate)) should contain only desiredCouple
       rules.size shouldBe 20
     }
     //two patterns in body
@@ -303,17 +313,19 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
       val rules = index.tripleMap { implicit thi =>
         amie.addPattern(pattern).mine
       }
-      rules.map(_.body.last.predicate).map(mapper.getTripleItem) should contain only(TripleItem.Uri("livesIn"), TripleItem.Uri("diedIn"))
+      for (rule <- rules) {
+        rule.body.map(_.predicate).map(mapper.getTripleItem) should contain atLeastOneOf(TripleItem.Uri("livesIn"), TripleItem.Uri("diedIn"))
+      }
       rules.size shouldBe 1400
     }
     //noneOf pattern
     pattern = AtomPattern(predicate = NoneOf(TripleItem.Uri("participatedIn"), TripleItem.Uri("imports"))) =>: None
     index.tripleItemMap { implicit mapper =>
       val rules = index.tripleMap { implicit thi =>
-        amie.addPattern(pattern).mine
+        amie.addPattern(pattern).addThreshold(Threshold.MaxRuleLength(2)).mine
       }
       rules.map(_.body.last.predicate).map(mapper.getTripleItem) should contain noneOf(TripleItem.Uri("participatedIn"), TripleItem.Uri("imports"))
-      rules.size shouldBe 6786
+      rules.size shouldBe 29
     }
     //several patterns
     val amie2 = Amie()
@@ -337,7 +349,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
         amie.mine
       }
       rules.map(_.head.predicate).map(mapper.getTripleItem) should contain allOf(TripleItem.Uri("http://cs.dbpedia.org/property/hudba"), TripleItem.Uri("hasCapital"))
-      rules.size shouldBe 391
+      rules.size shouldBe 400
     }
   }
 

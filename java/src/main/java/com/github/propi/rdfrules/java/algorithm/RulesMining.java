@@ -6,6 +6,7 @@ import com.github.propi.rdfrules.java.data.TripleItem;
 import com.github.propi.rdfrules.java.rule.RulePattern;
 import com.github.propi.rdfrules.rule.RuleConstraint;
 import com.github.propi.rdfrules.rule.Threshold;
+import scala.concurrent.ExecutionContext;
 
 import java.util.Set;
 
@@ -21,11 +22,11 @@ public class RulesMining {
     }
 
     public static RulesMining amie(Debugger debugger) {
-        return new RulesMining(Amie$.MODULE$.apply(Amie$.MODULE$.apply$default$1(), debugger.asScala(), Amie$.MODULE$.apply$default$3(Amie$.MODULE$.apply$default$1())));
+        return new RulesMining(Amie$.MODULE$.apply(debugger.asScala(), ExecutionContext.global()));
     }
 
     public static RulesMining amie() {
-        return new RulesMining(Amie$.MODULE$.apply(Amie$.MODULE$.apply$default$1(), Debugger.empty().asScala(), Amie$.MODULE$.apply$default$3(Amie$.MODULE$.apply$default$1())));
+        return new RulesMining(Amie$.MODULE$.apply(Debugger.empty().asScala(), ExecutionContext.global()));
     }
 
     public com.github.propi.rdfrules.algorithm.RulesMining asScala() {
@@ -66,6 +67,10 @@ public class RulesMining {
 
     public RulesMining withoutDuplicitPredicates() {
         return new RulesMining(rulesMining.addConstraint(new RuleConstraint.WithoutDuplicitPredicates()));
+    }
+
+    public RulesMining withParallelism(int x) {
+        return new RulesMining(rulesMining.setParallelism(x));
     }
 
     public RulesMining addPattern(RulePattern rulePattern) {

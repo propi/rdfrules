@@ -20,6 +20,7 @@ trait RdfRulesMiningTask[T] extends Task[Index, Index, Ruleset, T] with TaskPreP
   val countLift: Boolean = false
 
   private def createDefaultMiningTask: RulesMining = Function.chain[RulesMining](List(
+    _.setParallelism(numberOfThreads),
     _.addThreshold(Threshold.MinHeadCoverage(minHeadCoverage)),
     _.addThreshold(Threshold.MaxRuleLength(maxRuleLength)),
     x => if (allowConstants) {
@@ -27,7 +28,7 @@ trait RdfRulesMiningTask[T] extends Task[Index, Index, Ruleset, T] with TaskPreP
     } else {
       x
     }
-  ))(Amie(numberOfThreads))
+  ))(Amie())
 
   protected def miningTask(rulesMining: RulesMining): RulesMining = rulesMining
 
@@ -35,6 +36,7 @@ trait RdfRulesMiningTask[T] extends Task[Index, Index, Ruleset, T] with TaskPreP
 
   protected def countOtherMetrics(ruleset: Ruleset): Ruleset = {
     Function.chain[Ruleset](List(
+      _.setParallelism(numberOfThreads),
       x => if (minConfidence <= 0.0) x else x.computeConfidence(minConfidence),
       x => if (minPcaConfidence <= 0.0) x else x.computePcaConfidence(minPcaConfidence),
       x => if (!countLift || minConfidence <= 0.0) x else x.computeLift(minConfidence)
