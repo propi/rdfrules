@@ -141,12 +141,12 @@ object OriginalAmieComparison {
         }
         if (cli.hasOption("runcores")) {
           for (cores <- listOfCores) {
-            val taskDesc = s"cores = $cores, minHeadCoverage = 0.005, minConfidence = 0.1, minPcaConfidence = 0.1, only logical rules"
+            val taskDesc = s"cores = $cores, minHeadCoverage = ${minHcs.head}, minConfidence = 0.1, minPcaConfidence = 0.1, only logical rules"
             val taskResult1 = if (!cli.hasOption("rdfrulesonly")) Some(
-              xTimes executeTask new NumOfThreadsAmie(s"AMIE: $taskDesc", cores, 0.005) withInput inputTsvDataset andAggregateResultWith StatsAggregator
+              xTimes executeTask new NumOfThreadsAmie(s"AMIE: $taskDesc", cores, minHcs.head) withInput inputTsvDataset andAggregateResultWith StatsAggregator
             ) else None
             val taskResult2 = if (!cli.hasOption("amieonly")) Some(
-              xTimes executeTask new NumOfThreadsRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: $taskDesc", cores, 0.005) with RulesTaskPostprocessor withInput index andAggregateResultWith StatsAggregator
+              xTimes executeTask new NumOfThreadsRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: $taskDesc", cores, minHcs.head) with RulesTaskPostprocessor withInput index andAggregateResultWith StatsAggregator
             ) else None
             (taskResult1, taskResult2) match {
               case (Some(tr1), Some(tr2)) => tr1 compareWith tr2 andFinallyProcessResultWith BasicPrinter()
@@ -156,12 +156,12 @@ object OriginalAmieComparison {
             }
           }
           for (cores <- listOfCores) {
-            val taskDesc = s"cores = $cores, minHeadCoverage = 0.01, minConfidence = 0.1, minPcaConfidence = 0.1, with constants"
+            val taskDesc = s"cores = $cores, minHeadCoverage = ${minHcs.head}, minConfidence = 0.1, minPcaConfidence = 0.1, with constants"
             val taskResult1 = if (!cli.hasOption("rdfrulesonly")) Some(
-              xTimes executeTask new NumOfThreadsAmie(s"AMIE: $taskDesc", cores, 0.01, true) withInput inputTsvDataset andAggregateResultWith StatsAggregator
+              xTimes executeTask new NumOfThreadsAmie(s"AMIE: $taskDesc", cores, minHcs.head, true) withInput inputTsvDataset andAggregateResultWith StatsAggregator
             ) else None
             val taskResult2 = if (!cli.hasOption("amieonly")) Some(
-              xTimes executeTask new NumOfThreadsRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: $taskDesc", cores, 0.01, true) with RulesTaskPostprocessor withInput index andAggregateResultWith StatsAggregator
+              xTimes executeTask new NumOfThreadsRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: $taskDesc", cores, minHcs.head, true) with RulesTaskPostprocessor withInput index andAggregateResultWith StatsAggregator
             ) else None
             (taskResult1, taskResult2) match {
               case (Some(tr1), Some(tr2)) => tr1 compareWith tr2 andFinallyProcessResultWith BasicPrinter()
@@ -186,7 +186,12 @@ object OriginalAmieComparison {
             override val minPcaConfidence: Double = 0.0
             override val minConfidence: Double = 0.0
           } withInput index andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
-          xTimes executeTask new PatternRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: mining with pattern hasWonPrize -> ?, minHeadCoverage = 0.01, minPcaConfidence = 0.1, with constants", allowConstants = true, numberOfThreads = numberOfThreads)(AtomPattern(predicate = TripleItem.Uri("hasWonPrize")) =>: Option.empty[AtomPattern]) with RulesTaskPostprocessor {
+          xTimes executeTask new PatternRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: mining with pattern hasWonPrize -> ?, minHeadCoverage = 0.01, with constants", allowConstants = true, numberOfThreads = numberOfThreads)(AtomPattern(predicate = TripleItem.Uri("hasWonPrize")) =>: Option.empty[AtomPattern]) with RulesTaskPostprocessor {
+            override val minPcaConfidence: Double = 0.0
+            override val minConfidence: Double = 0.0
+          } withInput index andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
+          xTimes executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: mine all, minHeadCoverage = 0.01, with constants", 0.01, true, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor {
+            override val minPcaConfidence: Double = 0.0
             override val minConfidence: Double = 0.0
           } withInput index andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
         }

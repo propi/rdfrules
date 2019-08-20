@@ -17,7 +17,7 @@ trait AmieRulesMiningTask extends Task[String, AMIE, util.List[Rule], IndexedSeq
 
   protected def preProcess(input: String): AMIE = {
     val cmd = List(
-      s"-oute -maxad $maxRuleLength -minhc $minHeadCoverage -minpca $minPcaConfidence -minc $minConfidence -nc $numberOfThreads",
+      s"-oute -dpr -maxad $maxRuleLength -minhc $minHeadCoverage -minpca $minPcaConfidence -minc $minConfidence -nc $numberOfThreads",
       if (allowConstants) " -const" else "",
       " " + input
     ).mkString
