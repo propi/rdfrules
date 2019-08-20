@@ -323,3 +323,10 @@ In RdfRules we can also attach information about graph at every atom and then fi
 ## Licence
 
 RdfRules is licensed under [GNU General Public License v3.0](http://www.gnu.org/licenses/gpl-3.0.txt)
+
+## Acknowledgments
+
+Thanks to these organizations for supporting us:
+
+[![Jetbrains](jetbrains.png)](https://www.jetbrains.com/?from=RDFRules)
+[![VŠE](vselogo.png)](https://www.vse.cz/)
