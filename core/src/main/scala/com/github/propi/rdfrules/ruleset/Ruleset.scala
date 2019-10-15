@@ -7,6 +7,7 @@ import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
 import com.github.propi.rdfrules.data.ops.{Cacheable, Transformable}
 import com.github.propi.rdfrules.index.{Index, TripleHashIndex}
+import com.github.propi.rdfrules.model.Model
 import com.github.propi.rdfrules.rule.{Measure, Rule, RulePattern, RulePatternMatcher}
 import com.github.propi.rdfrules.ruleset.ops.Sortable
 import com.github.propi.rdfrules.serialization.RuleSerialization._
@@ -77,6 +78,8 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
   def headResolvedOption: Option[ResolvedRule] = resolvedRules.headOption
 
   def findResolved(f: ResolvedRule => Boolean): Option[ResolvedRule] = resolvedRules.find(f)
+
+  def model: Model = Model(resolvedRules.toVector)
 
   private def mapRuleset(f: TripleHashIndex => Rule.Simple => Rule.Simple)(implicit debugger: Int => (Debugger.ActionDebugger => Unit) => Unit): Ruleset = transform(new Traversable[Rule.Simple] {
     def foreach[U](f2: Rule.Simple => U): Unit = index.tripleMap { thi =>

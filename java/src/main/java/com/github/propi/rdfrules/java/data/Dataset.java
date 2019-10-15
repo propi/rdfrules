@@ -48,6 +48,18 @@ public class Dataset implements
         return fromTsv(new File(file));
     }
 
+    public static Dataset fromSql(Supplier<InputStream> isb) {
+        return new Dataset(com.github.propi.rdfrules.data.Dataset.apply(isb::get, ReadersWriters.sqlReader()));
+    }
+
+    public static Dataset fromSql(File file) {
+        return new Dataset(com.github.propi.rdfrules.data.Dataset.apply(file, ReadersWriters.sqlReader()));
+    }
+
+    public static Dataset fromSql(String file) {
+        return fromSql(new File(file));
+    }
+
     public static Dataset fromRdfLang(Supplier<InputStream> isb, Lang lang) {
         return new Dataset(com.github.propi.rdfrules.data.Dataset.apply(isb::get, ReadersWriters.jenaLangReader(lang)));
     }

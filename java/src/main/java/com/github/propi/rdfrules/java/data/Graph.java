@@ -58,6 +58,30 @@ public class Graph implements
         return fromTsv(name, new File(file));
     }
 
+    public static Graph fromSql(Supplier<InputStream> isb) {
+        return new Graph(com.github.propi.rdfrules.data.Graph.apply(isb::get, ReadersWriters.sqlReader()));
+    }
+
+    public static Graph fromSql(TripleItem.Uri name, Supplier<InputStream> isb) {
+        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.asScala(), isb::get, ReadersWriters.sqlReader()));
+    }
+
+    public static Graph fromSql(File file) {
+        return new Graph(com.github.propi.rdfrules.data.Graph.apply(file, ReadersWriters.sqlReader()));
+    }
+
+    public static Graph fromSql(TripleItem.Uri name, File file) {
+        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.asScala(), file, ReadersWriters.sqlReader()));
+    }
+
+    public static Graph fromSql(String file) {
+        return fromSql(new File(file));
+    }
+
+    public static Graph fromSql(TripleItem.Uri name, String file) {
+        return fromSql(name, new File(file));
+    }
+
     public static Graph fromRdfLang(Supplier<InputStream> isb, Lang lang) {
         return new Graph(com.github.propi.rdfrules.data.Graph.apply(isb::get, ReadersWriters.jenaLangReader(lang)));
     }

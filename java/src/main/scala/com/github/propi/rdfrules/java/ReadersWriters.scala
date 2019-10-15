@@ -9,6 +9,8 @@ import org.apache.jena.riot.{Lang, RDFFormat}
   */
 object ReadersWriters {
 
+  def sqlReader: RdfReader = com.github.propi.rdfrules.data.sqlReader(RdfSource.Sql)
+
   def tsvReader: RdfReader = com.github.propi.rdfrules.data.tsvReader(RdfSource.Tsv)
 
   def tsvWriter: RdfWriter = com.github.propi.rdfrules.data.tsvWriter(RdfSource.Tsv)

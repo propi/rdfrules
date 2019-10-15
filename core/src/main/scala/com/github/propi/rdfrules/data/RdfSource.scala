@@ -13,6 +13,8 @@ object RdfSource {
 
   object Tsv extends RdfSource
 
+  object Sql extends RdfSource
+
   case class JenaLang(lang: Lang) extends RdfSource {
     def toRDFFormat: RDFFormat = if (lang == Lang.NT) {
       RDFFormat.NTRIPLES_UTF8
@@ -38,17 +40,20 @@ object RdfSource {
     case "trig" => JenaLang(Lang.TRIG)
     case "trix" => JenaLang(Lang.TRIX)
     case "tsv" => Tsv
+    case "sql" => Sql
     case x => throw new IllegalArgumentException(s"Unsupported RDF format for reading: $x")
   }
 
   implicit def rdfSourceToRdfReader(rdfSource: RdfSource): RdfReader = rdfSource match {
     case JenaLang(lang) => lang
     case Tsv => Tsv
+    case Sql => Sql
   }
 
   implicit def rdfSourceToRdfWriter(rdfSource: RdfSource): RdfWriter = rdfSource match {
     case x: JenaLang => x.toRDFFormat
     case Tsv => Tsv
+    case Sql => Sql
   }
 
   sealed trait CompressedRdfSource {

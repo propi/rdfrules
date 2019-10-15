@@ -10,7 +10,9 @@ import scala.collection.JavaConverters._
 /**
   * Created by Vaclav Zeman on 12. 3. 2018.
   */
-class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleItem], sameAs: java.util.Map[TripleItem, Integer], prefixMap: java.util.Map[String, String]) {
+class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleItem],
+                                  sameAs: java.util.Map[TripleItem, Integer],
+                                  prefixMap: java.util.Map[String, String]) {
 
   def getNamespace(prefix: String): Option[String] = Option(prefixMap.get(prefix))
 
@@ -23,15 +25,32 @@ class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleItem], same
       .flatMap(x => x._2.map(_ => x._1))
   )
 
-  def getTripleItem(x: Int): TripleItem = hmap.get(x)
+  def getTripleItem(x: Int): TripleItem = getTripleItemOpt(x).get
 
   def getTripleItemOpt(x: Int): Option[TripleItem] = Option(hmap.get(x))
 
   def iterator: Iterator[(Int, TripleItem)] = hmap.entrySet().iterator().asScala.map(x => x.getKey.intValue() -> x.getValue)
 
+  def extendWith(ext: collection.Map[Int, TripleItem]): TripleItemHashIndex = new TripleItemHashIndex.ExtendedTripleItemHashIndex(hmap, sameAs, prefixMap, ext)
+
 }
 
 object TripleItemHashIndex {
+
+  class ExtendedTripleItemHashIndex private[TripleItemHashIndex](hmap: java.util.Map[Integer, TripleItem],
+                                                                 sameAs: java.util.Map[TripleItem, Integer],
+                                                                 prefixMap: java.util.Map[String, String],
+                                                                 ext1: collection.Map[Int, TripleItem]) extends TripleItemHashIndex(hmap, sameAs, prefixMap) {
+    private lazy val ext2: collection.Map[TripleItem, Int] = ext1.iterator.map(_.swap).toMap
+
+    override def getIndexOpt(x: TripleItem): Option[Int] = super.getIndexOpt(x).orElse(ext2.get(x))
+
+    override def getTripleItemOpt(x: Int): Option[TripleItem] = super.getTripleItemOpt(x).orElse(ext1.get(x))
+
+    override def iterator: Iterator[(Int, TripleItem)] = super.iterator ++ ext1.iterator
+
+    override def extendWith(ext: collection.Map[Int, TripleItem]): TripleItemHashIndex = new ExtendedTripleItemHashIndex(hmap, sameAs, prefixMap, ext1 ++ ext)
+  }
 
   def fromIndexedItem(col: Traversable[(Int, TripleItem)])(implicit debugger: Debugger): TripleItemHashIndex = {
     val hmap = new Int2ObjectOpenHashMap[TripleItem]()

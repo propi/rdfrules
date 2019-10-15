@@ -33,6 +33,7 @@ trait Compressed {
     case CompressedRdfSource.Basic(rdfSource, compression) => rdfSource match {
       case x: RdfSource.JenaLang => compressedToRdfWriter(x.toRDFFormat.compressedBy(compression)).writeToOutputStream(quads, outputStreamBuilder)
       case RdfSource.Tsv => RdfSource.Tsv.writeToOutputStream(quads, compressedOutputStreamBuilder(outputStreamBuilder, compression))
+      case RdfSource.Sql => RdfSource.Sql.writeToOutputStream(quads, compressedOutputStreamBuilder(outputStreamBuilder, compression))
     }
     case CompressedRdfSource.RdfFormat(format, compression) => format.writeToOutputStream(quads, compressedOutputStreamBuilder(outputStreamBuilder, compression))
   }
