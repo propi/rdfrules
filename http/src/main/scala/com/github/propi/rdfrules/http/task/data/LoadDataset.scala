@@ -17,6 +17,7 @@ class LoadDataset(path: Option[String], url: Option[URL], format: Option[Option[
     case Some(Some(x)) =>
       implicit val reader: RdfReader = x match {
         case x: RdfSource.Tsv.type => x
+        case x: RdfSource.Sql.type => x
         case x: RdfSource.JenaLang => x.lang
       }
       (path, url) match {

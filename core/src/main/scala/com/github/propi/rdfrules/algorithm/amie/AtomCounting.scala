@@ -9,7 +9,24 @@ import com.typesafe.scalalogging.Logger
   */
 trait AtomCounting {
 
-  type VariableMap = Map[Atom.Variable, Atom.Constant]
+  //type VariableMap = Map[Atom.Variable, Atom.Constant]
+  class VariableMap private(hmap: Map[Atom.Variable, Atom.Constant], constants: Set[Atom.Constant]) {
+    def this() = this(Map.empty, Set.empty)
+
+    def getOrElse[T >: Atom.Constant](key: Atom.Variable, default: => T): T = hmap.getOrElse(key, default)
+
+    def contains(key: Atom.Variable): Boolean = hmap.contains(key)
+
+    def containsConstant(constant: Atom.Constant): Boolean = constants(constant)
+
+    def apply(key: Atom.Variable): Atom.Constant = hmap(key)
+
+    def +(kv: (Atom.Variable, Atom.Constant)): VariableMap = new VariableMap(hmap + kv, constants + kv._2)
+
+    def ++(kvs: TraversableOnce[(Atom.Variable, Atom.Constant)]): VariableMap = kvs.foldLeft(this)(_ + _)
+
+    def isEmpty: Boolean = hmap.isEmpty
+  }
 
   val logger: Logger = Logger[AtomCounting]
   implicit val tripleIndex: TripleHashIndex
@@ -106,7 +123,7 @@ trait AtomCounting {
     * @param variableMap constants which will be mapped to variables
     * @return number of possible paths for the set of atoms which are contained in dataset
     */
-  def count(atoms: Set[Atom], maxCount: Double, variableMap: VariableMap = Map.empty): Int = if (atoms.isEmpty) {
+  def count(atoms: Set[Atom], maxCount: Double, variableMap: VariableMap = new VariableMap): Int = if (atoms.isEmpty) {
     1
   } else if (maxCount <= 0) {
     0
@@ -135,13 +152,13 @@ trait AtomCounting {
     * @param variableMap variable mapping to a concrete constant
     * @return iterator of instantiated distinct pairs for variables which have covered all atoms
     */
-  def selectDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], variableMap: VariableMap = Map.empty): Iterator[Seq[Atom.Constant]] = {
+  def selectDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], variableMap: VariableMap = new VariableMap): Iterator[Seq[Atom.Constant]] = {
     val foundPairs = collection.mutable.Set.empty[Seq[Atom.Constant]]
 
     def sdp(atoms: Set[Atom], headVars: Seq[Atom.Variable], variableMap: VariableMap): Iterator[Seq[Atom.Constant]] = {
       if (headVars.forall(variableMap.contains)) {
         //if all variables are mapped then we create an instantiated pair
-        val pair = headVars.map(variableMap)
+        val pair = headVars.map(variableMap.apply)
         if (!foundPairs(pair) && (atoms.isEmpty || exists(atoms, variableMap))) {
           //if the pair has not been found yet and atoms is empty or there exists a path for remaining atoms then we use this pair
           foundPairs += pair
@@ -171,7 +188,7 @@ trait AtomCounting {
     * @return number of distinct pairs for variables which have covered all atoms
     */
   def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double): Int = {
-    countDistinctPairs(atoms, head, maxCount, Map.empty[Atom.Variable, Atom.Constant])
+    countDistinctPairs(atoms, head, maxCount, new VariableMap)
   }
 
   /**
@@ -199,7 +216,7 @@ trait AtomCounting {
     * @param variableMap variable mapping to a concrete constant
     * @return number of distinct pairs for variables which have covered all atoms
     */
-  def countDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], maxCount: Double, variableMap: VariableMap = Map.empty): Int = {
+  def countDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], maxCount: Double, variableMap: VariableMap = new VariableMap): Int = {
     var i = 0
     val it = selectDistinctPairs(atoms, headVars, variableMap)
     while (it.hasNext && i <= maxCount) {
@@ -241,7 +258,7 @@ trait AtomCounting {
     * @return function which return variableMap from specified atom which specifies unspecified atom
     */
   def specifyVariableMapForAtom(atom: Atom): (Atom, VariableMap) => VariableMap = (atom.subject, atom.`object`) match {
-    case (s: Atom.Variable, o: Atom.Variable) => (specifiedAtom, variableMap) => variableMap + (s -> specifiedAtom.subject.asInstanceOf[Atom.Constant], o -> specifiedAtom.`object`.asInstanceOf[Atom.Constant])
+    case (s: Atom.Variable, o: Atom.Variable) => (specifiedAtom, variableMap) => variableMap ++ List(s -> specifiedAtom.subject.asInstanceOf[Atom.Constant], o -> specifiedAtom.`object`.asInstanceOf[Atom.Constant])
     case (s: Atom.Variable, _) => (specifiedAtom, variableMap) => variableMap + (s -> specifiedAtom.subject.asInstanceOf[Atom.Constant])
     case (_, o: Atom.Variable) => (specifiedAtom, variableMap) => variableMap + (o -> specifiedAtom.`object`.asInstanceOf[Atom.Constant])
     case _ => (_, variableMap) => variableMap
@@ -277,11 +294,33 @@ trait AtomCounting {
     val tm = tripleIndex.predicates(atom.predicate)
     (specifyItem(atom.subject, variableMap), specifyItem(atom.`object`, variableMap)) match {
       case (_: Atom.Variable, _: Atom.Variable) =>
-        tm.subjects.iterator.flatMap(x => x._2.iterator.map(y => Atom(Atom.Constant(x._1), atom.predicate, Atom.Constant(y._1))))
+        tm.subjects.iterator.flatMap(x => x._2.iterator.flatMap { y =>
+          val s = Atom.Constant(x._1)
+          val o = Atom.Constant(y._1)
+          if (variableMap.containsConstant(s) || variableMap.containsConstant(o)) {
+            None
+          } else {
+            Some(Atom(s, atom.predicate, o))
+          }
+        })
       case (_: Atom.Variable, ov@Atom.Constant(oc)) =>
-        tm.objects.get(oc).iterator.flatMap(_.iterator).map(subject => Atom(Atom.Constant(subject), atom.predicate, ov))
+        tm.objects.get(oc).iterator.flatMap(_.iterator).flatMap { subject =>
+          val s = Atom.Constant(subject)
+          if (variableMap.containsConstant(s)) {
+            None
+          } else {
+            Some(Atom(s, atom.predicate, ov))
+          }
+        }
       case (sv@Atom.Constant(sc), _: Atom.Variable) =>
-        tm.subjects.get(sc).iterator.flatMap(_.iterator.map(_._1)).map(`object` => Atom(sv, atom.predicate, `object` = Atom.Constant(`object`)))
+        tm.subjects.get(sc).iterator.flatMap(_.iterator.map(_._1)).flatMap { `object` =>
+          val o = Atom.Constant(`object`)
+          if (variableMap.containsConstant(o)) {
+            None
+          } else {
+            Some(Atom(sv, atom.predicate, o))
+          }
+        }
       case (sv@Atom.Constant(sc), ov@Atom.Constant(oc)) =>
         if (tm.subjects.get(sc).exists(x => x.contains(oc))) Iterator(Atom(sv, atom.predicate, ov)) else Iterator.empty
     }
@@ -314,7 +353,7 @@ trait AtomCounting {
     * @param atom atom to be specified
     * @return iterator of all triples for this atom
     */
-  def getAtomTriples(atom: Atom): Iterator[(Int, Int)] = specifyAtom(atom, Map.empty[Atom.Variable, Atom.Constant])
+  def getAtomTriples(atom: Atom): Iterator[(Int, Int)] = specifyAtom(atom, new VariableMap)
     .map(x => x.subject.asInstanceOf[Atom.Constant].value -> x.`object`.asInstanceOf[Atom.Constant].value)
 
 }

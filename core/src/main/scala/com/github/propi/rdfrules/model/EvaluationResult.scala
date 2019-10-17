@@ -14,7 +14,9 @@ case class EvaluationResult(tp: Int, fp: Int, fn: Int) {
   def fscore: Double = {
     val p = precision
     val r = recall
-    (2 * p * r) / (p + r)
+    if (p + r > 0) (2 * p * r) / (p + r) else 0
   }
+
+  override def toString: String = s"accuracy: $accuracy, precision: $precision, recall: $recall, f-measure: $fscore (TP: $tp, FP: $fp, FN: $fn)"
 
 }

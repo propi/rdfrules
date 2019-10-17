@@ -161,7 +161,7 @@ trait RuleRefinementExperimental extends RuleRefinement {
   }
 
   def bindProjections(atoms: Set[Atom], headVars: Seq[Atom.Variable], possibleFreshAtoms: List[FreshAtom], countableFreshAtoms: List[FreshAtom], variableMap: VariableMap)
-                      (implicit projections: mutable.HashMap[Atom, mutable.HashSet[Seq[Atom.Constant]]]): Unit = {
+                     (implicit projections: mutable.HashMap[Atom, mutable.HashSet[Seq[Atom.Constant]]]): Unit = {
     if (countableFreshAtoms.nonEmpty) {
       val distinctPairs = howLong("select distinct pairs", true, forceShow = true) {
         selectDistinctPairs(atoms, headVars, variableMap).toList
@@ -213,7 +213,7 @@ trait RuleRefinementExperimental extends RuleRefinement {
         }
         if (instantiated.hasNext || logical.hasNext) {
           val distinctPairs = howLong("select distinct pairs", true, forceShow = true) {
-            selectDistinctPairs(atoms, headVars, variableMap + (freshAtom.subject -> atom.subject.asInstanceOf[Atom.Constant], freshAtom.`object` -> atom.`object`.asInstanceOf[Atom.Constant])).toList
+            selectDistinctPairs(atoms, headVars, variableMap ++ List(freshAtom.subject -> atom.subject.asInstanceOf[Atom.Constant], freshAtom.`object` -> atom.`object`.asInstanceOf[Atom.Constant])).toList
           }
           for (newAtom <- instantiated ++ logical) {
             projections.getOrElseUpdate(newAtom, mutable.HashSet.empty) ++= distinctPairs
@@ -258,7 +258,7 @@ trait RuleRefinementExperimental extends RuleRefinement {
       val sameSupportAtoms = if (withDuplicitPredicates) freshAtoms.iterator.flatMap(countAtomsWithExistingPredicate) else Iterator.empty
       val addedAtoms = howLong("Rule expansion - count projections", true, forceShow = true) {
         implicit val projections: mutable.HashMap[Atom, mutable.HashSet[Seq[Atom.Constant]]] = mutable.HashMap.empty
-        bindProjections(atoms, headVars, freshAtoms, Nil, Map.empty)
+        bindProjections(atoms, headVars, freshAtoms, Nil, new VariableMap)
         projections.mapValues(_.size).iterator
       }
       val ruleFilter = new MinSupportRuleFilter(minSupport) & new NoDuplicitRuleFilter(rule.head, bodySet) & new NoRepeatedGroups(withDuplicitPredicates, bodySet + rule.head, rulePredicates) & patternFilter

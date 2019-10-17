@@ -17,6 +17,7 @@ class LoadGraph(graphName: Option[TripleItem.Uri], path: Option[String], url: Op
     case Some(Some(x)) =>
       implicit val reader: RdfReader = x match {
         case x: RdfSource.Tsv.type => x
+        case x: RdfSource.Sql.type => x
         case x: RdfSource.JenaLang => x.lang
       }
       (path, url) match {
