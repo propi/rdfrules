@@ -8,8 +8,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class AddPrefixes(fromOperation: Operation) extends Operation {
-  val info: OperationInfo = OperationInfo.AddPrefixes
+class AddPrefixes(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
     new ChooseFileFromWorkspace(Workspace.loadFiles, "path", description = "It is possible to load a file with prefixes in the Turtle (.ttl) format from the workspace on the server side (just click onto a file name), or you can load any remote prefix file from URL (see below)."),
     new OptionalText[String]("url", "URL", description = "A URL to a remote file with prefixes in the Turtle (.ttl) format to be loaded. If this is specified then the workspace file is ommited."),

@@ -9,8 +9,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class MakeClusters(fromOperation: Operation) extends Operation {
-  val info: OperationInfo = OperationInfo.MakeClusters
+class MakeClusters(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
     new OptionalText[Int]("minNeighbours", "Min neighbours", default = "5", description = "Min number of neighbours to form a cluster.", validator = GreaterThanOrEqualsTo[Int](2)),
     new OptionalText[Double]("minSimilarity", "Min similarity", default = "0.9", description = "Min similarity between two rules to form a cluster.", validator = GreaterThanOrEqualsTo(0.0).map[String] & LowerThanOrEqualsTo(1.0).map[String]),

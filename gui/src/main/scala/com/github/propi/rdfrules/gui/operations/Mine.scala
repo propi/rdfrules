@@ -9,8 +9,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class Mine(fromOperation: Operation) extends Operation {
-  val info: OperationInfo = OperationInfo.Mine
+class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
     new DynamicGroup("thresholds", "Thresholds", () => {
       val value = new DynamicElement(Constants(

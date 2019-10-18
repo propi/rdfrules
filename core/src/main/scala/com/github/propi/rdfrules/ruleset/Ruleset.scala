@@ -224,6 +224,12 @@ object Ruleset {
 
   def apply(rules: IndexedSeq[Rule.Simple], index: Index): Ruleset = new Ruleset(rules, index, Runtime.getRuntime.availableProcessors())
 
+  def apply(file: File, index: Index)(implicit reader: RulesetReader): Ruleset = Model(file).toRuleset(index)
+
+  def apply(file: String, index: Index)(implicit reader: RulesetReader): Ruleset = apply(new File(file), index)
+
+  def apply(is: => InputStream, index: Index)(implicit reader: RulesetReader): Ruleset = Model(is).toRuleset(index)
+
   def fromCache(index: Index, is: => InputStream): Ruleset = new Ruleset(
     new Traversable[Rule.Simple] {
       def foreach[U](f: Rule.Simple => U): Unit = Deserializer.deserializeFromInputStream[Rule.Simple, Unit](is) { reader =>

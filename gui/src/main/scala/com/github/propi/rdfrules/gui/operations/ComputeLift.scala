@@ -9,8 +9,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class ComputeLift(fromOperation: Operation) extends Operation {
-  val info: OperationInfo = OperationInfo.ComputeLift
+class ComputeLift(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
     new OptionalText[Double]("min", "Min confidence", "0.5", "A minimal confidence threshold. This operation first counts the standard confidence for all rules and filter them by this minimal threshold, then it counts the lift measure by the computed cofindence. The value range is between 0.01 and 1 included. Default value is set to 0.5.", RegExp("1(\\.0+)?|0\\.0[1-9]\\d*|0\\.[1-9]\\d*", true))
   )

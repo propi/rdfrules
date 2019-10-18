@@ -1,10 +1,13 @@
 package com.github.propi.rdfrules.serialization
 
-import java.io.ByteArrayInputStream
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.nio.ByteBuffer
 
+import com.github.propi.rdfrules.data.TripleItem
 import com.github.propi.rdfrules.index.TripleHashIndex.MutableHashSet
 import com.github.propi.rdfrules.rule.{Atom, Measure, Rule}
+import com.github.propi.rdfrules.ruleset.ResolvedRule
+import com.github.propi.rdfrules.serialization.TripleItemSerialization._
 import com.github.propi.rdfrules.utils.TypedKeyMap
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 import com.github.propi.rdfrules.utils.serialization.Serializer._
@@ -75,6 +78,70 @@ object RuleSerialization {
     }
   }
 
+  implicit val resolvedAtomItemSerializer: Serializer[ResolvedRule.Atom.Item] = (v: ResolvedRule.Atom.Item) => {
+    val baos = new ByteArrayOutputStream()
+    v match {
+      case ResolvedRule.Atom.Item.Variable(v) =>
+        baos.write(1)
+        baos.write(Serializer.serialize(v))
+      case ResolvedRule.Atom.Item.Constant(c) =>
+        baos.write(2)
+        baos.write(Serializer.serialize(c))
+    }
+    baos.toByteArray
+  }
+
+  implicit val resolvedAtomItemDeserializer: Deserializer[ResolvedRule.Atom.Item] = (v: Array[Byte]) => {
+    val bais = new ByteArrayInputStream(v)
+    bais.read() match {
+      case 1 => ResolvedRule.Atom.Item.Variable(Deserializer.deserialize[String](bais))
+      case 2 => ResolvedRule.Atom.Item.Constant(Deserializer.deserialize[TripleItem](bais))
+      case x => throw new Deserializer.DeserializationException("No deserializer for index: " + x)
+    }
+  }
+
+  implicit val resolvedAtomBasicSerializer: Serializer[ResolvedRule.Atom.Basic] = (v: ResolvedRule.Atom.Basic) => {
+    Serializer.serialize((v.subject, v.predicate, v.`object`))
+  }
+
+  implicit val resolvedAtomBasicDeserializer: Deserializer[ResolvedRule.Atom.Basic] = (v: Array[Byte]) => {
+    val bais = new ByteArrayInputStream(v)
+    val (s, p, o) = Deserializer.deserialize[(ResolvedRule.Atom.Item, TripleItem.Uri, ResolvedRule.Atom.Item)](bais)
+    ResolvedRule.Atom.Basic(s, p, o)
+  }
+
+  implicit val resolvedAtomGraphBasedSerializer: Serializer[ResolvedRule.Atom.GraphBased] = (v: ResolvedRule.Atom.GraphBased) => {
+    Serializer.serialize(ResolvedRule.Atom.Basic(v.subject, v.predicate, v.`object`) -> (v.graphs: Traversable[TripleItem.Uri]))
+  }
+
+  implicit val resolvedAtomGraphBasedDeserializer: Deserializer[ResolvedRule.Atom.GraphBased] = (v: Array[Byte]) => {
+    val bais = new ByteArrayInputStream(v)
+    val (atom, graphs) = Deserializer.deserialize[(ResolvedRule.Atom.Basic, Traversable[TripleItem.Uri])](bais)
+    ResolvedRule.Atom.GraphBased(atom.subject, atom.predicate, atom.`object`)(graphs.toSet)
+  }
+
+  implicit val resolvedAtomSerializer: Serializer[ResolvedRule.Atom] = (v: ResolvedRule.Atom) => {
+    val baos = new ByteArrayOutputStream()
+    v match {
+      case x: ResolvedRule.Atom.Basic =>
+        baos.write(1)
+        baos.write(Serializer.serialize(x))
+      case x: ResolvedRule.Atom.GraphBased =>
+        baos.write(2)
+        baos.write(Serializer.serialize(x))
+    }
+    baos.toByteArray
+  }
+
+  implicit val resolvedAtomDeserializer: Deserializer[ResolvedRule.Atom] = (v: Array[Byte]) => {
+    val bais = new ByteArrayInputStream(v)
+    bais.read() match {
+      case 1 => Deserializer.deserialize[ResolvedRule.Atom.Basic](bais)
+      case 2 => Deserializer.deserialize[ResolvedRule.Atom.GraphBased](bais)
+      case x => throw new Deserializer.DeserializationException("No deserializer for index: " + x)
+    }
+  }
+
   /**
     * Bytes:
     * - 1: byte - type
@@ -138,5 +205,18 @@ object RuleSerialization {
   implicit val ruleSimpleSerializer: Serializer[Rule.Simple] = (v: Rule.Simple) => ruleSerializer.serialize(v)
 
   implicit val ruleSimpleDeserializer: Deserializer[Rule.Simple] = (v: Array[Byte]) => ruleDeserializer.deserialize(v).asInstanceOf[Rule.Simple]
+
+  implicit val resolvedRuleSerializer: Serializer[ResolvedRule] = (v: ResolvedRule) => {
+    val measuresBytes = Serializer.serialize(v.measures.iterator.toTraversable)
+    val atomsBytes = Serializer.serialize((v.head +: v.body).asInstanceOf[Traversable[ResolvedRule.Atom]])
+    measuresBytes ++ atomsBytes
+  }
+
+  implicit val resolvedRuleDeserializer: Deserializer[ResolvedRule] = (v: Array[Byte]) => {
+    val bais = new ByteArrayInputStream(v)
+    val measures = TypedKeyMap(Deserializer.deserialize[Traversable[Measure]](bais).map(x => x: (Key[Measure], Measure)).toSeq: _*)
+    val atoms = Deserializer.deserialize[Traversable[ResolvedRule.Atom]](bais)
+    ResolvedRule(atoms.tail.toIndexedSeq, atoms.head)(measures)
+  }
 
 }

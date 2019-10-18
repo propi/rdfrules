@@ -9,8 +9,7 @@ import com.github.propi.rdfrules.gui.utils.CommonValidators._
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class DropQuads(fromOperation: Operation) extends Operation {
-  val info: OperationInfo = OperationInfo.DropQuads
+class DropQuads(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
     new FixedText[Int]("value", "Drop first N quads", "10", validator = GreaterThan[Int](0))
   )

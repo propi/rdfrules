@@ -125,4 +125,6 @@ object ResolvedRule {
     Stringifier(v.head) + " | " +
     v.measures.iterator.toList.sortBy(_.companion).iterator.map(x => Stringifier(x)).mkString(", ")
 
+  implicit val resolvedRuleOrdering: Ordering[ResolvedRule] = Ordering.by[ResolvedRule, TypedKeyMap.Immutable[Measure]](_.measures)
+
 }

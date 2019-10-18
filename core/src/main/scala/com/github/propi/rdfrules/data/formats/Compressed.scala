@@ -10,6 +10,8 @@ import org.apache.commons.compress.compressors.bzip2.{BZip2CompressorInputStream
 import org.apache.commons.compress.compressors.gzip.{GzipCompressorInputStream, GzipCompressorOutputStream}
 import com.github.propi.rdfrules.data.jenaFormatToRdfWriter
 import RdfSource.PimpedRdfFormat
+import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetReader, RulesetWriter}
+import com.github.propi.rdfrules.ruleset.RulesetSource.CompressedRulesetSource
 
 import scala.language.implicitConversions
 
@@ -17,6 +19,15 @@ import scala.language.implicitConversions
   * Created by Vaclav Zeman on 22. 5. 2019.
   */
 trait Compressed {
+
+  implicit def compressedToRulesetReader(compressedRulesetSource: CompressedRulesetSource): RulesetReader = (inputStreamBuilder: InputStreamBuilder) => compressedRulesetSource match {
+    case CompressedRulesetSource(rulesetSource, Compression.BZ2) => rulesetSource.fromInputStream(new BZip2CompressorInputStream(new BufferedInputStream(inputStreamBuilder.build)))
+    case CompressedRulesetSource(rulesetSource, Compression.GZ) => rulesetSource.fromInputStream(new GzipCompressorInputStream(new BufferedInputStream(inputStreamBuilder.build)))
+  }
+
+  implicit def compressedToRulesetWriter(compressedRulesetSource: CompressedRulesetSource): RulesetWriter = (rules: Traversable[ResolvedRule], outputStreamBuilder: OutputStreamBuilder) => {
+    compressedRulesetSource.rulesetSource.writeToOutputStream(rules, compressedOutputStreamBuilder(outputStreamBuilder, compressedRulesetSource.compression))
+  }
 
   implicit def compressedToRdfReader(compressedRdfSource: CompressedRdfSource): RdfReader = (inputStreamBuilder: InputStreamBuilder) => compressedRdfSource match {
     case CompressedRdfSource.RdfFormat(format, compression) => compressedToRdfReader(CompressedRdfSource.Basic(RdfSource.JenaLang(format.getLang), compression)).fromInputStream(inputStreamBuilder)

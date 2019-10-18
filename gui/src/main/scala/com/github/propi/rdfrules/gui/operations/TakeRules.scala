@@ -9,8 +9,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class TakeRules(fromOperation: Operation) extends Operation {
-  val info: OperationInfo = OperationInfo.TakeRules
+class TakeRules(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
     new FixedText[Int]("value", "Take first N rules", "10", validator = GreaterThan[Int](0))
   )

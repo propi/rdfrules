@@ -51,7 +51,7 @@ class Canvas {
               val lastOps = JSON.parse(reader.result.asInstanceOf[String])
                 .asInstanceOf[js.Array[js.Dynamic]]
                 .foldLeft[Operation](new Root) { (parent, data) =>
-                OperationInfo(data)
+                OperationInfo(data, parent)
                   .filter(parent.info.followingOperations.value.contains)
                   .map { opsInfo =>
                     val newOps = parent.appendOperation(opsInfo)

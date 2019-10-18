@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.rule
 
 import com.github.propi.rdfrules.index.TripleHashIndex
 import com.github.propi.rdfrules.rule.AtomPattern.AtomItemPattern
+import com.github.propi.rdfrules.ruleset.ResolvedRule
 
 /**
   * Created by Vaclav Zeman on 2. 1. 2018.

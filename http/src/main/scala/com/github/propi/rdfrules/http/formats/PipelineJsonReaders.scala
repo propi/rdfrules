@@ -163,9 +163,9 @@ object PipelineJsonReaders {
     new index.Mine(json.convertTo[RulesMining])
   }
 
-  implicit val loadRulesetReader: RootJsonReader[ruleset.LoadRuleset] = (json: JsValue) => {
+  implicit val loadRulesetReader: RootJsonReader[ruleset.LoadModel] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new ruleset.LoadRuleset(fields("path").convertTo[String])
+    new ruleset.LoadModel(fields("path").convertTo[String])
   }
 
   implicit val filterRulesReader: RootJsonReader[ruleset.FilterRules] = (json: JsValue) => {
@@ -322,7 +322,7 @@ object PipelineJsonReaders {
           case index.Cache.name => addTaskFromIndex(pipeline ~> params.convertTo[index.Cache], tail)
           case index.Mine.name => addTaskFromRuleset(pipeline ~> params.convertTo[index.Mine], tail)
           case index.ToDataset.name => addTaskFromDataset(pipeline ~> params.convertTo[index.ToDataset], tail)
-          case ruleset.LoadRuleset.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.LoadRuleset], tail)
+          case ruleset.LoadModel.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.LoadModel], tail)
           case x => throw deserializationError(s"Invalid task '$x' can not be bound to Index")
         }
       case _ => pipeline ~> new ToJsonTask.From[Index]

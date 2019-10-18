@@ -12,8 +12,7 @@ import scala.scalajs.js.Dictionary
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class DiscretizeEqualFrequency(fromOperation: Operation) extends Operation {
-  val info: OperationInfo = OperationInfo.DiscretizeEqualFrequency
+class DiscretizeEqualFrequency(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
     new OptionalText[String]("subject", "Subject", description = "Discretize all numeric literals which are related to this specifed subject. If this field is empty then no filter is applied here. The subject must be written in URI format in angle brackets, e.g, <http://dbpedia.org/resource/Rule>, or as a prefixed URI, e.g., dbr:Rule.", validator = RegExp("<.*>|\\w+:.*", true)),
     new OptionalText[String]("predicate", "Predicate", description = "Discretize all numeric literals which are related to this specifed predicate. If this field is empty then no filter is applied here. The predicate must be written in URI format in angle brackets, e.g, <https://www.w3.org/2000/01/rdf-schema#label>, or as a prefixed URI, e.g., rdfs:label.", validator = RegExp("<.*>|\\w+:.*", true)),

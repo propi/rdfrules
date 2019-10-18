@@ -9,8 +9,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class SliceRules(fromOperation: Operation) extends Operation {
-  val info: OperationInfo = OperationInfo.SliceRules
+class SliceRules(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
     new FixedText[Int]("start", "From", validator = GreaterThanOrEqualsTo[Int](0)),
     new FixedText[Int]("end", "Until", validator = GreaterThanOrEqualsTo[Int](0))

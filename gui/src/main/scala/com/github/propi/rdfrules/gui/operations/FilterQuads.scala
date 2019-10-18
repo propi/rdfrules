@@ -8,8 +8,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class FilterQuads(fromOperation: Operation) extends Operation {
-  val info: OperationInfo = OperationInfo.FilterQuads
+class FilterQuads(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
     new DynamicGroup("or", "Filter by (logical OR)", () => Constants(
       new OptionalText[String]("subject", "Subject", description = "Filter for the subject position. If this field is empty then no filter is applied here. The subject must be written in URI format in angle brackets, e.g, <http://dbpedia.org/resource/Rule>, or as a prefixed URI, e.g., dbr:Rule. The content is evaluated as a regular expression.", validator = RegExp("<.*>|.*:.*", true)),

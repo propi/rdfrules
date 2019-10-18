@@ -8,10 +8,10 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class LoadRuleset(fromOperation: Operation, val info: OperationInfo) extends Operation {
+class LoadModel(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
-    new ChooseFileFromWorkspace(Workspace.loadFiles, "path", description = "You can load a serialized ruleset file from the workspace on the server side (just click onto a file name).", validator = NonEmpty),
-    new Select("format", "Rules format", Constants("cache" -> "Ruleset cache", "txt" -> "Text", "json" -> "JSON", "modelCache" -> "Model cache"), description = "The ruleset format. Default is \"Ruleset cache\"."),
+    new ChooseFileFromWorkspace(Workspace.loadFiles, "path", description = "You can load a serialized model file from the workspace on the server side (just click onto a file name).", validator = NonEmpty),
+    new Select("format", "Rules format", Constants("txt" -> "Text", "json" -> "JSON", "cache" -> "Model cache"), description = "Rules format."),
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 }

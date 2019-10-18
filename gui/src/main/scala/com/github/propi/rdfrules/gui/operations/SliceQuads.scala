@@ -9,8 +9,7 @@ import com.github.propi.rdfrules.gui.utils.StringConverters._
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class SliceQuads(fromOperation: Operation) extends Operation {
-  val info: OperationInfo = OperationInfo.SliceQuads
+class SliceQuads(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
     new FixedText[Int]("start", "From", validator = GreaterThanOrEqualsTo[Int](0)),
     new FixedText[Int]("end", "Until", validator = GreaterThanOrEqualsTo[Int](0))

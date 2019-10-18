@@ -8,8 +8,8 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class FilterRules(fromOperation: Operation) extends Operation {
-  val info: OperationInfo = OperationInfo.FilterRules
+class FilterRules(fromOperation: Operation, val info: OperationInfo) extends Operation {
+  //val info: OperationInfo = OperationInfo.FilterRules
   val properties: Constants[Property] = Constants(
     new DynamicGroup("patterns", "Patterns", () => Pattern(), description = "In this property, you can define several rule patterns. During the filtering phase, each rule must match at least one of the defined patterns."),
     new DynamicGroup("measures", "Measures", () => Constants(

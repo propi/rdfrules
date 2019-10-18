@@ -8,8 +8,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class LoadIndex(fromOperation: Operation) extends Operation {
-  val info: OperationInfo = OperationInfo.LoadIndex
+class LoadIndex(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
     new ChooseFileFromWorkspace(Workspace.loadFiles, "path", description = "You can load a serialized index file from the workspace on the server side (just click onto a file name).", validator = NonEmpty)
   )
