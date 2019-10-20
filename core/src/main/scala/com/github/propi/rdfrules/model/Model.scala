@@ -60,7 +60,7 @@ class Model private(val rules: Traversable[ResolvedRule])
 
   def toRuleset(index: Index): Ruleset = {
     index.tripleItemMap { implicit mapper =>
-      Ruleset(rules.view.map(ResolvedRule.simple(_)).filter(_._2.isEmpty).map(_._1).toVector, index)
+      Ruleset(index, rules.view.map(ResolvedRule.simple(_)).filter(_._2.isEmpty).map(_._1).toVector)
     }
   }
 

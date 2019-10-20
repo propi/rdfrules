@@ -3,6 +3,7 @@ package com.github.propi.rdfrules.http.formats
 import com.github.propi.rdfrules.data.Prefix
 import spray.json._
 import DefaultJsonProtocol._
+import com.github.propi.rdfrules.model.EvaluationResult
 
 /**
   * Created by Vaclav Zeman on 15. 8. 2018.

@@ -222,13 +222,13 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
 
 object Ruleset {
 
-  def apply(rules: IndexedSeq[Rule.Simple], index: Index): Ruleset = new Ruleset(rules, index, Runtime.getRuntime.availableProcessors())
+  def apply(index: Index, rules: IndexedSeq[Rule.Simple]): Ruleset = new Ruleset(rules, index, Runtime.getRuntime.availableProcessors())
 
-  def apply(file: File, index: Index)(implicit reader: RulesetReader): Ruleset = Model(file).toRuleset(index)
+  def apply(index: Index, file: File)(implicit reader: RulesetReader): Ruleset = Model(file).toRuleset(index)
 
-  def apply(file: String, index: Index)(implicit reader: RulesetReader): Ruleset = apply(new File(file), index)
+  def apply(index: Index, file: String)(implicit reader: RulesetReader): Ruleset = apply(index, new File(file))
 
-  def apply(is: => InputStream, index: Index)(implicit reader: RulesetReader): Ruleset = Model(is).toRuleset(index)
+  def apply(index: Index, is: => InputStream)(implicit reader: RulesetReader): Ruleset = Model(is).toRuleset(index)
 
   def fromCache(index: Index, is: => InputStream): Ruleset = new Ruleset(
     new Traversable[Rule.Simple] {

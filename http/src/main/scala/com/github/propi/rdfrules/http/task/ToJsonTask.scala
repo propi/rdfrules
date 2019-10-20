@@ -6,6 +6,7 @@ import com.github.propi.rdfrules.data.{Histogram, Prefix, Quad, TripleItem, Trip
 import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.formats.CommonDataJsonWriters._
 import com.github.propi.rdfrules.http.util.TraversablePublisher._
+import com.github.propi.rdfrules.model.EvaluationResult
 import com.github.propi.rdfrules.ruleset.ResolvedRule
 import spray.json._
 
@@ -29,6 +30,10 @@ object ToJsonTask extends TaskDefinition {
 
   object FromInt extends ToJsonTask[Int] {
     def execute(input: Int): Source[JsValue, NotUsed] = Source.single(JsNumber(input))
+  }
+
+  object FromEvaluationResult extends ToJsonTask[EvaluationResult] {
+    def execute(input: EvaluationResult): Source[JsValue, NotUsed] = Source.single(input.toJson)
   }
 
   object FromQuads extends ToJsonTask[Traversable[Quad]] {

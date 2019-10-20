@@ -5,11 +5,20 @@ package com.github.propi.rdfrules.model
   */
 case class EvaluationResult(tp: Int, fp: Int, fn: Int) {
 
-  def accuracy: Double = tp.toDouble / (tp + fp + fn)
+  def accuracy: Double = {
+    val d = tp + fp + fn
+    if (d > 0) tp.toDouble / d else 0
+  }
 
-  def precision: Double = tp.toDouble / (tp + fp)
+  def precision: Double = {
+    val d = tp + fp
+    if (d > 0) tp.toDouble / d else 0
+  }
 
-  def recall: Double = tp.toDouble / (tp + fn)
+  def recall: Double = {
+    val d = tp + fn
+    if (d > 0) tp.toDouble / d else 0
+  }
 
   def fscore: Double = {
     val p = precision

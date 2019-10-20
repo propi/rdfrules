@@ -12,6 +12,7 @@ import com.github.propi.rdfrules.http.formats.CommonDataJsonReaders._
 import com.github.propi.rdfrules.http.task.Task.MergeDatasets
 import com.github.propi.rdfrules.http.task._
 import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.model.Model
 import com.github.propi.rdfrules.rule.{Measure, Rule, RulePattern}
 import com.github.propi.rdfrules.ruleset.{ResolvedRule, Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
@@ -163,9 +164,47 @@ object PipelineJsonReaders {
     new index.Mine(json.convertTo[RulesMining])
   }
 
-  implicit val loadRulesetReader: RootJsonReader[ruleset.LoadModel] = (json: JsValue) => {
+  implicit val loadRulesetReader: RootJsonReader[ruleset.LoadRuleset] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new ruleset.LoadModel(fields("path").convertTo[String])
+    val format = fields.get("format").map {
+      case JsString("cache") => Left(true)
+      case JsString("modelCache") => Left(false)
+      case x => Right(x.convertTo[RulesetSource])
+    }
+    new ruleset.LoadRuleset(fields("path").convertTo[String], format)
+  }
+
+  private def getModelPathFormat(json: JsValue) = {
+    val fields = json.asJsObject.fields
+    val path = fields("path").convertTo[String]
+    val format = fields.get("format").map {
+      case JsString("cache") => None
+      case x => Some(x.convertTo[RulesetSource])
+    }
+    path -> format
+  }
+
+  implicit val loadModelReader: RootJsonReader[model.LoadModel] = (json: JsValue) => {
+    val (path, format) = getModelPathFormat(json)
+    new model.LoadModel(path, format)
+  }
+
+  implicit val completeDatasetReader: RootJsonReader[index.CompleteDataset] = (json: JsValue) => {
+    val (path, format) = getModelPathFormat(json)
+    val fields = json.asJsObject.fields
+    new index.CompleteDataset(path, format, fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
+  }
+
+  implicit val predictTriplesReader: RootJsonReader[index.PredictTriples] = (json: JsValue) => {
+    val (path, format) = getModelPathFormat(json)
+    val fields = json.asJsObject.fields
+    new index.PredictTriples(path, format, fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
+  }
+
+  implicit val evaluateReader: RootJsonReader[index.Evaluate] = (json: JsValue) => {
+    val (path, format) = getModelPathFormat(json)
+    val fields = json.asJsObject.fields
+    new index.Evaluate(path, format, fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
   }
 
   implicit val filterRulesReader: RootJsonReader[ruleset.FilterRules] = (json: JsValue) => {
@@ -182,9 +221,28 @@ object PipelineJsonReaders {
     )
   }
 
+  implicit val modelFilterRulesReader: RootJsonReader[model.FilterRules] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new model.FilterRules(
+      fields.get("measures").iterator.flatMap(_.convertTo[JsArray].elements).map { json =>
+        val fields = json.asJsObject.fields
+        fields("name") -> fields("value").convertTo[String]
+      }.collect {
+        case (JsString("RuleLength"), TripleItemMatcher.Number(x)) => None -> x
+        case (measure, TripleItemMatcher.Number(x)) => Some(measure.convertTo[TypedKeyMap.Key[Measure]]) -> x
+      }.toSeq,
+      fields.get("patterns").map(_.convertTo[JsArray].elements.map(_.convertTo[RulePattern])).getOrElse(Nil)
+    )
+  }
+
   implicit val takeRulesReader: RootJsonReader[ruleset.Take] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new ruleset.Take(fields("value").convertTo[Int])
+  }
+
+  implicit val modelTakeRulesReader: RootJsonReader[model.Take] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new model.Take(fields("value").convertTo[Int])
   }
 
   implicit val dropRulesReader: RootJsonReader[ruleset.Drop] = (json: JsValue) => {
@@ -192,18 +250,47 @@ object PipelineJsonReaders {
     new ruleset.Drop(fields("value").convertTo[Int])
   }
 
+  implicit val modelDropRulesReader: RootJsonReader[model.Drop] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new model.Drop(fields("value").convertTo[Int])
+  }
+
   implicit val sliceRulesReader: RootJsonReader[ruleset.Slice] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new ruleset.Slice(fields("start").convertTo[Int], fields("end").convertTo[Int])
+  }
+
+  implicit val modelSliceRulesReader: RootJsonReader[model.Slice] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new model.Slice(fields("start").convertTo[Int], fields("end").convertTo[Int])
   }
 
   implicit val sortedReader: RootJsonReader[ruleset.Sorted] = (_: JsValue) => {
     new ruleset.Sorted()
   }
 
+  implicit val modelSortedReader: RootJsonReader[model.Sorted] = (_: JsValue) => {
+    new model.Sorted()
+  }
+
   implicit val sortReader: RootJsonReader[ruleset.Sort] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new ruleset.Sort(
+      fields.get("by").collect {
+        case JsArray(x) => x.map { json =>
+          val fields = json.asJsObject.fields
+          (fields("measure") match {
+            case JsString("RuleLength") => None
+            case x => Some(x.convertTo[TypedKeyMap.Key[Measure]])
+          }) -> fields.get("reversed").exists(_.convertTo[Boolean])
+        }
+      }.getOrElse(Nil)
+    )
+  }
+
+  implicit val modelSortReader: RootJsonReader[model.Sort] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new model.Sort(
       fields.get("by").collect {
         case JsArray(x) => x.map { json =>
           val fields = json.asJsObject.fields
@@ -252,6 +339,11 @@ object PipelineJsonReaders {
     new ruleset.Cache(fields("path").convertTo[String])
   }
 
+  implicit val cacheModelReader: RootJsonReader[model.Cache] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new model.Cache(fields("path").convertTo[String])
+  }
+
   implicit val graphBasedRulesReader: RootJsonReader[ruleset.GraphBasedRules] = (_: JsValue) => {
     new ruleset.GraphBasedRules()
   }
@@ -264,12 +356,28 @@ object PipelineJsonReaders {
     )
   }
 
+  implicit val modelExportRulesReader: RootJsonReader[model.ExportRules] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new model.ExportRules(
+      fields("path").convertTo[String],
+      fields.get("format").map(_.convertTo[RulesetSource])
+    )
+  }
+
   implicit val getRulesReader: RootJsonReader[ruleset.GetRules] = (_: JsValue) => {
     new ruleset.GetRules()
   }
 
+  implicit val modelGetRulesReader: RootJsonReader[model.GetRules] = (_: JsValue) => {
+    new model.GetRules()
+  }
+
   implicit val rulesetSizeReader: RootJsonReader[ruleset.Size] = (_: JsValue) => {
     new ruleset.Size()
+  }
+
+  implicit val modelSizeReader: RootJsonReader[model.Size] = (_: JsValue) => {
+    new model.Size()
   }
 
   implicit val pipelineReader: RootJsonReader[Debugger => Pipeline[Source[JsValue, NotUsed]]] = (json: JsValue) => { implicit debugger =>
@@ -280,6 +388,7 @@ object PipelineJsonReaders {
         case data.LoadDataset.name => addTaskFromDataset(Pipeline(params.convertTo[data.LoadDataset]), tail)
         case data.LoadGraph.name => addTaskFromDataset(Pipeline(params.convertTo[data.LoadGraph]), tail)
         case index.LoadIndex.name => addTaskFromIndex(Pipeline(params.convertTo[index.LoadIndex]), tail)
+        case model.LoadModel.name => addTaskFromModel(Pipeline(params.convertTo[model.LoadModel]), tail)
         case x => throw deserializationError(s"Invalid first task: $x")
       }
     }
@@ -314,6 +423,27 @@ object PipelineJsonReaders {
     }
 
     @scala.annotation.tailrec
+    def addTaskFromModel(pipeline: Pipeline[Model], tail: Seq[JsValue]): Pipeline[Source[JsValue, NotUsed]] = tail match {
+      case Seq(head, tail@_*) =>
+        val fields = head.asJsObject.fields
+        val params = fields("parameters")
+        fields("name").convertTo[String] match {
+          case model.Cache.name => addTaskFromModel(pipeline ~> params.convertTo[model.Cache], tail)
+          case model.Drop.name => addTaskFromModel(pipeline ~> params.convertTo[model.Drop], tail)
+          case model.ExportRules.name => pipeline ~> params.convertTo[model.ExportRules] ~> ToJsonTask.FromUnit
+          case model.FilterRules.name => addTaskFromModel(pipeline ~> params.convertTo[model.FilterRules], tail)
+          case model.GetRules.name => pipeline ~> params.convertTo[model.GetRules] ~> ToJsonTask.FromRules
+          case model.Size.name => pipeline ~> params.convertTo[model.Size] ~> ToJsonTask.FromInt
+          case model.Slice.name => addTaskFromModel(pipeline ~> params.convertTo[model.Slice], tail)
+          case model.Sort.name => addTaskFromModel(pipeline ~> params.convertTo[model.Sort], tail)
+          case model.Sorted.name => addTaskFromModel(pipeline ~> params.convertTo[model.Sorted], tail)
+          case model.Take.name => addTaskFromModel(pipeline ~> params.convertTo[model.Take], tail)
+          case x => throw deserializationError(s"Invalid task '$x' can not be bound to Model")
+        }
+      case _ => pipeline ~> new ToJsonTask.From[Model]
+    }
+
+    @scala.annotation.tailrec
     def addTaskFromIndex(pipeline: Pipeline[Index], tail: Seq[JsValue]): Pipeline[Source[JsValue, NotUsed]] = tail match {
       case Seq(head, tail@_*) =>
         val fields = head.asJsObject.fields
@@ -322,7 +452,10 @@ object PipelineJsonReaders {
           case index.Cache.name => addTaskFromIndex(pipeline ~> params.convertTo[index.Cache], tail)
           case index.Mine.name => addTaskFromRuleset(pipeline ~> params.convertTo[index.Mine], tail)
           case index.ToDataset.name => addTaskFromDataset(pipeline ~> params.convertTo[index.ToDataset], tail)
-          case ruleset.LoadModel.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.LoadModel], tail)
+          case ruleset.LoadRuleset.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.LoadRuleset], tail)
+          case index.CompleteDataset.name => addTaskFromDataset(pipeline ~> params.convertTo[index.CompleteDataset], tail)
+          case index.PredictTriples.name => addTaskFromDataset(pipeline ~> params.convertTo[index.PredictTriples], tail)
+          case index.Evaluate.name => pipeline ~> params.convertTo[index.Evaluate] ~> ToJsonTask.FromEvaluationResult
           case x => throw deserializationError(s"Invalid task '$x' can not be bound to Index")
         }
       case _ => pipeline ~> new ToJsonTask.From[Index]

@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.ruleset
 
 import com.github.propi.rdfrules.data.Compression
+import spray.json.DeserializationException
 
 import scala.language.implicitConversions
 
@@ -16,13 +17,13 @@ object RulesetSource {
   case object Json extends RulesetSource
 
   def apply(extension: String): RulesetSource = extension.toLowerCase match {
-    case "txt" | "rules" => Text
-    case "json" => Json
+    case "txt" => Text
+    case "json" | "rules" => Json
     case x => throw new IllegalArgumentException(s"Unsupported Ruleset format: $x")
   }
 
   implicit def rulesetSourceToRulesetReader(rulesetSource: RulesetSource): RulesetReader = rulesetSource match {
-    case Text => Text
+    case Text => throw DeserializationException("The 'text' rules format is not parseable. Use the JSON rules format.")
     case Json => Json
   }
 

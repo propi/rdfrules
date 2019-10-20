@@ -15,7 +15,8 @@ class Evaluate(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.Evaluate
   val properties: Constants[Property] = Constants(
     new ChooseFileFromWorkspace(Workspace.loadFiles, "path", description = "You can load a serialized model file from the workspace on the server side (just click onto a file name).", validator = NonEmpty),
-    new Select("format", "Rules format", Constants("txt" -> "Text", "json" -> "JSON", "cache" -> "Model cache"), description = "Rules format."),
+    new Select("format", "Rules format", Constants("json" -> "JSON", "cache" -> "Model cache"), description = "Rules format."),
+    new Checkbox("onlyFunctionalProperties", "Only function properties", true, "Generate only functional properties. That means only one object can be predicted for pair (subject, predicate).")
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 

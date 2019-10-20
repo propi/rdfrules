@@ -33,7 +33,7 @@ trait Index {
 
   def mine(miner: RulesMining): Ruleset = tripleItemMap { implicit mapper =>
     tripleMap { implicit thi =>
-      Ruleset(miner.mine, this)
+      Ruleset(this, miner.mine)
     }
   }
 

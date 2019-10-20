@@ -11,7 +11,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 class LoadRuleset(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
     new ChooseFileFromWorkspace(Workspace.loadFiles, "path", description = "You can load a serialized ruleset file from the workspace on the server side (just click onto a file name).", validator = NonEmpty),
-    new Select("format", "Rules format", Constants("cache" -> "Ruleset cache", "txt" -> "Text", "json" -> "JSON", "modelCache" -> "Model cache"), description = "The ruleset format. Default is \"Ruleset cache\"."),
+    new Select("format", "Rules format", Constants("cache" -> "Ruleset cache", "json" -> "JSON", "modelCache" -> "Model cache"), description = "The ruleset format. Default is \"Ruleset cache\"."),
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 }

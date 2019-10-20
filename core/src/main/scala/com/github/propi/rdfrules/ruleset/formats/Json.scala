@@ -12,31 +12,33 @@ import DefaultJsonProtocol._
 
 import scala.io.Source
 import scala.language.implicitConversions
+import scala.language.reflectiveCalls
 
 /**
   * Created by Vaclav Zeman on 18. 4. 2018.
   */
 trait Json {
 
-  private implicit val tripleItemUriJsonFormat: RootJsonFormat[TripleItem.Uri] = new RootJsonFormat[TripleItem.Uri] {
+  implicit val tripleItemUriJsonFormat: RootJsonFormat[TripleItem.Uri] = new RootJsonFormat[TripleItem.Uri] {
     def write(obj: TripleItem.Uri): JsValue = obj match {
       case x: TripleItem.LongUri => x.toString.toJson
-      case x: TripleItem.PrefixedUri => write(x.toLongUri)
+      case x: TripleItem.PrefixedUri => JsObject("prefix" -> x.prefix.toJson, "nameSpace" -> x.nameSpace.toJson, "localName" -> x.localName.toJson)
       case x: TripleItem.BlankNode => x.toString.toJson
     }
 
     def read(json: JsValue): TripleItem.Uri = {
       val LongUriPattern = "<(.*)>".r
       val BlankNodePattern = "_:(.+)".r
-      json.convertTo[String] match {
-        case LongUriPattern(uri) => TripleItem.LongUri(uri)
-        case BlankNodePattern(x) => TripleItem.BlankNode(x)
+      json match {
+        case JsString(LongUriPattern(uri)) => TripleItem.LongUri(uri)
+        case JsString(BlankNodePattern(x)) => TripleItem.BlankNode(x)
+        case JsObject(fields) if List("prefix", "nameSpace", "localName").forall(fields.contains) => TripleItem.PrefixedUri(fields("prefix").convertTo[String], fields("nameSpace").convertTo[String], fields("localName").convertTo[String])
         case x => deserializationError(s"Invalid triple item value: $x")
       }
     }
   }
 
-  private implicit val tripleItemJsonFormat: RootJsonFormat[TripleItem] = new RootJsonFormat[TripleItem] {
+  implicit val tripleItemJsonFormat: RootJsonFormat[TripleItem] = new RootJsonFormat[TripleItem] {
     def write(obj: TripleItem): JsValue = obj match {
       case TripleItem.NumberDouble(x) => JsNumber(x)
       case TripleItem.BooleanValue(x) => JsBoolean(x)
@@ -44,16 +46,18 @@ trait Json {
       case x: TripleItem => JsString(x.toString)
     }
 
-    def read(json: JsValue): TripleItem = json match {
-      case JsNumber(x) => TripleItem.Number(x)
-      case JsBoolean(x) => TripleItem.BooleanValue(x)
-      case s@JsString(x) =>
-        val TextPattern = "\"(.*)\"".r
-        x match {
-          case TextPattern(x) => TripleItem.Text(x)
-          case _ => TripleItem.Interval(x).getOrElse(s.convertTo[TripleItem.Uri])
-        }
-      case x => deserializationError(s"Invalid triple item value: $x")
+    def read(json: JsValue): TripleItem = {
+      val TextPattern = "\"(.*)\"".r
+      val IntervalMatcher = new {
+        def unapply(arg: String): Option[TripleItem.Interval] = TripleItem.Interval(arg)
+      }
+      json match {
+        case JsNumber(x) => TripleItem.Number(x)
+        case JsBoolean(x) => TripleItem.BooleanValue(x)
+        case JsString(TextPattern(x)) => TripleItem.Text(x)
+        case JsString(IntervalMatcher(x)) => x
+        case x => x.convertTo[TripleItem.Uri]
+      }
     }
   }
 
@@ -131,7 +135,7 @@ trait Json {
     }
   }
 
-  private implicit val resolvedRuleJsonFormat: RootJsonFormat[ResolvedRule] = new RootJsonFormat[ResolvedRule] {
+  implicit val resolvedRuleJsonFormat: RootJsonFormat[ResolvedRule] = new RootJsonFormat[ResolvedRule] {
     def write(obj: ResolvedRule): JsValue = JsObject(
       "head" -> obj.head.toJson,
       "body" -> JsArray(obj.body.iterator.map(_.toJson).toVector),
