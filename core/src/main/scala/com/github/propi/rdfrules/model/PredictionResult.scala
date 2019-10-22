@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.model
 
 import com.github.propi.rdfrules.data.{Dataset, Graph, Triple}
 import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.ruleset.ResolvedRule
 import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension._
 
 import scala.collection.TraversableView
@@ -27,28 +28,32 @@ class PredictionResult private(_predictedTriples: Traversable[PredictedTriple], 
 
   def mergedDataset: Dataset = index.toDataset + graph
 
-  def evaluate: EvaluationResult = {
+  def evaluate(withModel: Boolean = false): EvaluationResult = {
     index.tripleItemMap { mapper =>
       index.tripleMap { thi =>
         val headPredicates = collection.mutable.Set.empty[Int]
-        (if (_distinct) triples else distinct.triples).foldLeft(EvaluationResult(0, 0, 0)) { (result, triple) =>
-          val (s, p, o) = (mapper.getIndexOpt(triple.subject), mapper.getIndexOpt(triple.predicate), mapper.getIndexOpt(triple.`object`))
+        val modelSet = collection.mutable.LinkedHashSet.empty[ResolvedRule]
+        val evaluationResult = (if (_distinct) predictedTriples else distinct.predictedTriples).foldLeft(EvaluationResult(0, 0, 0, Vector.empty)) { (result, predictedTriple) =>
+          val (s, p, o) = (mapper.getIndexOpt(predictedTriple.triple.subject), mapper.getIndexOpt(predictedTriple.triple.predicate), mapper.getIndexOpt(predictedTriple.triple.`object`))
           val isTrue = (s, p, o) match {
-            case (Some(s), Some(p), Some(o)) if thi.predicates(p).subjects(s).contains(o) => true
+            case (Some(s), Some(p), Some(o)) => thi.predicates.get(p).exists(_.subjects.get(s).exists(_.contains(o)))
             case _ => false
           }
           val fn = p match {
             case Some(p) if !headPredicates(p) =>
               headPredicates += p
-              thi.predicates(p).size
+              thi.predicates.get(p).map(_.size).getOrElse(0)
             case _ => result.fn
           }
+          if (isTrue && withModel) modelSet += predictedTriple.rule
           EvaluationResult(
             if (isTrue) result.tp + 1 else result.tp,
             if (isTrue) result.fp else result.fp + 1,
-            if (isTrue) fn - 1 else fn
+            if (isTrue) fn - 1 else fn,
+            result.model
           )
         }
+        if (withModel) evaluationResult.copy(model = modelSet.toVector) else evaluationResult
       }
     }
   }

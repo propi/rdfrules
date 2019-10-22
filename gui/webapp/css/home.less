@@ -71,9 +71,11 @@ header {
   padding: 0 1em;
   background-color: #e6eeff;
   border-bottom: 2px solid black;
+
   h1 {
     font-size: 5vh;
   }
+
   .version {
     font-size: 3vh;
     font-style: italic;
@@ -88,6 +90,7 @@ main {
 .canvas {
   height: 100%;
   position: relative;
+
   .modal {
     position: absolute;
     overflow: auto;
@@ -95,6 +98,7 @@ main {
     height: 100%;
     z-index: 100;
     background-color: white;
+
     .close {
       right: 0.2em;
       font-size: 2em;
@@ -103,9 +107,11 @@ main {
       z-index: 101;
     }
   }
+
   .modal.closed {
     display: none;
   }
+
   .content {
     .persist-size;
     height: 100%;
@@ -114,12 +120,14 @@ main {
     padding-top: 2.5em;
     //padding-bottom: 1em;
     position: relative;
+
     &:after {
       content: ' ';
       display: block;
       height: 1em;
     }
   }
+
   .operations {
     display: flex;
     flex-direction: column;
@@ -127,6 +135,7 @@ main {
     align-items: center;
     min-height: 100%;
     width: 100%;
+
     .operation {
       .persist-size;
       width: 85%;
@@ -139,6 +148,7 @@ main {
       padding: 0.7em 1.5em;
       margin-bottom: 1.5em;
       cursor: default;
+
       .action-buttons {
         cursor: pointer;
         position: absolute;
@@ -147,6 +157,7 @@ main {
         font-size: 1em;
         bottom: 0;
         white-space: nowrap;
+
         .launch, .result {
           background-color: #ecffe5;
           border: 2px solid #000000;
@@ -155,10 +166,12 @@ main {
           margin: auto 0.1em;
           border-top: 1px solid black;
         }
+
         .result.hidden {
           display: none;
         }
       }
+
       .add {
         cursor: pointer;
         position: absolute;
@@ -167,26 +180,31 @@ main {
         font-size: 1.5em;
         bottom: -1em;
       }
+
       .add.hidden {
         display: none;
       }
+
       .del {
         position: absolute;
         right: 0.2em;
         top: 0;
         cursor: pointer;
       }
+
       .error {
         color: red;
         position: absolute;
         right: 1.3em;
         top: 0;
         cursor: help;
+
         &.hidden {
           display: none;
         }
       }
     }
+
     .operation.has-next {
       .add {
         display: block;
@@ -196,10 +214,12 @@ main {
         width: 100%;
         background: url(../images/arrow-down.png) no-repeat center;
         background-size: contain;
+
         i {
           display: none;
         }
       }
+
       /*&:after {
         content: " ";
         display: block;
@@ -212,18 +232,22 @@ main {
         background-size: contain;
       }*/
     }
+
     .operation.root {
       font-size: 2em;
       border: 0;
       background: none;
       margin: 0;
+
       .add {
         bottom: 0;
       }
+
       .del {
         display: none;
       }
     }
+
     .operation.hidden {
       display: none;
     }
@@ -235,14 +259,17 @@ main {
   min-height: 100%;
   width: 100%;
   padding-top: 3em;
+
   h3 {
     font-size: 1.3em;
     text-align: center;
     font-weight: bold;
   }
+
   h3.hidden {
     display: none;
   }
+
   .transformations, .actions {
     padding: 1em 1em 2em 1em;
     display: flex;
@@ -251,6 +278,7 @@ main {
     align-items: center;
     max-width: 1024px;
     margin: auto;
+
     .operation-info {
       position: relative;
       border: 2px solid #b5b5b5;
@@ -260,9 +288,11 @@ main {
       margin: 0.5em;
       background-color: cornsilk;
       cursor: pointer;
+
       &.action {
         background-color: #ecffe5;
       }
+
       .help {
         position: absolute;
         right: 2px;
@@ -278,71 +308,91 @@ main {
   .persist-size;
   padding-top: 4em;
   padding-bottom: 2em;
+
   table {
     border: 2px solid black;
     border-collapse: collapse;
     margin: auto;
     width: 90%;
+
     td, th {
       border: 2px solid black;
       padding: 0.5em;
     }
+
     th {
       font-weight: normal;
       text-align: right;
+
       .title {
         display: flex;
         justify-content: space-between;
+
         .hints {
           display: flex;
           margin-right: 0.5em;
+
           div.error, div.description {
             cursor: help;
+
             &.hidden {
               display: none;
             }
           }
+
           div.error i {
             color: red;
           }
         }
       }
     }
+
     td {
       width: 75%;
+
       a.add, a.del {
         cursor: pointer;
       }
+
       table {
         width: 100%;
+
         th {
           width: 1%;
           white-space: nowrap;
         }
+
         td {
           width: auto;
         }
       }
     }
   }
+
   .choose-file {
     padding: 0.5em;
+
     .directory {
       cursor: default;
+
       .name {
         font-style: italic;
       }
+
       .files {
         padding-left: 1em;
       }
     }
+
     .file {
       cursor: pointer;
+
       &:before {
         content: '-';
       }
     }
   }
+
   input, select {
     .persist-size;
     width: 100%;
@@ -350,6 +400,7 @@ main {
     border: 1px solid #cecece;
     font-size: 0.8em;
   }
+
   input.checkbox {
     width: 1.3em;
     height: 1.3em;
@@ -364,6 +415,7 @@ main {
 
 .properties.sub {
   padding: 0;
+
   > table {
     margin-bottom: 0;
   }
@@ -373,33 +425,41 @@ main {
   width: 90%;
   margin: auto;
   padding-top: 3em;
+
   &.waiting {
     text-align: center;
   }
+
   h2 {
     font-weight: bold;
     font-size: 1.5em;
     margin: 0.2em 0 0.6em 0;
     border-bottom: 1px solid darkgray;
   }
+
   h3 {
     font-weight: bold;
     font-size: 1.2em;
     margin: 0.2em 0;
   }
+
   ul.meta {
     list-style: none;
     margin-bottom: 1em;
+
     .hidden {
       display: none;
     }
+
     .loading {
       width: 5em;
+
       img {
         width: 100%;
       }
     }
   }
+
   ul.logs {
     background-color: whitesmoke;
     border: 1px solid gray;
@@ -410,24 +470,30 @@ main {
     list-style: none;
     font-size: 0.8em;
   }
+
   .result {
     margin-bottom: 1em;
+
     .rules-tools {
       a, select, input {
         display: inline-block;
       }
+
       a {
         margin-right: 0.3em;
       }
+
       select.clusters {
         .persist-size;
         height: 1.5em;
         font-size: 0.8em;
         margin-left: 0.5em;
+
         &.hidden {
           display: none;
         }
       }
+
       input.fulltext {
         .persist-size;
         height: 1.5em;
@@ -436,9 +502,11 @@ main {
         margin-left: 0.5em;
       }
     }
+
     .records {
       margin: 1em 0;
     }
+
     .pages {
       .page {
         .persist-size;
@@ -452,46 +520,60 @@ main {
         min-width: 2.3em;
         text-align: center;
       }
+
       .page.active {
         background-color: #f6f6ff;
       }
+
       .page:hover {
         background-color: #f4ffdf;
       }
     }
+
     .quad {
       display: flex;
+
       .subject, .predicate, .object, .graph {
         padding-right: 0.8em;
       }
+
       &:after {
         content: '.';
       }
     }
+
     .type {
       margin-bottom: 0.5em;
+
       .predicate-types {
         font-size: 0.9em;
         font-style: italic;
       }
     }
+
     .item {
       margin-bottom: 0.5em;
+
       .info {
         display: flex;
+
         .subject {
           padding-right: 0.5em;
         }
+
         .predicate {
           padding-right: 0.5em;
         }
+
         .object:after {
           content: ':';
         }
+
         .amount:before {
           content: '\00a0';
         }
       }
+
       .bar {
         background-color: #ff6060;
         min-width: 4em;
@@ -504,11 +586,43 @@ main {
         border-radius: 0 5px 5px 0;
       }
     }
+
     .rule {
       margin-bottom: 0.5em;
+
       .measures {
         font-size: 0.9em;
         font-style: italic;
+      }
+    }
+
+    .model {
+      margin-top: 1.5em;
+    }
+
+    .confusion-matrix {
+      margin-top: 1em;
+      border: 1px solid lightgray;
+      border-collapse: collapse;
+
+      td, th {
+        border: 1px solid lightgray;
+        padding: 0.8em;
+        text-align: center;
+      }
+
+      th {
+        background-color: #ededed;
+        font-weight: normal;
+        font-size: 0.9em;
+      }
+
+      td.true {
+        background-color: #d2fcd2;
+      }
+
+      td.false {
+        background-color: #ffb9b9;
       }
     }
   }
@@ -525,15 +639,18 @@ main {
   color: white;
   max-width: 400px;
   font-family: monospace;
+
   &.hidden {
     display: none;
   }
+
   .close {
     float: right;
     margin-left: 0.7em;
     margin-bottom: 0.4em;
     font-size: 1.2em;
     cursor: pointer;
+
     &.hidden {
       display: none;
     }
@@ -548,9 +665,11 @@ main {
   text-align: right;
   line-height: 1.7em;
   padding-right: 0.5em;
+
   #importfile {
     display: none;
   }
+
   i {
     font-size: 1.3em;
     cursor: pointer;

@@ -153,8 +153,9 @@ trait Json {
     val writer = new PrintWriter(new OutputStreamWriter(outputStreamBuilder.build, "UTF-8"))
     try {
       writer.println('[')
-      for (rule <- rules) {
-        writer.println(rule.toJson.prettyPrint)
+      rules.view.map(rule => rule.toJson.prettyPrint).foldLeft("") { (sep, rule) =>
+        writer.println(sep + rule)
+        ","
       }
       writer.println(']')
     } finally {

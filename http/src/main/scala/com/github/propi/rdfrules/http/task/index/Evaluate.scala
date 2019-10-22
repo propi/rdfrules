@@ -1,6 +1,5 @@
 package com.github.propi.rdfrules.http.task.index
 
-import com.github.propi.rdfrules.http.Workspace
 import com.github.propi.rdfrules.http.task.model.LoadModel
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 import com.github.propi.rdfrules.index.Index
@@ -14,8 +13,8 @@ class Evaluate(path: String, format: Option[Option[RulesetSource]], onlyFunction
   val companion: TaskDefinition = Evaluate
 
   def execute(input: Index): EvaluationResult = {
-    val predictionResult = new LoadModel(Workspace.path(path), format).execute(Task.NoInput).completeIndex(input)
-    if (onlyFunctionalProperties) predictionResult.onlyFunctionalProperties.evaluate else predictionResult.evaluate
+    val predictionResult = new LoadModel(path, format).execute(Task.NoInput).completeIndex(input)
+    if (onlyFunctionalProperties) predictionResult.onlyFunctionalProperties.evaluate(true) else predictionResult.evaluate(true)
   }
 }
 

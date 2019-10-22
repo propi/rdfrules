@@ -134,17 +134,19 @@ object Model {
     /*println(train)
     println("**********")
     println(test)*/
+    //val traingGraph = Graph("workspace/trains.sql")
     val traingGraph = Graph("workspace/trains.sql").filter(x => train(x.subject))
     val testGraph = Graph("workspace/trains.sql").filter(x => test(x.subject))
     val rules = traingGraph.mine(Amie().addThreshold(Threshold.MinHeadSize(1)).addThreshold(Threshold.MaxRuleLength(4)).addThreshold(Threshold.TopK(10000)).addConstraint(RuleConstraint.WithInstances(false)).addPattern(RulePattern(AtomPattern(predicate = TripleItem.Uri("direction")))))
     rules.computeConfidence(0.5).sorted.take(100).resolvedRules.foreach(println)
-    //val cg = rules.computeConfidence(0.5).sorted.model.completeGraph(testGraph).onlyFunctionalProperties
-    //val pt = cg.predictedTriples.toVector
-    /*pt.foreach { p =>
+    println("-------")
+    val cg = rules.computeConfidence(0.5).sorted.model.completeGraph(testGraph).onlyFunctionalProperties
+    val pt = cg.predictedTriples.toVector
+    pt.foreach { p =>
       println(s"$p, ${p.rule}")
     }
     println(pt.size)
-    println(cg.evaluate)*/
+    println(cg.evaluate)
   }*/
 
 }

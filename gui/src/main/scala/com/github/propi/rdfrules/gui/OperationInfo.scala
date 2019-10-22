@@ -597,7 +597,6 @@ object OperationInfo {
     def buildOperation(from: Operation): Operation = new actions.Evaluate(from)
   }
 
-  //TODO for import task map to right operation info
   def apply(op: js.Dynamic, parent: Operation): Option[OperationInfo] = {
     val name = op.name.asInstanceOf[String]
     val ops = (parent.info match {

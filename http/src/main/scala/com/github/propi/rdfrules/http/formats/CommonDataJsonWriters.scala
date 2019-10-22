@@ -19,7 +19,8 @@ object CommonDataJsonWriters extends Json {
     "accuracy" -> obj.accuracy.toJson,
     "precision" -> obj.precision.toJson,
     "recall" -> obj.recall.toJson,
-    "fscore" -> obj.fscore.toJson
+    "fscore" -> obj.fscore.toJson,
+    "model" -> obj.model.toJson
   )
 
   implicit val quadWriter: RootJsonWriter[Quad] = (obj: Quad) => JsObject(

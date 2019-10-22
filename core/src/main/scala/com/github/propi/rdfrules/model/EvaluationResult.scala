@@ -1,9 +1,11 @@
 package com.github.propi.rdfrules.model
 
+import com.github.propi.rdfrules.ruleset.ResolvedRule
+
 /**
   * Created by Vaclav Zeman on 15. 10. 2019.
   */
-case class EvaluationResult(tp: Int, fp: Int, fn: Int) {
+case class EvaluationResult(tp: Int, fp: Int, fn: Int, model: Seq[ResolvedRule]) {
 
   def accuracy: Double = {
     val d = tp + fp + fn

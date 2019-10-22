@@ -555,6 +555,31 @@ main {
   font-size: 0.9em;
   font-style: italic;
 }
+.action-progress .result .model {
+  margin-top: 1.5em;
+}
+.action-progress .result .confusion-matrix {
+  margin-top: 1em;
+  border: 1px solid lightgray;
+  border-collapse: collapse;
+}
+.action-progress .result .confusion-matrix td,
+.action-progress .result .confusion-matrix th {
+  border: 1px solid lightgray;
+  padding: 0.8em;
+  text-align: center;
+}
+.action-progress .result .confusion-matrix th {
+  background-color: #ededed;
+  font-weight: normal;
+  font-size: 0.9em;
+}
+.action-progress .result .confusion-matrix td.true {
+  background-color: #d2fcd2;
+}
+.action-progress .result .confusion-matrix td.false {
+  background-color: #ffb9b9;
+}
 .whint {
   position: fixed;
   z-index: 200;
