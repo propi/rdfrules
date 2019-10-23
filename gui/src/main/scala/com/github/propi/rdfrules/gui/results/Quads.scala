@@ -17,16 +17,16 @@ class Quads(val title: String, val id: Future[String]) extends ActionProgress wi
   @dom
   def viewRecord(record: Quad): Binding[Div] = <div class="quad">
     <div class="subject">
-      {record.subject}
+      {Rules.viewAtomItem(record.subject)}
     </div>
     <div class="predicate">
-      {record.predicate}
+      {Rules.viewAtomItem(record.predicate)}
     </div>
     <div class="object">
-      {record.`object`.toString}
+      {Rules.viewAtomItem(record.`object`)}
     </div>
     <div class="graph">
-      {record.graph}
+      {Rules.viewAtomItem(record.graph)}
     </div>
   </div>
 
@@ -51,10 +51,10 @@ class Quads(val title: String, val id: Future[String]) extends ActionProgress wi
 object Quads {
 
   trait Quad extends js.Object {
-    val subject: String
-    val predicate: String
+    val subject: js.Dynamic
+    val predicate: js.Dynamic
     val `object`: js.Dynamic
-    val graph: String
+    val graph: js.Dynamic
   }
 
 }

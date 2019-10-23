@@ -315,7 +315,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
         notCountedInstanceProjections = !isCounted(freshAtom, atomWithSpecifiedPredicate.predicate, true)
         notCountedVariableProjections = !isCounted(freshAtom, atomWithSpecifiedPredicate.predicate, false)
         //for each predicate of the fresh atom we specify all variables and we filter projections which are connected with the rest of other atoms
-        atom <- specifyAtom(atomWithSpecifiedPredicate, variableMap) if exists(atoms, variableMap ++ List(freshAtom.subject -> atom.subject.asInstanceOf[Atom.Constant], freshAtom.`object` -> atom.`object`.asInstanceOf[Atom.Constant]))
+        atom <- specifyAtom(atomWithSpecifiedPredicate, variableMap) if exists(atoms, variableMap + (freshAtom.subject -> atom.subject.asInstanceOf[Atom.Constant], atom.predicate, freshAtom.`object` -> atom.`object`.asInstanceOf[Atom.Constant]))
       } {
         if (isWithInstances && notCountedInstanceProjections) {
           //if we may to create instantiated atoms for this predicate and fresh atom (it is allowed and not already counted)

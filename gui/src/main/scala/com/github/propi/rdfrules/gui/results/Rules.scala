@@ -1,13 +1,13 @@
 package com.github.propi.rdfrules.gui.results
 
-import com.github.propi.rdfrules.gui.results.Rules.{Atom, Rule}
+import com.github.propi.rdfrules.gui.results.Rules._
+import com.github.propi.rdfrules.gui.utils.StringConverters._
 import com.github.propi.rdfrules.gui.{ActionProgress, Downloader, Globals}
 import com.thoughtworks.binding.Binding.{Constants, Var}
 import com.thoughtworks.binding.{Binding, dom}
 import org.scalajs.dom.Event
 import org.scalajs.dom.html.Div
 import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
-import com.github.propi.rdfrules.gui.utils.StringConverters._
 
 import scala.concurrent.Future
 import scala.scalajs.js
@@ -58,7 +58,7 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
     span}
    */
 
-  private def viewAtom(atom: Atom): String = s"( ${atom.subject.value} ${atom.predicate} ${atom.`object`.value}${atom.graphs.toOption.map(x => if (x.length == 1) x.head else x.mkString(", ")).map(" " + _).getOrElse("")} )"
+  private def viewAtom(atom: Atom): String = s"( ${viewAtomItem(atom.subject)} ${viewAtomItem(atom.predicate)} ${viewAtomItem(atom.`object`)}${atom.graphs.toOption.map(x => if (x.length == 1) viewAtomItem(x.head) else x.map(viewAtomItem).mkString(", ")).map(" " + _).getOrElse("")} )"
 
   private def exportJson(rules: Seq[js.Dynamic]): Unit = {
     Downloader.download("rules.json", js.Array(rules: _*))
@@ -106,7 +106,7 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
     rules.view.filter { x =>
       val rule = x.asInstanceOf[Rule]
       (rule.body.iterator ++ Iterator(rule.head))
-        .flatMap(x => Iterator(x.subject.value.toString, x.predicate, x.`object`.value.toString) ++ x.graphs.toOption.iterator.flatten)
+        .flatMap(x => Iterator(viewAtomItem(x.subject), viewAtomItem(x.predicate), viewAtomItem(x.`object`)) ++ x.graphs.toOption.iterator.flatten.map(viewAtomItem))
         .map(Globals.stripText(_).toLowerCase)
         .exists(_.contains(normFulltext))
     }
@@ -170,16 +170,33 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
 
 object Rules {
 
+  def viewAtomItem(atomItem: AtomItem): String = viewAtomItem(atomItem.value)
+
+  def viewAtomItem(atomItem: js.Dynamic): String = {
+    if (js.typeOf(atomItem) == "object" && !js.isUndefined(atomItem.prefix)) {
+      val pu = atomItem.asInstanceOf[PrefixedUri]
+      s"${pu.prefix}:${pu.localName}"
+    } else {
+      atomItem.toString
+    }
+  }
+
   trait AtomItem extends js.Object {
     val `type`: String
     val value: js.Dynamic
   }
 
+  trait PrefixedUri extends js.Object {
+    val prefix: String
+    val nameSpace: String
+    val localName: String
+  }
+
   trait Atom extends js.Object {
     val subject: AtomItem
-    val predicate: String
+    val predicate: js.Dynamic
     val `object`: AtomItem
-    val graphs: js.UndefOr[js.Array[String]]
+    val graphs: js.UndefOr[js.Array[js.Dynamic]]
   }
 
   trait Measure extends js.Object {

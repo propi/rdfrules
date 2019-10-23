@@ -7,10 +7,10 @@ import com.github.propi.rdfrules.utils.Debugger
 /**
   * Created by Vaclav Zeman on 9. 8. 2018.
   */
-class ComputeConfidence(min: Option[Double])(implicit debugger: Debugger) extends Task[Ruleset, Ruleset] {
+class ComputeConfidence(min: Option[Double], topk: Option[Int])(implicit debugger: Debugger) extends Task[Ruleset, Ruleset] {
   val companion: TaskDefinition = ComputeConfidence
 
-  def execute(input: Ruleset): Ruleset = input.computeConfidence(min.getOrElse(0.5))
+  def execute(input: Ruleset): Ruleset = input.computeConfidence(min.getOrElse(0.5), topk.getOrElse(0))
 }
 
 object ComputeConfidence extends TaskDefinition {

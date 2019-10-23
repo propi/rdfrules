@@ -135,9 +135,9 @@ object Model {
     println("**********")
     println(test)*/
     //val traingGraph = Graph("workspace/trains.sql")
-    val traingGraph = Graph("workspace/trains.sql").filter(x => train(x.subject))
-    val testGraph = Graph("workspace/trains.sql").filter(x => test(x.subject))
-    val rules = traingGraph.mine(Amie().addThreshold(Threshold.MinHeadSize(1)).addThreshold(Threshold.MaxRuleLength(4)).addThreshold(Threshold.TopK(10000)).addConstraint(RuleConstraint.WithInstances(false)).addPattern(RulePattern(AtomPattern(predicate = TripleItem.Uri("direction")))))
+    val traingGraph = Graph("workspace/trains.sql").filter(x => train(x.subject)).export("workspace/trains_train.tsv")
+    val testGraph = Graph("workspace/trains.sql").filter(x => test(x.subject)).export("workspace/trains_test.tsv")
+    /*val rules = traingGraph.mine(Amie().addThreshold(Threshold.MinHeadSize(1)).addThreshold(Threshold.MaxRuleLength(4)).addThreshold(Threshold.TopK(10000)).addConstraint(RuleConstraint.WithInstances(false)).addPattern(RulePattern(AtomPattern(predicate = TripleItem.Uri("direction")))))
     rules.computeConfidence(0.5).sorted.take(100).resolvedRules.foreach(println)
     println("-------")
     val cg = rules.computeConfidence(0.5).sorted.model.completeGraph(testGraph).onlyFunctionalProperties
@@ -146,7 +146,7 @@ object Model {
       println(s"$p, ${p.rule}")
     }
     println(pt.size)
-    println(cg.evaluate)
+    println(cg.evaluate)*/
   }*/
 
 }

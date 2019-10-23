@@ -17,7 +17,7 @@ class Types(val title: String, val id: Future[String]) extends ActionProgress wi
   @dom
   def viewRecord(record: Predicate): Binding[Div] = <div class="type">
     <div class="predicate">
-      {record.predicate}
+      {Rules.viewAtomItem(record.predicate)}
     </div>
     <div class="predicate-types">
       {record.types.map(x => x.name + ": " + x.amount).mkString(", ")}
@@ -49,7 +49,7 @@ object Types {
   }
 
   trait Predicate extends js.Object {
-    val predicate: String
+    val predicate: js.Dynamic
     val types: js.Array[Type]
   }
 

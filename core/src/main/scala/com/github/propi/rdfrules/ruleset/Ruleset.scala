@@ -7,7 +7,7 @@ import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
 import com.github.propi.rdfrules.data.ops.{Cacheable, Transformable}
 import com.github.propi.rdfrules.index.{Index, TripleHashIndex}
-import com.github.propi.rdfrules.model.Model
+import com.github.propi.rdfrules.model.{Model, PredictionResult}
 import com.github.propi.rdfrules.rule.{Measure, Rule, RulePattern, RulePatternMatcher}
 import com.github.propi.rdfrules.ruleset.ops.Sortable
 import com.github.propi.rdfrules.serialization.RuleSerialization._
@@ -81,6 +81,21 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
 
   def model: Model = Model(resolvedRules.toVector)
 
+  def pruned(onlyFunctionalProperties: Boolean): Ruleset = {
+    transform(new Traversable[Rule.Simple] {
+      def foreach[U](f: Rule.Simple => U): Unit = {
+        index.tripleItemMap { implicit mapper =>
+          val predictionResult = if (onlyFunctionalProperties) completeIndex.onlyFunctionalProperties else completeIndex
+          val hashSet = collection.mutable.LinkedHashSet.empty[Rule.Simple]
+          for (rule <- predictionResult.predictedTriples.map(_.rule).map(ResolvedRule.simple(_)).filter(_._2.isEmpty).map(_._1)) {
+            hashSet += rule
+          }
+          hashSet.foreach(f)
+        }
+      }
+    })
+  }
+
   private def mapRuleset(f: TripleHashIndex => Rule.Simple => Rule.Simple)(implicit debugger: Int => (Debugger.ActionDebugger => Unit) => Unit): Ruleset = transform(new Traversable[Rule.Simple] {
     def foreach[U](f2: Rule.Simple => U): Unit = index.tripleMap { thi =>
       val cached = self.cache
@@ -107,9 +122,11 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
 
   def graphBasedRules: Ruleset = {
     implicit val ad: Int => (Debugger.ActionDebugger => Unit) => Unit = size => f => Debugger.EmptyDebugger.debug("", size)(f)
-    mapRuleset { implicit thi =>
-      rule => Rule.Simple(rule.head.toGraphBasedAtom, rule.body.map(_.toGraphBasedAtom))(rule.measures)
-    }
+    transform(new Traversable[Rule.Simple] {
+      def foreach[U](f: Rule.Simple => U): Unit = index.tripleMap { implicit tripleMap =>
+        rules.view.map(rule => Rule.Simple(rule.head.toGraphBasedAtom, rule.body.map(_.toGraphBasedAtom))(rule.measures)).foreach(f)
+      }
+    })
   }
 
   def computeConfidence(minConfidence: Double, topK: Int = 0)(implicit debugger: Debugger): Ruleset = {
@@ -160,6 +177,8 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
       ))
     }.filter(_.measures.exists[Measure.Lift])
   }
+
+  def completeIndex: PredictionResult = model.completeIndex(index)
 
   def makeClusters(clustering: Clustering[Rule.Simple]): Ruleset = transform(new Traversable[Rule.Simple] {
     def foreach[U](f: Rule.Simple => U): Unit = clustering.clusters(rules.toIndexedSeq).view.zipWithIndex.flatMap { case (cluster, index) =>

@@ -195,16 +195,36 @@ object PipelineJsonReaders {
     new index.CompleteDataset(path, format, fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
   }
 
+  implicit val rulesetCompleteDatasetReader: RootJsonReader[ruleset.CompleteDataset] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new ruleset.CompleteDataset(fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
+  }
+
   implicit val predictTriplesReader: RootJsonReader[index.PredictTriples] = (json: JsValue) => {
     val (path, format) = getModelPathFormat(json)
     val fields = json.asJsObject.fields
     new index.PredictTriples(path, format, fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
   }
 
+  implicit val rulesetPredictTriplesReader: RootJsonReader[ruleset.PredictTriples] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new ruleset.PredictTriples(fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
+  }
+
+  implicit val pruneReader: RootJsonReader[ruleset.Prune] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new ruleset.Prune(fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
+  }
+
   implicit val evaluateReader: RootJsonReader[index.Evaluate] = (json: JsValue) => {
     val (path, format) = getModelPathFormat(json)
     val fields = json.asJsObject.fields
     new index.Evaluate(path, format, fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
+  }
+
+  implicit val rulesetEvaluateReader: RootJsonReader[ruleset.Evaluate] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new ruleset.Evaluate(fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
   }
 
   implicit val filterRulesReader: RootJsonReader[ruleset.FilterRules] = (json: JsValue) => {
@@ -305,12 +325,12 @@ object PipelineJsonReaders {
 
   implicit def computeConfidenceReader(implicit debugger: Debugger): RootJsonReader[ruleset.ComputeConfidence] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new ruleset.ComputeConfidence(fields.get("min").map(_.convertTo[Double]))
+    new ruleset.ComputeConfidence(fields.get("min").map(_.convertTo[Double]), fields.get("topk").map(_.convertTo[Int]))
   }
 
   implicit def computePcaConfidenceReader(implicit debugger: Debugger): RootJsonReader[ruleset.ComputePcaConfidence] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new ruleset.ComputePcaConfidence(fields.get("min").map(_.convertTo[Double]))
+    new ruleset.ComputePcaConfidence(fields.get("min").map(_.convertTo[Double]), fields.get("topk").map(_.convertTo[Int]))
   }
 
   implicit def computeLiftReader(implicit debugger: Debugger): RootJsonReader[ruleset.ComputeLift] = (json: JsValue) => {
@@ -484,6 +504,10 @@ object PipelineJsonReaders {
           case ruleset.Sort.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Sort], tail)
           case ruleset.Sorted.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Sorted], tail)
           case ruleset.Take.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Take], tail)
+          case ruleset.CompleteDataset.name => addTaskFromDataset(pipeline ~> params.convertTo[ruleset.CompleteDataset], tail)
+          case ruleset.PredictTriples.name => addTaskFromDataset(pipeline ~> params.convertTo[ruleset.PredictTriples], tail)
+          case ruleset.Prune.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Prune], tail)
+          case ruleset.Evaluate.name => pipeline ~> params.convertTo[ruleset.Evaluate] ~> ToJsonTask.FromEvaluationResult
           case x => throw deserializationError(s"Invalid task '$x' can not be bound to Ruleset")
         }
       case _ => pipeline ~> new ToJsonTask.From[Ruleset]

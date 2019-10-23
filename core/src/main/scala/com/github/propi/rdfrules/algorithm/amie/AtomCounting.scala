@@ -10,20 +10,24 @@ import com.typesafe.scalalogging.Logger
 trait AtomCounting {
 
   //type VariableMap = Map[Atom.Variable, Atom.Constant]
-  class VariableMap private(hmap: Map[Atom.Variable, Atom.Constant], constants: Set[Atom.Constant]) {
+  class VariableMap private(hmap: Map[Atom.Variable, Atom.Constant], atoms: Set[Atom]) {
     def this() = this(Map.empty, Set.empty)
 
     def getOrElse[T >: Atom.Constant](key: Atom.Variable, default: => T): T = hmap.getOrElse(key, default)
 
     def contains(key: Atom.Variable): Boolean = hmap.contains(key)
 
-    def containsConstant(constant: Atom.Constant): Boolean = constants(constant)
+    def containsAtom(atom: Atom): Boolean = atoms(atom)
 
     def apply(key: Atom.Variable): Atom.Constant = hmap(key)
 
-    def +(kv: (Atom.Variable, Atom.Constant)): VariableMap = new VariableMap(hmap + kv, constants + kv._2)
+    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = new VariableMap(hmap + (s, o), atoms + Atom(s._2, p, o._2))
 
-    def ++(kvs: TraversableOnce[(Atom.Variable, Atom.Constant)]): VariableMap = kvs.foldLeft(this)(_ + _)
+    def +(s: Atom.Constant, p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = new VariableMap(hmap + o, atoms + Atom(s, p, o._2))
+
+    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: Atom.Constant): VariableMap = new VariableMap(hmap + s, atoms + Atom(s._2, p, o))
+
+    def +(s: Atom.Constant, p: Int, o: Atom.Constant): VariableMap = new VariableMap(hmap, atoms + Atom(s, p, o))
 
     def isEmpty: Boolean = hmap.isEmpty
   }
@@ -258,9 +262,9 @@ trait AtomCounting {
     * @return function which return variableMap from specified atom which specifies unspecified atom
     */
   def specifyVariableMapForAtom(atom: Atom): (Atom, VariableMap) => VariableMap = (atom.subject, atom.`object`) match {
-    case (s: Atom.Variable, o: Atom.Variable) => (specifiedAtom, variableMap) => variableMap ++ List(s -> specifiedAtom.subject.asInstanceOf[Atom.Constant], o -> specifiedAtom.`object`.asInstanceOf[Atom.Constant])
-    case (s: Atom.Variable, _) => (specifiedAtom, variableMap) => variableMap + (s -> specifiedAtom.subject.asInstanceOf[Atom.Constant])
-    case (_, o: Atom.Variable) => (specifiedAtom, variableMap) => variableMap + (o -> specifiedAtom.`object`.asInstanceOf[Atom.Constant])
+    case (s: Atom.Variable, o: Atom.Variable) => (specifiedAtom, variableMap) => variableMap + (s -> specifiedAtom.subject.asInstanceOf[Atom.Constant], atom.predicate, o -> specifiedAtom.`object`.asInstanceOf[Atom.Constant])
+    case (s: Atom.Variable, o: Atom.Constant) => (specifiedAtom, variableMap) => variableMap + (s -> specifiedAtom.subject.asInstanceOf[Atom.Constant], atom.predicate, o)
+    case (s: Atom.Constant, o: Atom.Variable) => (specifiedAtom, variableMap) => variableMap + (s, atom.predicate, o -> specifiedAtom.`object`.asInstanceOf[Atom.Constant])
     case _ => (_, variableMap) => variableMap
   }
 
@@ -295,30 +299,29 @@ trait AtomCounting {
     (specifyItem(atom.subject, variableMap), specifyItem(atom.`object`, variableMap)) match {
       case (_: Atom.Variable, _: Atom.Variable) =>
         tm.subjects.iterator.flatMap(x => x._2.iterator.flatMap { y =>
-          val s = Atom.Constant(x._1)
-          val o = Atom.Constant(y._1)
-          if (variableMap.containsConstant(s) || variableMap.containsConstant(o)) {
+          val mappedAtom = Atom(Atom.Constant(x._1), atom.predicate, Atom.Constant(y._1))
+          if (variableMap.containsAtom(mappedAtom)) {
             None
           } else {
-            Some(Atom(s, atom.predicate, o))
+            Some(mappedAtom)
           }
         })
       case (_: Atom.Variable, ov@Atom.Constant(oc)) =>
         tm.objects.get(oc).iterator.flatMap(_.iterator).flatMap { subject =>
-          val s = Atom.Constant(subject)
-          if (variableMap.containsConstant(s)) {
+          val mappedAtom = Atom(Atom.Constant(subject), atom.predicate, ov)
+          if (variableMap.containsAtom(mappedAtom)) {
             None
           } else {
-            Some(Atom(s, atom.predicate, ov))
+            Some(mappedAtom)
           }
         }
       case (sv@Atom.Constant(sc), _: Atom.Variable) =>
         tm.subjects.get(sc).iterator.flatMap(_.iterator.map(_._1)).flatMap { `object` =>
-          val o = Atom.Constant(`object`)
-          if (variableMap.containsConstant(o)) {
+          val mappedAtom = Atom(sv, atom.predicate, Atom.Constant(`object`))
+          if (variableMap.containsAtom(mappedAtom)) {
             None
           } else {
-            Some(Atom(sv, atom.predicate, o))
+            Some(mappedAtom)
           }
         }
       case (sv@Atom.Constant(sc), ov@Atom.Constant(oc)) =>

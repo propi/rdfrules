@@ -213,7 +213,7 @@ trait RuleRefinementExperimental extends RuleRefinement {
         }
         if (instantiated.hasNext || logical.hasNext) {
           val distinctPairs = howLong("select distinct pairs", true, forceShow = true) {
-            selectDistinctPairs(atoms, headVars, variableMap ++ List(freshAtom.subject -> atom.subject.asInstanceOf[Atom.Constant], freshAtom.`object` -> atom.`object`.asInstanceOf[Atom.Constant])).toList
+            selectDistinctPairs(atoms, headVars, variableMap + (freshAtom.subject -> atom.subject.asInstanceOf[Atom.Constant], atom.predicate, freshAtom.`object` -> atom.`object`.asInstanceOf[Atom.Constant])).toList
           }
           for (newAtom <- instantiated ++ logical) {
             projections.getOrElseUpdate(newAtom, mutable.HashSet.empty) ++= distinctPairs

@@ -21,13 +21,13 @@ class Histogram(val title: String, val id: Future[String]) extends ActionProgres
   def viewRecord(record: HistogramItem): Binding[Div] = <div class="item">
     <div class="info">
       <div class={"subject" + (if (record.subject == null) " empty" else "")}>
-        {if (record.subject == null) "*" else record.subject}
+        {if (record.subject == null) "*" else Rules.viewAtomItem(record.subject)}
       </div>
       <div class={"predicate" + (if (record.predicate == null) " empty" else "")}>
-        {if (record.predicate == null) "*" else record.predicate}
+        {if (record.predicate == null) "*" else Rules.viewAtomItem(record.predicate)}
       </div>
       <div class={"object" + (if (record.`object` == null) " empty" else "")}>
-        {if (record.`object` == null) "*" else record.`object`.toString}
+        {if (record.`object` == null) "*" else Rules.viewAtomItem(record.`object`)}
       </div>
       <div class="amount">
         {record.amount.toString}
@@ -64,8 +64,8 @@ class Histogram(val title: String, val id: Future[String]) extends ActionProgres
 object Histogram {
 
   trait HistogramItem extends js.Object {
-    val subject: String
-    val predicate: String
+    val subject: js.Dynamic
+    val predicate: js.Dynamic
     val `object`: js.Dynamic
     val amount: Int
   }

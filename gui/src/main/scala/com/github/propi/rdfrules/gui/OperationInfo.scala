@@ -63,7 +63,7 @@ object OperationInfo {
       IndexTransformation.CompleteDataset,
       IndexTransformation.PredictTriples,
       IndexTransformation.LoadRuleset,
-      Evaluate,
+      EvaluateIndex,
       CacheIndexAction,
     )
   }
@@ -82,10 +82,14 @@ object OperationInfo {
       RulesetTransformation.MakeClusters,
       RulesetTransformation.GraphBasedRules,
       RulesetTransformation.CacheRuleset,
+      RulesetTransformation.CompleteDataset,
+      RulesetTransformation.PredictTriples,
+      RulesetTransformation.Prune,
       CacheRulesetAction,
       ExportRules,
       GetRules,
-      RulesetSize
+      RulesetSize,
+      EvaluateRuleset
     )
   }
 
@@ -293,6 +297,12 @@ object OperationInfo {
     val description: String = "Use a rules model to generate/predict triples from the loaded dataset."
   }
 
+  sealed trait Prune extends Transformation {
+    val name: String = "Prune"
+    val title: String = "Prune"
+    val description: String = "From the list of rules take such rules which cover all genereted triples from the input dataset."
+  }
+
   object DatasetTransformation {
 
     object LoadGraph extends OperationInfo.LoadGraph with DatasetTransformation {
@@ -364,11 +374,11 @@ object OperationInfo {
     }
 
     object CompleteDataset extends OperationInfo.CompleteDataset with DatasetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.CompleteDataset(from, this)
+      def buildOperation(from: Operation): Operation = new operations.CompleteDataset(from, this, true)
     }
 
     object PredictTriples extends OperationInfo.PredictTriples with DatasetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.PredictTriples(from, this)
+      def buildOperation(from: Operation): Operation = new operations.PredictTriples(from, this, true)
     }
 
     object CacheIndex extends OperationInfo.CacheIndex with IndexTransformation {
@@ -413,6 +423,18 @@ object OperationInfo {
 
     object CacheRuleset extends OperationInfo.CacheRuleset with RulesetTransformation {
       def buildOperation(from: Operation): Operation = new operations.CacheRuleset(from, this)
+    }
+
+    object CompleteDataset extends OperationInfo.CompleteDataset with DatasetTransformation {
+      def buildOperation(from: Operation): Operation = new operations.CompleteDataset(from, this, false)
+    }
+
+    object PredictTriples extends OperationInfo.PredictTriples with DatasetTransformation {
+      def buildOperation(from: Operation): Operation = new operations.PredictTriples(from, this, false)
+    }
+
+    object Prune extends OperationInfo.Prune with RulesetTransformation {
+      def buildOperation(from: Operation): Operation = new operations.Prune(from, this)
     }
 
     object ComputeConfidence extends RulesetTransformation {
@@ -589,12 +611,20 @@ object OperationInfo {
     def buildOperation(from: Operation): Operation = new actions.CacheIndex(from)
   }
 
-  object Evaluate extends Action {
+  object EvaluateIndex extends Action {
     val name: String = "Evaluate"
     val title: String = "Evaluate model"
     val description: String = "Evaluate a rules model based on the loaded dataset as the test set."
 
-    def buildOperation(from: Operation): Operation = new actions.Evaluate(from)
+    def buildOperation(from: Operation): Operation = new actions.Evaluate(from, this, true)
+  }
+
+  object EvaluateRuleset extends Action {
+    val name: String = "Evaluate"
+    val title: String = "Evaluate model"
+    val description: String = "Evaluate a rules model based on the loaded index as the test set."
+
+    def buildOperation(from: Operation): Operation = new actions.Evaluate(from, this, false)
   }
 
   def apply(op: js.Dynamic, parent: Operation): Option[OperationInfo] = {
@@ -633,13 +663,18 @@ object OperationInfo {
         RulesetTransformation.MakeClusters,
         RulesetTransformation.GraphBasedRules,
         RulesetTransformation.CacheRuleset,
+        RulesetTransformation.CompleteDataset,
+        RulesetTransformation.PredictTriples,
+        RulesetTransformation.Prune,
+        EvaluateRuleset
       )
       case _: IndexTransformation => Iterator(
         IndexTransformation.CacheIndex,
         IndexTransformation.CompleteDataset,
         IndexTransformation.Mine,
         IndexTransformation.PredictTriples,
-        IndexTransformation.ToDataset
+        IndexTransformation.ToDataset,
+        EvaluateIndex
       )
       case _ => Iterator()
     }) ++ Iterator(
@@ -659,8 +694,7 @@ object OperationInfo {
       CacheRulesetAction,
       ExportRules,
       GetRules,
-      RulesetSize,
-      Evaluate
+      RulesetSize
     )
     if (name == "Discretize") {
       op.parameters.task.name.asInstanceOf[String] match {
