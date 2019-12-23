@@ -1,0 +1,76 @@
+******* TASK: RDFRules: top 100 with highest head coverage, minHeadCoverage = 0.005, only logical rules *******
+memory: 5.4968 MB (stdDev: 13.1974 MB, min: 67.272 kB, max: 37.8236 MB)
+rules: 100.0 (stdDev: 0.0, min: 100.0, max: 100.0)
+time: 13.26 s (stdDev: 746.2 ms, min: 11.93 s, max: 14.16 s)
+******* TASK: RDFRules: top 100 with highest head coverage, minHeadCoverage = 0.01, only logical rules *******
+memory: 90.539 kB (stdDev: 93.39 kB, min: -121.136 kB, max: 191.448 kB)
+rules: 100.0 (stdDev: 0.0, min: 100.0, max: 100.0)
+time: 12.87 s (stdDev: 718.9 ms, min: 11.70 s, max: 13.80 s)
+******* TASK: RDFRules: top 100 with highest head coverage, minHeadCoverage = 0.02, only logical rules *******
+memory: 79.386 kB (stdDev: 23.533 kB, min: 54.32 kB, max: 122.584 kB)
+rules: 97.0 (stdDev: 0.0, min: 97.0, max: 97.0)
+time: 11.23 s (stdDev: 720.4 ms, min: 10.09 s, max: 12.06 s)
+******* TASK: RDFRules: top 100 with highest head coverage, minHeadCoverage = 0.05, only logical rules *******
+memory: 87.62 kB (stdDev: 39.343 kB, min: 35.08 kB, max: 135.752 kB)
+rules: 60.0 (stdDev: 0.0, min: 60.0, max: 60.0)
+time: 9.529 s (stdDev: 567.5 ms, min: 8.845 s, max: 10.75 s)
+******* TASK: RDFRules: top 100 with highest head coverage, minHeadCoverage = 0.1, only logical rules *******
+memory: 59.808 kB (stdDev: 46.173 kB, min: 20.352 kB, max: 158.008 kB)
+rules: 35.0 (stdDev: 0.0, min: 35.0, max: 35.0)
+time: 8.320 s (stdDev: 709.4 ms, min: 7.147 s, max: 9.338 s)
+******* TASK: RDFRules: top 100 with highest head coverage, minHeadCoverage = 0.2, only logical rules *******
+memory: 81.109 kB (stdDev: 65.538 kB, min: -24.752 kB, max: 176.904 kB)
+rules: 14.0 (stdDev: 0.0, min: 14.0, max: 14.0)
+time: 5.836 s (stdDev: 358.8 ms, min: 5.362 s, max: 6.375 s)
+******* TASK: RDFRules: top 100 with highest head coverage, minHeadCoverage = 0.3, only logical rules *******
+memory: 97.541 kB (stdDev: 49.929 kB, min: 7.096 kB, max: 142.888 kB)
+rules: 8.0 (stdDev: 0.0, min: 8.0, max: 8.0)
+time: 4.325 s (stdDev: 218.1 ms, min: 4.088 s, max: 4.734 s)
+******* TASK: RDFRules: top 100 with highest head coverage, minHeadCoverage = 0.005, with constants *******
+memory: -155.162 kB (stdDev: 370.028 kB, min: -993.568 kB, max: 94.024 kB)
+rules: 100.0 (stdDev: 0.0, min: 100.0, max: 100.0)
+time: 36.80 s (stdDev: 2.423 s, min: 33.59 s, max: 40.15 s)
+******* TASK: RDFRules: top 100 with highest head coverage, minHeadCoverage = 0.01, with constants *******
+memory: 90.075 kB (stdDev: 31.284 kB, min: 56.096 kB, max: 124.064 kB)
+rules: 100.0 (stdDev: 0.0, min: 100.0, max: 100.0)
+time: 35.85 s (stdDev: 3.072 s, min: 31.07 s, max: 41.75 s)
+******* TASK: RDFRules: top 100 with highest head coverage, minHeadCoverage = 0.02, with constants *******
+memory: 66.786 kB (stdDev: 23.288 kB, min: 22.504 kB, max: 90.128 kB)
+rules: 100.0 (stdDev: 0.0, min: 100.0, max: 100.0)
+time: 30.10 s (stdDev: 1.994 s, min: 27.99 s, max: 34.15 s)
+******* TASK: RDFRules: top 100 with highest head coverage, minHeadCoverage = 0.05, with constants *******
+memory: 56.397 kB (stdDev: 18.106 kB, min: 22.64 kB, max: 90.384 kB)
+rules: 100.0 (stdDev: 0.0, min: 100.0, max: 100.0)
+time: 28.78 s (stdDev: 1.338 s, min: 27.14 s, max: 30.95 s)
+******* TASK: RDFRules: top 100 with highest head coverage, minHeadCoverage = 0.1, with constants *******
+memory: 59.882 kB (stdDev: 24.518 kB, min: 40.248 kB, max: 108.104 kB)
+rules: 71.0 (stdDev: 0.0, min: 71.0, max: 71.0)
+time: 23.76 s (stdDev: 1.059 s, min: 22.04 s, max: 24.90 s)
+******* TASK: RDFRules: top 100 with highest head coverage, minHeadCoverage = 0.2, with constants *******
+memory: 33.676 kB (stdDev: 34.678 kB, min: 9.28 kB, max: 110.936 kB)
+rules: 15.0 (stdDev: 0.0, min: 15.0, max: 15.0)
+time: 18.79 s (stdDev: 582.0 ms, min: 17.87 s, max: 19.70 s)
+******* TASK: RDFRules: top 100 with highest head coverage, minHeadCoverage = 0.3, with constants *******
+memory: 34.104 kB (stdDev: 33.332 kB, min: 4.992 kB, max: 106.296 kB)
+rules: 8.0 (stdDev: 0.0, min: 8.0, max: 8.0)
+time: 13.89 s (stdDev: 388.7 ms, min: 13.42 s, max: 14.44 s)
+******* TASK: RDFRules: mining with pattern ? -> hasAcademicAdvisor, minHeadCoverage = 0.01, with constants *******
+memory: 730.892 kB (stdDev: 1.1313 MB, min: 192.976 kB, max: 3.5003 MB)
+rules: 13.0 (stdDev: 0.0, min: 13.0, max: 13.0)
+time: 216.0 ms (stdDev: 185.5 ms, min: 109.6 ms, max: 666.4 ms)
+******* TASK: RDFRules: mining with pattern hasWonPrize -> ?, minHeadCoverage = 0.01, with constants *******
+memory: 3.3168 MB (stdDev: 8.4621 MB, min: -294.704 kB, max: 24.043 MB)
+rules: 13.0 (stdDev: 0.0, min: 13.0, max: 13.0)
+time: 14.29 s (stdDev: 1.101 s, min: 12.30 s, max: 15.47 s)
+******* TASK: RDFRules: mine all, minHeadCoverage = 0.01, with constants *******
+memory: 77.1273 MB (stdDev: 4.0182 MB, min: 75.4855 MB, max: 86.9698 MB)
+rules: 137595.0 (stdDev: 0.0, min: 137595.0, max: 137595.0)
+time: 3.309 min (stdDev: 2.359 s, min: 3.245 min, max: 3.342 min)
+******* TASK: RDFRules: confidence counting, minPcaConfidence=0.1, input 10000 rules with constants *******
+memory: 2.3959 MB (stdDev: 28.379 kB, min: 2.3599 MB, max: 2.4274 MB)
+rules: 7294.0 (stdDev: 0.0, min: 7294.0, max: 7294.0)
+time: 1.693 s (stdDev: 68.60 ms, min: 1.580 s, max: 1.798 s)
+******* TASK: RDFRules: confidence counting, minPcaConfidence=0.1, input 10000 rules with constants, topK=100 *******
+memory: 48.091 kB (stdDev: 28.934 kB, min: 34.2 kB, max: 118.488 kB)
+rules: 100.0 (stdDev: 0.0, min: 100.0, max: 100.0)
+time: 195.3 ms (stdDev: 18.66 ms, min: 162.8 ms, max: 214.9 ms)

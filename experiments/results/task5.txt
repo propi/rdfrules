@@ -1,0 +1,11 @@
+1 CORE
+******* TASK: RDFRules: minHeadCoverage = 0.01, minConfidence = 0.1, minPcaConfidence = 0.1, with constants *******
+memory: 112.9729 MB (stdDev: 0.0 B, min: 112.9729 MB, max: 112.9729 MB)
+rules: 123877.0 (stdDev: 0.0, min: 123877.0, max: 123877.0)
+time: 15.47 min (stdDev: 0.000 ns, min: 15.47 min, max: 15.47 min)
+
+1 CORE
+******* TASK: AMIE: minHeadCoverage = 0.01, minConfidence = 0.1, minPcaConfidence = 0.1, with constants *******
+memory: 21.1553 MB (stdDev: 0.0 B, min: 21.1553 MB, max: 21.1553 MB)
+rules: 12803.0 (stdDev: 0.0, min: 12803.0, max: 12803.0)
+time: 27.94 min (stdDev: 0.000 ns, min: 27.94 min, max: 27.94 min)

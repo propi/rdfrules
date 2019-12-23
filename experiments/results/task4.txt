@@ -1,0 +1,64 @@
+******* TASK: AMIE: cores = 12, minHeadCoverage = 0.005, minConfidence = 0.1, minPcaConfidence = 0.1, only logical rules *******
+memory: 13.973 MB (stdDev: 4.001 kB, min: 13.9695 MB, max: 13.98 MB), +8.208 MB (+142.3757%)
+rules: 48.0 (stdDev: 0.0, min: 48.0, max: 48.0), +0.0 (+0.0%)
+time: 31.45 s (stdDev: 1.995 s, min: 30.26 s, max: 36.29 s), +20.51 s (+187.5173%)
+******* TASK: RDFRules: cores = 12, minHeadCoverage = 0.005, minConfidence = 0.1, minPcaConfidence = 0.1, only logical rules *******
+memory: 5.765 MB (stdDev: 13.3365 MB, min: 72.744 kB, max: 38.4313 MB), -8.208 MB (-58.7417%)
+rules: 48.0 (stdDev: 0.0, min: 48.0, max: 48.0), +0.0 (+0.0%)
+time: 10.94 s (stdDev: 1.157 s, min: 9.780 s, max: 13.52 s), -20.51 s (-65.2195%)
+******* TASK: AMIE: cores = 16, minHeadCoverage = 0.005, minConfidence = 0.1, minPcaConfidence = 0.1, only logical rules *******
+memory: 13.7565 MB (stdDev: 195.243 kB, min: 13.4422 MB, max: 13.9719 MB), +13.1666 MB (+2232.2314%)
+rules: 48.0 (stdDev: 0.0, min: 48.0, max: 48.0), +0.0 (+0.0%)
+time: 30.58 s (stdDev: 505.3 ms, min: 29.95 s, max: 31.38 s), +19.82 s (+184.1425%)
+******* TASK: RDFRules: cores = 16, minHeadCoverage = 0.005, minConfidence = 0.1, minPcaConfidence = 0.1, only logical rules *******
+memory: 589.841 kB (stdDev: 201.237 kB, min: 451.424 kB, max: 1.065 MB), -13.1666 MB (-95.7123%)
+rules: 48.0 (stdDev: 0.0, min: 48.0, max: 48.0), +0.0 (+0.0%)
+time: 10.76 s (stdDev: 1.224 s, min: 8.646 s, max: 12.68 s), -19.82 s (-64.8064%)
+******* TASK: AMIE: cores = 20, minHeadCoverage = 0.005, minConfidence = 0.1, minPcaConfidence = 0.1, only logical rules *******
+memory: 13.5963 MB (stdDev: 129.249 kB, min: 13.3723 MB, max: 13.8019 MB), +12.8726 MB (+1778.8009%)
+rules: 48.0 (stdDev: 0.0, min: 48.0, max: 48.0), +0.0 (+0.0%)
+time: 31.28 s (stdDev: 1.410 s, min: 28.66 s, max: 33.14 s), +21.31 s (+213.5852%)
+******* TASK: RDFRules: cores = 20, minHeadCoverage = 0.005, minConfidence = 0.1, minPcaConfidence = 0.1, only logical rules *******
+memory: 723.669 kB (stdDev: 196.351 kB, min: 591.592 kB, max: 1.1973 MB), -12.8726 MB (-94.6775%)
+rules: 48.0 (stdDev: 0.0, min: 48.0, max: 48.0), +0.0 (+0.0%)
+time: 9.976 s (stdDev: 1.519 s, min: 8.274 s, max: 12.82 s), -21.31 s (-68.1107%)
+******* TASK: AMIE: cores = 24, minHeadCoverage = 0.005, minConfidence = 0.1, minPcaConfidence = 0.1, only logical rules *******
+memory: 13.5866 MB (stdDev: 126.29 kB, min: 13.3381 MB, max: 13.7344 MB), +12.8194 MB (+1670.8561%)
+rules: 48.0 (stdDev: 0.0, min: 48.0, max: 48.0), +0.0 (+0.0%)
+time: 30.19 s (stdDev: 626.0 ms, min: 29.25 s, max: 31.08 s), +19.07 s (+171.4007%)
+******* TASK: RDFRules: cores = 24, minHeadCoverage = 0.005, minConfidence = 0.1, minPcaConfidence = 0.1, only logical rules *******
+memory: 767.233 kB (stdDev: 256.001 kB, min: 552.52 kB, max: 1.3658 MB), -12.8194 MB (-94.353%)
+rules: 48.0 (stdDev: 0.0, min: 48.0, max: 48.0), +0.0 (+0.0%)
+time: 11.13 s (stdDev: 1.340 s, min: 8.011 s, max: 12.32 s), -19.07 s (-63.1541%)
+******* TASK: AMIE: cores = 12, minHeadCoverage = 0.01, minConfidence = 0.1, minPcaConfidence = 0.1, with constants *******
+memory: 20.3634 MB (stdDev: 1.529 MB, min: 16.7186 MB, max: 21.1423 MB), -55.2162 MB (-73.057%)
+rules: 12803.0 (stdDev: 0.0, min: 12803.0, max: 12803.0), -111074.0 (-89.6647%)
+time: 7.100 min (stdDev: 2.957 s, min: 7.019 min, max: 7.171 min), +4.584 min (+182.2704%)
+******* TASK: RDFRules: cores = 12, minHeadCoverage = 0.01, minConfidence = 0.1, minPcaConfidence = 0.1, with constants *******
+memory: 75.5796 MB (stdDev: 197.589 kB, min: 75.4202 MB, max: 76.0519 MB), +55.2162 MB (+271.1538%)
+rules: 123877.0 (stdDev: 0.0, min: 123877.0, max: 123877.0), +111074.0 (+867.5623%)
+time: 2.515 min (stdDev: 5.524 s, min: 2.380 min, max: 2.632 min), -4.584 min (-64.573%)
+******* TASK: AMIE: cores = 16, minHeadCoverage = 0.01, minConfidence = 0.1, minPcaConfidence = 0.1, with constants *******
+memory: 20.9453 MB (stdDev: 237.883 kB, min: 20.4858 MB, max: 21.1436 MB), -54.6568 MB (-72.2953%)
+rules: 12803.0 (stdDev: 0.0, min: 12803.0, max: 12803.0), -111074.0 (-89.6647%)
+time: 6.740 min (stdDev: 6.318 s, min: 6.579 min, max: 6.845 min), +4.086 min (+153.9919%)
+******* TASK: RDFRules: cores = 16, minHeadCoverage = 0.01, minConfidence = 0.1, minPcaConfidence = 0.1, with constants *******
+memory: 75.6021 MB (stdDev: 271.504 kB, min: 75.4715 MB, max: 76.2667 MB), +54.6568 MB (+260.9498%)
+rules: 123877.0 (stdDev: 0.0, min: 123877.0, max: 123877.0), +111074.0 (+867.5623%)
+time: 2.654 min (stdDev: 2.496 s, min: 2.598 min, max: 2.719 min), -4.086 min (-60.6287%)
+******* TASK: AMIE: cores = 20, minHeadCoverage = 0.01, minConfidence = 0.1, minPcaConfidence = 0.1, with constants *******
+memory: 21.0384 MB (stdDev: 222.533 kB, min: 20.5068 MB, max: 21.1546 MB), -54.6124 MB (-72.1901%)
+rules: 12803.0 (stdDev: 0.0, min: 12803.0, max: 12803.0), -111074.0 (-89.6647%)
+time: 6.531 min (stdDev: 5.162 s, min: 6.351 min, max: 6.613 min), +3.819 min (+140.7648%)
+******* TASK: RDFRules: cores = 20, minHeadCoverage = 0.01, minConfidence = 0.1, minPcaConfidence = 0.1, with constants *******
+memory: 75.6508 MB (stdDev: 351.368 kB, min: 75.472 MB, max: 76.503 MB), +54.6124 MB (+259.5837%)
+rules: 123877.0 (stdDev: 0.0, min: 123877.0, max: 123877.0), +111074.0 (+867.5623%)
+time: 2.713 min (stdDev: 1.934 s, min: 2.668 min, max: 2.774 min), -3.819 min (-58.4657%)
+******* TASK: AMIE: cores = 24, minHeadCoverage = 0.01, minConfidence = 0.1, minPcaConfidence = 0.1, with constants *******
+memory: 20.9727 MB (stdDev: 364.281 kB, min: 20.0899 MB, max: 21.152 MB), -54.7473 MB (-72.3023%)
+rules: 12803.0 (stdDev: 0.0, min: 12803.0, max: 12803.0), -111074.0 (-89.6647%)
+time: 6.484 min (stdDev: 1.514 s, min: 6.451 min, max: 6.526 min), +3.838 min (+144.993%)
+******* TASK: RDFRules: cores = 24, minHeadCoverage = 0.01, minConfidence = 0.1, minPcaConfidence = 0.1, with constants *******
+memory: 75.72 MB (stdDev: 427.719 kB, min: 75.4745 MB, max: 76.7421 MB), +54.7473 MB (+261.0407%)
+rules: 123877.0 (stdDev: 0.0, min: 123877.0, max: 123877.0), +111074.0 (+867.5623%)
+time: 2.647 min (stdDev: 933.7 ms, min: 2.630 min, max: 2.680 min), -3.838 min (-59.1825%)

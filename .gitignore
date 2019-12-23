@@ -75,5 +75,4 @@ $RECYCLE.BIN/
 /node_modules/
 /workspace/
 /package-lock.json
-/experiments/results/
 /docs/
