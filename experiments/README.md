@@ -43,7 +43,7 @@ The main class *OriginalAmieComparison* requires some parameters to determine wh
 
 ### Performed experiments
 
-We performed some experiments on the [CESNET Metacentrum](https://www.metacentrum.cz/en/index.html) computing cluster with following input parameters:
+We performed some experiments on the [CESNET Metacentrum](https://www.metacentrum.cz/en/index.html) computing cluster with the [sample YAGO dataset](./data/yago2core_facts.clean.notypes.tsv.bz2) containing around 1M triples with following input parameters:
 
 ```
 # task1 - mining only with variables
@@ -62,7 +62,7 @@ We performed some experiments on the [CESNET Metacentrum](https://www.metacentru
 > run-main com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 8 -runlogical -minhcs 0.2,0.1,0.05,0.02,0.01,0.005,0.003,0.001
 ```
 
-The results of individual tasks are placed in the folder [results](./results). The parameters of the used machine for experiments are:
+The results of individual tasks are placed in the [results](./results) folder. The parameters of the used machine for experiments are:
 - CPU: 4x 14-core Intel Xeon E7-4830 v4 (2GHz),
 - RAM: 512 GB,
 - OS: Debian 9.
