@@ -3,15 +3,18 @@
 RDFRules is a fast analytics engine for rule mining in RDF knowledge graphs. It offers tools for complex rule mining process including RDF data pre-processing and rules post-processing. The core of RDFRules is written in the Scala language. Besides the Scala API,
 RDFRules also provides a Java API, REST web service and a graphical user interface via a web browser. RDFRules uses the [AMIE+](https://www.mpi-inf.mpg.de/departments/databases-and-information-systems/research/yago-naga/amie/) algorithm with several extensions as a basis for a complete solution for linked data mining.
 
+LIVE DEMO: [https://br-dev.lmcloud.vse.cz/rdfrulesgui/](https://br-dev.lmcloud.vse.cz/rdfrulesgui/)
+
 ## Getting started
 
 Requirements: Java 8+
 
-RDFRules is divided into four main modules. They are:
+RDFRules is divided into five main modules. They are:
  - [Scala API](core): It is sutable for Scala programmers and for use RDFRules as a framework to invoke mining processes from Scala code.
  - [Java API](java): Similar to Scala API but adapted for Java programmers.
  - [Web Service](http): It is suitable for modular web-based applications and remote access via HTTP.
  - [GUI](gui): It is suitable for anyone who wants to use the tool quickly and easily without any needs for further programming.
+ - [Experiments](experiments): This module contains some examples using Scala and Java APIs. There is also a script for the complex benchmark comparing RDFRules with the original AMIE+ implementation using several threads and mining modes. Some results of performed experiments are placed in the [results](experiments/results) folder.
  
  Detailed information about these modules with deployment instructions are described in their subfolders...
  
@@ -124,11 +127,13 @@ filter(*func*) | Return a new *RuleSet* object with filtered rules by a function
 take(*n*), drop(*n*), slice(*from*, *until*) | Return a new *RuleSet* object with filtered rules by cutting the rule set.  
 filterByPatterns (*patterns*) | Return a new *RuleSet* object with rules matching at least one of the input rule patterns. 
 sortBy(*measures*) | Return a new *RuleSet* object with sorted rules by selected measures of significance.  
-computeConfidence (*minConf*) | Return a new *RuleSet* object with the computed confidence measure for each rule that must be higher than the *minConf* value.  
-computePcaConfidence (*minPcaConf*) | Return a new *RuleSet* object with the computed PCA confidence measure for each rule that must be higher than the *minPcaConf* value.  
+computeConfidence (*minConf*, *topK?*) | Return a new *RuleSet* object with the computed confidence measure for each rule that must be higher than the *minConf* value.  
+computePcaConfidence (*minPcaConf*, *topK?*) | Return a new *RuleSet* object with the computed PCA confidence measure for each rule that must be higher than the *minPcaConf* value.  
 computeLift(*minConf*) | Return a new *RuleSet* object with the computed lift measure for each rule.  
 makeClusters(*task*) | Return a new *RuleSet* object with clusters computed by a clustering task.   
 findSimilar(*rule*, *n*), findDissimilar(*rule*, *n*) | Return a new *RuleSet* object with top *n* rules, the selected rules will be the most similar (or dissimilar) ones from the input rule.
+pruned(*onlyFunctionalProperties*) | Return a new *RuleSet* object reduced by overlapping rules with the "data coverage pruning" method. There are two modes: *onlyFunctionalProperties* where output rules are not able to cover two or more triples with identical subject and predicate, but with different object. Without functional properties rules can cover triples with same subject-predicate and various objects. 
+
 
 #### Actions
 
@@ -323,3 +328,10 @@ In RdfRules we can also attach information about graph at every atom and then fi
 ## Licence
 
 RdfRules is licensed under [GNU General Public License v3.0](http://www.gnu.org/licenses/gpl-3.0.txt)
+
+## Acknowledgments
+
+Thanks to these organizations for supporting us:
+
+[![Jetbrains](jetbrains.png)](https://www.jetbrains.com/?from=RDFRules)
+[![VŠE](vselogo.png)](https://www.vse.cz/)
