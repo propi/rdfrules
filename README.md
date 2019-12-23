@@ -3,15 +3,18 @@
 RDFRules is a fast analytics engine for rule mining in RDF knowledge graphs. It offers tools for complex rule mining process including RDF data pre-processing and rules post-processing. The core of RDFRules is written in the Scala language. Besides the Scala API,
 RDFRules also provides a Java API, REST web service and a graphical user interface via a web browser. RDFRules uses the [AMIE+](https://www.mpi-inf.mpg.de/departments/databases-and-information-systems/research/yago-naga/amie/) algorithm with several extensions as a basis for a complete solution for linked data mining.
 
+LIVE DEMO: [https://br-dev.lmcloud.vse.cz/rdfrulesgui/](https://br-dev.lmcloud.vse.cz/rdfrulesgui/)
+
 ## Getting started
 
 Requirements: Java 8+
 
-RDFRules is divided into four main modules. They are:
+RDFRules is divided into five main modules. They are:
  - [Scala API](core): It is sutable for Scala programmers and for use RDFRules as a framework to invoke mining processes from Scala code.
  - [Java API](java): Similar to Scala API but adapted for Java programmers.
  - [Web Service](http): It is suitable for modular web-based applications and remote access via HTTP.
  - [GUI](gui): It is suitable for anyone who wants to use the tool quickly and easily without any needs for further programming.
+ - [Experiments](experiments): This module contains some examples using Scala and Java APIs. There is also a script for the complex benchmark comparing RDFRules with the original AMIE+ implementation using several threads and mining modes. Some results of performed experiments are placed in the [results](experiments/results) folder.
  
  Detailed information about these modules with deployment instructions are described in their subfolders...
  
