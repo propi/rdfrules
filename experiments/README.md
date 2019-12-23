@@ -1,4 +1,4 @@
-# RdfRules: Experiments
+# RDFRules: Experiments
 
 This module has implemented some experiments with the RDFRules Scala Core API and Java API. There are 3 basic examples (as 3 main classes) and one main class for complex benchmark and comparison with the original AMIE+ implementation. The complex benchmark was launched on the CESNET Metacentrum computing cluster - results are also available within this GitHub repository. 
 
@@ -43,5 +43,26 @@ The main class *OriginalAmieComparison* requires some parameters to determine wh
 
 ### Performed experiments
 
-We performed some experiments on the CESNET Metacentrum computing cluster with following input parameters a results:
+We performed some experiments on the [CESNET Metacentrum](https://www.metacentrum.cz/en/index.html) computing cluster with following input parameters:
 
+```
+# task1 - mining only with variables
+> run-main com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 8 -runlogical -minhcs 0.2,0.1,0.05,0.02,0.01,0.005,0.003,0.001
+# task2 - mining with constants
+> run-main com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 8 -runconstants
+# task3 - scalability
+> run-main com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 12 -minhcs 0.01 -runcores
+# task4 - scalability
+> run-main com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 24 -coresc 12,16,20,24 -minhcs 0.01,0.005 -runcores
+# task5 - mining with constants with one thread
+> run-main com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 1 -minhcs 0.01 -runconstants
+# task6 - topK, patterns and confidence computing experiments with 8 cores
+> run-main com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 8 -runtopk -runpatterns -runconfidence
+# task7 - rule mining only with variables with a low head coverage
+> run-main com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 8 -runlogical -minhcs 0.2,0.1,0.05,0.02,0.01,0.005,0.003,0.001
+```
+
+The results of individual tasks are placed in the folder [results](./results). The parameters of the used machine for experiments are:
+- CPU: 4x 14-core Intel Xeon E7-4830 v4 (2GHz),
+- RAM: 512 GB,
+- OS: Debian 9.
