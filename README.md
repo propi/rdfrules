@@ -124,11 +124,13 @@ filter(*func*) | Return a new *RuleSet* object with filtered rules by a function
 take(*n*), drop(*n*), slice(*from*, *until*) | Return a new *RuleSet* object with filtered rules by cutting the rule set.  
 filterByPatterns (*patterns*) | Return a new *RuleSet* object with rules matching at least one of the input rule patterns. 
 sortBy(*measures*) | Return a new *RuleSet* object with sorted rules by selected measures of significance.  
-computeConfidence (*minConf*) | Return a new *RuleSet* object with the computed confidence measure for each rule that must be higher than the *minConf* value.  
-computePcaConfidence (*minPcaConf*) | Return a new *RuleSet* object with the computed PCA confidence measure for each rule that must be higher than the *minPcaConf* value.  
+computeConfidence (*minConf*, *topK?*) | Return a new *RuleSet* object with the computed confidence measure for each rule that must be higher than the *minConf* value.  
+computePcaConfidence (*minPcaConf*, *topK?*) | Return a new *RuleSet* object with the computed PCA confidence measure for each rule that must be higher than the *minPcaConf* value.  
 computeLift(*minConf*) | Return a new *RuleSet* object with the computed lift measure for each rule.  
 makeClusters(*task*) | Return a new *RuleSet* object with clusters computed by a clustering task.   
 findSimilar(*rule*, *n*), findDissimilar(*rule*, *n*) | Return a new *RuleSet* object with top *n* rules, the selected rules will be the most similar (or dissimilar) ones from the input rule.
+pruned(*onlyFunctionalProperties*) | Return a new *RuleSet* object reduced by overlapping rules with the "data coverage pruning" method. There are two modes: *onlyFunctionalProperties* where output rules are not able to cover two or more triples with identical subject and predicate, but with different object. Without functional properties rules can cover triples with same subject-predicate and various objects. 
+
 
 #### Actions
 
