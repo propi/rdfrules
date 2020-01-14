@@ -2,16 +2,14 @@ package com.github.propi.rdfrules.data.formats
 
 import java.io.{BufferedInputStream, BufferedOutputStream}
 
-import com.github.propi.rdfrules.data.Quad.QuadTraversableView
-import com.github.propi.rdfrules.data.RdfSource.CompressedRdfSource
-import com.github.propi.rdfrules.data.{Compression, RdfReader, RdfSource, RdfWriter}
+import com.github.propi.rdfrules.data.RdfSource.{CompressedRdfSource, PimpedRdfFormat}
+import com.github.propi.rdfrules.data.ops.PrefixesOps
+import com.github.propi.rdfrules.data.{Compression, RdfReader, RdfSource, RdfWriter, jenaFormatToRdfWriter}
+import com.github.propi.rdfrules.ruleset.RulesetSource.CompressedRulesetSource
+import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetReader, RulesetWriter}
 import com.github.propi.rdfrules.utils.{InputStreamBuilder, OutputStreamBuilder}
 import org.apache.commons.compress.compressors.bzip2.{BZip2CompressorInputStream, BZip2CompressorOutputStream}
 import org.apache.commons.compress.compressors.gzip.{GzipCompressorInputStream, GzipCompressorOutputStream}
-import com.github.propi.rdfrules.data.jenaFormatToRdfWriter
-import RdfSource.PimpedRdfFormat
-import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetReader, RulesetWriter}
-import com.github.propi.rdfrules.ruleset.RulesetSource.CompressedRulesetSource
 
 import scala.language.implicitConversions
 
@@ -40,13 +38,13 @@ trait Compressed {
     case Compression.GZ => new GzipCompressorOutputStream(new BufferedOutputStream(outputStreamBuilder.build))
   }
 
-  implicit def compressedToRdfWriter(compressedRdfSource: CompressedRdfSource): RdfWriter = (quads: QuadTraversableView, outputStreamBuilder: OutputStreamBuilder) => compressedRdfSource match {
+  implicit def compressedToRdfWriter(compressedRdfSource: CompressedRdfSource): RdfWriter = (col: PrefixesOps[_], outputStreamBuilder: OutputStreamBuilder) => compressedRdfSource match {
     case CompressedRdfSource.Basic(rdfSource, compression) => rdfSource match {
-      case x: RdfSource.JenaLang => compressedToRdfWriter(x.toRDFFormat.compressedBy(compression)).writeToOutputStream(quads, outputStreamBuilder)
-      case RdfSource.Tsv => RdfSource.Tsv.writeToOutputStream(quads, compressedOutputStreamBuilder(outputStreamBuilder, compression))
-      case RdfSource.Sql => RdfSource.Sql.writeToOutputStream(quads, compressedOutputStreamBuilder(outputStreamBuilder, compression))
+      case x: RdfSource.JenaLang => compressedToRdfWriter(x.toRDFFormat.compressedBy(compression)).writeToOutputStream(col, outputStreamBuilder)
+      case RdfSource.Tsv => RdfSource.Tsv.writeToOutputStream(col, compressedOutputStreamBuilder(outputStreamBuilder, compression))
+      case RdfSource.Sql => RdfSource.Sql.writeToOutputStream(col, compressedOutputStreamBuilder(outputStreamBuilder, compression))
     }
-    case CompressedRdfSource.RdfFormat(format, compression) => format.writeToOutputStream(quads, compressedOutputStreamBuilder(outputStreamBuilder, compression))
+    case CompressedRdfSource.RdfFormat(format, compression) => format.writeToOutputStream(col, compressedOutputStreamBuilder(outputStreamBuilder, compression))
   }
 
 }

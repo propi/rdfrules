@@ -12,9 +12,11 @@ object TraversableOnceExtension {
     def distinct: Traversable[T] = new Traversable[T] {
       def foreach[U](f: T => U): Unit = {
         val set = collection.mutable.HashSet.empty[T]
-        for (x <- col if !set(x)) {
-          set += x
-          f(x)
+        for (x <- col) {
+          if (!set(x)) {
+            set += x
+            f(x)
+          }
         }
       }
     }
@@ -22,9 +24,12 @@ object TraversableOnceExtension {
     def distinctBy[A](f: T => A): Traversable[T] = new Traversable[T] {
       def foreach[U](g: T => U): Unit = {
         val set = collection.mutable.HashSet.empty[A]
-        for (x <- col; y = f(x); if !set(f(x))) {
-          set += y
-          g(x)
+        for (x <- col) {
+          val y = f(x)
+          if (!set(y)) {
+            set += y
+            g(x)
+          }
         }
       }
     }

@@ -18,10 +18,11 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 3. 10. 2017.
   */
-class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView)
+class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView, val userDefinedPrefixes: Traversable[Prefix])
   extends Transformable[Triple, Graph]
     with TriplesOps
     with QuadsOps[Graph]
+    with PrefixesOps[Graph]
     with Discretizable[Graph]
     with Cacheable[Triple, Graph] {
 
@@ -31,9 +32,11 @@ class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView
 
   protected def coll: Traversable[Triple] = triples
 
-  protected def transform(col: Traversable[Triple]): Graph = new Graph(name, col.view)
+  protected def transform(col: Traversable[Triple]): Graph = new Graph(name, col.view, userDefinedPrefixes)
 
   protected def transformQuads(col: Traversable[Quad]): Graph = transform(col.view.map(_.triple))
+
+  protected def transformPrefixesAndColl(prefixes: Traversable[Prefix], col: Traversable[Quad]): Graph = new Graph(name, col.view.map(_.triple), prefixes.view)
 
   def foreach(f: Triple => Unit): Unit = triples.foreach(f)
 
@@ -48,9 +51,9 @@ class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView
 
   def quads: QuadTraversableView = triples.map(_.toQuad(name))
 
-  def withName(name: TripleItem.Uri): Graph = new Graph(name, triples)
+  def withName(name: TripleItem.Uri): Graph = new Graph(name, triples, userDefinedPrefixes)
 
-  def toDataset: Dataset = Dataset(this)
+  def toDataset: Dataset = Dataset(this).setPrefixes(userDefinedPrefixes)
 
   def mine(miner: RulesMining)(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = toDataset.mine(miner)
 
@@ -62,15 +65,15 @@ object Graph {
 
   val default: TripleItem.Uri = TripleItem.LongUri("")
 
-  def apply(triples: Traversable[Triple]): Graph = new Graph(default, triples.view)
+  def apply(triples: Traversable[Triple]): Graph = new Graph(default, triples.view, Set.empty)
 
-  def apply(name: TripleItem.Uri, triples: Traversable[Triple]): Graph = new Graph(name, triples.view)
+  def apply(name: TripleItem.Uri, triples: Traversable[Triple]): Graph = new Graph(name, triples.view, Set.empty)
 
-  def apply(name: TripleItem.Uri, is: => InputStream)(implicit reader: RdfReader): Graph = new Graph(name, reader.fromInputStream(is).map(_.triple))
+  def apply(name: TripleItem.Uri, is: => InputStream)(implicit reader: RdfReader): Graph = new Graph(name, reader.fromInputStream(is).map(_.triple), Set.empty)
 
   def apply(name: TripleItem.Uri, file: File)(implicit reader: RdfReader): Graph = {
     val newReader = if (reader == RdfReader.NoReader) RdfReader(file) else reader
-    new Graph(name, newReader.fromFile(file).map(_.triple))
+    new Graph(name, newReader.fromFile(file).map(_.triple), Set.empty)
   }
 
   def apply(name: TripleItem.Uri, file: String)(implicit reader: RdfReader): Graph = apply(name, new File(file))
@@ -89,7 +92,8 @@ object Graph {
           Stream.continually(reader.read()).takeWhile(_.isDefined).foreach(x => f(x.get))
         }
       }
-    }.view
+    }.view,
+    Set.empty
   )
 
   def fromCache(is: => InputStream): Graph = fromCache(default, is)

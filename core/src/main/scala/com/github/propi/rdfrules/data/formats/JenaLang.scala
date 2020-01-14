@@ -4,7 +4,7 @@ import java.io.{BufferedInputStream, BufferedOutputStream}
 
 import com.github.propi.rdfrules
 import com.github.propi.rdfrules.data._
-import com.github.propi.rdfrules.data.Quad.QuadTraversableView
+import com.github.propi.rdfrules.data.ops.PrefixesOps
 import com.github.propi.rdfrules.utils.{InputStreamBuilder, OutputStreamBuilder}
 import org.apache.jena.graph
 import org.apache.jena.graph.{Node_Blank, Node_Literal, Node_URI}
@@ -83,19 +83,19 @@ trait JenaLang {
     }
   }.view
 
-  implicit def jenaFormatToRdfWriter(rdfFormat: RDFFormat): RdfWriter = (quads: QuadTraversableView, outputStreamBuilder: OutputStreamBuilder) => {
+  implicit def jenaFormatToRdfWriter(rdfFormat: RDFFormat): RdfWriter = (col: PrefixesOps[_], outputStreamBuilder: OutputStreamBuilder) => {
     val os = new BufferedOutputStream(outputStreamBuilder.build)
     val stream = StreamRDFWriter.getWriterStream(os, rdfFormat)
     try {
       stream.start()
-      for (prefix <- quads.prefixes) {
+      for (prefix <- col.userDefinedPrefixes) {
         stream.prefix(prefix.prefix, prefix.nameSpace)
       }
       rdfFormat.getLang match {
         case RDFLanguages.N3 | RDFLanguages.NT | RDFLanguages.NTRIPLES | RDFLanguages.TTL | RDFLanguages.TURTLE =>
-          quads.foreach(quad => stream.triple(quad.triple))
+          col.quads.foreach(quad => stream.triple(quad.triple))
         case _ =>
-          quads.foreach(quad => stream.quad(quad))
+          col.quads.foreach(quad => stream.quad(quad))
       }
     } finally {
       stream.finish()

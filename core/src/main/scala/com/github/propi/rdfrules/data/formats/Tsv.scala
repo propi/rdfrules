@@ -2,8 +2,8 @@ package com.github.propi.rdfrules.data.formats
 
 import java.io.{BufferedInputStream, BufferedOutputStream, InputStream, PrintWriter}
 
-import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.data._
+import com.github.propi.rdfrules.data.ops.PrefixesOps
 import com.github.propi.rdfrules.utils.{InputStreamBuilder, OutputStreamBuilder}
 import org.apache.jena.riot.Lang
 
@@ -77,10 +77,10 @@ trait Tsv {
     }
   }.view
 
-  implicit def tsvWriter(rdfSource: RdfSource.Tsv.type): RdfWriter = (quads: QuadTraversableView, outputStreamBuilder: OutputStreamBuilder) => {
+  implicit def tsvWriter(rdfSource: RdfSource.Tsv.type): RdfWriter = (col: PrefixesOps[_], outputStreamBuilder: OutputStreamBuilder) => {
     val writer = new PrintWriter(new BufferedOutputStream(outputStreamBuilder.build))
     try {
-      for (Quad(triple, _) <- quads) {
+      for (Quad(triple, _) <- col.quads) {
         writer.println(s"${stringifyTripleItem(triple.subject)}\t${stringifyTripleItem(triple.predicate)}\t${stringifyTripleItem(triple.`object`)}")
       }
     } finally {

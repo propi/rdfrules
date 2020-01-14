@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.data
 
 import java.io.File
 
-import com.github.propi.rdfrules.data.Quad.QuadTraversableView
+import com.github.propi.rdfrules.data.ops.PrefixesOps
 import com.github.propi.rdfrules.utils.OutputStreamBuilder
 
 import scala.util.Try
@@ -11,17 +11,13 @@ import scala.util.Try
   * Created by Vaclav Zeman on 4. 10. 2017.
   */
 trait RdfWriter {
-  def writeToOutputStream(quads: QuadTraversableView, outputStreamBuilder: OutputStreamBuilder): Unit
-
-  def writeToOutputStream(dataset: Dataset, outputStreamBuilder: OutputStreamBuilder): Unit = writeToOutputStream(dataset.quads, outputStreamBuilder)
-
-  def writeToOutputStream(graph: Graph, outputStreamBuilder: OutputStreamBuilder): Unit = writeToOutputStream(Dataset(graph), outputStreamBuilder)
+  def writeToOutputStream(col: PrefixesOps[_], outputStreamBuilder: OutputStreamBuilder): Unit
 }
 
 object RdfWriter {
 
   implicit object NoWriter extends RdfWriter {
-    def writeToOutputStream(quads: QuadTraversableView, outputStreamBuilder: OutputStreamBuilder): Unit = throw new IllegalStateException("No specified RdfWriter.")
+    def writeToOutputStream(col: PrefixesOps[_], outputStreamBuilder: OutputStreamBuilder): Unit = throw new IllegalStateException("No specified RdfWriter.")
   }
 
   private def restrictedRdfSource(extension: String): RdfSource = extension match {

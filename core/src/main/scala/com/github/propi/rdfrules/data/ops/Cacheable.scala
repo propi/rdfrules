@@ -17,6 +17,7 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
 
   /**
     * Cache the entity into the memory and return cached entity (IndexedSeq abstraction is used)
+    * Strict transformation
     *
     * @return in memory cached entity
     */
@@ -24,6 +25,7 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
 
   /**
     * Cache the entity through an output stream and return cached entity through an input stream.
+    * Streaming transformation
     *
     * @param os output stream builder
     * @param is input stream builder
@@ -49,6 +51,7 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
   /**
     * Cache the entity through an output stream and return the original (not cached) entity.
     *  - if you want to return cached entity, use cache(os, is) or in memory cache()
+    * Streaming action
     *
     * @param os output stream builder
     * @return the same entity

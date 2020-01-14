@@ -66,7 +66,7 @@ class GraphSpec extends FlatSpec with Matchers with Inside {
   it should "have quads ops" in {
     val prefixes = Prefix(getClass.getResourceAsStream("/prefixes.ttl"))
     val gp = graphDbpedia.addPrefixes(prefixes)
-    gp.prefixes.size shouldBe 2
+    gp.userDefinedPrefixes.size shouldBe 2
     gp.take(10).triples.forall(x => x.subject.isInstanceOf[TripleItem.PrefixedUri] && x.predicate.isInstanceOf[TripleItem.PrefixedUri])
   }
 

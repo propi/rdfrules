@@ -12,6 +12,15 @@ import eu.easyminer.discretization.impl.sorting.{ReversableSortedTraversable, So
   */
 trait Discretizable[Coll] extends QuadsOps[Coll] {
 
+  /**
+    * Use a discretization task to make intervals from numerical objects.
+    * This is the strict action for filtered quads depending on the buffer size defined on the discretization task (Equifrequency and Equisize).
+    * This is the streaming action for Equidistance
+    *
+    * @param task discretization task
+    * @param f    filter for selection of quads to discretize
+    * @return intervals
+    */
   def discretizeAndGetIntervals(task: DiscretizationTask)(f: Quad => Boolean): Array[Interval] = {
     def makeSortedTraversable(col: Traversable[Double], mode: DiscretizationTask.Mode)(f: ReversableSortedTraversable[Double] => Array[Interval]): Array[Interval] = mode match {
       case DiscretizationTask.Mode.InMemory => f(SortedInMemoryNumericTraversable(col, task.getBufferSize))
@@ -29,6 +38,14 @@ trait Discretizable[Coll] extends QuadsOps[Coll] {
     }
   }
 
+  /**
+    * Transform triples by a discretization task.
+    * Partially streaming transformation depending on the discretization task.
+    *
+    * @param task discretization task
+    * @param f    filter for selection of quads to discretize
+    * @return
+    */
   def discretize(task: DiscretizationTask)(f: Quad => Boolean): Coll = {
     lazy val intervals = discretizeAndGetIntervals(task)(f)
     val col = quads.map { quad =>

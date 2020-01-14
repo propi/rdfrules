@@ -22,7 +22,7 @@ import java.util.function.Supplier;
 public class Dataset implements
         Transformable<com.github.propi.rdfrules.data.Quad, Quad, com.github.propi.rdfrules.data.Dataset, Dataset>,
         Cacheable<com.github.propi.rdfrules.data.Quad, com.github.propi.rdfrules.data.Dataset, Dataset>,
-        QuadsOps<com.github.propi.rdfrules.data.Dataset, Dataset>,
+        PrefixesOps<com.github.propi.rdfrules.data.Dataset, Dataset>,
         Discretizable<com.github.propi.rdfrules.data.Dataset, Dataset>,
         TriplesOps {
 

@@ -22,7 +22,7 @@ import java.util.function.Supplier;
 public class Graph implements
         Transformable<com.github.propi.rdfrules.data.Triple, Triple, com.github.propi.rdfrules.data.Graph, Graph>,
         Cacheable<com.github.propi.rdfrules.data.Triple, com.github.propi.rdfrules.data.Graph, Graph>,
-        QuadsOps<com.github.propi.rdfrules.data.Graph, Graph>,
+        PrefixesOps<com.github.propi.rdfrules.data.Graph, Graph>,
         Discretizable<com.github.propi.rdfrules.data.Graph, Graph>,
         TriplesOps {
 

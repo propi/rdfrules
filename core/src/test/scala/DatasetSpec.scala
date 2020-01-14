@@ -26,8 +26,8 @@ class DatasetSpec extends FlatSpec with Matchers with Inside {
 
   it should "do all graph ops" in {
     dataset.quads.size shouldBe dataset.triples.size
-    dataset.prefixes.size shouldBe 0
-    dataset.addPrefixes(getClass.getResourceAsStream("/prefixes.ttl")).prefixes.size shouldBe 2
+    dataset.userDefinedPrefixes.size shouldBe 0
+    dataset.addPrefixes(getClass.getResourceAsStream("/prefixes.ttl")).userDefinedPrefixes.size shouldBe 2
     dataset.histogram(false, true).size shouldBe 1750
     val intervals = dataset.discretizeAndGetIntervals(DiscretizationTask.Equifrequency(5))(_.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
     intervals.length shouldBe 5

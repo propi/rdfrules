@@ -23,7 +23,7 @@ object RdfSource {
     } else if (lang == Lang.TTL) {
       RDFFormat.TURTLE_FLAT
     } else if (lang == Lang.TRIG) {
-      RDFFormat.TRIG_BLOCKS
+      RDFFormat.TRIG_FLAT
     } else if (lang == Lang.TRIX) {
       RDFFormat.TRIX
     } else {

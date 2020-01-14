@@ -17,10 +17,11 @@ import com.github.propi.rdfrules.utils.serialization.{Deserializer, Serializatio
 /**
   * Created by Vaclav Zeman on 3. 10. 2017.
   */
-class Dataset private(val quads: QuadTraversableView)
+class Dataset private(val quads: QuadTraversableView, val userDefinedPrefixes: Traversable[Prefix])
   extends Transformable[Quad, Dataset]
     with TriplesOps
     with QuadsOps[Dataset]
+    with PrefixesOps[Dataset]
     with Discretizable[Dataset]
     with Cacheable[Quad, Dataset] {
 
@@ -30,17 +31,19 @@ class Dataset private(val quads: QuadTraversableView)
 
   protected def coll: Traversable[Quad] = quads
 
-  protected def transform(col: Traversable[Quad]): Dataset = new Dataset(col.view)
+  protected def transform(col: Traversable[Quad]): Dataset = new Dataset(col.view, userDefinedPrefixes)
 
   protected def transformQuads(col: Traversable[Quad]): Dataset = transform(col)
 
-  def +(graph: Graph): Dataset = new Dataset(quads ++ graph.quads)
+  protected def transformPrefixesAndColl(prefixes: Traversable[Prefix], col: Traversable[Quad]): Dataset = new Dataset(col.view, prefixes.view)
 
-  def +(dataset: Dataset): Dataset = new Dataset(quads ++ dataset.quads)
+  def +(graph: Graph): Dataset = new Dataset(quads ++ graph.quads, userDefinedPrefixes).addPrefixes(graph.userDefinedPrefixes)
+
+  def +(dataset: Dataset): Dataset = new Dataset(quads ++ dataset.quads, userDefinedPrefixes).addPrefixes(dataset.userDefinedPrefixes)
 
   def triples: TripleTraversableView = quads.map(_.triple)
 
-  def toGraphs: Traversable[Graph] = quads.map(_.graph).distinct.view.map(x => Graph(x, quads.filter(_.graph == x).map(_.triple)))
+  def toGraphs: Traversable[Graph] = quads.map(_.graph).distinct.view.map(x => Graph(x, quads.filter(_.graph == x).map(_.triple)).setPrefixes(userDefinedPrefixes))
 
   def foreach(f: Quad => Unit): Unit = quads.foreach(f)
 
@@ -61,20 +64,20 @@ class Dataset private(val quads: QuadTraversableView)
 
 object Dataset {
 
-  def apply(graph: Graph): Dataset = new Dataset(graph.quads)
+  def apply(graph: Graph): Dataset = new Dataset(graph.quads, Set.empty)
 
-  def apply(): Dataset = new Dataset(Traversable.empty[Quad].view)
+  def apply(): Dataset = new Dataset(Traversable.empty[Quad].view, Set.empty)
 
-  def apply(is: => InputStream)(implicit reader: RdfReader): Dataset = new Dataset(reader.fromInputStream(is))
+  def apply(is: => InputStream)(implicit reader: RdfReader): Dataset = new Dataset(reader.fromInputStream(is), Set.empty)
 
   def apply(file: File)(implicit reader: RdfReader): Dataset = {
     val newReader = if (reader == RdfReader.NoReader) RdfReader(file) else reader
-    new Dataset(newReader.fromFile(file))
+    new Dataset(newReader.fromFile(file), Set.empty)
   }
 
   def apply(file: String)(implicit reader: RdfReader): Dataset = apply(new File(file))
 
-  def apply(quads: Traversable[Quad]): Dataset = new Dataset(quads.view)
+  def apply(quads: Traversable[Quad]): Dataset = new Dataset(quads.view, Set.empty)
 
   def fromCache(is: => InputStream): Dataset = new Dataset(
     new Traversable[Quad] {
@@ -83,7 +86,8 @@ object Dataset {
           Stream.continually(reader.read()).takeWhile(_.isDefined).foreach(x => f(x.get))
         }
       }
-    }.view
+    }.view,
+    Set.empty
   )
 
   def fromCache(file: File): Dataset = fromCache(new FileInputStream(file))
