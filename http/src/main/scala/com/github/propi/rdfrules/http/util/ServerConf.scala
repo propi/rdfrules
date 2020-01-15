@@ -5,7 +5,7 @@ import java.io.File
 /**
   * Created by Vaclav Zeman on 13. 8. 2017.
   */
-trait DefaultServerConf {
+trait ServerConf {
 
   val configServerPrefix: String
 

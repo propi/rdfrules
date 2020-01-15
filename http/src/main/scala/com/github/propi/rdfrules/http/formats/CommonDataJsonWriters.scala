@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.http.formats
 
 import com.github.propi.rdfrules.data.{Histogram, Quad, TripleItem, TripleItemType}
-import com.github.propi.rdfrules.http.actor.Task.Response
+import com.github.propi.rdfrules.http.service.Task.TaskResponse
 import com.github.propi.rdfrules.model.EvaluationResult
 import com.github.propi.rdfrules.ruleset.formats.Json
 import spray.json.DefaultJsonProtocol._
@@ -50,13 +50,13 @@ object CommonDataJsonWriters extends Json {
     "amount" -> obj._2.toJson
   )
 
-  implicit val taskResponseInProgressWriter: RootJsonWriter[Response.InProgress] = (obj: Response.InProgress) => JsObject(
+  implicit val taskResponseInProgressWriter: RootJsonWriter[TaskResponse.InProgress] = (obj: TaskResponse.InProgress) => JsObject(
     "id" -> obj.id.toString.toJson,
     "started" -> obj.started.toInstant.toString.toJson,
     "logs" -> JsArray(obj.msg.iterator.map(x => JsObject("time" -> x._2.toInstant.toString.toJson, "message" -> x._1.toJson)).toVector)
   )
 
-  implicit val taskResponseResultWriter: RootJsonWriter[Response.Result] = (obj: Response.Result) => JsObject(
+  implicit val taskResponseResultWriter: RootJsonWriter[TaskResponse.Result] = (obj: TaskResponse.Result) => JsObject(
     "id" -> obj.id.toString.toJson,
     "started" -> obj.started.toInstant.toString.toJson,
     "finished" -> obj.finished.toInstant.toString.toJson,

@@ -16,6 +16,10 @@ class Workspace {
       get {
         complete(http.Workspace.getTree)
       }
+    } ~ path("upload") {
+      post {
+
+      }
     }
   }
 

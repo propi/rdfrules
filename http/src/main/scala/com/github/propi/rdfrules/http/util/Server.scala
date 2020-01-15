@@ -1,14 +1,15 @@
 package com.github.propi.rdfrules.http.util
 
-import akka.actor.{ActorSystem, Terminated}
+import akka.actor.typed.scaladsl.ActorContext
+import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import akka.stream.Materializer
 import com.github.propi.rdfrules.http.util.BasicExceptions.ValidationException
+import com.github.propi.rdfrules.http.util.Server.MainMessage
 import com.typesafe.scalalogging.Logger
 import spray.json.{DeserializationException, JsObject, JsString}
 
@@ -19,22 +20,16 @@ import scala.language.postfixOps
 /**
   * Created by Vaclav Zeman on 13. 8. 2017.
   */
-trait DefaultServer {
+class Server(context: ActorContext[MainMessage], route: Route, serverConf: ServerConf) {
 
-  private val logger = Logger[DefaultServer]
+  import serverConf._
 
-  implicit val actorSystem: ActorSystem
-  implicit val materializer: Materializer
+  private val logger = Logger[Server]
 
-  val host: String
-  val port: Int
-  val rootPath: String
-  val stoppingToken: String
-
-  val route: Route
+  implicit private val untypedSystem: akka.actor.ActorSystem = context.system.toClassic
+  implicit private val ec: ExecutionContext = context.executionContext
 
   private val bindingPromise = Promise[Http.ServerBinding]()
-  private implicit lazy val ec: ExecutionContext = actorSystem.dispatcher
 
   final lazy val rootRoute: Route = {
     val rejectionHandler = RejectionHandler.newBuilder().handle {
@@ -57,9 +52,7 @@ trait DefaultServer {
       if (st.length > 0) {
         Some(
           path(st) {
-            actorSystem.scheduler.scheduleOnce(2 seconds) {
-              stop()
-            }
+            context.scheduleOnce(2 seconds, context.self, MainMessage.Stop)
             complete("Stopping...")
           }
         )
@@ -116,8 +109,22 @@ trait DefaultServer {
     bindingPromise.future
   }
 
-  def stop(): Future[Terminated] = bindingPromise.future.flatMap { serverBinding =>
-    serverBinding.unbind().flatMap(_ => actorSystem.terminate())
+  def stop(): Unit = bindingPromise.future.foreach { serverBinding =>
+    serverBinding.unbind().foreach(_ => context.system.terminate())
   }
+
+}
+
+object Server {
+
+  sealed trait MainMessage
+
+  object MainMessage {
+
+    case object Stop extends MainMessage
+
+  }
+
+  def apply(context: ActorContext[MainMessage], route: Route, serverConf: ServerConf): Server = new Server(context, route, serverConf)
 
 }
