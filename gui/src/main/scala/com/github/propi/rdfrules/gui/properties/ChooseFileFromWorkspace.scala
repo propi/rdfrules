@@ -1,13 +1,15 @@
 package com.github.propi.rdfrules.gui.properties
 
-import com.github.propi.rdfrules.gui.Property
+import com.github.propi.rdfrules.gui.{Property, Workspace}
 import com.github.propi.rdfrules.gui.Workspace.FileValue
-import com.github.propi.rdfrules.gui.utils.Validate.{NoValidator, Validator}
-import com.thoughtworks.binding.Binding.{Constants, Var}
+import com.github.propi.rdfrules.gui.utils.Validate.{NoValidator, Validator, _}
+import com.thoughtworks.binding.Binding.Var
 import com.thoughtworks.binding.{Binding, dom}
 import org.scalajs.dom.Event
 import org.scalajs.dom.html.Div
-import com.github.propi.rdfrules.gui.utils.Validate._
+import org.scalajs.dom.window
+import org.scalajs.dom.document
+import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
@@ -15,7 +17,7 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class ChooseFileFromWorkspace(files: Future[Constants[FileValue]],
+class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
                               val name: String,
                               val title: String = "Choose a file from the workspace",
                               description: String = "",
@@ -25,14 +27,14 @@ class ChooseFileFromWorkspace(files: Future[Constants[FileValue]],
 
   files.foreach(x => loadedFiles.value = Some(x))
 
-  private val loadedFiles: Var[Option[Constants[FileValue]]] = Var(None)
+  private val loadedFiles: Var[Option[FileValue.Directory]] = Var(None)
   private val selectedFile: Var[Option[FileValue.File]] = Var(None)
 
   val descriptionVar: Binding.Var[String] = Var(description)
 
   def setValue(data: js.Dynamic): Unit = {
     val path = data.asInstanceOf[String]
-    selectedFile.value = Some(FileValue.File(path.replaceFirst(".*/", ""), path))
+    selectedFile.value = Some(FileValue.File(path.replaceFirst(".*/", ""), path)())
   }
 
   def getSelectedFile: Option[FileValue.File] = selectedFile.value
@@ -48,6 +50,27 @@ class ChooseFileFromWorkspace(files: Future[Constants[FileValue]],
     case None => js.undefined
   }
 
+  private def reload(): Unit = {
+    loadedFiles.value = None
+    Workspace.loadFiles.foreach(x => loadedFiles.value = Some(x))
+  }
+
+  private def uploadToDirectory(directory: FileValue.Directory): Unit = {
+    val fileElement = document.createElement("input").asInstanceOf[HTMLInputElement]
+    fileElement.`type` = "file"
+    fileElement.onchange = _ => {
+      loadedFiles.value = None
+      Workspace.uploadFile(fileElement.files(0), directory) {
+        case Some(th) =>
+          errorMsg.value = Some(th.taskError.message)
+          reload()
+        case None =>
+          reload()
+      }
+    }
+    fileElement.click()
+  }
+
   @dom
   private def bindingFileValue(fileValue: FileValue): Binding[Div] = fileValue match {
     case file: FileValue.File =>
@@ -61,19 +84,34 @@ class ChooseFileFromWorkspace(files: Future[Constants[FileValue]],
           {val x = selectedFile.bind
         if (x.contains(file)) {
           <strong>
-            {file.name}
+            {s"${file.name} (${file.prettySize})"}
           </strong>
         } else {
           <span>
-            {file.name}
+            {s"${file.name} (${file.prettySize})"}
           </span>
         }}
         </a>
+        <i class="material-icons control" title="download this file" onclick={_: Event => window.location.href = file.link}>save_alt</i>
+        <i class={s"material-icons control${if (file.writable) "" else " deleted"}"} onclick={e: Event =>
+          if (window.confirm("Do you want to delete this file?")) {
+            e.target.asInstanceOf[HTMLElement].classList.add("deleted")
+            Workspace.deleteFile(file) {
+              case true => reload()
+              case false => errorMsg.value = Some("The file can not be deleted.")
+            }
+          }}>delete</i>
       </div>
     case directory: FileValue.Directory =>
       <div class="directory">
         <div class="name">
-          {directory.name}
+          <span>
+            {directory.name}
+          </span>{if (directory.writable) {
+          <i class="material-icons control" title="upload a file" style="cursor: pointer;" onclick={_: Event => uploadToDirectory(directory)}>cloud_upload</i>
+        } else {
+          <i></i>
+        }}
         </div>
         <div class="files">
           {for (file <- directory.files) yield bindingFileValue(file).bind}
@@ -86,8 +124,10 @@ class ChooseFileFromWorkspace(files: Future[Constants[FileValue]],
     <div class="choose-file">
       {val x = loadedFiles.bind
     x match {
-      case Some(files) => for (file <- files) yield bindingFileValue(file).bind
-      case None => Constants(<div>"loading..."</div>)
+      case Some(rootDir) => <div>
+        <i class="material-icons refresh" onclick={_: Event => reload()}>refresh</i>{bindingFileValue(rootDir).bind}
+      </div>
+      case None => <div>"loading..."</div>
     }}
     </div>
   }

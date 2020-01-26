@@ -354,6 +354,18 @@ main {
 .properties .choose-file {
   padding: 0.5em;
 }
+.properties .choose-file .control {
+  width: 1em;
+  height: auto;
+}
+.properties .choose-file .deleted {
+  display: none;
+}
+.properties .choose-file .refresh {
+  cursor: pointer;
+  float: right;
+  font-size: 1.5em;
+}
 .properties .choose-file .directory {
   cursor: default;
 }

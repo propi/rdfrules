@@ -16,7 +16,7 @@ object Endpoint {
     def to[A](f: T => A): Response[A] = Response(status, headers, f(data))
   }
 
-  def request(url: String, method: String, data: Option[js.Any])(callback: Response[String] => Unit): Unit = {
+  def request(url: String, method: String, data: Option[js.Any], contentType: Option[String] = Some("application/json"))(callback: Response[String] => Unit): Unit = {
     var last_index = 0
     val buffer = new StringBuffer()
     val xhr = new dom.XMLHttpRequest()
@@ -41,14 +41,28 @@ object Endpoint {
     }
     data match {
       case Some(data) =>
-        xhr.setRequestHeader("Content-Type", "application/json")
-        xhr.send(JSON.stringify(data))
+        contentType match {
+          case Some("application/json") =>
+            xhr.setRequestHeader("Content-Type", "application/json")
+            xhr.send(JSON.stringify(data))
+          case Some(contentType) =>
+            xhr.setRequestHeader("Content-Type", contentType)
+            xhr.send(data)
+          case None =>
+            xhr.send(data)
+        }
       case None => xhr.send()
     }
   }
 
+  def delete[T](url: String)(callback: Response[T] => Unit)(implicit f: String => T): Unit = request(url, "DELETE", None)(data => callback(data.to(f)))
+
   def get[T](url: String)(callback: Response[T] => Unit)(implicit f: String => T): Unit = request(url, "GET", None)(data => callback(data.to(f)))
 
   def post[T](url: String, data: js.Any)(callback: Response[T] => Unit = (_: Response[T]) => {})(implicit f: String => T): Unit = request(url, "POST", Some(data))(data => callback(data.to(f)))
+
+  def postWithContentType[T](url: String, data: js.Any, contentType: String)(callback: Response[T] => Unit = (_: Response[T]) => {})(implicit f: String => T): Unit = request(url, "POST", Some(data), Some(contentType))(data => callback(data.to(f)))
+
+  def postWithAutoContentType[T](url: String, data: js.Any)(callback: Response[T] => Unit = (_: Response[T]) => {})(implicit f: String => T): Unit = request(url, "POST", Some(data), None)(data => callback(data.to(f)))
 
 }

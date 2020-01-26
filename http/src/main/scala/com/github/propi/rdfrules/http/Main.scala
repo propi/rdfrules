@@ -25,7 +25,8 @@ object Main extends ServerConf {
   def main(args: Array[String]): Unit = {
     val system: ActorSystem[MainMessage] = ActorSystem(Behaviors.setup[MainMessage] { context =>
       implicit val scheduler: Scheduler = context.system.scheduler
-      val taskService = context.spawn(Task.behavior, "task-service")
+      val taskService = context.spawn(Task.taskFactoryActor, "task-service")
+      context.spawn(Workspace.lifetimeActor(), "workspace-lifetime")
       val route: Route = (new service.Workspace).route ~ new Task(taskService).route ~ webappDir.map { dir =>
         pathPrefix("webapp") {
           pathEndOrSingleSlash {

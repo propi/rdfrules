@@ -37,7 +37,7 @@ class Server(context: ActorContext[MainMessage], route: Route, serverConf: Serve
     }.result().withFallback(RejectionHandler.default.mapRejectionResponse {
       case res@HttpResponse(status, _, ent: HttpEntity.Strict, _) =>
         val message = ent.data.utf8String.replaceAll("\"", """\"""")
-        res.copy(entity = HttpEntity(ContentTypes.`application/json`, s"""{ "code": "${status.value}", "message": "$message"}"""))
+        res.copy(entity = HttpEntity(ContentTypes.`application/json`, s"""{ "code": "${status.value}", "message": "${message.replaceAll("\n", " ")}"}"""))
       case x => x
     })
     val exceptionHandler = ExceptionHandler {

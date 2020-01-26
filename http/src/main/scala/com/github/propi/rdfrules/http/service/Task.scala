@@ -59,6 +59,7 @@ class Task(taskService: ActorRef[TaskServiceRequest])(implicit system: Scheduler
               complete(ToResponseMarshallable.apply(x.result))
             case TaskResponse.Failure(th) => failWith(th)
           }
+          case Success(ReturnedTask(None)) => reject
           case Failure(th) => failWith(th)
         }
       }
@@ -139,7 +140,7 @@ object Task {
     changeTask(Vector.empty)
   }
 
-  def behavior: Behavior[TaskServiceRequest] = Behaviors.receive {
+  def taskFactoryActor: Behavior[TaskServiceRequest] = Behaviors.receive {
     case (context, TaskServiceRequest.CreateTask(id, started, pipeline)) =>
       context.spawn(createTask(id, started, pipeline), "task-" + id.toString)
       Behaviors.same
