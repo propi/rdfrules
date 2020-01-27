@@ -107,7 +107,7 @@ object PipelineJsonReaders {
 
   implicit val cacheDatasetReader: RootJsonReader[data.Cache] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new data.Cache(fields("path").convertTo[String])
+    new data.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
   }
 
   implicit def indexReader(implicit debugger: Debugger): RootJsonReader[data.Index] = (_: JsValue) => {
@@ -153,7 +153,7 @@ object PipelineJsonReaders {
 
   implicit val cacheIndexReader: RootJsonReader[index.Cache] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new index.Cache(fields("path").convertTo[String])
+    new index.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
   }
 
   implicit val toDatasetReader: RootJsonReader[index.ToDataset] = (_: JsValue) => {
@@ -356,12 +356,12 @@ object PipelineJsonReaders {
 
   implicit val cacheRulesetReader: RootJsonReader[ruleset.Cache] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new ruleset.Cache(fields("path").convertTo[String])
+    new ruleset.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
   }
 
   implicit val cacheModelReader: RootJsonReader[model.Cache] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new model.Cache(fields("path").convertTo[String])
+    new model.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
   }
 
   implicit val graphBasedRulesReader: RootJsonReader[ruleset.GraphBasedRules] = (_: JsValue) => {

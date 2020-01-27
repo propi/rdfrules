@@ -12,6 +12,7 @@ import akka.util.ByteString
 import com.github.propi.rdfrules.http.util.BasicExceptions.ValidationException
 import com.github.propi.rdfrules.http.util.Conf
 import com.typesafe.config.{Config, ConfigMemorySize}
+import com.typesafe.scalalogging.Logger
 
 import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.{ExecutionContext, Future}
@@ -21,6 +22,8 @@ import scala.language.postfixOps
   * Created by Vaclav Zeman on 22. 7. 2018.
   */
 object Workspace {
+
+  private val logger = Logger[Workspace.type]
 
   private val maxUploadedFileSize = Conf[ConfigMemorySize](Main.confPrefix + ".workspace.max-uploaded-file-size").toOption.map(_.toBytes).getOrElse(0L)
   private val maxFilesInDirectory = Conf[Int](Main.confPrefix + ".workspace.max-files-in-directory").toOption.getOrElse(100)
@@ -50,11 +53,12 @@ object Workspace {
 
   private def deleteExpired(duration: Duration, tree: IndexedSeq[FileTree]): Unit = {
     for (x@FileTree.File(_) <- tree if new Date(x.file.lastModified()).toInstant.plusSeconds(duration.toSeconds).isBefore(Instant.now())) {
+      logger.info(s"The file '${x.file.getCanonicalPath}' was expired and therefore was deleted.")
       x.file.delete()
     }
   }
 
-  def lifetimeActor(): Behavior[Boolean] = Behaviors.setup[Boolean] { context =>
+  def lifetimeActor: Behavior[Boolean] = Behaviors.setup[Boolean] { context =>
     if (writableDirs.exists(_.lifetime.isFinite())) {
       context.self ! true
       Behaviors.receiveMessage { _ =>

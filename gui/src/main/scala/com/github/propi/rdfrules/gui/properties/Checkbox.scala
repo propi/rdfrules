@@ -12,7 +12,7 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class Checkbox(val name: String, val title: String, default: Boolean = false, description: String = "") extends Property {
+class Checkbox(val name: String, val title: String, default: Boolean = false, description: String = "", onChecked: Boolean => Unit = _ => {}) extends Property {
 
   private var _isChecked: Boolean = default
 
@@ -20,6 +20,7 @@ class Checkbox(val name: String, val title: String, default: Boolean = false, de
 
   def setValue(data: js.Dynamic): Unit = {
     _isChecked = data.asInstanceOf[Boolean]
+    onChecked(_isChecked)
   }
 
   def isChecked: Boolean = _isChecked
@@ -31,7 +32,9 @@ class Checkbox(val name: String, val title: String, default: Boolean = false, de
   @dom
   final def valueView: Binding[Div] = {
     <div>
-      <input type="checkbox" class="checkbox" checked={_isChecked} onchange={e: Event => _isChecked = e.target.asInstanceOf[HTMLInputElement].checked}/>
+      <input type="checkbox" class="checkbox" checked={_isChecked} onchange={e: Event =>
+      _isChecked = e.target.asInstanceOf[HTMLInputElement].checked
+      onChecked(_isChecked)}/>
     </div>
   }
 

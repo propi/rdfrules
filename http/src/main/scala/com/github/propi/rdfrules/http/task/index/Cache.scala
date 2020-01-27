@@ -1,16 +1,41 @@
 package com.github.propi.rdfrules.http.task.index
 
-import com.github.propi.rdfrules.http.Workspace
+import java.io.File
+
+import com.github.propi.rdfrules.http.{InMemoryCache, Workspace}
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 import com.github.propi.rdfrules.index.Index
 
 /**
   * Created by Vaclav Zeman on 9. 8. 2018.
   */
-class Cache(path: String) extends Task[Index, Index] {
+class Cache(path: String, inMemory: Boolean, revalidate: Boolean) extends Task.CacheTask[Index] {
   val companion: TaskDefinition = Cache
 
-  def execute(input: Index): Index = input.cache(Workspace.path(path))
+  def useCache(lastIndexTask: Option[Task[Task.NoInput.type, Index]]): Option[Task[Task.NoInput.type, Index]] = if (revalidate) {
+    None
+  } else {
+    val index = if (inMemory) {
+      InMemoryCache.get[Index](path)
+    } else {
+      val cacheFile = new File(Workspace.path(path))
+      if (cacheFile.exists()) {
+        Some(Index.fromCache(cacheFile))
+      } else {
+        None
+      }
+    }
+    index.map(new Task.CachedTask[Index](companion, _))
+  }
+
+  def execute(input: Index): Index = {
+    if (inMemory) {
+      InMemoryCache.put(path, input)
+      input
+    } else {
+      input.cache(Workspace.path(path))
+    }
+  }
 }
 
 object Cache extends TaskDefinition {

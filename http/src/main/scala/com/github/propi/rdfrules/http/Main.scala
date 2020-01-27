@@ -26,7 +26,8 @@ object Main extends ServerConf {
     val system: ActorSystem[MainMessage] = ActorSystem(Behaviors.setup[MainMessage] { context =>
       implicit val scheduler: Scheduler = context.system.scheduler
       val taskService = context.spawn(Task.taskFactoryActor, "task-service")
-      context.spawn(Workspace.lifetimeActor(), "workspace-lifetime")
+      context.spawn(Workspace.lifetimeActor, "workspace-lifetime")
+      context.spawn(InMemoryCache.autoCleaningActor, "inmemorycache-autocleaning")
       val route: Route = (new service.Workspace).route ~ new Task(taskService).route ~ webappDir.map { dir =>
         pathPrefix("webapp") {
           pathEndOrSingleSlash {

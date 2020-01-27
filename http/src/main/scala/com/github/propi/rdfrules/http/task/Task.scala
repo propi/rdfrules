@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.http.task
 
 import com.github.propi.rdfrules.data.Dataset
+import com.github.propi.rdfrules.index.Index
 
 /**
   * Created by Vaclav Zeman on 7. 8. 2018.
@@ -31,6 +32,14 @@ object Task {
   object NoInput
 
   trait NoInputDatasetTask extends Task[NoInput.type, Dataset]
+
+  trait CacheTask[T] extends Task[T, T] {
+    def useCache(lastIndexTask: Option[Task[NoInput.type, Index]]): Option[Task[NoInput.type, T]]
+  }
+
+  class CachedTask[T](val companion: TaskDefinition, cache: T) extends Task[NoInput.type, T] {
+    def execute(input: NoInput.type): T = cache
+  }
 
   class MergeDatasets private(datasets: List[NoInputDatasetTask]) extends NoInputDatasetTask {
     def this() = this(Nil)
