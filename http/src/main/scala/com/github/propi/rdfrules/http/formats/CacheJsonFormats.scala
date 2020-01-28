@@ -8,6 +8,6 @@ import spray.json.{RootJsonFormat, _}
   */
 object CacheJsonFormats extends DefaultJsonProtocol {
 
-  implicit val memoryInfoFormat: RootJsonFormat[MemoryInfo] = jsonFormat2(MemoryInfo)
+  implicit val memoryInfoFormat: RootJsonFormat[MemoryInfo] = jsonFormat3(MemoryInfo)
 
 }

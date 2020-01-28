@@ -23,6 +23,9 @@ class Canvas {
   @dom
   private def view: Binding[Div] = {
     <div class="canvas">
+      <div class="memory-info">
+        {Endpoint.memoryCacheInfoView.bind}
+      </div>
       <div class={"whint" + (if (hint.bind.isEmpty) " hidden" else "")} style={val _hint = hint.bind
       val _fixedHint = fixedHint.bind
       (_hint, _fixedHint) match {

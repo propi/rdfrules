@@ -21,7 +21,7 @@ object InMemoryCache {
 
   private val logger = Logger[InMemoryCache.type]
 
-  case class MemoryInfo(total: Long, free: Long) {
+  case class MemoryInfo(total: Long, free: Long, itemsInCache: Int) {
     def used: Long = total - free
   }
 
@@ -88,6 +88,6 @@ object InMemoryCache {
     logger.info(s"The memory cache was cleaned")
   }
 
-  def getMemoryInfo = MemoryInfo(Runtime.getRuntime.totalMemory(), Runtime.getRuntime.freeMemory())
+  def getMemoryInfo = MemoryInfo(Runtime.getRuntime.totalMemory(), Runtime.getRuntime.freeMemory(), hmap.size)
 
 }

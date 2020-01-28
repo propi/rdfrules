@@ -1,8 +1,13 @@
 package com.github.propi.rdfrules.gui
 
+import com.thoughtworks.binding
+import com.thoughtworks.binding.Binding
+import com.thoughtworks.binding.Binding.Var
 import org.scalajs.dom
 import org.scalajs.dom.Event
+import org.scalajs.dom.html.Div
 import org.scalajs.dom.raw.ProgressEvent
+import com.github.propi.rdfrules.gui.utils.StringConverters._
 
 import scala.scalajs.js
 import scala.scalajs.js.JSON
@@ -12,8 +17,42 @@ import scala.scalajs.js.JSON
   */
 object Endpoint {
 
+  private val memoryInfo: Var[Option[MemoryInfo]] = Var(None)
+
+  case class MemoryInfo(total: Long, free: Long, itemsInCache: Int) {
+    def used: Long = total - free
+  }
+
   case class Response[T](status: Int, headers: Map[String, String], data: T) {
     def to[A](f: T => A): Response[A] = Response(status, headers, f(data))
+  }
+
+  @binding.dom
+  def memoryCacheInfoView: Binding[Div] = {
+    <div>
+      {memoryInfo.bind match {
+      case Some(memoryInfo) => <div class="list">
+        <div>
+          <span>Used memory:</span>
+          <span class="used">
+            {Workspace.humanReadableByteSize(memoryInfo.used)}
+          </span>
+          <span>/</span>
+          <span class="total">
+            {Workspace.humanReadableByteSize(memoryInfo.total)}
+          </span>
+        </div>
+        <div>
+          <span>Items in the cache:</span>
+          <span class="items">
+            {memoryInfo.itemsInCache.toString}
+          </span>
+          <span class="clear" onclick={_: Event => get[String]("/cache/clear")(_ => Unit)}>(clear)</span>
+        </div>
+      </div>
+      case None => <div></div>
+    }}
+    </div>
   }
 
   def request(url: String, method: String, data: Option[js.Any], contentType: Option[String] = Some("application/json"))(callback: Response[String] => Unit): Unit = {
@@ -21,7 +60,7 @@ object Endpoint {
     val buffer = new StringBuffer()
     val xhr = new dom.XMLHttpRequest()
     xhr.open(method, Globals.endpoint + url)
-    xhr.setRequestHeader("Access-Control-Expose-Headers", "Location")
+    xhr.setRequestHeader("Access-Control-Expose-Headers", "Location, MemoryCache-Free, MemoryCache-Items, MemoryCache-Total")
     xhr.onprogress = { _: ProgressEvent =>
       val curr_index = xhr.responseText.length
       if (last_index != curr_index) {
@@ -36,6 +75,16 @@ object Endpoint {
       }.toMap
       if (buffer.length() == 0) {
         buffer.append(xhr.responseText)
+      }
+      for {
+        total <- headers.get("memorycache-total")
+        free <- headers.get("memorycache-free")
+        items <- headers.get("memorycache-items")
+        totalLong <- stringToTryLong(total).toOption
+        freeLong <- stringToTryLong(free).toOption
+        itemsInt <- stringToTryInt(items).toOption
+      } {
+        memoryInfo.value = Some(MemoryInfo(totalLong, freeLong, itemsInt))
       }
       callback(Response(xhr.status, headers, buffer.toString))
     }

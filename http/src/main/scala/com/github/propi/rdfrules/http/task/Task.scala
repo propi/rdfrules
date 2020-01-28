@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.http.task
 
 import com.github.propi.rdfrules.data.Dataset
+import com.github.propi.rdfrules.http.util.BasicExceptions.ValidationException
 import com.github.propi.rdfrules.index.Index
 
 /**
@@ -32,6 +33,10 @@ object Task {
   object NoInput
 
   trait NoInputDatasetTask extends Task[NoInput.type, Dataset]
+
+  trait Prevalidate {
+    def validate(): Option[ValidationException]
+  }
 
   trait CacheTask[T] extends Task[T, T] {
     def useCache(lastIndexTask: Option[Task[NoInput.type, Index]]): Option[Task[NoInput.type, T]]

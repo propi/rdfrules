@@ -116,7 +116,7 @@ main {
   height: 100%;
   overflow: auto;
   z-index: 1;
-  padding-top: 2.5em;
+  padding-top: 3em;
   position: relative;
 }
 .canvas .content:after {
@@ -637,5 +637,23 @@ main {
 .tools i {
   font-size: 1.3em;
   cursor: pointer;
+}
+.memory-info {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 0.7em;
+  z-index: 150;
+}
+.memory-info .list {
+  background-color: #fffeef;
+  border-right: 2px solid black;
+  border-bottom: 2px solid black;
+  padding: 0.2em;
+}
+.memory-info .clear {
+  cursor: pointer;
+  color: #548dff;
+  text-decoration: underline;
 }
 /*# sourceMappingURL=home.css.map */

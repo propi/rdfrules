@@ -28,7 +28,15 @@ class Pipeline[O] private(head: Task[Task.NoInput.type, O],
     case _ => new Pipeline[T](head, datasets, lastIndexTask)
   }
 
-  def ~>[T](task: Task[O, T])(implicit tag: TypeTag[T]): Pipeline[T] = task match {
+  private def validate[T](task: Task[O, T]): Task[O, T] = task match {
+    case x: Task.Prevalidate => x.validate() match {
+      case Some(th) => throw th
+      case None => task
+    }
+    case _ => task
+  }
+
+  def ~>[T](task: Task[O, T])(implicit tag: TypeTag[T]): Pipeline[T] = validate(task) match {
     case task: Task.CacheTask[_] =>
       task.useCache(lastIndexTask) match {
         case Some(cached) => pipeWith[T](cached.asInstanceOf[Task[Task.NoInput.type, T]], Nil)

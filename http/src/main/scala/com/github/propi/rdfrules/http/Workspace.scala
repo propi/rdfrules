@@ -110,11 +110,19 @@ object Workspace {
 
   def deleteFileIfWritable(filePath: String): Boolean = {
     val file = new File(path(filePath))
-    if (file.isFile && writableDirs.exists(_.path.getCanonicalPath == file.getParentFile.getCanonicalPath)) {
+    if (file.isFile && filePathIsWritable(file)) {
       file.delete()
     } else {
       false
     }
+  }
+
+  def filePathIsWritable(path: String): Boolean = {
+    filePathIsWritable(new File(Workspace.path(path)))
+  }
+
+  def filePathIsWritable(path: File): Boolean = {
+    writableDirs.exists(_.path.getCanonicalPath == path.getParentFile.getCanonicalPath)
   }
 
   sealed trait FileTree {
