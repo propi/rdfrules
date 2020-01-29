@@ -20,11 +20,11 @@ RDFRules is divided into five main modules. They are:
  
  ### Quick and easy run of RDFRules
  
- 1. Clone or download this github repository
- 2. Run RDFRules HTTP API
-    - On Linux: ```./dist/bin/main```
-    - On Windows: run this file ```./dist/bin/main.bat```
- 3. Open ```./dist/webapp/index.html``` in a modern Internet browser
+ 1. Clone or download this github repository, or download and unpack the latest [release](https://github.com/propi/rdfrules/releases) in the .zip format
+ 2. Go to the RDFRules home directory (with /bin, /webapp and /lib folders) and run RDFRules HTTP API
+    - On Linux: ```sh bin/main```
+    - On Windows: ```.\bin\main.bat```
+ 3. Open ```./webapp/index.html``` in a modern Internet browser
  
  ## Design and Architecture
  
