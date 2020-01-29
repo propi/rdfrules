@@ -7,7 +7,9 @@ import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting.{Comb, Weig
 import com.github.propi.rdfrules.algorithm.dbscan.{DbScan, SimilarityCounting}
 import com.github.propi.rdfrules.algorithm.{Clustering, RulesMining}
 import com.github.propi.rdfrules.data.{DiscretizationTask, RdfSource, TripleItem}
+import com.github.propi.rdfrules.http.Main
 import com.github.propi.rdfrules.http.task.{QuadMapper, QuadMatcher, TripleItemMapper}
+import com.github.propi.rdfrules.http.util.Conf
 import com.github.propi.rdfrules.rule.{AtomPattern, Measure, Rule, RuleConstraint, RulePattern, Threshold}
 import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetSource}
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
@@ -15,10 +17,15 @@ import org.apache.jena.riot.RDFFormat
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
+import scala.concurrent.duration._
+import scala.language.postfixOps
+
 /**
   * Created by Vaclav Zeman on 14. 8. 2018.
   */
 object CommonDataJsonReaders {
+
+  private val defaultMaxMiningTime = Conf[Duration](Main.confPrefix + ".default-max-mining-time").toOption.getOrElse(0 seconds)
 
   implicit val tripleItemReader: RootJsonReader[TripleItem] = {
     case JsString(TripleItemMapper.Resource(uri)) => uri
@@ -162,6 +169,11 @@ object CommonDataJsonReaders {
   implicit def rulesMiningReader(implicit debugger: Debugger): RootJsonReader[RulesMining] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     Function.chain[RulesMining](List(
+      rm => if (defaultMaxMiningTime.toMinutes > 0) {
+        rm.addThreshold(Threshold.Timeout(defaultMaxMiningTime.toMinutes.toInt))
+      } else {
+        rm
+      },
       rm => fields.get("thresholds").collect {
         case JsArray(x) => x.map(_.convertTo[Threshold]).foldLeft(rm)(_ addThreshold _)
       }.getOrElse(rm),

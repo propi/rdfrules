@@ -88,7 +88,7 @@ class Model private(val rules: Traversable[ResolvedRule])
                 case (Atom.Constant(s), _: Atom.Variable) => constants => CompressedQuad(s, rule.head.predicate, constants.head.value, 0)
                 case (Atom.Constant(s), Atom.Constant(o)) => _ => CompressedQuad(s, rule.head.predicate, o, 0)
               }
-              Try(atomCounting.selectDistinctPairs(ruleBody, headVars).map(constantsToQuad).map(_.toTriple).map(PredictedTriple(_)(rule)).foreach(f))
+              Try(atomCounting.selectDistinctPairs(ruleBody, headVars, new atomCounting.VariableMap(true)).map(constantsToQuad).map(_.toTriple).map(PredictedTriple(_)(rule)).foreach(f))
             }
           }
         }

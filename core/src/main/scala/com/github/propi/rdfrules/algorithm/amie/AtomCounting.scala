@@ -10,8 +10,14 @@ import com.typesafe.scalalogging.Logger
 trait AtomCounting {
 
   //type VariableMap = Map[Atom.Variable, Atom.Constant]
-  class VariableMap private(hmap: Map[Atom.Variable, Atom.Constant], atoms: Set[Atom]) {
-    def this() = this(Map.empty, Set.empty)
+  //TODO check it. These lines are solution for this situation: (?a dbo:officialLanguage ?b) ^ (?a dbo:officialLanguage dbr:English_language) -> (?a dbo:language ?b)
+  //There can exist two identical mapped atoms - 2x (A dbo:officialLanguage English)
+  //For this variant it should be banned - so no mapped atom should be returned if the same atom was mapped in the previous rule refinement (it should reduce support and body size)
+  //We need to check it whether it is a good premision, because some ?a can have more official languages inluding English
+  //For this variant it should be useful: ( ?c <direction> "east" ) ^ ( ?b <train_id> ?c ) ^ ( ?b <train_id> ?a ) ⇒ ( ?a <direction> "east" )
+  //We partialy solved that by the switch allowDuplicitAtoms. It is true for bodySize counting, but false for projectionBounding and support counzing. Check it whether it is right!
+  class VariableMap private(hmap: Map[Atom.Variable, Atom.Constant], atoms: Set[Atom], allowDuplicitAtoms: Boolean) {
+    def this(allowDuplicitAtoms: Boolean) = this(Map.empty, Set.empty, allowDuplicitAtoms)
 
     def getOrElse[T >: Atom.Constant](key: Atom.Variable, default: => T): T = hmap.getOrElse(key, default)
 
@@ -21,13 +27,29 @@ trait AtomCounting {
 
     def apply(key: Atom.Variable): Atom.Constant = hmap(key)
 
-    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = new VariableMap(hmap + (s, o), atoms + Atom(s._2, p, o._2))
+    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = if (allowDuplicitAtoms) {
+      new VariableMap(hmap + (s, o), atoms, allowDuplicitAtoms)
+    } else {
+      new VariableMap(hmap + (s, o), atoms + Atom(s._2, p, o._2), allowDuplicitAtoms)
+    }
 
-    def +(s: Atom.Constant, p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = new VariableMap(hmap + o, atoms + Atom(s, p, o._2))
+    def +(s: Atom.Constant, p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = if (allowDuplicitAtoms) {
+      new VariableMap(hmap + o, atoms, allowDuplicitAtoms)
+    } else {
+      new VariableMap(hmap + o, atoms + Atom(s, p, o._2), allowDuplicitAtoms)
+    }
 
-    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: Atom.Constant): VariableMap = new VariableMap(hmap + s, atoms + Atom(s._2, p, o))
+    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: Atom.Constant): VariableMap = if (allowDuplicitAtoms) {
+      new VariableMap(hmap + s, atoms, allowDuplicitAtoms)
+    } else {
+      new VariableMap(hmap + s, atoms + Atom(s._2, p, o), allowDuplicitAtoms)
+    }
 
-    def +(s: Atom.Constant, p: Int, o: Atom.Constant): VariableMap = new VariableMap(hmap, atoms + Atom(s, p, o))
+    def +(s: Atom.Constant, p: Int, o: Atom.Constant): VariableMap = if (allowDuplicitAtoms) {
+      new VariableMap(hmap, atoms, allowDuplicitAtoms)
+    } else {
+      new VariableMap(hmap, atoms + Atom(s, p, o), allowDuplicitAtoms)
+    }
 
     def isEmpty: Boolean = hmap.isEmpty
   }
@@ -127,7 +149,7 @@ trait AtomCounting {
     * @param variableMap constants which will be mapped to variables
     * @return number of possible paths for the set of atoms which are contained in dataset
     */
-  def count(atoms: Set[Atom], maxCount: Double, variableMap: VariableMap = new VariableMap): Int = if (atoms.isEmpty) {
+  def count(atoms: Set[Atom], maxCount: Double, variableMap: VariableMap): Int = if (atoms.isEmpty) {
     1
   } else if (maxCount <= 0) {
     0
@@ -156,7 +178,7 @@ trait AtomCounting {
     * @param variableMap variable mapping to a concrete constant
     * @return iterator of instantiated distinct pairs for variables which have covered all atoms
     */
-  def selectDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], variableMap: VariableMap = new VariableMap): Iterator[Seq[Atom.Constant]] = {
+  def selectDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], variableMap: VariableMap): Iterator[Seq[Atom.Constant]] = {
     val foundPairs = collection.mutable.Set.empty[Seq[Atom.Constant]]
 
     def sdp(atoms: Set[Atom], headVars: Seq[Atom.Variable], variableMap: VariableMap): Iterator[Seq[Atom.Constant]] = {
@@ -192,7 +214,7 @@ trait AtomCounting {
     * @return number of distinct pairs for variables which have covered all atoms
     */
   def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double): Int = {
-    countDistinctPairs(atoms, head, maxCount, new VariableMap)
+    countDistinctPairs(atoms, head, maxCount, new VariableMap(true))
   }
 
   /**
@@ -220,7 +242,7 @@ trait AtomCounting {
     * @param variableMap variable mapping to a concrete constant
     * @return number of distinct pairs for variables which have covered all atoms
     */
-  def countDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], maxCount: Double, variableMap: VariableMap = new VariableMap): Int = {
+  def countDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], maxCount: Double, variableMap: VariableMap): Int = {
     var i = 0
     val it = selectDistinctPairs(atoms, headVars, variableMap)
     while (it.hasNext && i <= maxCount) {
@@ -356,7 +378,7 @@ trait AtomCounting {
     * @param atom atom to be specified
     * @return iterator of all triples for this atom
     */
-  def getAtomTriples(atom: Atom): Iterator[(Int, Int)] = specifyAtom(atom, new VariableMap)
+  def getAtomTriples(atom: Atom): Iterator[(Int, Int)] = specifyAtom(atom, new VariableMap(true))
     .map(x => x.subject.asInstanceOf[Atom.Constant].value -> x.`object`.asInstanceOf[Atom.Constant].value)
 
 }

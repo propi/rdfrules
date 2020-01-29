@@ -103,6 +103,20 @@ main {
   position: absolute;
   z-index: 101;
 }
+.canvas .modal .ok {
+  width: 90%;
+  text-align: right;
+  margin: auto auto 2em;
+}
+.canvas .modal .ok span {
+  display: inline-block;
+  background-color: #548dff;
+  color: white;
+  padding: 0.5em 2em;
+  border-radius: 0.5em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
 .canvas .modal.closed {
   display: none;
 }

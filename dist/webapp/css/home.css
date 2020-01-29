@@ -103,6 +103,20 @@ main {
   position: absolute;
   z-index: 101;
 }
+.canvas .modal .ok {
+  width: 90%;
+  text-align: right;
+  margin: auto auto 2em;
+}
+.canvas .modal .ok span {
+  display: inline-block;
+  background-color: #548dff;
+  color: white;
+  padding: 0.5em 2em;
+  border-radius: 0.5em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
 .canvas .modal.closed {
   display: none;
 }
@@ -116,7 +130,7 @@ main {
   height: 100%;
   overflow: auto;
   z-index: 1;
-  padding-top: 2.5em;
+  padding-top: 3em;
   position: relative;
 }
 .canvas .content:after {
@@ -354,6 +368,18 @@ main {
 .properties .choose-file {
   padding: 0.5em;
 }
+.properties .choose-file .control {
+  width: 1em;
+  height: auto;
+}
+.properties .choose-file .deleted {
+  display: none;
+}
+.properties .choose-file .refresh {
+  cursor: pointer;
+  float: right;
+  font-size: 1.5em;
+}
 .properties .choose-file .directory {
   cursor: default;
 }
@@ -555,6 +581,31 @@ main {
   font-size: 0.9em;
   font-style: italic;
 }
+.action-progress .result .model {
+  margin-top: 1.5em;
+}
+.action-progress .result .confusion-matrix {
+  margin-top: 1em;
+  border: 1px solid lightgray;
+  border-collapse: collapse;
+}
+.action-progress .result .confusion-matrix td,
+.action-progress .result .confusion-matrix th {
+  border: 1px solid lightgray;
+  padding: 0.8em;
+  text-align: center;
+}
+.action-progress .result .confusion-matrix th {
+  background-color: #ededed;
+  font-weight: normal;
+  font-size: 0.9em;
+}
+.action-progress .result .confusion-matrix td.true {
+  background-color: #d2fcd2;
+}
+.action-progress .result .confusion-matrix td.false {
+  background-color: #ffb9b9;
+}
 .whint {
   position: fixed;
   z-index: 200;
@@ -600,5 +651,23 @@ main {
 .tools i {
   font-size: 1.3em;
   cursor: pointer;
+}
+.memory-info {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 0.7em;
+  z-index: 150;
+}
+.memory-info .list {
+  background-color: #fffeef;
+  border-right: 2px solid black;
+  border-bottom: 2px solid black;
+  padding: 0.2em;
+}
+.memory-info .clear {
+  cursor: pointer;
+  color: #548dff;
+  text-decoration: underline;
 }
 /*# sourceMappingURL=home.css.map */

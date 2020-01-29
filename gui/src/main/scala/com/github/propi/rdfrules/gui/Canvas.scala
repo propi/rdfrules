@@ -41,7 +41,7 @@ class Canvas {
         </a>{modal.bind match {
         case Some(x) => x.bind
         case None => <div></div>
-      }}
+      }}<div class="ok"><span onclick={_: Event => closeModal()}>Ok</span></div>
       </div>
       <div class="content">
         <div class="tools">
@@ -50,20 +50,7 @@ class Canvas {
           if (files.length > 0) {
             val reader = new FileReader
             reader.onload = (_: UIEvent) => {
-              operations.value.clear()
-              val lastOps = JSON.parse(reader.result.asInstanceOf[String])
-                .asInstanceOf[js.Array[js.Dynamic]]
-                .foldLeft[Operation](new Root) { (parent, data) =>
-                OperationInfo(data, parent)
-                  .filter(parent.info.followingOperations.value.contains)
-                  .map { opsInfo =>
-                    val newOps = parent.appendOperation(opsInfo)
-                    newOps.setValue(data.parameters)
-                    newOps
-                  }.getOrElse(parent)
-              }
-              val newOperations = Iterator.iterate(Option(lastOps))(_.flatMap(_.previousOperation.value)).takeWhile(_.nonEmpty).flatten.foldLeft(List.empty[Operation])((a, b) => b :: a)
-              operations.value ++= newOperations
+              loadTask(reader.result.asInstanceOf[String])
             }
             reader.readAsText(files(0))
           }}/>
@@ -131,6 +118,23 @@ class Canvas {
 
   def closeHint(): Unit = {
     if (fixedHint.value.isEmpty) hint.value = None
+  }
+
+  def loadTask(content: String): Unit = {
+    operations.value.clear()
+    val lastOps = JSON.parse(content)
+      .asInstanceOf[js.Array[js.Dynamic]]
+      .foldLeft[Operation](new Root) { (parent, data) =>
+      OperationInfo(data, parent)
+        .filter(parent.info.followingOperations.value.contains)
+        .map { opsInfo =>
+          val newOps = parent.appendOperation(opsInfo)
+          newOps.setValue(data.parameters)
+          newOps
+        }.getOrElse(parent)
+    }
+    val newOperations = Iterator.iterate(Option(lastOps))(_.flatMap(_.previousOperation.value)).takeWhile(_.nonEmpty).flatten.foldLeft(List.empty[Operation])((a, b) => b :: a)
+    operations.value ++= newOperations
   }
 
   def render(): Unit = dom.render(document.getElementById("rdfrules"), view)

@@ -258,7 +258,7 @@ trait RuleRefinementExperimental extends RuleRefinement {
       val sameSupportAtoms = if (withDuplicitPredicates) freshAtoms.iterator.flatMap(countAtomsWithExistingPredicate) else Iterator.empty
       val addedAtoms = howLong("Rule expansion - count projections", true, forceShow = true) {
         implicit val projections: mutable.HashMap[Atom, mutable.HashSet[Seq[Atom.Constant]]] = mutable.HashMap.empty
-        bindProjections(atoms, headVars, freshAtoms, Nil, new VariableMap)
+        bindProjections(atoms, headVars, freshAtoms, Nil, new VariableMap(false))
         projections.mapValues(_.size).iterator
       }
       val ruleFilter = new MinSupportRuleFilter(minSupport) & new NoDuplicitRuleFilter(rule.head, bodySet) & new NoRepeatedGroups(withDuplicitPredicates, bodySet + rule.head, rulePredicates) & patternFilter

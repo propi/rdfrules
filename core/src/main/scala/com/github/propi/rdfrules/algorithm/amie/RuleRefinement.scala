@@ -139,7 +139,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       //this function creates variable map with specified head variables
       val specifyHeadVariableMapWithAtom: (Int, Int) => VariableMap = {
         val specifyVariableMapWithAtom = specifyVariableMapForAtom(rule.head)
-        (s, o) => specifyVariableMapWithAtom(rule.head.transform(subject = Atom.Constant(s), `object` = Atom.Constant(o)), new VariableMap)
+        (s, o) => specifyVariableMapWithAtom(rule.head.transform(subject = Atom.Constant(s), `object` = Atom.Constant(o)), new VariableMap(false))
       }
       debugger.debug("Rule expansion: " + rule, rule.headSize + 1) { ad =>
         //if (logger.underlying.isTraceEnabled) logger.trace("Rule expansion - " + rule + "\n" + "countable: " + countableFreshAtoms + "\n" + "possible: " + possibleFreshAtoms)
