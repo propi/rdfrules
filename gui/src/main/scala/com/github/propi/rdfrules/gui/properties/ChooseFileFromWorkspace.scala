@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.gui.properties
 
+import com.github.propi.rdfrules.gui.Endpoint.UploadProgress
 import com.github.propi.rdfrules.gui.{Property, Workspace}
 import com.github.propi.rdfrules.gui.Workspace.FileValue
 import com.github.propi.rdfrules.gui.utils.Validate.{NoValidator, Validator, _}
@@ -28,6 +29,7 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
   files.foreach(x => loadedFiles.value = Some(x))
 
   private val loadedFiles: Var[Option[FileValue.Directory]] = Var(None)
+  private val progressBar: Var[UploadProgress] = Var(UploadProgress(0.0, None))
   private val selectedFile: Var[Option[FileValue.File]] = Var(None)
 
   val descriptionVar: Binding.Var[String] = Var(description)
@@ -60,7 +62,8 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
     fileElement.`type` = "file"
     fileElement.onchange = _ => {
       loadedFiles.value = None
-      Workspace.uploadFile(fileElement.files(0), directory) {
+      progressBar.value = UploadProgress(0.0, None)
+      Workspace.uploadFile(fileElement.files(0), directory, up => progressBar.value = up) {
         case Some(th) =>
           errorMsg.value = Some(th.taskError.message)
           reload()
@@ -127,7 +130,12 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
       case Some(rootDir) => <div>
         <i class="material-icons refresh" onclick={_: Event => reload()}>refresh</i>{bindingFileValue(rootDir).bind}
       </div>
-      case None => <div>"loading..."</div>
+      case None => progressBar.bind match {
+        case up@UploadProgress(loaded, _) if loaded > 0.0 => <div>
+          {s"uploading... ${up.loadedInPercent.map("%.2f%%".format(_)).getOrElse(Workspace.humanReadableByteSize(loaded.toLong))}"}
+        </div>
+        case _ => <div>loading...</div>
+      }
     }}
     </div>
   }

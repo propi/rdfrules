@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.gui
 
+import com.github.propi.rdfrules.gui.Endpoint.UploadProgress
 import com.github.propi.rdfrules.gui.Task.TaskException
 import com.github.propi.rdfrules.gui.utils.StringConverters._
 import com.thoughtworks.binding.Binding.Constants
@@ -53,11 +54,11 @@ object Workspace {
     result.future
   }
 
-  def uploadFile(file: File, directory: FileValue.Directory)(callback: Option[TaskException] => Unit): Unit = {
+  def uploadFile(file: File, directory: FileValue.Directory, uploadProgress: UploadProgress => Unit)(callback: Option[TaskException] => Unit): Unit = {
     val formData = new FormData()
     formData.append("directory", directory.path)
     formData.append("file", file)
-    Endpoint.postWithAutoContentType[String]("/workspace", formData) { response =>
+    Endpoint.postWithAutoContentType[String]("/workspace", formData, uploadProgress) { response =>
       if (response.status == 200) {
         callback(None)
       } else {

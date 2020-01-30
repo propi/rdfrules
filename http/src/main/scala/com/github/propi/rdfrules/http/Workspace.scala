@@ -11,7 +11,7 @@ import akka.stream.{IOResult, Materializer}
 import akka.util.ByteString
 import com.github.propi.rdfrules.http.util.BasicExceptions.ValidationException
 import com.github.propi.rdfrules.http.util.Conf
-import com.typesafe.config.{Config, ConfigMemorySize}
+import com.typesafe.config.ConfigMemorySize
 import com.typesafe.scalalogging.Logger
 
 import scala.concurrent.duration.{Duration, _}
@@ -40,16 +40,17 @@ object Workspace {
     dir
   }
 
-  private val writableDirs = Conf[Seq[Config]](Main.confPrefix + ".workspace.writable").value.iterator.flatMap { config =>
-    Conf[String](config, "path").toOption.map { path =>
+  private val writableDirs = {
+    val paths = Conf[Seq[String]](Main.confPrefix + ".workspace.writable.path").value.iterator
+    val lifetimes = Conf[Seq[Duration]](Main.confPrefix + ".workspace.writable.lifetime").value.iterator
+    paths.zipAll(lifetimes, "", Duration.Inf).map { case (path, lifetime) =>
       val subDir = new File(directory, path)
       if (!subDir.isDirectory && !subDir.mkdirs()) {
         throw ValidationException("InvalidWorkspace", "The workspace sub directory can not be created.")
       }
-      val lifetime = Conf[Duration](config, "lifetime").valueOrElse(Duration.Inf)
       WritableDirectory(subDir, lifetime)
-    }
-  }.toList
+    }.toList
+  }
 
   private def deleteExpired(duration: Duration, tree: IndexedSeq[FileTree]): Unit = {
     for (x@FileTree.File(_) <- tree if new Date(x.file.lastModified()).toInstant.plusSeconds(duration.toSeconds).isBefore(Instant.now())) {
