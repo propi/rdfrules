@@ -25,7 +25,7 @@ object Endpoint {
 
   case class UploadProgress(loaded: Double, total: Option[Double]) {
     def loadedInPercent: Option[Double] = total.collect {
-      case total if total > 0 => loaded / total
+      case total if total > 0 => (loaded / total) * 100
     }
   }
 
