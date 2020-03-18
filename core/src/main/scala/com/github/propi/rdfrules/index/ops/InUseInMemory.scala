@@ -11,10 +11,10 @@ trait InUseInMemory extends Buildable {
 
   self: Index =>
 
-  private lazy val thi = new DynamicVariable[Option[TripleHashIndex]](None)
+  private lazy val thi = new DynamicVariable[Option[TripleHashIndex[Int]]](None)
   private lazy val tihi = new DynamicVariable[Option[TripleItemHashIndex]](None)
 
-  def tripleMap[T](f: TripleHashIndex => T): T = thi.value match {
+  def tripleMap[T](f: TripleHashIndex[Int] => T): T = thi.value match {
     case Some(x) => f(x)
     case None =>
       val x = buildTripleHashIndex
@@ -31,7 +31,7 @@ trait InUseInMemory extends Buildable {
   def withEvaluatedLazyVals: Index = new IndexDecorator(this) {
     private lazy val thiEvaluated = new DynamicVariable[Boolean](false)
 
-    override def tripleMap[T](f: TripleHashIndex => T): T = super.tripleMap { thi =>
+    override def tripleMap[T](f: TripleHashIndex[Int] => T): T = super.tripleMap { thi =>
       if (!thiEvaluated.value) {
         thi.evaluateAllLazyVals()
         thiEvaluated.withValue(true)(f(thi))

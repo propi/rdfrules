@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.index
 
 import com.github.propi.rdfrules.index.TripleHashIndex._
-import com.github.propi.rdfrules.rule.{Atom, TripleItemPosition}
+import com.github.propi.rdfrules.rule.TripleItemPosition
 import com.github.propi.rdfrules.utils.Debugger
 
 import scala.language.implicitConversions
@@ -9,7 +9,7 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
-class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder) {
+class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder[T]) {
 
   type M[V] = MutableHashMap[T, V]
   type M1 = M[MutableHashSet[T]]
@@ -33,28 +33,28 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
   }
 
   def getGraphs(predicate: T): HashSet[T] = if (graph.nonEmpty) {
-    val set = collectionsBuilder.emptySet[T]
+    val set = collectionsBuilder.emptySet
     set += graph.get
     set
   } else {
     predicates(predicate).graphs
   }
 
-  def getGraphs(predicate: T, tripleItemPosition: TripleItemPosition): HashSet[T] = if (graph.nonEmpty) {
-    val set = collectionsBuilder.emptySet[T]
+  def getGraphs(predicate: T, tripleItemPosition: TripleItemPosition[T]): HashSet[T] = if (graph.nonEmpty) {
+    val set = collectionsBuilder.emptySet
     set += graph.get
     set
   } else {
     val pi = predicates(predicate)
     tripleItemPosition match {
-      case TripleItemPosition.Subject(Atom.Constant(x)) => pi.subjects(x).graphs
-      case TripleItemPosition.Object(Atom.Constant(x)) => pi.objects(x).graphs
+      case TripleItemPosition.Subject(x) => pi.subjects(x).graphs
+      case TripleItemPosition.Object(x) => pi.objects(x).graphs
       case _ => pi.graphs
     }
   }
 
   def getGraphs(subject: T, predicate: T, `object`: T): HashSet[T] = if (graph.nonEmpty) {
-    val set = collectionsBuilder.emptySet[T]
+    val set = collectionsBuilder.emptySet
     set += graph.get
     set
   } else {
@@ -192,10 +192,10 @@ object TripleHashIndex {
     def getOrElseUpdate(key: K, default: => V): V
   }
 
-  trait CollectionsBuilder {
-    def emptySet[T]: MutableHashSet[T]
+  trait CollectionsBuilder[T] {
+    def emptySet: MutableHashSet[T]
 
-    def emptyHashMap[K, V]: MutableHashMap[K, V]
+    def emptyHashMap[V]: MutableHashMap[T, V]
   }
 
   class AnyWithGraphs[T, G] private[TripleHashIndex](val value: T, val graphs: HashSet[G])
@@ -206,12 +206,12 @@ object TripleHashIndex {
 
   implicit def anyWithGraphsTo[T](hashSetWithGraphs: AnyWithGraphs[T, _]): T = hashSetWithGraphs.value
 
-  class TriplePredicateIndex[T] private[TripleHashIndex](val subjects: ItemMapWithGraphsAndMap[T], val objects: ItemMapWithGraphsAndSet[T])(implicit collectionsBuilder: CollectionsBuilder) {
+  class TriplePredicateIndex[T] private[TripleHashIndex](val subjects: ItemMapWithGraphsAndMap[T], val objects: ItemMapWithGraphsAndSet[T])(implicit collectionsBuilder: CollectionsBuilder[T]) {
     lazy val size: Int = subjects.valuesIterator.map(_.size).sum
     //add all graphs to this predicate index - it is suitable for atom p(a, b) to enumerate all graphs
     //it is contructed from all predicate-subject graphs
     lazy val graphs: HashSet[T] = {
-      val set = collectionsBuilder.emptySet[T]
+      val set = collectionsBuilder.emptySet
       subjects.valuesIterator.flatMap(_.graphs.iterator).foreach(set += _)
       set.trim()
       set
@@ -228,7 +228,7 @@ object TripleHashIndex {
 
   class Quad[T](val s: T, val p: T, val o: T, val g: T)
 
-  def apply[T](quads: Traversable[Quad[T]])(implicit debugger: Debugger, collectionsBuilder: CollectionsBuilder): TripleHashIndex[T] = {
+  def apply[T](quads: Traversable[Quad[T]])(implicit debugger: Debugger, collectionsBuilder: CollectionsBuilder[T]): TripleHashIndex[T] = {
     val index = new TripleHashIndex[T]
     debugger.debug("Dataset indexing") { ad =>
       for (quad <- quads) {

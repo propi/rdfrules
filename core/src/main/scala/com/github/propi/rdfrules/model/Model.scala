@@ -74,7 +74,7 @@ class Model private(val rules: Traversable[ResolvedRule])
         index.tripleItemMap { mapper =>
           index.tripleMap { implicit thi =>
             val atomCounting = new AtomCounting {
-              implicit val tripleIndex: TripleHashIndex = thi
+              implicit val tripleIndex: TripleHashIndex[Int] = thi
             }
             rules.view.map(ResolvedRule.simple(_)(mapper)).foreach { case (rule, ruleMapper) =>
               implicit val mapper2: TripleItemHashIndex = mapper.extendWith(ruleMapper)

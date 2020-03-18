@@ -55,7 +55,7 @@ trait AtomCounting {
   }
 
   val logger: Logger = Logger[AtomCounting]
-  implicit val tripleIndex: TripleHashIndex
+  implicit val tripleIndex: TripleHashIndex[Int]
 
   /**
     * Specify item from variableMap.
@@ -364,9 +364,9 @@ trait AtomCounting {
       case (sv: Atom.Variable, ov: Atom.Variable) =>
         tripleIndex.predicates.keysIterator.map(predicate => Atom(sv, predicate, ov))
       case (sv: Atom.Variable, ov@Atom.Constant(oc)) =>
-        tripleIndex.objects.get(oc).iterator.flatMap(_.predicates.keysIterator).map(predicate => Atom(sv, predicate, ov))
+        tripleIndex.objects.get(oc).iterator.flatMap(_.predicates.iterator).map(predicate => Atom(sv, predicate, ov))
       case (sv@Atom.Constant(sc), ov: Atom.Variable) =>
-        tripleIndex.subjects.get(sc).iterator.flatMap(_.predicates.keysIterator).map(predicate => Atom(sv, predicate, ov))
+        tripleIndex.subjects.get(sc).iterator.flatMap(_.predicates.iterator).map(predicate => Atom(sv, predicate, ov))
       case (sv@Atom.Constant(sc), ov@Atom.Constant(oc)) =>
         tripleIndex.subjects.get(sc).iterator.flatMap(_.objects.get(oc).iterator.flatMap(_.iterator).map(predicate => Atom(sv, predicate, ov)))
     }

@@ -26,8 +26,8 @@ trait FromCacheBuildable extends Buildable {
     }
   }
 
-  protected def buildTripleHashIndex: TripleHashIndex = TripleHashIndex(cachedItems.view.collect {
-    case Right(x) => x
+  protected def buildTripleHashIndex: TripleHashIndex[Int] = TripleHashIndex(cachedItems.view.collect {
+    case Right(x) => new TripleHashIndex.Quad(x.subject, x.predicate, x.`object`, x.graph)
   })
 
   protected def buildTripleItemHashIndex: TripleItemHashIndex = TripleItemHashIndex.fromIndexedItem(cachedItems.view.collect {

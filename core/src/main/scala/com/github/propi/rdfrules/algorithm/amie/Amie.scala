@@ -39,7 +39,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
     *         Rules contains only these measures: head size, head coverage and support
     *         Rules are not ordered
     */
-  def mine(implicit tripleIndex: TripleHashIndex, mapper: TripleItemHashIndex): IndexedSeq[Rule.Simple] = {
+  def mine(implicit tripleIndex: TripleHashIndex[Int], mapper: TripleItemHashIndex): IndexedSeq[Rule.Simple] = {
     val logger = debugger.logger
     //create amie process with debugger and final triple index
     implicit val settings: RuleRefinement.Settings = new Settings(this)(if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) debugger else Debugger.EmptyDebugger, mapper)
@@ -150,7 +150,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
 
   }
 
-  private class AmieProcess(implicit val tripleIndex: TripleHashIndex, val settings: RuleRefinement.Settings, val forAtomMatcher: AtomPatternMatcher[Atom]) extends HeadsFetcher {
+  private class AmieProcess(implicit val tripleIndex: TripleHashIndex[Int], val settings: RuleRefinement.Settings, val forAtomMatcher: AtomPatternMatcher[Atom]) extends HeadsFetcher {
 
     val patterns: List[RulePattern] = self.patterns
     val thresholds: TypedKeyMap.Immutable[Threshold] = self.thresholds

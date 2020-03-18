@@ -20,13 +20,13 @@ sealed trait Atom {
 
   def transform(subject: Atom.Item = subject, predicate: Int = predicate, `object`: Atom.Item = `object`): Atom
 
-  def toGraphBasedAtom(implicit thi: TripleHashIndex): Atom.GraphBased = this match {
+  def toGraphBasedAtom(implicit thi: TripleHashIndex[Int]): Atom.GraphBased = this match {
     case x: Atom.GraphBased => x
     case _: Atom.Basic =>
       val graphs = (subject, `object`) match {
         case (_: Atom.Variable, _: Atom.Variable) => thi.getGraphs(predicate)
-        case (_: Atom.Constant, _: Atom.Variable) => thi.getGraphs(predicate, subjectPosition)
-        case (_: Atom.Variable, _: Atom.Constant) => thi.getGraphs(predicate, objectPosition)
+        case (Atom.Constant(x), _: Atom.Variable) => thi.getGraphs(predicate, TripleItemPosition.Subject(x))
+        case (_: Atom.Variable, Atom.Constant(x)) => thi.getGraphs(predicate, TripleItemPosition.Object(x))
         case (Atom.Constant(s), Atom.Constant(o)) => thi.getGraphs(s, predicate, o)
       }
       Atom.GraphBased(subject, predicate, `object`)(graphs)
@@ -41,7 +41,7 @@ object Atom {
     def transform(subject: Item = subject, predicate: Int = predicate, `object`: Item = `object`): Basic = Basic(subject, predicate, `object`)
   }
 
-  case class GraphBased private(subject: Atom.Item, predicate: Int, `object`: Atom.Item)(graphs: HashSet) extends Atom {
+  case class GraphBased private(subject: Atom.Item, predicate: Int, `object`: Atom.Item)(graphs: HashSet[Int]) extends Atom {
     def containsGraph(x: Int): Boolean = graphs(x)
 
     def graphsIterator: Iterator[Int] = graphs.iterator

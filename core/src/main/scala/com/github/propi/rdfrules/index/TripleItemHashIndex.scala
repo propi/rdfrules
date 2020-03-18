@@ -72,7 +72,7 @@ object TripleItemHashIndex {
 
   def apply(col: Traversable[Quad])(implicit debugger: Debugger): TripleItemHashIndex = {
     val sameAs = new Object2IntOpenHashMap[TripleItem]()
-    val map = new Int2ObjectOpenHashMap[TripleItem]()
+    val hmap = new Int2ObjectOpenHashMap[TripleItem]()
     val pmap = new Object2ObjectOpenHashMap[String, String]()
 
     /**
@@ -85,7 +85,7 @@ object TripleItemHashIndex {
       */
     def getId(x: TripleItem): (Int, Boolean) = Stream
       .iterate(x.hashCode())(_ + 1)
-      .map(i => i -> Option[TripleItem](map.get(i)))
+      .map(i => i -> Option[TripleItem](hmap.get(i)))
       .find(_._2.forall(_ == x))
       .map(x => x._1 -> x._2.nonEmpty)
       .get
@@ -97,35 +97,35 @@ object TripleItemHashIndex {
         }
         if (p.hasSameUriAs("http://www.w3.org/2002/07/owl#sameAs")) {
           val (idSubject, subjectIsAdded) = getId(s)
-          if (!subjectIsAdded) map.put(idSubject, s)
+          if (!subjectIsAdded) hmap.put(idSubject, s)
           sameAs.put(o, idSubject)
           val (idObject, objectIsAdded) = getId(o)
           if (objectIsAdded) {
             //remove existed sameAs object
-            map.remove(idObject)
+            hmap.remove(idObject)
             //if there are some holes after removing, we move all next related items by one step above
-            Stream.iterate(idObject + 1)(_ + 1).takeWhile(x => Option[TripleItem](map.get(x)).exists(_.hashCode() != x)).foreach { oldId =>
-              val item = map.get(oldId)
-              map.remove(oldId)
-              map.put(oldId - 1, item)
+            Stream.iterate(idObject + 1)(_ + 1).takeWhile(x => Option[TripleItem](hmap.get(x)).exists(_.hashCode() != x)).foreach { oldId =>
+              val item = hmap.get(oldId)
+              hmap.remove(oldId)
+              hmap.put(oldId - 1, item)
             }
           }
         } else {
           for (item <- List(s, p, o, g)) {
             if (!sameAs.containsKey(item)) {
               val (i, itemIsAdded) = getId(item)
-              if (!itemIsAdded) map.put(i, item)
+              if (!itemIsAdded) hmap.put(i, item)
             }
           }
         }
         ad.done()
       }
-      map.trim()
+      hmap.trim()
       sameAs.trim()
       pmap.trim()
     }
 
-    new TripleItemHashIndex(map, sameAs, pmap)
+    new TripleItemHashIndex(hmap, sameAs, pmap)
   }
 
 }

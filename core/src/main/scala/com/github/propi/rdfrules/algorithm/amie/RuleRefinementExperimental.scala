@@ -24,10 +24,10 @@ trait RuleRefinementExperimental extends RuleRefinement {
     * List of other items may contain both variables and constants.
     * Ex: predicate 1 -> ( subject a -> List(object b, object B1, object B2) )
     */
-  private lazy val rulePredicates: collection.Map[Int, collection.Map[TripleItemPosition, collection.Seq[Atom.Item]]] = {
-    val map = collection.mutable.HashMap.empty[Int, collection.mutable.HashMap[TripleItemPosition, collection.mutable.ListBuffer[Atom.Item]]]
+  private lazy val rulePredicates: collection.Map[Int, collection.Map[TripleItemPosition[Atom.Item], collection.Seq[Atom.Item]]] = {
+    val map = collection.mutable.HashMap.empty[Int, collection.mutable.HashMap[TripleItemPosition[Atom.Item], collection.mutable.ListBuffer[Atom.Item]]]
     for (atom <- Iterator(rule.head) ++ rule.body.iterator) {
-      for ((position, item) <- Iterable[(TripleItemPosition, Atom.Item)](atom.subjectPosition -> atom.`object`, atom.objectPosition -> atom.subject) if position.item.isInstanceOf[Atom.Variable]) {
+      for ((position, item) <- Iterable[(TripleItemPosition[Atom.Item], Atom.Item)](atom.subjectPosition -> atom.`object`, atom.objectPosition -> atom.subject) if position.item.isInstanceOf[Atom.Variable]) {
         map
           .getOrElseUpdate(atom.predicate, collection.mutable.HashMap.empty)
           .getOrElseUpdate(position, collection.mutable.ListBuffer.empty)
@@ -68,16 +68,16 @@ trait RuleRefinementExperimental extends RuleRefinement {
         // - e.g.: p(a, c) -> p(a, b) we dont count it (it has been counted in countAtomsWithExistingPredicate); p(a, c) -> p(a, B) we dont count it (redundant noisy atom)
         // - e.g.: p(a, c) -> p(b, a) - count it!
         case (`dangling`, _) => if (instantiated) {
-          predicate.get(freshAtom.objectPosition).forall(_.forall(_.isInstanceOf[Atom.Constant]))
+          predicate.get(freshAtom.objectPosition.asInstanceOf[TripleItemPosition[Atom.Item]]).forall(_.forall(_.isInstanceOf[Atom.Constant]))
         } else {
           // - e.g.: p(c, a) -> p(a, b) - count it!
-          !predicate.contains(freshAtom.objectPosition)
+          !predicate.contains(freshAtom.objectPosition.asInstanceOf[TripleItemPosition[Atom.Item]])
         }
         case (_, `dangling`) => if (instantiated) {
-          predicate.get(freshAtom.subjectPosition).forall(_.forall(_.isInstanceOf[Atom.Constant]))
+          predicate.get(freshAtom.subjectPosition.asInstanceOf[TripleItemPosition[Atom.Item]]).forall(_.forall(_.isInstanceOf[Atom.Constant]))
         } else {
           // - e.g.: p(a, c) -> p(b, a) - count it!
-          !predicate.contains(freshAtom.subjectPosition)
+          !predicate.contains(freshAtom.subjectPosition.asInstanceOf[TripleItemPosition[Atom.Item]])
         }
         //fresh atom is closed then we count this fresh atom only if:
         // - we dont want to create instantiated atom (instantiated atom is possible only for dangling fresh atom)
@@ -85,7 +85,7 @@ trait RuleRefinementExperimental extends RuleRefinement {
         // - for each these atoms all objets must not equal fresh atom object
         // - OR for this predicate there is an atom which has same object...same bahaviour
         //shortly, if fresh atom is closed and has shared item with other atom in the rule in the same position then we count it unless there is a duplicit atom
-        case _ => !instantiated && predicate.get(freshAtom.subjectPosition).forall(_.forall(_ != freshAtom.`object`)) // || predicate.get(freshAtom.objectPosition).exists(_.forall(_ != freshAtom.subject)))
+        case _ => !instantiated && predicate.get(freshAtom.subjectPosition.asInstanceOf[TripleItemPosition[Atom.Item]]).forall(_.forall(_ != freshAtom.`object`)) // || predicate.get(freshAtom.objectPosition).exists(_.forall(_ != freshAtom.subject)))
       })
     }
   }
@@ -115,11 +115,11 @@ trait RuleRefinementExperimental extends RuleRefinement {
       case (sv: Atom.Variable, Atom.Constant(oc)) =>
         //get all predicates for this object constant
         //skip all counted predicates that are included in this rule
-        tripleIndex.objects.get(oc).iterator.flatMap(_.predicates.iterator).flatMap { case (predicate, subjects) =>
+        tripleIndex.objects.get(oc).iterator.flatMap(_.predicates.iterator).flatMap { predicate =>
           //if there exists atom in rule which has same predicate and object variable and is not instationed
           // - then we dont use this fresh atom for this predicate because p(a, B) -> p(a, b) is not allowed (redundant and noisy rule)
           val instantiated = if (isWithInstances && !onlyObjectInstances && !isCounted(atom, predicate, true)) {
-            for (subject <- subjects.iterator) yield Atom(Atom.Constant(subject), predicate, atom.`object`)
+            for (subject <- tripleIndex.predicates(predicate).objects(oc).value.iterator) yield Atom(Atom.Constant(subject), predicate, atom.`object`)
           } else {
             Iterator.empty
           }
@@ -136,9 +136,9 @@ trait RuleRefinementExperimental extends RuleRefinement {
       case (Atom.Constant(sc), ov: Atom.Variable) =>
         //get all predicates for this subject constant
         //skip all counted predicates that are included in this rule
-        tripleIndex.subjects.get(sc).iterator.flatMap(_.predicates.iterator).flatMap { case (predicate, objects) =>
+        tripleIndex.subjects.get(sc).iterator.flatMap(_.predicates.iterator).flatMap { predicate =>
           val instantiated = if (isWithInstances && !isCounted(atom, predicate, true)) {
-            for (_object <- objects.iterator) yield Atom(atom.subject, predicate, Atom.Constant(_object))
+            for (_object <- tripleIndex.predicates(predicate).subjects(sc).value.keysIterator) yield Atom(atom.subject, predicate, Atom.Constant(_object))
           } else {
             Iterator.empty
           }
@@ -327,7 +327,7 @@ trait RuleRefinementExperimental extends RuleRefinement {
       *
       * @param variablePosition position of this variable (subject or object)
       */
-    def countDanglingFreshAtom(variablePosition: TripleItemPosition) = {
+    def countDanglingFreshAtom(variablePosition: TripleItemPosition[Atom.Item]) = {
       //filter for all atoms within the rule
       //atom subject = fresh atom subject OR atom object = fresh atom object
       val filterAtoms: Atom => Boolean = variablePosition match {
@@ -362,13 +362,13 @@ trait RuleRefinementExperimental extends RuleRefinement {
 
 object RuleRefinementExperimental {
 
-  implicit class PimpedRule(extendedRule: ExtendedRule)(implicit tripleHashIndex: TripleHashIndex, settings: Settings) {
+  implicit class PimpedRule(extendedRule: ExtendedRule)(implicit tripleHashIndex: TripleHashIndex[Int], settings: Settings) {
     def refine: Iterator[ExtendedRule] = {
       val _settings = settings
       new RuleRefinementExperimental {
         val rule: ExtendedRule = extendedRule
         val settings: Settings = _settings
-        val tripleIndex: TripleHashIndex = implicitly[TripleHashIndex]
+        val tripleIndex: TripleHashIndex[Int] = implicitly[TripleHashIndex[Int]]
       }.refine
     }
   }

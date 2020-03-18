@@ -14,7 +14,7 @@ import scala.collection.parallel.ForkJoinTaskSupport
   */
 trait HeadsFetcher extends AtomCounting {
 
-  implicit val tripleIndex: TripleHashIndex
+  implicit val tripleIndex: TripleHashIndex[Int]
   implicit val settings: RuleRefinement.Settings
   implicit val forAtomMatcher: AtomPatternMatcher[Atom]
 

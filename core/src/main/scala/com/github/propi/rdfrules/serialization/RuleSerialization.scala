@@ -12,6 +12,8 @@ import com.github.propi.rdfrules.utils.TypedKeyMap
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 import com.github.propi.rdfrules.utils.serialization.Serializer._
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet
+import scala.collection.JavaConverters._
 
 import scala.language.implicitConversions
 
@@ -59,7 +61,21 @@ object RuleSerialization {
   implicit val atomGraphBasedDeserializer: Deserializer[Atom.GraphBased] = (v: Array[Byte]) => {
     val bais = new ByteArrayInputStream(v)
     val (atom, graphs) = Deserializer.deserialize[(Atom.Basic, Traversable[Int])](bais)
-    val graphsSet = new MutableHashSet
+    val graphsSet: MutableHashSet[Int] = new MutableHashSet[Int] {
+      private val hset = new IntOpenHashSet()
+
+      def +=(x: Int): Unit = hset.add(x)
+
+      def iterator: Iterator[Int] = hset.iterator().asScala.asInstanceOf[Iterator[Int]]
+
+      def apply(x: Int): Boolean = hset.contains(x)
+
+      def size: Int = hset.size()
+
+      def trim(): Unit = hset.trim()
+
+      def isEmpty: Boolean = hset.isEmpty
+    }
     graphs.foreach(graphsSet += _)
     Atom.GraphBased(atom.subject, atom.predicate, atom.`object`)(graphsSet)
   }

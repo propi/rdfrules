@@ -22,7 +22,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
     val index = Index.apply(dataset1)
     index.toDataset shouldBe dataset1
     index.newIndex.toDataset shouldBe dataset1
-    MemoryMeasurer.measureBytes(index) should be(600L +- 100)
+    MemoryMeasurer.measureBytes(index) should be(700L +- 100)
     index.tripleItemMap { tihi =>
       val items = dataset1.take(5).quads.flatMap(x => List(x.triple.subject, x.triple.predicate, x.triple.`object`)).toList
       for (item <- items) {
@@ -42,12 +42,12 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
 
   it should "create from dataset and load index" in {
     val index = Index.apply(dataset1)
-    MemoryMeasurer.measureBytes(index) should be(600L +- 100)
+    MemoryMeasurer.measureBytes(index) should be(700L +- 100)
     index.tripleMap { thi =>
       thi.size shouldBe dataset1.size
     }
     val mem = MemoryMeasurer.measureBytes(index)
-    mem should be(59000000L +- 1000000)
+    mem should be(41000000L +- 1000000)
     val cq = index.tripleItemMap { implicit tim =>
       dataset1.quads.head.toCompressedQuad
     }
@@ -58,17 +58,16 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
       thi.predicates(cq.predicate).objects(cq.`object`).graphs(cq.graph) shouldBe false
       thi.getGraphs(cq.predicate)(cq.graph) shouldBe true
       thi.predicates(cq.predicate).objects(cq.`object`)(cq.subject) shouldBe true
-      thi.subjects(cq.subject).predicates(cq.predicate)(cq.`object`) shouldBe true
+      thi.subjects(cq.subject).predicates(cq.predicate) shouldBe true
       thi.subjects(cq.subject).objects(cq.`object`)(cq.predicate) shouldBe true
-      thi.objects(cq.`object`).predicates(cq.predicate)(cq.subject) shouldBe true
-      thi.objects(cq.`object`).subjects(cq.subject)(cq.predicate) shouldBe true
+      thi.objects(cq.`object`).predicates(cq.predicate) shouldBe true
     }
     MemoryMeasurer.measureBytes(index) shouldBe mem
   }
 
   it should "load dataset with more graphs" in {
     val index = Index.apply(dataset2)
-    MemoryMeasurer.measureBytes(index) should be(2500L +- 500)
+    MemoryMeasurer.measureBytes(index) should be(3000L +- 500)
     index.tripleItemMap { tihi =>
       tihi.iterator.size shouldBe 72263
       tihi.iterator.size shouldBe dataset2.quads.flatMap(x => List(x.graph, x.triple.subject, x.triple.predicate, x.triple.`object`)).toSet.size
@@ -78,7 +77,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
       thi.size shouldBe dataset2.size
     }
     val indexMemory1 = MemoryMeasurer.measureBytes(index)
-    indexMemory1 should be(110000000L +- 5000000)
+    indexMemory1 should be(80041320L +- 5000000)
     val index2 = index.withEvaluatedLazyVals
     val indexMemory2 = MemoryMeasurer.measureBytes(index2)
     indexMemory1 should be < indexMemory2
@@ -97,7 +96,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
       thi.getGraphs(cq.predicate).iterator.toList should contain only cq.graph
       thi.getGraphs(0).iterator.toList should contain only cq.graph
       thi.getGraphs(cq.subject, cq.predicate, cq.`object`).iterator.toList should contain only cq.graph
-      thi.getGraphs(cq.predicate, TripleItemPosition.Subject(Atom.Constant(cq.subject))).iterator.toList should contain only cq.graph
+      thi.getGraphs(cq.predicate, TripleItemPosition.Subject(cq.subject)).iterator.toList should contain only cq.graph
     }
     val index2 = Index.apply(dataset2)
     val cq2 = index2.tripleItemMap { implicit tim =>
@@ -109,7 +108,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
         thi.getGraphs(cq.predicate).iterator.toList should contain only cq.graph
         an[NoSuchElementException] should be thrownBy thi.getGraphs(0)
         thi.getGraphs(cq.subject, cq.predicate, cq.`object`).iterator.toList should contain only cq.graph
-        thi.getGraphs(cq.predicate, TripleItemPosition.Subject(Atom.Constant(cq.subject))).iterator.toList should contain only cq.graph
+        thi.getGraphs(cq.predicate, TripleItemPosition.Subject(cq.subject)).iterator.toList should contain only cq.graph
       }
     }
   }
@@ -150,7 +149,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
   it should "be loaded from cache with inUseInMemory mode" in {
     val index = Index.fromCache(new BufferedInputStream(new FileInputStream("test.index")), Index.Mode.InUseInMemory)
     val mem = MemoryMeasurer.measureBytes(index)
-    mem should be(250L +- 10)
+    mem should be(270L +- 10)
     val dsize = dataset2.size
     index.toDataset.size shouldBe dsize
     MemoryMeasurer.measureBytes(index) should be(mem +- 150)

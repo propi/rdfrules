@@ -55,7 +55,7 @@ object RuleFilter {
     *
     * @param rule original rule (without refinement)
     */
-  class RulePatternFilter(rule: ExtendedRule)(implicit thi: TripleHashIndex, atomMatcher: AtomPatternMatcher[Atom], freshAtomMatcher: AtomPatternMatcher[FreshAtom]) extends RuleFilter {
+  class RulePatternFilter(rule: ExtendedRule)(implicit thi: TripleHashIndex[Int], atomMatcher: AtomPatternMatcher[Atom], freshAtomMatcher: AtomPatternMatcher[FreshAtom]) extends RuleFilter {
     /**
       * Patterns for remaining fresh atoms which can be added to this rule
       */
@@ -119,7 +119,7 @@ object RuleFilter {
     */
   class NoRepeatedGroups(withDuplicitPredicates: Boolean,
                          atoms: Set[Atom],
-                         rulePredicates: collection.Map[Int, collection.Map[TripleItemPosition, collection.Seq[Atom.Item]]]) extends RuleFilter {
+                         rulePredicates: collection.Map[Int, collection.Map[TripleItemPosition[Atom.Item], collection.Seq[Atom.Item]]]) extends RuleFilter {
 
     /**
       * We apply this filter only if we have allowed duplicit predicates and number of atoms is greater or equal 3
@@ -134,10 +134,10 @@ object RuleFilter {
       else atom
     }
 
-    private def hasRedundantComplement(itemPosition: TripleItemPosition)
+    private def hasRedundantComplement(itemPosition: TripleItemPosition[Atom.Item])
                                       (implicit
-                                       itemPositionToReplacement: TripleItemPosition => Atom.Item,
-                                       p: collection.Map[TripleItemPosition, collection.Seq[Atom.Item]]) = {
+                                       itemPositionToReplacement: TripleItemPosition[Atom.Item] => Atom.Item,
+                                       p: collection.Map[TripleItemPosition[Atom.Item], collection.Seq[Atom.Item]]) = {
       val replacement = itemPositionToReplacement(itemPosition)
       p.get(itemPosition).exists(_.exists(o => atoms.map(replaceItemInAtom(o, replacement)).size < atoms.size))
     }
@@ -157,9 +157,9 @@ object RuleFilter {
           //then we replace these object items by object item in new atom in all atoms: replace b item by d => p(c,d) p(c,d) -> p(a,d)
           //if there are some duplicit atoms, then we found isomorphic group and we return true
           //do same for object item!
-          implicit val replacement: TripleItemPosition => Atom.Item = {
-            case _: TripleItemPosition.Subject => newAtom.`object`
-            case _: TripleItemPosition.Object => newAtom.subject
+          implicit val replacement: TripleItemPosition[Atom.Item] => Atom.Item = {
+            case TripleItemPosition.Subject(_) => newAtom.`object`
+            case TripleItemPosition.Object(_) => newAtom.subject
           }
           hasRedundantComplement(newAtom.subjectPosition) || hasRedundantComplement(newAtom.objectPosition)
         }

@@ -12,14 +12,14 @@ trait PreservedInMemory extends Buildable {
   private lazy val thi = buildTripleHashIndex
   private lazy val tihi = buildTripleItemHashIndex
 
-  def tripleMap[T](f: TripleHashIndex => T): T = f(thi)
+  def tripleMap[T](f: TripleHashIndex[Int] => T): T = f(thi)
 
   def tripleItemMap[T](f: TripleItemHashIndex => T): T = f(tihi)
 
   def withEvaluatedLazyVals: Index = new IndexDecorator(this) {
     private var thiEvaluated = false
 
-    override def tripleMap[T](f: TripleHashIndex => T): T = super.tripleMap { thi =>
+    override def tripleMap[T](f: TripleHashIndex[Int] => T): T = super.tripleMap { thi =>
       if (!thiEvaluated) {
         thi.evaluateAllLazyVals()
         thiEvaluated = true

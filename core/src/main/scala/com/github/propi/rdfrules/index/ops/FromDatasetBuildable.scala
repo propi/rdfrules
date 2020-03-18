@@ -9,8 +9,13 @@ trait FromDatasetBuildable extends Buildable {
 
   self: Index =>
 
-  protected def buildTripleHashIndex: TripleHashIndex = self.tripleItemMap { implicit tihi =>
-    TripleHashIndex(toDataset.quads)
+  protected def buildTripleHashIndex: TripleHashIndex[Int] = self.tripleItemMap { implicit tihi =>
+    TripleHashIndex(toDataset.quads.map(q => new TripleHashIndex.Quad(
+      tihi.getIndex(q.triple.subject),
+      tihi.getIndex(q.triple.predicate),
+      tihi.getIndex(q.triple.`object`),
+      tihi.getIndex(q.graph)
+    )))
   }
 
   protected def buildTripleItemHashIndex: TripleItemHashIndex = TripleItemHashIndex(toDataset.quads)

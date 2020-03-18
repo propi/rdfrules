@@ -13,7 +13,7 @@ class IndexDecorator(index: Index) extends Index {
 
   implicit val debugger: Debugger = index.debugger
 
-  def tripleMap[T](f: TripleHashIndex => T): T = index.tripleMap(f)
+  def tripleMap[T](f: TripleHashIndex[Int] => T): T = index.tripleMap(f)
 
   def tripleItemMap[T](f: TripleItemHashIndex => T): T = index.tripleItemMap(f)
 

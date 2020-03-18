@@ -3,14 +3,14 @@ package com.github.propi.rdfrules.rule
 /**
   * Created by Vaclav Zeman on 2. 1. 2018.
   */
-sealed trait TripleItemPosition {
-  val item: Atom.Item
+sealed trait TripleItemPosition[+T] {
+  val item: T
 }
 
 object TripleItemPosition {
 
-  case class Subject(item: Atom.Item) extends TripleItemPosition
+  case class Subject[T](item: T) extends TripleItemPosition[T]
 
-  case class Object(item: Atom.Item) extends TripleItemPosition
+  case class Object[T](item: T) extends TripleItemPosition[T]
 
 }

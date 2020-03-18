@@ -15,7 +15,7 @@ trait Index {
 
   implicit val debugger: Debugger
 
-  def tripleMap[T](f: TripleHashIndex => T): T
+  def tripleMap[T](f: TripleHashIndex[Int] => T): T
 
   def tripleItemMap[T](f: TripleItemHashIndex => T): T
 

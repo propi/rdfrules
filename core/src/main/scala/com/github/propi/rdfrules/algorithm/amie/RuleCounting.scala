@@ -176,6 +176,6 @@ trait RuleCounting extends AtomCounting {
 
 object RuleCounting {
 
-  implicit class PimpedClosedRule(val rule: Rule.Simple)(implicit val tripleIndex: TripleHashIndex) extends RuleCounting
+  implicit class PimpedClosedRule(val rule: Rule.Simple)(implicit val tripleIndex: TripleHashIndex[Int]) extends RuleCounting
 
 }
