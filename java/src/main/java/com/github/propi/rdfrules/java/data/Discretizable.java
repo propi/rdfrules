@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.java.data;
 
+import com.github.propi.rdfrules.java.IterableWrapper;
 import eu.easyminer.discretization.Interval;
 
 import java.util.function.Predicate;
@@ -11,8 +12,8 @@ public interface Discretizable<SColl, JColl> extends QuadsOps<SColl, JColl> {
 
     com.github.propi.rdfrules.data.ops.Discretizable<SColl> asScala();
 
-    default Interval[] discretizeAndGetIntervals(DiscretizationTask task, Predicate<Quad> f) {
-        return asScala().discretizeAndGetIntervals(task.asScala(), x -> f.test(new Quad(x)));
+    default java.lang.Iterable<? extends Interval> discretizeAndGetIntervals(DiscretizationTask task, Predicate<Quad> f) {
+        return new IterableWrapper<>(asScala().discretizeAndGetIntervals(task.asScala(), x -> f.test(new Quad(x)))).asJava();
     }
 
     default JColl discretize(DiscretizationTask task, Predicate<Quad> f) {

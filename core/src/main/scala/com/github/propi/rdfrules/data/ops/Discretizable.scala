@@ -21,8 +21,8 @@ trait Discretizable[Coll] extends QuadsOps[Coll] {
     * @param f    filter for selection of quads to discretize
     * @return intervals
     */
-  def discretizeAndGetIntervals(task: DiscretizationTask)(f: Quad => Boolean): Array[Interval] = {
-    def makeSortedTraversable(col: Traversable[Double], mode: DiscretizationTask.Mode)(f: ReversableSortedTraversable[Double] => Array[Interval]): Array[Interval] = mode match {
+  def discretizeAndGetIntervals(task: DiscretizationTask)(f: Quad => Boolean): IndexedSeq[Interval] = {
+    def makeSortedTraversable(col: Traversable[Double], mode: DiscretizationTask.Mode)(f: ReversableSortedTraversable[Double] => IndexedSeq[Interval]): IndexedSeq[Interval] = mode match {
       case DiscretizationTask.Mode.InMemory => f(SortedInMemoryNumericTraversable(col, task.getBufferSize))
       case DiscretizationTask.Mode.External => SortedPersistentNumericTraversable(col, Discretizable.tempDirectory, task.getBufferSize)(f)
     }
