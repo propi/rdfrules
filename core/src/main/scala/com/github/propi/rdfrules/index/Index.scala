@@ -57,7 +57,7 @@ object Index {
     trait ConcreteIndex extends Index with Cacheable with FromDatasetBuildable {
       implicit val debugger: Debugger = _debugger
 
-      override def toDataset: Dataset = _dataset
+      protected val dataset: Dataset = _dataset
 
       def newIndex: Index = apply(_dataset, mode)
     }

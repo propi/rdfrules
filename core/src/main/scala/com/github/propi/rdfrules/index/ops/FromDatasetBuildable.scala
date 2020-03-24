@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.index.ops
 
+import com.github.propi.rdfrules.data.Dataset
 import com.github.propi.rdfrules.index.{Index, TripleHashIndex, TripleItemHashIndex}
 
 /**
@@ -9,8 +10,10 @@ trait FromDatasetBuildable extends Buildable {
 
   self: Index =>
 
+  protected val dataset: Dataset
+
   protected def buildTripleHashIndex: TripleHashIndex[Int] = self.tripleItemMap { implicit tihi =>
-    TripleHashIndex(toDataset.quads.map(q => new TripleHashIndex.Quad(
+    TripleHashIndex(dataset.quads.map(q => new TripleHashIndex.Quad(
       tihi.getIndex(q.triple.subject),
       tihi.getIndex(q.triple.predicate),
       tihi.getIndex(q.triple.`object`),
@@ -18,6 +21,6 @@ trait FromDatasetBuildable extends Buildable {
     )))
   }
 
-  protected def buildTripleItemHashIndex: TripleItemHashIndex = TripleItemHashIndex(toDataset.quads)
+  protected def buildTripleItemHashIndex: TripleItemHashIndex = TripleItemHashIndex(dataset.quads)
 
 }

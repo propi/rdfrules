@@ -35,6 +35,7 @@ trait Discretizable[Coll] extends QuadsOps[Coll] {
       case _: DiscretizationTask.Equidistance => dis.discretize(col)
       case x: DiscretizationTask.Equifrequency => makeSortedTraversable(col, x.mode)(rst => dis.discretize(rst))
       case x: DiscretizationTask.Equisize => makeSortedTraversable(col, x.mode)(rst => dis.discretize(rst))
+      case _: DiscretizationTask.EquisizeTree => makeSortedTraversable(col, DiscretizationTask.Mode.InMemory)(rst => dis.discretize(rst))
     }
   }
 

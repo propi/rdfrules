@@ -180,7 +180,7 @@ abstract public class TripleItem {
 
         public Interval(eu.easyminer.discretization.Interval interval) {
             this(new com.github.propi.rdfrules.data.TripleItem.Interval(
-                    new eu.easyminer.discretization.impl.Interval(
+                    new eu.easyminer.discretization.impl.Interval.Simple(
                             interval.isLeftBoundClosed() ? new IntervalBound.Inclusive(interval.getLeftBoundValue()) : new IntervalBound.Exclusive(interval.getLeftBoundValue()),
                             interval.isRightBoundClosed() ? new IntervalBound.Inclusive(interval.getRightBoundValue()) : new IntervalBound.Exclusive(interval.getRightBoundValue())
                     )

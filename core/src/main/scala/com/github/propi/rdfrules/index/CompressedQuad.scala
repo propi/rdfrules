@@ -6,7 +6,9 @@ import com.github.propi.rdfrules.data.{Quad, Triple, TripleItem}
 /**
   * Created by Vaclav Zeman on 12. 3. 2018.
   */
-case class CompressedQuad(subject: Int, predicate: Int, `object`: Int, graph: Int)
+case class CompressedQuad(subject: Int, predicate: Int, `object`: Int, graph: Int) {
+  def toIndexedQuad: TripleHashIndex.Quad[Int] = new TripleHashIndex.Quad[Int](subject, predicate, `object`, graph)
+}
 
 object CompressedQuad {
 
