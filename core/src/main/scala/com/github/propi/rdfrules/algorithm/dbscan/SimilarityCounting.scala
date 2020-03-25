@@ -52,12 +52,39 @@ object SimilarityCounting {
     }
 
     def apply(rule1: Rule, rule2: Rule): Double = {
-      val maxMatches = (math.max(rule1.body.size, rule2.body.size) + 1) * 3
+      //select mainRule and secondRule where mainRule.length >= secondRule.length
       val (mainRule, secondRule) = if (rule1.body.size > rule2.body.size) (rule1, rule2) else (rule2, rule1)
-      val similarity = (Iterator(mainRule.head) ++ mainRule.body.iterator).map { atom1 =>
-        (Iterator(secondRule.head) ++ secondRule.body.iterator).map(atom2 => atomsSimilarity(atom1, atom2)).max
-      }.sum
-      similarity / maxMatches
+      //number of all atom items in longest rule
+      val maxMatches = mainRule.ruleLength * 3
+      //count all possible similarity combinations between atoms in rule1 and atoms in rule2
+      //the result is matrix mainRule.length * secondRule.length
+      val index = (Iterator(mainRule.head) ++ mainRule.body.iterator).map { atom1 =>
+        (Iterator(secondRule.head) ++ secondRule.body.iterator).map(atom2 => atomsSimilarity(atom1, atom2)).toIndexedSeq
+      }.toIndexedSeq
+      //for each atom of the mainRule find max similarity with an atom of the secondRule
+      val mainAtomMaxSims = index.map(_.max)
+      //create a set of indices of the mainRule atoms for faster enum of rest atoms
+      //val mainRuleIndices = index.indices.toSet
+      //1. for the mainRule enum all combinations with length of the secondRule
+      //e.g. for mainRule atoms (A, B, C) make combinations (AB, AC, BC)
+      //2. for each combination make permutations
+      //e.g. (AB, AC, BC) -> (AB, BA, AC, CA, BC, CB)
+      //3. if the second rule atoms are (X, Y) then for each permutation count similarities and sum them
+      //e.g. sim(A, X) + sim(B, Y), sim(B, X) + sim(A, Y), sim(A, X) + sim(C, Y), sim(C, X) + sim(A, Y), sim(B, X) + sim(C, Y), sim(C, X) + sim(B, Y)
+      //4. at the each similarity of the each permutation add max similarity of the remaining atoms of the mainRule
+      //e.g. sim(A, X) + sim(B, Y) + max(sim(C, X), sim(C, Y)), sim(B, X) + sim(A, Y) + max(sim(C, X), sim(C, Y)), sim(A, X) + sim(C, Y) + max(sim(B, X), sim(B, Y)), ...
+      //5. finally select the max similarity from permutations
+      val maxSimilarity = index.indices.combinations(secondRule.ruleLength).flatMap(_.permutations).map { mainPermutation =>
+        val (rlist, msim) = mainPermutation.iterator.zipWithIndex.map {
+          case (i, j) => i -> index(i)(j)
+        }.foldLeft(List.empty[Int] -> 0.0) {
+          case ((rlist, sum), (i, sim)) => (i :: rlist) -> (sum + sim)
+        }
+        val ssim = index.indices.iterator.filter(!rlist.contains(_)).map(mainAtomMaxSims(_)).sum
+        msim + ssim
+      }.max
+      //to get range between 0-1 we need to normalize maxSimilarity by number of atom items in mainRule
+      maxSimilarity / maxMatches
     }
 
   }
