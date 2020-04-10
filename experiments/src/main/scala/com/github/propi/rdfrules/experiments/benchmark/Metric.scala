@@ -103,6 +103,24 @@ object Metric {
     }
   }
 
+  case class ClustersSimilarities(name: String, matrix: IndexedSeq[IndexedSeq[Double]]) extends Complex {
+    private lazy val dunnIndex = {
+      val (minInter, maxIntra) = (for {
+        (row, c1) <- matrix.iterator.zipWithIndex
+        (value, c2) <- row.iterator.zipWithIndex
+      } yield {
+        (if (c1 == c2) 1.0 else 1 - value) -> (if (c1 == c2) 1 - value else 0.0)
+      }).reduce((x, y) => math.min(x._1, y._1) -> math.max(x._2, y._2))
+      minInter / maxIntra
+    }
+
+    def doubleValue: Double = dunnIndex
+
+    def getSimple: Simple = Number(name, doubleValue)
+
+    override def toString: String = s"score: $doubleValue, matrix: \n" + matrix.iterator.map(_.mkString(", ")).mkString("\n")
+  }
+
   case class Stats(avg: Simple, stdDev: Simple, min: Simple, max: Simple) extends Complex {
     val name: String = avg.name
 
@@ -150,6 +168,7 @@ object Metric {
   val basicStringifier: Stringifier[Metric] = {
     case x: Simple => s"${x.name}: ${x.prettyValue}"
     case x: Complex => x match {
+      case x: ClustersSimilarities => x.toString
       case Stats(avg, stdDev, min, max) => s"${x.name}: ${avg.prettyValue} (stdDev: ${stdDev.prettyValue}, min: ${min.prettyValue}, max: ${max.prettyValue})"
       case Comparison(metric, absDiff, relDiff) => Stringifier(metric)(basicStringifier) + ", " + Stringifier(absDiff)(signSimpleStringifier) + s" (${Stringifier[Metric](Number("", relDiff * 100))(signSimpleStringifier)}%)"
     }

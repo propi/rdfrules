@@ -13,6 +13,18 @@ object Benchmark {
     def executeTask[I, O](task: Task[I, _, _, O]): (String, Stream[Task[I, _, _, O]]) = task.name -> Stream.fill(x)(task)
   }
 
+  object Once {
+    def executeTask[I, O](task: Task[I, _, _, O]): (String, Task[I, _, _, O]) = task.name -> task
+  }
+
+  implicit class PimpedTask[I, O](taskStream: (String, Task[I, _, _, O])) {
+    def withInput(input: I)
+                 (implicit m2: O => Seq[Metric]): (String, Seq[Metric]) = {
+      val (gm, om) = taskStream._2.execute(input)
+      taskStream._1 -> (gm ++ m2(om))
+    }
+  }
+
   implicit class PimpedTaskStream[I, O](taskStream: (String, Stream[Task[I, _, _, O]])) {
     def withInput(input: I)
                  (implicit m2: O => Seq[Metric]): (String, Stream[Seq[Metric]]) = {

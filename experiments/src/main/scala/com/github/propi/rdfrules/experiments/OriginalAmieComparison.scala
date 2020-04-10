@@ -7,7 +7,7 @@ import com.github.propi.rdfrules.data.{Graph, TripleItem}
 import com.github.propi.rdfrules.experiments.benchmark.Benchmark._
 import com.github.propi.rdfrules.experiments.benchmark.MetricResultProcessor.BasicPrinter
 import com.github.propi.rdfrules.experiments.benchmark.MetricsAggregator.StatsAggregator
-import com.github.propi.rdfrules.experiments.benchmark.RulesTaskPostprocessor
+import com.github.propi.rdfrules.experiments.benchmark.{ClusterDistancesTaskPostprocessor, Metric, RulesTaskPostprocessor}
 import com.github.propi.rdfrules.experiments.benchmark.tasks._
 import com.github.propi.rdfrules.rule.{AtomPattern, RuleConstraint, Threshold}
 import com.github.propi.rdfrules.ruleset.ResolvedRule
@@ -80,6 +80,7 @@ object OriginalAmieComparison {
     options.addOption("runcores", false, "run scalability test")
     options.addOption("runpatterns", false, "run patterns test")
     options.addOption("runconfidence", false, "run confidence counting test")
+    options.addOption("runclusters", false, "run clusters test")
 
     options.addOption("rdfrulesonly", false, "run only rdf rules tests")
     options.addOption("amieonly", false, "run only amie+ tests")
@@ -199,6 +200,10 @@ object OriginalAmieComparison {
           val rules = index.mine(Amie().addConstraint(RuleConstraint.WithInstances(true)).addThreshold(Threshold.TopK(10000))).cache
           xTimes executeTask new ConfidenceRdfRules[IndexedSeq[ResolvedRule]]("RDFRules: confidence counting, minPcaConfidence=0.1, input 10000 rules with constants", 0, 0.1, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput rules andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
           xTimes executeTask new ConfidenceRdfRules[IndexedSeq[ResolvedRule]]("RDFRules: confidence counting, minPcaConfidence=0.1, input 10000 rules with constants, topK=100", 0, 0.1, topK = 100, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput rules andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
+        }
+        if (cli.hasOption("runclusters")) {
+          val rules = index.mine(Amie().addConstraint(RuleConstraint.WithInstances(true)).addThreshold(Threshold.TopK(10000))).cache
+          Once executeTask new ClusteringRdfRules[Seq[Metric]]("RDFRules: clustering, minSim = 0.8", 2, 0.8, numberOfThreads) with ClusterDistancesTaskPostprocessor withInput rules andFinallyProcessResultWith BasicPrinter()
         }
         //mined rules
         /*
