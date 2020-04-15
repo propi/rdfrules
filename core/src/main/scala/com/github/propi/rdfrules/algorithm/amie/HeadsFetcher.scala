@@ -32,7 +32,7 @@ trait HeadsFetcher extends AtomCounting {
   def getHeads: Vector[DanglingRule] = {
     //enumerate all possible head atoms with variables and instances
     //all unsatisfied predicates are filtered by constraints
-    val logicalHeads = tripleIndex.predicates.keysIterator.filter(settings.isValidPredicate).map(Atom(Atom.Variable(0), _, Atom.Variable(1))).toVector.par
+    val logicalHeads = tripleIndex.predicates.keysIterator.filter(settings.isValidPredicate).map(Atom(Atom.Variable(0), _, Atom.Variable(1))).filter(settings.test).toVector.par
     logicalHeads.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(settings.parallelism))
     logicalHeads.flatMap { logicalHead =>
       val possibleAtoms = if (settings.isWithInstances) {
@@ -46,7 +46,7 @@ trait HeadsFetcher extends AtomCounting {
           specifySubject(logicalHead).map(_.transform(`object` = Atom.Variable(0)))
         }
         val it2 = specifyObject(logicalHead)
-        Iterator(logicalHead) ++ it1 ++ it2
+        Iterator(logicalHead) ++ (it1 ++ it2).filter(settings.test)
       } else {
         Iterator(logicalHead)
       }

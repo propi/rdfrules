@@ -20,7 +20,7 @@ class ClusteringRdfRules[T](val name: String,
   protected def preProcess(input: Ruleset): Ruleset = input
 
   protected def taskBody(input: Ruleset): Ruleset = {
-    input.makeClusters(DbScan(minNeigbours, minSimilarity, numberOfThreads)(AtomsSimilarityCounting, debugger))
+    input.makeClusters(DbScan(minNeigbours, minSimilarity, numberOfThreads)(AtomsSimilarityCounting, debugger)).cache
   }
 
 }

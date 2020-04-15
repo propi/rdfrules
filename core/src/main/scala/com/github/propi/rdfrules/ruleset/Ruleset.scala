@@ -73,6 +73,8 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
 
   def foreach(f: ResolvedRule => Unit): Unit = resolvedRules.foreach(f)
 
+  def coveredTriples(part: CoveredTriples.Part = CoveredTriples.Part.Whole, distinct: Boolean = true): Traversable[CoveredTriples] = rules.view.map(CoveredTriples(_, part, index, distinct))
+
   def headResolved: ResolvedRule = resolvedRules.head
 
   def headResolvedOption: Option[ResolvedRule] = resolvedRules.headOption

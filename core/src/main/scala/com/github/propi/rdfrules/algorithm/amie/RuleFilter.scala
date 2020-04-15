@@ -48,6 +48,19 @@ object RuleFilter {
     }
   }
 
+  class RuleConstraints(rule: Rule, constraints: Seq[RuleConstraint.MappedFilter]) extends RuleFilter {
+    /**
+      * Check whether a new atom can be added to a rule
+      *
+      * @param newAtom new atom to be added
+      * @param support new support for the rule with the new atom
+      * @return true = atom can be added
+      */
+    def apply(newAtom: Atom, support: Int): FilterResult = constraints.forall(_.test(newAtom, Some(rule)))
+
+    override def isDefined: Boolean = constraints.nonEmpty
+  }
+
   /**
     * Filter atoms by rule patterns.
     * If the rule patterns collections is empty or all paterns all exact and matched then this filter is not defined.

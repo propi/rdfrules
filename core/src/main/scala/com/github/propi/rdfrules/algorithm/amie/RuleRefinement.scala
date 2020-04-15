@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.algorithm.RulesMining
-import com.github.propi.rdfrules.algorithm.amie.RuleFilter.{MinSupportRuleFilter, NoDuplicitRuleFilter, NoRepeatedGroups, RulePatternFilter}
+import com.github.propi.rdfrules.algorithm.amie.RuleFilter.{MinSupportRuleFilter, NoDuplicitRuleFilter, NoRepeatedGroups, RuleConstraints, RulePatternFilter}
 import com.github.propi.rdfrules.index.{TripleHashIndex, TripleItemHashIndex}
 import com.github.propi.rdfrules.rule.ExtendedRule.{ClosedRule, DanglingRule}
 import com.github.propi.rdfrules.rule._
@@ -171,7 +171,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       if (logger.underlying.isTraceEnabled) logger.trace("Rule expansion " + Stringifier[Rule](rule) + ": total projections = " + projections.size)
       //filter all projections by minimal support and remove all duplicit projections
       //then create new rules from all projections (atoms)
-      val ruleFilter = new MinSupportRuleFilter(minSupport) & new NoDuplicitRuleFilter(rule.head, bodySet) & new NoRepeatedGroups(withDuplicitPredicates, bodySet + rule.head, rulePredicates) & patternFilter
+      val ruleFilter = new MinSupportRuleFilter(minSupport) & new NoDuplicitRuleFilter(rule.head, bodySet) & new NoRepeatedGroups(withDuplicitPredicates, bodySet + rule.head, rulePredicates) & patternFilter & new RuleConstraints(rule, filters)
       projections.iterator.map(x => x -> ruleFilter(x._1, x._2.getValue)).filter(_._2._1).map { case ((atom, support), (_, f)) =>
         val newRule = expand(atom, support.getValue)
         f.map(_ (newRule)).getOrElse(newRule)
@@ -410,9 +410,18 @@ object RuleRefinement {
     val maxRuleLength: Int = rulesMining.thresholds.apply[Threshold.MaxRuleLength].value
     val withDuplicitPredicates: Boolean = !rulesMining.constraints.exists[RuleConstraint.WithoutDuplicitPredicates]
     val onlyObjectInstances: Boolean = rulesMining.constraints.get[RuleConstraint.WithInstances].exists(_.onlyObjects)
+    val filters: List[RuleConstraint.MappedFilter] = rulesMining.constraints.iterator.collect {
+      case filter: RuleConstraint.Filter => filter.mapped
+    }.toList
 
     private val onlyPredicates = rulesMining.constraints.get[RuleConstraint.OnlyPredicates].map(_.mapped)
     private val withoutPredicates = rulesMining.constraints.get[RuleConstraint.WithoutPredicates].map(_.mapped)
+
+    def test(newAtom: Atom, rule: Option[Rule]): Boolean = filters.forall(_.test(newAtom, rule))
+
+    def test(newAtom: Atom, rule: Rule): Boolean = test(newAtom, Some(rule))
+
+    def test(newAtom: Atom): Boolean = test(newAtom, None)
 
     def isValidPredicate(predicate: Int): Boolean = onlyPredicates.forall(_ (predicate)) && withoutPredicates.forall(!_ (predicate))
 

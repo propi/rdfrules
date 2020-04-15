@@ -66,7 +66,7 @@ class IndexOps private(implicit mapper: TripleItemHashIndex, thi: TripleHashInde
     @scala.annotation.tailrec
     def addLevelToIndex(level: Int, intervals: Iterable[DiscretizedTree]): Unit = {
       if (intervals.nonEmpty) {
-        val suffix = "_discretized_level" + level
+        val suffix = "_discretized_level_" + level
         val newPredicate = buildPredicate(suffix)
         for {
           quad <- predicateQuads

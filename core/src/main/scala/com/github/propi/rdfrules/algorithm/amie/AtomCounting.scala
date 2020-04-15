@@ -181,7 +181,29 @@ trait AtomCounting {
   def selectDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], variableMap: VariableMap): Iterator[Seq[Atom.Constant]] = {
     val foundPairs = collection.mutable.Set.empty[Seq[Atom.Constant]]
 
-    def sdp(atoms: Set[Atom], headVars: Seq[Atom.Variable], variableMap: VariableMap): Iterator[Seq[Atom.Constant]] = {
+    //TODO check it. This is maybe better solution to choose best atom but it must be tested!
+    /*def chooseBestAtom(atoms: Set[Atom], variableMap: VariableMap): Atom = {
+      val notMappedVars = headVars.filter(!variableMap.contains(_))
+      val bestsAfterFirstRound = collection.mutable.ListBuffer.empty[Atom]
+      var bestScore = 0
+      for (atom <- atoms) {
+        val score = notMappedVars.count(headVar => headVar == atom.subject || headVar == atom.`object`)
+        if (score > bestScore) {
+          bestsAfterFirstRound.clear()
+          bestsAfterFirstRound += atom
+          bestScore = score
+        } else if (score == bestScore) {
+          bestsAfterFirstRound += atom
+        }
+      }
+      if (bestsAfterFirstRound.length == 1) {
+        bestsAfterFirstRound.head
+      } else {
+        bestAtom(bestsAfterFirstRound, variableMap)
+      }
+    }*/
+
+    def sdp(atoms: Set[Atom], variableMap: VariableMap): Iterator[Seq[Atom.Constant]] = {
       if (headVars.forall(variableMap.contains)) {
         //if all variables are mapped then we create an instantiated pair
         val pair = headVars.map(variableMap.apply)
@@ -198,11 +220,11 @@ trait AtomCounting {
         val best = bestAtom(atoms, variableMap)
         val rest = atoms - best
         //specify variables in the best atom and process the rest of atoms for each instance
-        specifyVariableMap(best, variableMap).flatMap(sdp(rest, headVars, _))
+        specifyVariableMap(best, variableMap).flatMap(sdp(rest, _))
       }
     }
 
-    sdp(atoms, headVars, variableMap)
+    sdp(atoms, variableMap)
   }
 
   /**

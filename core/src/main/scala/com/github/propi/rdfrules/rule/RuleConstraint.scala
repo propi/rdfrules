@@ -15,6 +15,14 @@ sealed trait RuleConstraint extends Value {
 
 object RuleConstraint {
 
+  trait Filter extends RuleConstraint {
+    def mapped(implicit mapper: TripleItemHashIndex): MappedFilter
+  }
+
+  trait MappedFilter {
+    def test(newAtom: Atom, rule: Option[Rule]): Boolean
+  }
+
   case class OnlyPredicates(predicates: Set[TripleItem.Uri]) extends RuleConstraint {
     def companion: OnlyPredicates.type = OnlyPredicates
 

@@ -19,9 +19,9 @@ object Benchmark {
 
   implicit class PimpedTask[I, O](taskStream: (String, Task[I, _, _, O])) {
     def withInput(input: I)
-                 (implicit m2: O => Seq[Metric]): (String, Seq[Metric]) = {
+                 (implicit m2: O => Seq[Metric]): (String, O, Seq[Metric]) = {
       val (gm, om) = taskStream._2.execute(input)
-      taskStream._1 -> (gm ++ m2(om))
+      (taskStream._1, om, gm ++ m2(om))
     }
   }
 
@@ -48,6 +48,23 @@ object Benchmark {
       val m2 = metricResult2._2.groupBy(_.name).mapValues(_.head)
       val r1 = metricResult._2.flatMap(x => m2.get(x.name).map(y => Metric.Comparison(x, y)))
       val r2 = metricResult2._2.flatMap(x => m1.get(x.name).map(y => Metric.Comparison(x, y)))
+      (metricResult._1 -> r1, metricResult2._1 -> r2)
+    }
+  }
+
+  implicit class PimpedMetricResultWithOutput[O](metricResult: (String, O, Seq[Metric])) {
+    def andFinallyProcessResultWith[T](metricResultProcessor: MetricResultProcessor[T]): T = metricResultProcessor.processMetrics(metricResult._1 -> metricResult._3)
+
+    def andFinallyProcessResultWithAndReturnResult[T](metricResultProcessor: MetricResultProcessor[T]): O = {
+      metricResultProcessor.processMetrics(metricResult._1 -> metricResult._3)
+      metricResult._2
+    }
+
+    def compareWith(metricResult2: (String, O, Seq[Metric])): ((String, Seq[Metric]), (String, Seq[Metric])) = {
+      val m1 = metricResult._3.groupBy(_.name).mapValues(_.head)
+      val m2 = metricResult2._3.groupBy(_.name).mapValues(_.head)
+      val r1 = metricResult._3.flatMap(x => m2.get(x.name).map(y => Metric.Comparison(x, y)))
+      val r2 = metricResult2._3.flatMap(x => m1.get(x.name).map(y => Metric.Comparison(x, y)))
       (metricResult._1 -> r1, metricResult2._1 -> r2)
     }
   }

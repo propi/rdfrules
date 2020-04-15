@@ -1,6 +1,8 @@
 package com.github.propi.rdfrules.experiments.benchmark
 
+import com.github.propi.rdfrules.data.TripleItem
 import com.github.propi.rdfrules.experiments.benchmark.Metric.Simple
+import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.ruleset.ResolvedRule
 import com.github.propi.rdfrules.utils.BasicFunctions.round
 import com.github.propi.rdfrules.utils.PrettyDuration._
@@ -104,7 +106,7 @@ object Metric {
   }
 
   case class ClustersSimilarities(name: String, matrix: IndexedSeq[IndexedSeq[Double]]) extends Complex {
-    private lazy val dunnIndex = {
+    /*private lazy val dunnIndex = {
       val (minInter, maxIntra) = (for {
         (row, c1) <- matrix.iterator.zipWithIndex
         (value, c2) <- row.iterator.zipWithIndex
@@ -112,9 +114,27 @@ object Metric {
         (if (c1 == c2) 1.0 else 1 - value) -> (if (c1 == c2) 1 - value else 0.0)
       }).reduce((x, y) => math.min(x._1, y._1) -> math.max(x._2, y._2))
       minInter / maxIntra
+    }*/
+
+    private lazy val rangeIndex = {
+      if (matrix.length > 1) {
+        var interTotal = 0
+        val interSum = matrix.indices.combinations(2).map { indices =>
+          val i = indices(0)
+          val j = indices(1)
+          interTotal += 1
+          matrix(i)(j)
+        }.sum
+        val intraSum = matrix.indices.map(i => matrix(i)(i)).sum
+        val interAvg = interSum / interTotal
+        val intraAvg = intraSum / matrix.length
+        intraAvg - interAvg
+      } else {
+        matrix.head.head
+      }
     }
 
-    def doubleValue: Double = dunnIndex
+    def doubleValue: Double = rangeIndex
 
     def getSimple: Simple = Number(name, doubleValue)
 
@@ -157,6 +177,20 @@ object Metric {
   }
 
   implicit def rulesToMetrics(rules: IndexedSeq[ResolvedRule]): Seq[Metric] = List(Number("rules", rules.length))
+
+  implicit def indexToMetrics(index: Index): Seq[Metric] = index.tripleMap { thi =>
+    index.tripleItemMap { mapper =>
+      val (total, zero) = thi.predicates.keysIterator.map(mapper.getTripleItem).collect {
+        case TripleItem.LongUri(uri) => uri
+        case x: TripleItem.PrefixedUri => x.toLongUri.uri
+      }.foldLeft(0 -> 0) { case ((total, zero), uri) =>
+        val dTotal = if (uri.contains("_discretized_level_")) 1 else 0
+        val dZero = if (uri.contains("_discretized_level_0")) 1 else 0
+        (total + dTotal) -> (zero + dZero)
+      }
+      List(Number("predicates", thi.predicates.keySet.size), Number("discretized_0", zero), Number("discretized_*", total))
+    }
+  }
 
   val simpleStringifier: Stringifier[Metric] = (v: Metric) => v.getSimple.prettyValue
 
