@@ -6,6 +6,7 @@ import com.github.propi.rdfrules.algorithm.amie.AtomCounting
 import com.github.propi.rdfrules.data.ops.{Cacheable, Transformable}
 import com.github.propi.rdfrules.data.{Dataset, Graph}
 import com.github.propi.rdfrules.index.{CompressedQuad, Index, TripleHashIndex, TripleItemHashIndex}
+import com.github.propi.rdfrules.model.Model.PredictionType
 import com.github.propi.rdfrules.rule.{Atom, Measure, ResolvedRulePatternMatcher, RulePattern}
 import com.github.propi.rdfrules.ruleset.ops.Sortable
 import com.github.propi.rdfrules.ruleset.{ResolvedRule, Ruleset, RulesetReader, RulesetWriter}
@@ -19,7 +20,7 @@ import scala.util.Try
 /**
   * Created by Vaclav Zeman on 14. 10. 2019.
   */
-class Model private(val rules: Traversable[ResolvedRule])
+class Model private(val rules: Traversable[ResolvedRule], val parallelism: Int)
   extends Transformable[ResolvedRule, Model]
     with Cacheable[ResolvedRule, Model]
     with Sortable[ResolvedRule, Model] {
@@ -31,7 +32,24 @@ class Model private(val rules: Traversable[ResolvedRule])
 
   protected def coll: Traversable[ResolvedRule] = rules
 
-  protected def transform(col: Traversable[ResolvedRule]): Model = new Model(col)
+  protected def transform(col: Traversable[ResolvedRule]): Model = new Model(col, parallelism)
+
+  /**
+    * TODO in parallel prediction
+    * Set number of workers for prediction in parallel
+    * The parallelism should be equal to or lower than the max thread pool size of the execution context
+    *
+    * @param parallelism number of workers
+    * @return
+    */
+  def setParallelism(parallelism: Int): Model = {
+    val normParallelism = if (parallelism < 1 || parallelism > Runtime.getRuntime.availableProcessors()) {
+      Runtime.getRuntime.availableProcessors()
+    } else {
+      parallelism
+    }
+    new Model(rules, normParallelism)
+  }
 
   def filter(pattern: RulePattern, patterns: RulePattern*): Model = {
     val allPatterns = pattern +: patterns
@@ -64,17 +82,22 @@ class Model private(val rules: Traversable[ResolvedRule])
     }
   }
 
-  def completeGraph(graph: Graph)(implicit debugger: Debugger = Debugger.EmptyDebugger): PredictionResult = completeIndex(graph.index())
+  def predictForGraph(graph: Graph, predictionType: PredictionType)(implicit debugger: Debugger = Debugger.EmptyDebugger): PredictionResult = predictForIndex(graph.index(), predictionType)
 
-  def completeDataset(dataset: Dataset)(implicit debugger: Debugger = Debugger.EmptyDebugger): PredictionResult = completeIndex(dataset.index())
+  def predictForDataset(dataset: Dataset, predictionType: PredictionType)(implicit debugger: Debugger = Debugger.EmptyDebugger): PredictionResult = predictForIndex(dataset.index(), predictionType)
 
-  def completeIndex(index: Index): PredictionResult = PredictionResult(
+  def predictForIndex(index: Index, predictionType: PredictionType): PredictionResult = PredictionResult(
     new Traversable[PredictedTriple] {
       def foreach[U](f: PredictedTriple => U): Unit = {
         index.tripleItemMap { mapper =>
           index.tripleMap { implicit thi =>
             val atomCounting = new AtomCounting {
               implicit val tripleIndex: TripleHashIndex[Int] = thi
+            }
+            val filterPredictedTriple: PredictedTriple => Boolean = predictionType match {
+              case PredictionType.All => _ => true
+              case PredictionType.Existing => _.existing
+              case PredictionType.Missing => !_.existing
             }
             rules.view.map(ResolvedRule.simple(_)(mapper)).foreach { case (rule, ruleMapper) =>
               implicit val mapper2: TripleItemHashIndex = mapper.extendWith(ruleMapper)
@@ -88,7 +111,13 @@ class Model private(val rules: Traversable[ResolvedRule])
                 case (Atom.Constant(s), _: Atom.Variable) => constants => CompressedQuad(s, rule.head.predicate, constants.head.value, 0)
                 case (Atom.Constant(s), Atom.Constant(o)) => _ => CompressedQuad(s, rule.head.predicate, o, 0)
               }
-              Try(atomCounting.selectDistinctPairs(ruleBody, headVars, new atomCounting.VariableMap(true)).map(constantsToQuad).map(_.toTriple).map(PredictedTriple(_)(rule)).foreach(f))
+              Try(atomCounting
+                .selectDistinctPairs(ruleBody, headVars, new atomCounting.VariableMap(true))
+                .map(constantsToQuad)
+                .map(x => thi.predicates.get(x.predicate).flatMap(_.subjects.get(x.subject)).exists(_.contains(x.`object`)) -> x.toTriple)
+                .map(x => PredictedTriple(x._2)(rule, x._1))
+                .filter(filterPredictedTriple)
+                .foreach(f))
             }
           }
         }
@@ -101,7 +130,19 @@ class Model private(val rules: Traversable[ResolvedRule])
 
 object Model {
 
-  def apply(rules: Traversable[ResolvedRule]): Model = new Model(rules)
+  sealed trait PredictionType
+
+  object PredictionType {
+
+    case object Missing extends PredictionType
+
+    case object Existing extends PredictionType
+
+    case object All extends PredictionType
+
+  }
+
+  def apply(rules: Traversable[ResolvedRule]): Model = new Model(rules, Runtime.getRuntime.availableProcessors())
 
   def apply(file: File)(implicit reader: RulesetReader): Model = {
     val newReader = if (reader == RulesetReader.NoReader) RulesetReader(file) else reader
@@ -112,13 +153,11 @@ object Model {
 
   def apply(is: => InputStream)(implicit reader: RulesetReader): Model = apply(reader.fromInputStream(is))
 
-  def fromCache(is: => InputStream): Model = new Model(
-    new Traversable[ResolvedRule] {
-      def foreach[U](f: ResolvedRule => U): Unit = Deserializer.deserializeFromInputStream[ResolvedRule, Unit](is) { reader =>
-        Stream.continually(reader.read()).takeWhile(_.isDefined).map(_.get).foreach(f)
-      }
+  def fromCache(is: => InputStream): Model = apply(new Traversable[ResolvedRule] {
+    def foreach[U](f: ResolvedRule => U): Unit = Deserializer.deserializeFromInputStream[ResolvedRule, Unit](is) { reader =>
+      Stream.continually(reader.read()).takeWhile(_.isDefined).map(_.get).foreach(f)
     }
-  )
+  })
 
   def fromCache(file: File): Model = fromCache(new FileInputStream(file))
 

@@ -106,7 +106,7 @@ object Metric {
   }
 
   case class ClustersSimilarities(name: String, matrix: IndexedSeq[IndexedSeq[Double]]) extends Complex {
-    /*private lazy val dunnIndex = {
+    private lazy val dunnIndex = {
       val (minInter, maxIntra) = (for {
         (row, c1) <- matrix.iterator.zipWithIndex
         (value, c2) <- row.iterator.zipWithIndex
@@ -114,7 +114,7 @@ object Metric {
         (if (c1 == c2) 1.0 else 1 - value) -> (if (c1 == c2) 1 - value else 0.0)
       }).reduce((x, y) => math.min(x._1, y._1) -> math.max(x._2, y._2))
       minInter / maxIntra
-    }*/
+    }
 
     private lazy val rangeIndex = {
       if (matrix.length > 1) {
@@ -138,7 +138,7 @@ object Metric {
 
     def getSimple: Simple = Number(name, doubleValue)
 
-    override def toString: String = s"score: $doubleValue, matrix: \n" + matrix.iterator.map(_.mkString(", ")).mkString("\n")
+    override def toString: String = s"score: $doubleValue, dunnIndex: $dunnIndex, matrix: \n" + matrix.iterator.map(_.mkString(", ")).mkString("\n")
   }
 
   case class Stats(avg: Simple, stdDev: Simple, min: Simple, max: Simple) extends Complex {
@@ -178,17 +178,16 @@ object Metric {
 
   implicit def rulesToMetrics(rules: IndexedSeq[ResolvedRule]): Seq[Metric] = List(Number("rules", rules.length))
 
-  implicit def indexToMetrics(index: Index): Seq[Metric] = index.tripleMap { thi =>
-    index.tripleItemMap { mapper =>
-      val (total, zero) = thi.predicates.keysIterator.map(mapper.getTripleItem).collect {
-        case TripleItem.LongUri(uri) => uri
-        case x: TripleItem.PrefixedUri => x.toLongUri.uri
-      }.foldLeft(0 -> 0) { case ((total, zero), uri) =>
-        val dTotal = if (uri.contains("_discretized_level_")) 1 else 0
-        val dZero = if (uri.contains("_discretized_level_0")) 1 else 0
-        (total + dTotal) -> (zero + dZero)
+  implicit def indexToMetrics(index: Index): Seq[Metric] = {
+    index.tripleMap { thi =>
+      index.tripleItemMap { mapper =>
+        val totalDisc = thi.predicates.keysIterator.map(mapper.getTripleItem).collect {
+          case TripleItem.LongUri(uri) => uri
+          case x: TripleItem.PrefixedUri => x.toLongUri.uri
+        }.count(_.contains("_discretized_level_"))
+        val numPredicates = thi.predicates.valuesIterator.count(_.objects.keysIterator.exists(mapper.getTripleItem(_).isInstanceOf[TripleItem.Number[_]]))
+        List(Number("predicates", thi.predicates.keySet.size), Number("numPredicates", numPredicates), Number("discretized_*", totalDisc))
       }
-      List(Number("predicates", thi.predicates.keySet.size), Number("discretized_0", zero), Number("discretized_*", total))
     }
   }
 

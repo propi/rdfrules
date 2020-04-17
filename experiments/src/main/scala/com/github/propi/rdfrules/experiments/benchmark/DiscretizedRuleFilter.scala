@@ -23,7 +23,7 @@ case class DiscretizedRuleFilter(discretizedPredicates: Seq[TripleItem.Uri]) ext
       .toMap
     (newAtom: Atom, rule: Option[Rule]) =>
       rule match {
-        case Some(rule) => discretizedGroups.get(newAtom.predicate).forall(pSet => (Iterator(rule.head) ++ rule.body.iterator).forall(x => !pSet(x.predicate)))
+        case Some(rule) => discretizedGroups.get(newAtom.predicate).forall(pSet => (Iterator(rule.head) ++ rule.body.iterator).forall(x => newAtom.predicate == x.predicate || !pSet(x.predicate)))
         case None => true
       }
   }

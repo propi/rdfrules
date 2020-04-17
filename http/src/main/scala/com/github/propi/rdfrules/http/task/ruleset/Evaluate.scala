@@ -11,7 +11,7 @@ class Evaluate(onlyFunctionalProperties: Boolean) extends Task[Ruleset, Evaluati
   val companion: TaskDefinition = Evaluate
 
   def execute(input: Ruleset): EvaluationResult = {
-    val predictionResult = input.completeIndex
+    val predictionResult = input.predictedTriples
     if (onlyFunctionalProperties) predictionResult.onlyFunctionalProperties.evaluate(true) else predictionResult.evaluate(true)
   }
 }

@@ -7,6 +7,7 @@ import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
 import com.github.propi.rdfrules.data.ops.{Cacheable, Transformable}
 import com.github.propi.rdfrules.index.{Index, TripleHashIndex}
+import com.github.propi.rdfrules.model.Model.PredictionType
 import com.github.propi.rdfrules.model.{Model, PredictionResult}
 import com.github.propi.rdfrules.rule.{Measure, Rule, RulePattern, RulePatternMatcher}
 import com.github.propi.rdfrules.ruleset.ops.Sortable
@@ -81,13 +82,28 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
 
   def findResolved(f: ResolvedRule => Boolean): Option[ResolvedRule] = resolvedRules.find(f)
 
-  def model: Model = Model(resolvedRules.toVector)
+  def model: Model = Model(resolvedRules.toVector).setParallelism(parallelism)
 
-  def pruned(onlyFunctionalProperties: Boolean): Ruleset = {
+  /**
+    * Prune rules with CBA strategy
+    *
+    * @param onlyExistingTriples      if true the common CBA strategy will be used. That means we take only such predicted triples (of the rules),
+    *                                 which are contained in the input dataset. This strategy takes maximally as much memory as the number of triples
+    *                                 in the input dataset. If false we take all predicted triples (including triples which are not contained in the
+    *                                 input dataset and are newly generated). For deduplication a HashSet is used and therefore the memory may increase
+    *                                 unexpectedly because we need to save all unique generated triples into memory.
+    * @param onlyFunctionalProperties if true the predicted triples are deduplicated by (subject, predicate). E.g. if some triple (A B C) is generated
+    *                                 for some rule then next generated triples with form (A B *) are skipped. We expect only functional properties;
+    *                                 it means the tuple (subject, predicate) can have only one object. If you expect non function properties, set
+    *                                 this parameter to false.
+    * @return pruned ruleset
+    */
+  def pruned(onlyExistingTriples: Boolean, onlyFunctionalProperties: Boolean): Ruleset = {
     transform(new Traversable[Rule.Simple] {
       def foreach[U](f: Rule.Simple => U): Unit = {
         index.tripleItemMap { implicit mapper =>
-          val predictionResult = if (onlyFunctionalProperties) completeIndex.onlyFunctionalProperties else completeIndex
+          val predictionType = if (onlyExistingTriples) PredictionType.Existing else PredictionType.All
+          val predictionResult = if (onlyFunctionalProperties) predictedTriples(predictionType).onlyFunctionalProperties else predictedTriples(predictionType).distinct
           val hashSet = collection.mutable.LinkedHashSet.empty[Rule.Simple]
           for (rule <- predictionResult.predictedTriples.map(_.rule).map(ResolvedRule.simple(_)).filter(_._2.isEmpty).map(_._1)) {
             hashSet += rule
@@ -180,7 +196,17 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
     }.filter(_.measures.exists[Measure.Lift])
   }
 
-  def completeIndex: PredictionResult = model.completeIndex(index)
+  /**
+    * Get all predicted triples by rules. Predicted rules have two types - Existing and Missing. If a generated triple has Existing
+    * type, the triple also exists in the input dataset. If Missing, the triple is not contained in the input dataset. We can choose
+    * which type of predicted rules is desired.
+    *
+    * @param predictionType Existing = all predicted triples are contained in the input datasets
+    *                       Missing = all predicted triples are not contained in the input datasets
+    *                       All = predicted triples can be Existing or Missing
+    * @return predicted triples
+    */
+  def predictedTriples(predictionType: PredictionType): PredictionResult = model.predictForIndex(index, predictionType)
 
   def makeClusters(clustering: Clustering[Rule.Simple]): Ruleset = transform(new Traversable[Rule.Simple] {
     def foreach[U](f: Rule.Simple => U): Unit = clustering.clusters(rules.toIndexedSeq).view.zipWithIndex.flatMap { case (cluster, index) =>

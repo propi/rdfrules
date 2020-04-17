@@ -13,7 +13,7 @@ class Evaluate(path: String, format: Option[Option[RulesetSource]], onlyFunction
   val companion: TaskDefinition = Evaluate
 
   def execute(input: Index): EvaluationResult = {
-    val predictionResult = new LoadModel(path, format).execute(Task.NoInput).completeIndex(input)
+    val predictionResult = new LoadModel(path, format).execute(Task.NoInput).predictForIndex(input)
     if (onlyFunctionalProperties) predictionResult.onlyFunctionalProperties.evaluate(true) else predictionResult.evaluate(true)
   }
 }

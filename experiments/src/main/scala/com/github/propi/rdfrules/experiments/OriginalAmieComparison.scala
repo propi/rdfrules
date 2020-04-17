@@ -7,7 +7,7 @@ import com.github.propi.rdfrules.data.{Graph, TripleItem}
 import com.github.propi.rdfrules.experiments.benchmark.Benchmark._
 import com.github.propi.rdfrules.experiments.benchmark.MetricResultProcessor.BasicPrinter
 import com.github.propi.rdfrules.experiments.benchmark.MetricsAggregator.StatsAggregator
-import com.github.propi.rdfrules.experiments.benchmark.{ClusterDistancesTaskPostprocessor, Metric, RulesTaskPostprocessor}
+import com.github.propi.rdfrules.experiments.benchmark.{ClusterDistancesTaskPostprocessor, DiscretizedRuleFilter, Metric, RulesTaskPostprocessor}
 import com.github.propi.rdfrules.experiments.benchmark.tasks._
 import com.github.propi.rdfrules.rule.{AtomPattern, RuleConstraint, Threshold}
 import com.github.propi.rdfrules.ruleset.ResolvedRule
@@ -71,6 +71,7 @@ object OriginalAmieComparison {
     options.addOption("coresc", true, "list of cores")
     options.addOption("minhcs", true, "list of min head coverages")
     options.addOption("minsims", true, "list of min similarities for clustering")
+    options.addOption("topks", true, "list of topK for pruning")
     options.addOption("input", true, "input TSV dataset")
     options.addOption("output", true, "output file")
     options.addOption("times", true, "number of repetition of each task")
@@ -83,6 +84,7 @@ object OriginalAmieComparison {
     options.addOption("runconfidence", false, "run confidence counting test")
     options.addOption("runclusters", false, "run clusters test")
     options.addOption("rundiscretization", false, "run discretization test")
+    options.addOption("runpruning", false, "run pruning test")
 
     options.addOption("rdfrulesonly", false, "run only rdf rules tests")
     options.addOption("amieonly", false, "run only amie+ tests")
@@ -205,20 +207,28 @@ object OriginalAmieComparison {
         }
         if (cli.hasOption("runclusters")) {
           val rules = index.mine(Amie().addConstraint(RuleConstraint.WithInstances(true)).addThreshold(Threshold.TopK(10000))).cache
-          val sims = cli.getOptionValue("minsims", "0.5,0.6,0.7,0.8").split(",").iterator.map(_.trim).filter(_.nonEmpty).map(_.toDouble).toList
+          val sims = cli.getOptionValue("minsims", "0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9").split(",").iterator.map(_.trim).filter(_.nonEmpty).map(_.toDouble).toList
           for (minSim <- sims) {
             Once executeTask new ClusteringRdfRules[Seq[Metric]](s"RDFRules: clustering, minSim = $minSim", 1, minSim, numberOfThreads) with ClusterDistancesTaskPostprocessor withInput rules andFinallyProcessResultWith BasicPrinter()
           }
         }
         if (cli.hasOption("rundiscretization")) {
           for (minHc <- minHcs) {
-            val index = Once executeTask new DiscretizationRdfRules(s"RDFRules: discretization, minHc = $minHc", minHc) withInput index andFinallyProcessResultWithAndReturnResult BasicPrinter()
+            Once executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: mine without discretization, minHc: $minHc", minHc, true, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor {
+              override val withConstantsAtTheObjectPosition: Boolean = true
+              override val minPcaConfidence: Double = 0.0
+              override val minConfidence: Double = 0.0
+            } withInput index andFinallyProcessResultWith BasicPrinter()
+            val updatedIndex = Once executeTask new DiscretizationRdfRules(s"RDFRules: discretization, minHc = $minHc", minHc) withInput index andFinallyProcessAndReturnResultWith BasicPrinter()
+            Once executeTask new DiscretizationMiningRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: mine with discretization, minHc: $minHc", DiscretizedRuleFilter(updatedIndex), minHc, numberOfThreads) with RulesTaskPostprocessor withInput updatedIndex andFinallyProcessResultWith BasicPrinter()
+            //TODO add another test to observe number of newly (missing) predicted triples without/with discretization (comp confidence >0.5, predictTriples)
           }
-
-          val rules = index.mine(Amie().addConstraint(RuleConstraint.WithInstances(true)).addThreshold(Threshold.TopK(10000))).cache
-          val sims = cli.getOptionValue("minsims", "0.5,0.6,0.7,0.8").split(",").iterator.map(_.trim).filter(_.nonEmpty).map(_.toDouble).toList
-          for (minSim <- sims) {
-            Once executeTask new ClusteringRdfRules[Seq[Metric]](s"RDFRules: clustering, minSim = $minSim", 1, minSim, numberOfThreads) with ClusterDistancesTaskPostprocessor withInput rules andFinallyProcessResultWith BasicPrinter()
+        }
+        if (cli.hasOption("runpruning")) {
+          val topKs = cli.getOptionValue("topks", "500, 1000, 2000, 4000, 8000, 16000, 32000").split(",").iterator.map(_.trim).filter(_.nonEmpty).map(_.toInt).toList
+          for (topK <- topKs) {
+            val rules = index.mine(Amie().addConstraint(RuleConstraint.WithInstances(true)).addThreshold(Threshold.TopK(topK))).cache
+            Once executeTask new PruningRdfRules(s"RDFRules: pruning, rules: ${rules.size}, topK: $topK") withInput rules andFinallyProcessResultWith BasicPrinter()
           }
         }
         //mined rules

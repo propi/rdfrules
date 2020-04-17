@@ -13,7 +13,7 @@ class CompleteDataset(path: String, format: Option[Option[RulesetSource]], onlyF
   val companion: TaskDefinition = CompleteDataset
 
   def execute(input: Index): Dataset = {
-    val predictionResult = new LoadModel(path, format).execute(Task.NoInput).completeIndex(input)
+    val predictionResult = new LoadModel(path, format).execute(Task.NoInput).predictForIndex(input)
     if (onlyFunctionalProperties) predictionResult.onlyFunctionalProperties.mergedDataset else predictionResult.mergedDataset
   }
 }

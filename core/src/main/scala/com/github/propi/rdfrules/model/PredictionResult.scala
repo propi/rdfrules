@@ -34,11 +34,8 @@ class PredictionResult private(_predictedTriples: Traversable[PredictedTriple], 
         val headPredicates = collection.mutable.Set.empty[Int]
         val modelSet = collection.mutable.LinkedHashSet.empty[ResolvedRule]
         val evaluationResult = (if (_distinct) predictedTriples else distinct.predictedTriples).foldLeft(EvaluationResult(0, 0, 0, Vector.empty)) { (result, predictedTriple) =>
-          val (s, p, o) = (mapper.getIndexOpt(predictedTriple.triple.subject), mapper.getIndexOpt(predictedTriple.triple.predicate), mapper.getIndexOpt(predictedTriple.triple.`object`))
-          val isTrue = (s, p, o) match {
-            case (Some(s), Some(p), Some(o)) => thi.predicates.get(p).exists(_.subjects.get(s).exists(_.contains(o)))
-            case _ => false
-          }
+          val p = mapper.getIndexOpt(predictedTriple.triple.predicate)
+          val isTrue = predictedTriple.existing
           val fn = p match {
             case Some(p) if !headPredicates(p) =>
               headPredicates += p

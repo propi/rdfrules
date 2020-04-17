@@ -11,7 +11,7 @@ class CompleteDataset(onlyFunctionalProperties: Boolean) extends Task[Ruleset, D
   val companion: TaskDefinition = CompleteDataset
 
   def execute(input: Ruleset): Dataset = {
-    val predictionResult = input.completeIndex
+    val predictionResult = input.predictedTriples
     if (onlyFunctionalProperties) predictionResult.onlyFunctionalProperties.mergedDataset else predictionResult.mergedDataset
   }
 }

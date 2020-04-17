@@ -36,12 +36,12 @@ trait ClusterDistancesTaskPostprocessor extends TaskPostProcessor[Ruleset, Seq[M
       }.foldLeft((0.0, 0.0)) { case ((num, den), (dNum, dDen)) =>
         (num + dNum) -> (den + dDen)
       }
-      println("CLUSTER ****")
+      /*println("CLUSTER ****")
       ruleset.foreach(println)
       println("***** total & intersections")
       rulesStats.foreach(println)
       println("***** stats")
-      println(s"maxL: $maxL, $num / $den = ${num / den}")
+      println(s"maxL: $maxL, $num / $den = ${num / den}")*/
       num / den
     } else {
       1.0
@@ -53,17 +53,17 @@ trait ClusterDistancesTaskPostprocessor extends TaskPostProcessor[Ruleset, Seq[M
     val (clusterLen2, intersections) = cluster2.coveredTriples(distinct = false).view.flatMap(_.graph.triples).distinct.foldLeft((0, 0)) { case ((total, intersections), triple) =>
       (total + 1) -> (intersections + (if (tripleSet(triple)) 1 else 0))
     }
-    println("***** INTER BETWEEN")
+    /*println("***** INTER BETWEEN")
     println("CLUSTER 1")
     cluster1.foreach(println)
     println("CLUSTER 2")
     cluster2.foreach(println)
-    println(s"stats max: $intersections / ${tripleSet.size}, $intersections / $clusterLen2")
+    println(s"stats max: $intersections / ${tripleSet.size}, $intersections / $clusterLen2")*/
     math.min(intersections.toDouble / tripleSet.size, intersections.toDouble / clusterLen2)
   }
 
   protected def postProcess(result: Ruleset): Seq[Metric] = {
-    result.sorted.foreach(println)
+    //result.sorted.foreach(println)
     val numberOfRules = Metric.Number("rules", result.size)
     val clusters = result.rules.view.map(_.measures[Measure.Cluster].number).toSet.toIndexedSeq
     val numberOfClusters = Metric.Number("clusters", clusters.size)

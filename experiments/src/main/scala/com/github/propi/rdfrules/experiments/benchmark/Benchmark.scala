@@ -55,7 +55,7 @@ object Benchmark {
   implicit class PimpedMetricResultWithOutput[O](metricResult: (String, O, Seq[Metric])) {
     def andFinallyProcessResultWith[T](metricResultProcessor: MetricResultProcessor[T]): T = metricResultProcessor.processMetrics(metricResult._1 -> metricResult._3)
 
-    def andFinallyProcessResultWithAndReturnResult[T](metricResultProcessor: MetricResultProcessor[T]): O = {
+    def andFinallyProcessAndReturnResultWith[T](metricResultProcessor: MetricResultProcessor[T]): O = {
       metricResultProcessor.processMetrics(metricResult._1 -> metricResult._3)
       metricResult._2
     }

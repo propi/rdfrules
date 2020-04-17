@@ -11,7 +11,7 @@ class PredictTriples(onlyFunctionalProperties: Boolean) extends Task[Ruleset, Da
   val companion: TaskDefinition = PredictTriples
 
   def execute(input: Ruleset): Dataset = {
-    val predictionResult = input.completeIndex
+    val predictionResult = input.predictedTriples
     if (onlyFunctionalProperties) predictionResult.onlyFunctionalProperties.graph.toDataset else predictionResult.graph.toDataset
   }
 }

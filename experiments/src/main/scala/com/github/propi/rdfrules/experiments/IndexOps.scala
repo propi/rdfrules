@@ -66,18 +66,20 @@ class IndexOps private(implicit mapper: TripleItemHashIndex, thi: TripleHashInde
     @scala.annotation.tailrec
     def addLevelToIndex(level: Int, intervals: Iterable[DiscretizedTree]): Unit = {
       if (intervals.nonEmpty) {
-        val suffix = "_discretized_level_" + level
-        val newPredicate = buildPredicate(suffix)
-        for {
-          quad <- predicateQuads
-          objectNumber <- Option(quad.triple.`object`).collect {
-            case TripleItem.NumberDouble(value) => value
+        if (level > 0) {
+          val suffix = "_discretized_level_" + level
+          val newPredicate = buildPredicate(suffix)
+          for {
+            quad <- predicateQuads
+            objectNumber <- Option(quad.triple.`object`).collect {
+              case TripleItem.NumberDouble(value) => value
+            }
+            interval <- intervals.iterator.map(_.interval).find(_.isInInterval(objectNumber))
+          } {
+            val newQuad = Quad(data.Triple(quad.triple.subject, newPredicate, TripleItem.Interval(interval)), quad.graph)
+            mapper.addQuad(newQuad)
+            thi.addQuad(newQuad.toCompressedQuad.toIndexedQuad)
           }
-          interval <- intervals.iterator.map(_.interval).find(_.isInInterval(objectNumber))
-        } {
-          val newQuad = Quad(data.Triple(quad.triple.subject, newPredicate, TripleItem.Interval(interval)), quad.graph)
-          mapper.addQuad(newQuad)
-          thi.addQuad(newQuad.toCompressedQuad.toIndexedQuad)
         }
         val allChildren = intervals.iterator.collect {
           case x: DiscretizedTree.Node => x.children
