@@ -21,7 +21,7 @@ trait HeadsFetcher extends AtomCounting {
   val patterns: List[RulePattern]
   val thresholds: TypedKeyMap.Immutable[Threshold]
 
-  private lazy val minSupport: Int = thresholds.apply[Threshold.MinHeadSize].value
+  private lazy val minHeadSize: Int = thresholds.get[Threshold.MinHeadSize].map(_.value).getOrElse(100)
 
   /**
     * Get all possible heads from triple index
@@ -65,7 +65,7 @@ trait HeadsFetcher extends AtomCounting {
           case (v1: Atom.Variable, v2: Atom.Variable) => (ExtendedRule.TwoDanglings(v1, v2, Nil), tm.size, tm.size)
           case (Atom.Constant(c), v1: Atom.Variable) => (ExtendedRule.OneDangling(v1, Nil), tm.size, tm.subjects.get(c).map(_.size).getOrElse(0))
           case (v1: Atom.Variable, Atom.Constant(c)) => (ExtendedRule.OneDangling(v1, Nil), tm.size, tm.objects.get(c).map(_.size).getOrElse(0))
-        }.filter(x => x._3 >= math.max(minSupport, settings.minHeadCoverage * x._2)).map(x =>
+        }.filter(x => x._2 >= minHeadSize && x._3 >= math.max(settings.minSupport.getOrElse(1), settings.minHeadCoverage * x._2)).map(x =>
           DanglingRule(Vector.empty, atom)(
             TypedKeyMap(Measure.HeadSize(x._2), Measure.Support(x._3), Measure.HeadCoverage(x._3.toDouble / x._2)),
             patterns,

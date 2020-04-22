@@ -49,7 +49,7 @@ abstract class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleIt
 
   def addQuad(quad: Quad): Unit = {
     val Quad(Triple(s, p, o), g) = quad
-    if (p.hasSameUriAs("http://www.w3.org/2002/07/owl#sameAs")) {
+    if (p.hasSameUriAs(TripleItem.sameAs)) {
       List(s, p, o, g).foreach(addPrefix)
       val (idSubject, subjectIsAdded) = getId(s)
       if (!subjectIsAdded) hmap.put(idSubject, s)
@@ -94,6 +94,8 @@ abstract class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleIt
 }
 
 object TripleItemHashIndex {
+
+
 
   class ExtendedTripleItemHashIndex private[TripleItemHashIndex](hmap: java.util.Map[Integer, TripleItem],
                                                                  sameAs: java.util.Map[TripleItem, Integer],

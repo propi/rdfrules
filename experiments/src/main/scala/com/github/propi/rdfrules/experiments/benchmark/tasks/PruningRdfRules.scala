@@ -22,7 +22,7 @@ class PruningRdfRules(val name: String) extends Task[Ruleset, Ruleset, (Ruleset,
   }
 
   protected def taskBody(input: Ruleset): (Ruleset, Ruleset) = {
-    val pruned = input.pruned(true, false).cache
+    val pruned = input.sorted.pruned(true, false).cache
     input -> pruned
   }
 

@@ -132,7 +132,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       // - then we can count all projections for this fresh atom and then only check existence of rest atoms in the rule
       //for other fresh atoms we need to find instances for unknown variables (not for dangling variable)
       val (countableFreshAtoms, possibleFreshAtoms) = getPossibleFreshAtoms.filter(x => patternFilter.matchFreshAtom(x)).toList.partition(freshAtom => List(freshAtom.subject, freshAtom.`object`).forall(x => x == rule.head.subject || x == rule.head.`object` || x == dangling))
-      val minSupport = math.max(rule.headSize * minHeadCoverage, settings.minSupport.getOrElse(1))
+      val minSupport = minComputedSupport(rule)
       val bodySet = rule.body.toSet
       //maxSupport is variable where the maximal support from all extension rules is saved
       var maxSupport = 0
@@ -400,14 +400,14 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
 object RuleRefinement {
 
   class Settings(rulesMining: RulesMining)(implicit val debugger: Debugger, val mapper: TripleItemHashIndex) {
-    @volatile private var _minHeadCoverage: Double = rulesMining.thresholds.apply[Threshold.MinHeadCoverage].value
+    @volatile private var _minHeadCoverage: Double = rulesMining.thresholds.get[Threshold.MinHeadCoverage].map(_.value).getOrElse(0.0)
 
     val parallelism: Int = rulesMining.parallelism
     val patterns: List[RulePattern.Mapped] = rulesMining.patterns.map(_.mapped)
-    val minHeadSize: Int = rulesMining.thresholds.apply[Threshold.MinHeadSize].value
+    val minHeadSize: Int = rulesMining.thresholds.get[Threshold.MinHeadSize].map(_.value).getOrElse(100)
     val minSupport: Option[Int] = rulesMining.thresholds.get[Threshold.MinSupport].map(_.value)
     val isWithInstances: Boolean = rulesMining.constraints.exists[RuleConstraint.WithInstances]
-    val maxRuleLength: Int = rulesMining.thresholds.apply[Threshold.MaxRuleLength].value
+    val maxRuleLength: Int = rulesMining.thresholds.get[Threshold.MaxRuleLength].map(_.value).getOrElse(3)
     val withDuplicitPredicates: Boolean = !rulesMining.constraints.exists[RuleConstraint.WithoutDuplicitPredicates]
     val onlyObjectInstances: Boolean = rulesMining.constraints.get[RuleConstraint.WithInstances].exists(_.onlyObjects)
     val filters: List[RuleConstraint.MappedFilter] = rulesMining.constraints.iterator.collect {
@@ -426,6 +426,8 @@ object RuleRefinement {
     def isValidPredicate(predicate: Int): Boolean = onlyPredicates.forall(_ (predicate)) && withoutPredicates.forall(!_ (predicate))
 
     def minHeadCoverage: Double = _minHeadCoverage
+
+    def minComputedSupport(rule: ExtendedRule): Double = math.max(rule.headSize * minHeadCoverage, minSupport.getOrElse(1))
 
     def setMinHeadCoverage(value: Double): Unit = _minHeadCoverage = value
   }

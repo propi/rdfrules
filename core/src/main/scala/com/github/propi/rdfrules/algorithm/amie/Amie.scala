@@ -132,7 +132,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
       * @param rule a rule to be refinable
       * @return true = is refinable, false = do not refine it!
       */
-    def isRefinable(rule: Rule): Boolean = topK <= 0 || rule.measures[Measure.HeadCoverage].value >= settings.minHeadCoverage
+    def isRefinable(rule: ExtendedRule): Boolean = topK <= 0 || rule.measures[Measure.Support].value >= settings.minComputedSupport(rule)
 
     /**
       * We add rule synchronously and "thread-safely" into the result set.
@@ -232,11 +232,13 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
 
 object Amie {
 
-  def apply()(implicit debugger: Debugger, ec: ExecutionContext = ExecutionContext.global): RulesMining = {
-    new Amie()
-      .addThreshold(Threshold.MinHeadSize(100))
-      .addThreshold(Threshold.MinHeadCoverage(0.01))
-      .addThreshold(Threshold.MaxRuleLength(3))
-  }
+  /**
+    * Create an AMIE+ miner. If you do not specify any threshold, default is minHeadSize = 100, minSupport = 1, maxRuleLength = 3
+    *
+    * @param debugger debugger
+    * @param ec       ec
+    * @return
+    */
+  def apply()(implicit debugger: Debugger, ec: ExecutionContext = ExecutionContext.global): RulesMining = new Amie()
 
 }

@@ -42,11 +42,13 @@ class HeadsMiner private(_parallelism: Int = Runtime.getRuntime.availableProcess
 
 object HeadsMiner {
 
-  def apply()(implicit debugger: Debugger, ec: ExecutionContext): RulesMining = {
-    new HeadsMiner()
-      .addThreshold(Threshold.MinHeadSize(100))
-      .addThreshold(Threshold.MinHeadCoverage(0.01))
-      .addThreshold(Threshold.MaxRuleLength(3))
-  }
+  /**
+    * Create a head miner. If you do not specify any threshold, default is minHeadSize = 100, minSupport = 1, maxRuleLength = 3
+    *
+    * @param debugger debugger
+    * @param ec ec
+    * @return
+    */
+  def apply()(implicit debugger: Debugger, ec: ExecutionContext): RulesMining = new HeadsMiner()
 
 }

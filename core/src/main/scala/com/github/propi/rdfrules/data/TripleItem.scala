@@ -18,6 +18,8 @@ sealed trait TripleItem {
 
 object TripleItem {
 
+  val sameAs = TripleItem.Uri("http://www.w3.org/2002/07/owl#sameAs")
+
   sealed trait Uri extends TripleItem {
     def hasSameUriAs(uri: Uri): Boolean
 
