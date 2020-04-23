@@ -49,6 +49,6 @@ object HeadsMiner {
     * @param ec ec
     * @return
     */
-  def apply()(implicit debugger: Debugger, ec: ExecutionContext): RulesMining = new HeadsMiner()
+  def apply()(implicit debugger: Debugger, ec: ExecutionContext = ExecutionContext.global): RulesMining = new HeadsMiner()
 
 }

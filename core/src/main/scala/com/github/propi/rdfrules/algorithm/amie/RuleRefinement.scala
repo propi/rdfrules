@@ -405,7 +405,7 @@ object RuleRefinement {
     val parallelism: Int = rulesMining.parallelism
     val patterns: List[RulePattern.Mapped] = rulesMining.patterns.map(_.mapped)
     val minHeadSize: Int = rulesMining.thresholds.get[Threshold.MinHeadSize].map(_.value).getOrElse(100)
-    val minSupport: Option[Int] = rulesMining.thresholds.get[Threshold.MinSupport].map(_.value)
+    val minSupport: Int = rulesMining.thresholds.get[Threshold.MinSupport].map(_.value).getOrElse(1)
     val isWithInstances: Boolean = rulesMining.constraints.exists[RuleConstraint.WithInstances]
     val maxRuleLength: Int = rulesMining.thresholds.get[Threshold.MaxRuleLength].map(_.value).getOrElse(3)
     val withDuplicitPredicates: Boolean = !rulesMining.constraints.exists[RuleConstraint.WithoutDuplicitPredicates]
@@ -427,7 +427,7 @@ object RuleRefinement {
 
     def minHeadCoverage: Double = _minHeadCoverage
 
-    def minComputedSupport(rule: ExtendedRule): Double = math.max(rule.headSize * minHeadCoverage, minSupport.getOrElse(1))
+    def minComputedSupport(rule: ExtendedRule): Double = math.max(rule.headSize * minHeadCoverage, minSupport)
 
     def setMinHeadCoverage(value: Double): Unit = _minHeadCoverage = value
   }

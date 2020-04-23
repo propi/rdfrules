@@ -74,7 +74,7 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
 
   def foreach(f: ResolvedRule => Unit): Unit = resolvedRules.foreach(f)
 
-  def coveredTriples(part: CoveredTriples.Part = CoveredTriples.Part.Whole, distinct: Boolean = true): Traversable[CoveredTriples] = rules.view.map(CoveredTriples(_, part, index, distinct))
+  def coveredPaths(part: CoveredPaths.Part = CoveredPaths.Part.Whole): Traversable[CoveredPaths] = rules.view.map(CoveredPaths(_, part, index))
 
   def headResolved: ResolvedRule = resolvedRules.head
 
@@ -132,7 +132,7 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
       debugger(cached.size) { ad =>
         //here we use topK parallel enumeration with some initThreshold and with a function which updates threshold once the queue head is changed
         cached.rules.toIndexedSeq.topK(topK, initThreshold, updateThreshold, parallelism) { (rule, threshold) =>
-          ad.result()(f(thi)(rule, threshold))
+          Iterator(ad.result()(f(thi)(rule, threshold)))
         }.foreach(x => f2(x))
       }
     }
@@ -269,7 +269,7 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
 
 object Ruleset {
 
-  def apply(index: Index, rules: IndexedSeq[Rule.Simple]): Ruleset = new Ruleset(rules, index, Runtime.getRuntime.availableProcessors())
+  def apply(index: Index, rules: Traversable[Rule.Simple]): Ruleset = new Ruleset(rules, index, Runtime.getRuntime.availableProcessors())
 
   def apply(index: Index, file: File)(implicit reader: RulesetReader): Ruleset = Model(file).toRuleset(index)
 

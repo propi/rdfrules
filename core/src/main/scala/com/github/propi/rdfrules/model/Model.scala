@@ -111,13 +111,21 @@ class Model private(val rules: Traversable[ResolvedRule], val parallelism: Int)
                 case (Atom.Constant(s), _: Atom.Variable) => constants => CompressedQuad(s, rule.head.predicate, constants.head.value, 0)
                 case (Atom.Constant(s), Atom.Constant(o)) => _ => CompressedQuad(s, rule.head.predicate, o, 0)
               }
-              Try(atomCounting
-                .selectDistinctPairs(ruleBody, headVars, new atomCounting.VariableMap(true))
-                .map(constantsToQuad)
-                .map(x => thi.predicates.get(x.predicate).flatMap(_.subjects.get(x.subject)).exists(_.contains(x.`object`)) -> x.toTriple)
-                .map(x => PredictedTriple(x._2)(rule, x._1))
-                .filter(filterPredictedTriple)
-                .foreach(f))
+              if (predictionType == PredictionType.Existing) {
+                atomCounting.specifyVariableMap(rule.head, new atomCounting.VariableMap(true))
+                  .filter(atomCounting.exists(ruleBody, _))
+                  .map(variableMap => constantsToQuad(headVars.map(variableMap(_))))
+                  .map(x => PredictedTriple(x.toTriple)(rule, true))
+                  .foreach(f)
+              } else {
+                Try(atomCounting
+                  .selectDistinctPairs(ruleBody, headVars, new atomCounting.VariableMap(true))
+                  .map(constantsToQuad)
+                  .map(x => thi.predicates.get(x.predicate).flatMap(_.subjects.get(x.subject)).exists(_.contains(x.`object`)) -> x.toTriple)
+                  .map(x => PredictedTriple(x._2)(rule, x._1))
+                  .filter(filterPredictedTriple)
+                  .foreach(f))
+              }
             }
           }
         }

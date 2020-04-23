@@ -25,6 +25,8 @@ trait AtomCounting {
 
     def containsAtom(atom: Atom): Boolean = atoms(atom)
 
+    def specifyAtom(atom: Atom): Atom = Atom(specifyItem(atom.subject, this), atom.predicate, specifyItem(atom.`object`, this))
+
     def apply(key: Atom.Variable): Atom.Constant = hmap(key)
 
     def +(s: (Atom.Variable, Atom.Constant), p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = if (allowDuplicitAtoms) {
@@ -149,25 +151,34 @@ trait AtomCounting {
     * @param variableMap constants which will be mapped to variables
     * @return number of possible paths for the set of atoms which are contained in dataset
     */
-  def count(atoms: Set[Atom], maxCount: Double, variableMap: VariableMap): Int = if (atoms.isEmpty) {
-    1
-  } else if (maxCount <= 0) {
-    0
-  } else {
-    val best = bestAtom(atoms, variableMap)
-    val rest = atoms - best
+  def count(atoms: Set[Atom], maxCount: Double, variableMap: VariableMap): Int = {
     var i = 0
-    val it = specifyVariableMap(best, variableMap).takeWhile { x =>
-      i += count(rest, maxCount, x)
+    val it = paths(atoms, variableMap).takeWhile { _ =>
+      i += 1
       i <= maxCount
     }
-    var j = 0
     while (it.hasNext) {
       it.next()
-      j += 1
-      if (variableMap.isEmpty && j % 500 == 0) logger.trace(s"Atom counting, step $j, body size: $i (max body size: $maxCount)")
+      if (i % 500 == 0) logger.trace(s"Atom counting, body size: $i (max body size: $maxCount)")
     }
     i
+  }
+
+  /**
+    * Get all distinct paths for a seq of atoms
+    *
+    * @param atoms       atoms
+    * @param variableMap variableMap
+    * @return
+    */
+  def paths(atoms: Set[Atom], variableMap: VariableMap): Iterator[VariableMap] = {
+    if (atoms.isEmpty) {
+      Iterator(variableMap)
+    } else {
+      val best = bestAtom(atoms, variableMap)
+      val rest = atoms - best
+      specifyVariableMap(best, variableMap).flatMap(paths(rest, _))
+    }
   }
 
   /**

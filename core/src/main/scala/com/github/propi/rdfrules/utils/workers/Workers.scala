@@ -164,6 +164,8 @@ object Workers {
       * @param initThreshold   initial threshold value
       * @param updateThreshold function for convering an item (in the head of priority queue) to a threshold value for updating the min/max threshold
       * @param parallelism     number of workers (it is number of available cores by default)
+      * @param growing         if true and the queue is full and new object is added with same threshold, the new one is added and older stays in the queue.
+      *                        The result can contain more items than K.
       * @param f               a function for mapping a single item with threshold of the input sequence to another one
       * @param ordering        ordering of sequence items for topK enumeration
       * @param ec              execution context for parallel processing
@@ -171,36 +173,51 @@ object Workers {
       * @tparam T the type of threshold
       * @return topK collection
       */
-    def topK[O, T](k: Int, initThreshold: T, updateThreshold: O => T, parallelism: Int = Runtime.getRuntime.availableProcessors())(f: (I, T) => O)(implicit ordering: Ordering[O], ec: ExecutionContext = ExecutionContext.global): IndexedSeq[O] = {
+    def topK[O, T](k: Int, initThreshold: T, updateThreshold: O => T, parallelism: Int = Runtime.getRuntime.availableProcessors(), growing: Boolean = false)(f: (I, T) => Iterator[O])(implicit ordering: Ordering[O], ec: ExecutionContext = ExecutionContext.global): IndexedSeq[O] = {
       val normK = if (k <= 0) 1 else k
       //the shared threshold variable which is updating once the topK queue is full and the head is changed
       @volatile var threshold: T = initThreshold
+      var longTail = collection.mutable.ListBuffer.empty[O]
       //priority queue
       val queue = collection.mutable.PriorityQueue.empty[O]
       parForeach(parallelism) { x =>
         //process the item with threshold
-        val y = f(x, threshold)
-        //update queue
-        queue.synchronized {
-          if (queue.length >= normK) {
-            //if the queue is full and the newly processed item is better than the head of queue then
-            // - dequeue the head
-            // - enqueue the new item
-            // - update threshold with a new head item of queue
-            if (ordering.gt(queue.head, y)) {
-              queue.dequeue()
+        for (y <- f(x, threshold)) {
+          //update queue
+          queue.synchronized {
+            if (queue.length >= normK) {
+              //if the queue is full and the newly processed item is better than the head of queue then
+              // - dequeue the head
+              // - enqueue the new item
+              // - update threshold with a new head item of queue
+              if (ordering.gt(queue.head, y)) {
+                val dequeued = queue.dequeue()
+                queue.enqueue(y)
+                if (growing) {
+                  if (ordering.equiv(queue.head, dequeued)) {
+                    longTail += dequeued
+                  } else {
+                    longTail.clear()
+                  }
+                }
+                threshold = updateThreshold(queue.head)
+              } else if (growing && ordering.equiv(queue.head, y)) {
+                longTail += y
+              }
+            } else {
+              //if the queue is not full we enqueue the item
               queue.enqueue(y)
-              threshold = updateThreshold(queue.head)
+              //after 'enqueue' if the queue is full we update the threshold by the head queue item
+              if (queue.length == normK) threshold = updateThreshold(queue.head)
             }
-          } else {
-            //if the queue is not full we enqueue the item
-            queue.enqueue(y)
-            //after 'enqueue' if the queue is full we update the threshold by the head queue item
-            if (queue.length == normK) threshold = updateThreshold(queue.head)
           }
         }
       }
-      queue.toIndexedSeq
+      for (x <- longTail) {
+        queue.enqueue(x)
+      }
+      longTail.clear()
+      queue.dequeueAll
     }
 
   }

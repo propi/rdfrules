@@ -113,7 +113,7 @@ object Measure {
       measures.get(Measure.PcaConfidence).getOrElse(Measure.PcaConfidence(0)),
       measures.get(Measure.Lift).getOrElse(Measure.Lift(0)),
       measures.get(Measure.Confidence).getOrElse(Measure.Confidence(0)),
-      measures(Measure.HeadCoverage)
+      measures.get(Measure.HeadCoverage).getOrElse(Measure.HeadCoverage(0))
     )
   }
 

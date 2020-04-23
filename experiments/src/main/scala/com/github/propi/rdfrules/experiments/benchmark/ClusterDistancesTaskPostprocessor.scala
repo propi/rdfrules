@@ -1,29 +1,58 @@
 package com.github.propi.rdfrules.experiments.benchmark
 
-import com.github.propi.rdfrules.data.Triple
+import com.github.propi.rdfrules.index.CompressedTriple
 import com.github.propi.rdfrules.rule.Measure
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension._
+
+import scala.language.postfixOps
 
 /**
   * Created by Vaclav Zeman on 10. 4. 2020.
   */
 trait ClusterDistancesTaskPostprocessor extends TaskPostProcessor[Ruleset, Seq[Metric]] {
 
+  private class MutableWeight {
+    private var i = 0
+    private var weight = 0
+
+    def weight(maxWeight: Int): Int = ((maxWeight * i) - weight) + 1
+
+    def intersections: Int = i
+
+    def +=(x: Int): Unit = {
+      i += 1
+      weight += x
+    }
+  }
+
   private def computeIntraClusterSimilarity(ruleset: Ruleset): Double = {
     if (ruleset.size > 1) {
-      val tripleMap = collection.mutable.Map.empty[Triple, Boolean]
+      val tripleMap = collection.mutable.Map.empty[CompressedTriple, MutableWeight]
+      var maxWeight = 0
       for {
-        rule <- ruleset.coveredTriples()
-        triple <- rule.graph.triples
+        coveredPaths <- ruleset.coveredPaths()
       } {
-        tripleMap.get(triple) match {
-          case Some(true) =>
-          case Some(false) => tripleMap.update(triple, true)
-          case None => tripleMap.update(triple, false)
+        var i = 0
+        val triplesWeights = collection.mutable.ListBuffer.empty[MutableWeight]
+        for (compressedTriple <- coveredPaths.triples(true)) {
+          i += 1
+          triplesWeights += tripleMap.getOrElseUpdate(compressedTriple, new MutableWeight)
         }
+        for (tripleWeight <- triplesWeights) {
+          tripleWeight += i
+        }
+        maxWeight = math.max(maxWeight, i)
       }
-      val rulesStats = ruleset.coveredTriples().view.map { rule =>
+      val sumWeights = tripleMap.valuesIterator.map(_.weight(maxWeight).toLong).sum
+      /*println(s"max: $maxWeight, sum: $sumWeights")
+      println("-----")
+      tripleMap.valuesIterator.foreach(x => println(s"(${x.intersections.toDouble} / ${ruleset.size}) * ${x.weight(maxWeight)}"))
+      println("*********")
+      println("*********")
+      println("*********")*/
+      tripleMap.valuesIterator.map(x => (x.intersections.toDouble / ruleset.size) * x.weight(maxWeight)).sum / sumWeights
+      /*val rulesStats = ruleset.coveredPaths().view.map { rule =>
         rule.graph.triples.foldLeft((0, 0)) {
           case ((total, intersections), triple) => (total + 1) -> (intersections + (if (tripleMap(triple)) 1 else 0))
         }
@@ -35,22 +64,22 @@ trait ClusterDistancesTaskPostprocessor extends TaskPostProcessor[Ruleset, Seq[M
         (relIntersections * weight) -> weight
       }.foldLeft((0.0, 0.0)) { case ((num, den), (dNum, dDen)) =>
         (num + dNum) -> (den + dDen)
-      }
+      }*/
       /*println("CLUSTER ****")
       ruleset.foreach(println)
       println("***** total & intersections")
       rulesStats.foreach(println)
       println("***** stats")
       println(s"maxL: $maxL, $num / $den = ${num / den}")*/
-      num / den
+      //num / den
     } else {
       1.0
     }
   }
 
   private def computeInterClustersSimilarity(cluster1: Ruleset, cluster2: Ruleset): Double = {
-    val tripleSet = cluster1.coveredTriples(distinct = false).view.flatMap(_.graph.triples).toSet
-    val (clusterLen2, intersections) = cluster2.coveredTriples(distinct = false).view.flatMap(_.graph.triples).distinct.foldLeft((0, 0)) { case ((total, intersections), triple) =>
+    val tripleSet = cluster1.coveredPaths().view.flatMap(_.triples(false)).toSet
+    val (clusterLen2, intersections) = cluster2.coveredPaths().view.flatMap(_.triples(false)).distinct.foldLeft((0, 0)) { case ((total, intersections), triple) =>
       (total + 1) -> (intersections + (if (tripleSet(triple)) 1 else 0))
     }
     /*println("***** INTER BETWEEN")
