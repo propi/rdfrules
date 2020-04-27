@@ -10,7 +10,7 @@ import com.github.propi.rdfrules.index.{Index, TripleHashIndex}
 import com.github.propi.rdfrules.model.Model.PredictionType
 import com.github.propi.rdfrules.model.{Model, PredictionResult}
 import com.github.propi.rdfrules.rule.{Measure, Rule, RulePattern, RulePatternMatcher}
-import com.github.propi.rdfrules.ruleset.ops.Sortable
+import com.github.propi.rdfrules.ruleset.ops.{Sortable, Treeable}
 import com.github.propi.rdfrules.serialization.RuleSerialization._
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
@@ -25,7 +25,8 @@ import scala.collection.mutable
 class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val parallelism: Int)
   extends Transformable[Rule.Simple, Ruleset]
     with Cacheable[Rule.Simple, Ruleset]
-    with Sortable[Rule.Simple, Ruleset] {
+    with Sortable[Rule.Simple, Ruleset]
+    with Treeable {
 
   self =>
 
