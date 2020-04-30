@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.experiments
 
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.data._
+import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.ruleset._
 import com.github.propi.rdfrules.utils.Debugger
@@ -21,7 +22,8 @@ object CompleteWorkflowScala {
         .filter(!_.triple.predicate.hasSameUriAs("participatedIn"))
         .discretize(DiscretizationTask.Equifrequency(3))(_.triple.predicate.hasSameUriAs("hasNumberOfPeople"))
         .mine(Amie()
-          .addConstraint(RuleConstraint.WithInstances(true))
+          .addThreshold(Threshold.MinHeadCoverage(0.01))
+          .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LeastFunctionalVariable))
           .addPattern(AtomPattern(predicate = TripleItem.Uri("hasNumberOfPeople")) =>: None)
           .addPattern(AtomPattern(predicate = TripleItem.Uri("hasNumberOfPeople")))
         )

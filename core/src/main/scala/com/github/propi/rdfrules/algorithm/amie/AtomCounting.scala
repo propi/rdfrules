@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.algorithm.amie
 
+import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
 import com.github.propi.rdfrules.index.TripleHashIndex
 import com.github.propi.rdfrules.rule.{Atom, FreshAtom}
 import com.typesafe.scalalogging.Logger
@@ -300,7 +301,7 @@ trait AtomCounting {
     * @param atom atom
     * @return number between 0 and 1
     */
-  def functionality(atom: Atom): Double = tripleIndex.predicates(atom.predicate).subjects.size.toDouble / tripleIndex.predicates(atom.predicate).size
+  def functionality(atom: Atom): Double = tripleIndex.predicates(atom.predicate).functionality
 
   /**
     * Inverse of the functionality
@@ -308,7 +309,7 @@ trait AtomCounting {
     * @param atom atom
     * @return number between 0 and 1
     */
-  def inverseFunctionality(atom: Atom): Double = tripleIndex.predicates(atom.predicate).objects.size.toDouble / tripleIndex.predicates(atom.predicate).size
+  def inverseFunctionality(atom: Atom): Double = tripleIndex.predicates(atom.predicate).inverseFunctionality
 
   /**
     * Create function for unspecified atom which specifies variable map by specified atom

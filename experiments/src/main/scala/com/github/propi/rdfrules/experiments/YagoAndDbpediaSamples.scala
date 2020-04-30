@@ -3,6 +3,7 @@ package com.github.propi.rdfrules.experiments
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.algorithm.dbscan.DbScan
 import com.github.propi.rdfrules.data._
+import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.ruleset._
 import com.github.propi.rdfrules.utils.Debugger
@@ -17,7 +18,7 @@ object YagoAndDbpediaSamples {
 
     protected def example: Ruleset = {
       Dataset(Example.experimentsDir + "yago.tsv.bz2")
-        .mine(Amie())
+        .mine(Amie().addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere)).addThreshold(Threshold.MinHeadCoverage(0.01)))
         .sorted
         .take(10)
     }
@@ -28,7 +29,7 @@ object YagoAndDbpediaSamples {
 
     protected def example: Ruleset = {
       Dataset(Example.experimentsDir + "yago.tsv.bz2")
-        .mine(Amie().addThreshold(Threshold.TopK(10)))
+        .mine(Amie().addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere)).addThreshold(Threshold.TopK(10)))
         .sorted
     }
   }
@@ -42,10 +43,10 @@ object YagoAndDbpediaSamples {
         .addThreshold(Threshold.MinHeadSize(80))
         .addThreshold(Threshold.MinHeadCoverage(0.001))
         .addThreshold(Threshold.TopK(1000))
-        .addConstraint(RuleConstraint.WithInstances(true)))
+        .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LeastFunctionalVariable)))
         .computePcaConfidence(0.5)
         .computeLift()
-        .makeClusters(DbScan(minNeighbours = 2))
+        .makeClusters(DbScan(minNeighbours = 1))
         .sortBy(Measure.Cluster, Measure.PcaConfidence, Measure.Lift, Measure.HeadCoverage)
         .cache(Example.resultDir + "rules-example3.cache")
       val ruleset = Ruleset.fromCache(dataset.index(), Example.resultDir + "rules-example3.cache")
@@ -63,6 +64,7 @@ object YagoAndDbpediaSamples {
         Graph("yago", Example.experimentsDir + "yagoFacts.tsv.bz2") +
         Graph("yago", Example.experimentsDir + "yagoDBpediaInstances.tsv.bz2")
       dataset.mine(Amie()
+        .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere))
         .addThreshold(Threshold.MinHeadCoverage(0.2)))
         .sorted
     }
@@ -79,6 +81,7 @@ object YagoAndDbpediaSamples {
         Graph("dbpedia", Example.experimentsDir + "mappingbased_literals_sample.ttl.bz2")
       dataset.mine(Amie()
         .addThreshold(Threshold.MinHeadCoverage(0.2))
+        .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere))
         .addPattern(AtomPattern(graph = TripleItem.Uri("dbpedia")) =>: AtomPattern(graph = TripleItem.Uri("yago")))
         .addPattern(AtomPattern(graph = TripleItem.Uri("yago")) =>: AtomPattern(graph = TripleItem.Uri("dbpedia"))))
         .sorted

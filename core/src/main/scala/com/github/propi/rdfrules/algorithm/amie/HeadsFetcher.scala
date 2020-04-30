@@ -2,8 +2,10 @@ package com.github.propi.rdfrules.algorithm.amie
 
 import java.util.concurrent.ForkJoinPool
 
+import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.index.TripleHashIndex
 import com.github.propi.rdfrules.rule.ExtendedRule.DanglingRule
+import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule.{Atom, AtomPatternMatcher, ExtendedRule, Measure, RulePattern, Threshold}
 import com.github.propi.rdfrules.utils.TypedKeyMap
 
@@ -29,13 +31,16 @@ trait HeadsFetcher extends AtomCounting {
       //only one variable may be replaced by a constant
       //result is original variable atom + instantied atoms with constants in subject + instantied atoms with constants in object
       //we do not instantient subject variable if onlyObjectInstances is true
-      val it1 = if (settings.onlyObjectInstances) {
-        Iterator.empty
-      } else {
-        specifySubject(logicalHead).map(_.transform(`object` = Atom.Variable(0)))
+      val it = settings.constantsPosition match {
+        case Some(ConstantsPosition.LeastFunctionalVariable) => tripleIndex.predicates(logicalHead.predicate).leastFunctionalVariable match {
+          case TriplePosition.Subject => specifySubject(logicalHead).map(_.transform(`object` = Atom.Variable(0)))
+          case TriplePosition.Object => specifyObject(logicalHead)
+        }
+        case Some(ConstantsPosition.Object) => specifyObject(logicalHead)
+        case Some(ConstantsPosition.Subject) => specifySubject(logicalHead).map(_.transform(`object` = Atom.Variable(0)))
+        case _ => specifySubject(logicalHead).map(_.transform(`object` = Atom.Variable(0))) ++ specifyObject(logicalHead)
       }
-      val it2 = specifyObject(logicalHead)
-      Iterator(logicalHead) ++ (it1 ++ it2).filter(settings.test)
+      Iterator(logicalHead) ++ it.filter(settings.test)
     } else {
       Iterator(logicalHead)
     }

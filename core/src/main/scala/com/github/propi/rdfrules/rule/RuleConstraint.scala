@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.rule
 
 import com.github.propi.rdfrules.data.TripleItem
 import com.github.propi.rdfrules.index.TripleItemHashIndex
+import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.utils.TypedKeyMap.{Key, Value}
 
 import scala.language.implicitConversions
@@ -43,11 +44,27 @@ object RuleConstraint {
     def apply(predicates: TripleItem.Uri*): WithoutPredicates = new WithoutPredicates(predicates.toSet)
   }
 
-  case class WithInstances(onlyObjects: Boolean) extends RuleConstraint {
-    def companion: WithInstances.type = WithInstances
+  case class ConstantsAtPosition(position: ConstantsPosition) extends RuleConstraint {
+    def companion: ConstantsAtPosition.type = ConstantsAtPosition
   }
 
-  implicit object WithInstances extends Key[WithInstances]
+  implicit object ConstantsAtPosition extends Key[ConstantsAtPosition] {
+
+    sealed trait ConstantsPosition
+
+    object ConstantsPosition {
+
+      case object Subject extends ConstantsPosition
+
+      case object Object extends ConstantsPosition
+
+      case object LeastFunctionalVariable extends ConstantsPosition
+
+      case object Nowhere extends ConstantsPosition
+
+    }
+
+  }
 
   case class WithoutDuplicitPredicates() extends RuleConstraint {
     def companion: WithoutDuplicitPredicates.type = WithoutDuplicitPredicates

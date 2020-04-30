@@ -2,8 +2,11 @@ package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.algorithm.amie.RuleFilter.{MinSupportRuleFilter, NoDuplicitRuleFilter, NoRepeatedGroups, RuleConstraints, RulePatternFilter}
+import com.github.propi.rdfrules.data.TriplePosition
+import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
 import com.github.propi.rdfrules.index.{TripleHashIndex, TripleItemHashIndex}
 import com.github.propi.rdfrules.rule.ExtendedRule.{ClosedRule, DanglingRule}
+import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.HowLong._
 import com.github.propi.rdfrules.utils.extensions.IteratorExtension._
@@ -196,8 +199,16 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       // - result is closed rule
       //condition for danglings: if not with instances and rule is closed and its lengths equals maxRuleLength - 1 then it should not be refined
       // - ex: p(b,a) => p(a,b) then p(a,c) ^ p(b,a) => p(a,b) is useless because it always generate dangling rules
-      val danglings = if (!isWithInstances && rule.ruleLength + 1 >= maxRuleLength) {
-        Iterator.empty
+      val danglings = if (rule.ruleLength + 1 >= maxRuleLength) {
+        if (!isWithInstances) {
+          Iterator.empty
+        } else {
+          constantsPosition match {
+            case Some(ConstantsPosition.Subject) => rule.variables.iterator.map(x => Iterator(FreshAtom(dangling, x)))
+            case Some(ConstantsPosition.Object) => rule.variables.iterator.map(x => Iterator(FreshAtom(x, dangling)))
+            case _ => rule.variables.iterator.map(x => Iterator(FreshAtom(dangling, x), FreshAtom(x, dangling)))
+          }
+        }
       } else {
         rule.variables.iterator.map(x => Iterator(FreshAtom(dangling, x), FreshAtom(x, dangling)))
       }
@@ -211,8 +222,16 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
           //or we create fresh atoms with existing dangling item with combination of other items
           // - result is closed rule
           //condition for danglings: if not with instances and rule is dangling and its lengths equals maxRuleLength - 1 then it should not be refined
-          val danglings = if (!isWithInstances && (rule.ruleLength + 1) >= maxRuleLength) {
-            Iterator.empty
+          val danglings = if (rule.ruleLength + 1 >= maxRuleLength) {
+            if (!isWithInstances) {
+              Iterator.empty
+            } else {
+              constantsPosition match {
+                case Some(ConstantsPosition.Subject) => Iterator(FreshAtom(dangling, dangling1))
+                case Some(ConstantsPosition.Object) => Iterator(FreshAtom(dangling1, dangling))
+                case _ => Iterator(FreshAtom(dangling1, dangling), FreshAtom(dangling, dangling1))
+              }
+            }
           } else {
             Iterator(FreshAtom(dangling1, dangling), FreshAtom(dangling, dangling1))
           }
@@ -279,6 +298,21 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
   }
 
   /**
+    * Instantiated position
+    * It returns Object for Nowhere constants position, it does not matter because instantiatedPosition is called always after isWithInstances.
+    * It returns None if both Subject and Object are acceptable.
+    *
+    * @param predicate predicate
+    * @return
+    */
+  private def instantiatedPosition(predicate: Int): Option[ConceptPosition] = constantsPosition.map {
+    case ConstantsPosition.Object => TriplePosition.Object
+    case ConstantsPosition.LeastFunctionalVariable => tripleIndex.predicates(predicate).leastFunctionalVariable
+    case ConstantsPosition.Subject => TriplePosition.Subject
+    case _ => TriplePosition.Object
+  }
+
+  /**
     * Select all projections (atoms) from possible fresh atoms and one head specification (for one head specified atom/triple)
     * For each head triple we enumerate atoms from possible fresh atoms which are directly connected to this rule and fulfill all constraints
     *
@@ -321,8 +355,9 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
           //if we may to create instantiated atoms for this predicate and fresh atom (it is allowed and not already counted)
           //then we add new atom projection to atoms set
           //if onlyObjectInstances is true we do not project instance atom in the subject position
-          if (freshAtom.subject == dangling && !onlyObjectInstances) projections += atom.transform(`object` = freshAtom.`object`)
-          else if (freshAtom.`object` == dangling) projections += atom.transform(subject = freshAtom.subject)
+          val ip = instantiatedPosition(atom.predicate)
+          if (freshAtom.subject == dangling && ip.forall(_ == TriplePosition.Subject)) projections += atom.transform(`object` = freshAtom.`object`)
+          else if (freshAtom.`object` == dangling && ip.forall(_ == TriplePosition.Object)) projections += atom.transform(subject = freshAtom.subject)
         }
         //if we may to create variable atoms for this predicate and fresh atom (not already counted)
         //then we add new atom projection to atoms set
@@ -363,7 +398,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
         for (predicate <- tripleIndex.objects.get(oc).iterator.flatMap(_.predicates.iterator)) {
           //if there exists atom in rule which has same predicate and object variable and is not instationed
           // - then we dont use this fresh atom for this predicate because p(a, B) -> p(a, b) is not allowed (redundant and noisy rule)
-          if (isWithInstances && !onlyObjectInstances && !isCounted(atom, predicate, true)) {
+          if (isWithInstances && instantiatedPosition(predicate).forall(_ == TriplePosition.Subject) && !isCounted(atom, predicate, true)) {
             for (subject <- tripleIndex.predicates(predicate).objects(oc).value.iterator) projections += Atom(Atom.Constant(subject), predicate, atom.`object`)
           }
           //we dont count fresh atom only with variables if there exists atom in rule which has same predicate and object variable
@@ -377,7 +412,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
         //get all predicates for this subject constant
         //skip all counted predicates that are included in this rule
         for (predicate <- tripleIndex.subjects.get(sc).iterator.flatMap(_.predicates.iterator)) {
-          if (isWithInstances && !isCounted(atom, predicate, true)) {
+          if (isWithInstances && instantiatedPosition(predicate).forall(_ == TriplePosition.Object) && !isCounted(atom, predicate, true)) {
             for (_object <- tripleIndex.predicates(predicate).subjects(sc).value.keysIterator) projections += Atom(atom.subject, predicate, Atom.Constant(_object))
           }
           if (!isCounted(atom, predicate, false)) {
@@ -406,10 +441,10 @@ object RuleRefinement {
     val patterns: List[RulePattern.Mapped] = rulesMining.patterns.map(_.mapped)
     val minHeadSize: Int = rulesMining.thresholds.get[Threshold.MinHeadSize].map(_.value).getOrElse(100)
     val minSupport: Int = rulesMining.thresholds.get[Threshold.MinSupport].map(_.value).getOrElse(1)
-    val isWithInstances: Boolean = rulesMining.constraints.exists[RuleConstraint.WithInstances]
+    val constantsPosition: Option[ConstantsPosition] = rulesMining.constraints.get[RuleConstraint.ConstantsAtPosition].map(_.position)
+    val isWithInstances: Boolean = !constantsPosition.contains(ConstantsPosition.Nowhere)
     val maxRuleLength: Int = rulesMining.thresholds.get[Threshold.MaxRuleLength].map(_.value).getOrElse(3)
     val withDuplicitPredicates: Boolean = !rulesMining.constraints.exists[RuleConstraint.WithoutDuplicitPredicates]
-    val onlyObjectInstances: Boolean = rulesMining.constraints.get[RuleConstraint.WithInstances].exists(_.onlyObjects)
     val filters: List[RuleConstraint.MappedFilter] = rulesMining.constraints.iterator.collect {
       case filter: RuleConstraint.Filter => filter.mapped
     }.toList

@@ -1,6 +1,8 @@
 package com.github.propi.rdfrules.java.algorithm;
 
 import com.github.propi.rdfrules.algorithm.amie.Amie$;
+import com.github.propi.rdfrules.java.ConstantsPosition;
+import com.github.propi.rdfrules.java.ConstantsPosition$;
 import com.github.propi.rdfrules.java.RulesMiningWrapper;
 import com.github.propi.rdfrules.java.data.TripleItem;
 import com.github.propi.rdfrules.java.rule.RulePattern;
@@ -41,6 +43,10 @@ public class RulesMining {
         return new RulesMining(rulesMining.addThreshold(new Threshold.MinHeadCoverage(minHeadCoverage)));
     }
 
+    public RulesMining withMinSupport(int support) {
+        return new RulesMining(rulesMining.addThreshold(new Threshold.MinSupport(support)));
+    }
+
     public RulesMining withMaxRuleLength(int maxRuleLength) {
         return new RulesMining(rulesMining.addThreshold(new Threshold.MaxRuleLength(maxRuleLength)));
     }
@@ -61,8 +67,20 @@ public class RulesMining {
         return new RulesMining(new RulesMiningWrapper(rulesMining).withoutPredicates(predicates));
     }
 
-    public RulesMining withInstances(boolean onlyObjects) {
-        return new RulesMining(rulesMining.addConstraint(new RuleConstraint.WithInstances(onlyObjects)));
+    public RulesMining withoutConstants() {
+        return new RulesMining(rulesMining.addConstraint(new RuleConstraint.ConstantsAtPosition(ConstantsPosition.nowhere())));
+    }
+
+    public RulesMining withoutConstantsAtSubject() {
+        return new RulesMining(rulesMining.addConstraint(new RuleConstraint.ConstantsAtPosition(ConstantsPosition.objectPosition())));
+    }
+
+    public RulesMining withoutConstantsAtObject() {
+        return new RulesMining(rulesMining.addConstraint(new RuleConstraint.ConstantsAtPosition(ConstantsPosition.subjectPosition())));
+    }
+
+    public RulesMining withoutConstantsAtMostFunctionalVariable() {
+        return new RulesMining(rulesMining.addConstraint(new RuleConstraint.ConstantsAtPosition(ConstantsPosition.leastFunctionalVariable())));
     }
 
     public RulesMining withoutDuplicitPredicates() {

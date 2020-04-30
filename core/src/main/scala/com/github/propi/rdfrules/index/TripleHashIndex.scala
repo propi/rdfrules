@@ -1,5 +1,7 @@
 package com.github.propi.rdfrules.index
 
+import com.github.propi.rdfrules.data.TriplePosition
+import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
 import com.github.propi.rdfrules.index.TripleHashIndex._
 import com.github.propi.rdfrules.rule.TripleItemPosition
 import com.github.propi.rdfrules.utils.Debugger
@@ -216,6 +218,30 @@ object TripleHashIndex {
       set.trim()
       set
     }
+
+    /**
+      * (C hasCitizen ?a), or (?a isCitizenOf C)
+      * For this example C is the least functional variable
+      */
+    lazy val leastFunctionalVariable: ConceptPosition = if (functionality >= inverseFunctionality) {
+      TriplePosition.Object
+    } else {
+      TriplePosition.Subject
+    }
+
+    /**
+      * (?a hasCitizen C), or (C isCitizenOf ?a)
+      * For this example C is the most functional variable
+      */
+    def mostFunctionalVariable: ConceptPosition = if (leastFunctionalVariable == TriplePosition.Subject) {
+      TriplePosition.Object
+    } else {
+      TriplePosition.Subject
+    }
+
+    def functionality: Double = subjects.size.toDouble / size
+
+    def inverseFunctionality: Double = objects.size.toDouble / size
   }
 
   class TripleSubjectIndex[T] private[TripleHashIndex](val objects: ItemMap[T], val predicates: HashSet[T]) {

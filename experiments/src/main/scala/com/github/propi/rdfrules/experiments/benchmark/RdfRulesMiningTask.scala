@@ -3,6 +3,7 @@ package com.github.propi.rdfrules.experiments.benchmark
 import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule.{RuleConstraint, Threshold}
 import com.github.propi.rdfrules.ruleset.{ResolvedRule, Ruleset}
 import com.github.propi.rdfrules.utils.Debugger
@@ -24,9 +25,9 @@ trait RdfRulesMiningTask[T] extends Task[Index, Index, Ruleset, T] with TaskPreP
     _.addThreshold(Threshold.MinHeadCoverage(minHeadCoverage)),
     _.addThreshold(Threshold.MaxRuleLength(maxRuleLength)),
     x => if (allowConstants) {
-      if (withConstantsAtTheObjectPosition) x.addConstraint(RuleConstraint.WithInstances(true)) else x.addConstraint(RuleConstraint.WithInstances(false))
+      if (withConstantsAtTheObjectPosition) x.addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Object)) else x
     } else {
-      x
+      x.addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere))
     }
   ))(Amie())
 
@@ -40,7 +41,7 @@ trait RdfRulesMiningTask[T] extends Task[Index, Index, Ruleset, T] with TaskPreP
       x => if (minConfidence <= 0.0) x else x.computeConfidence(minConfidence),
       x => if (minPcaConfidence <= 0.0) x else x.computePcaConfidence(minPcaConfidence),
       x => if (!countLift || minConfidence <= 0.0) x else x.computeLift(minConfidence)
-    ))(ruleset)
+    ))(ruleset).cache
   }
 
   protected def taskBody(input: Index): Ruleset = countOtherMetrics(input.mine(miningTask(createDefaultMiningTask)))

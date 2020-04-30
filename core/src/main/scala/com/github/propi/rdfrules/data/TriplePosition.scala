@@ -7,10 +7,12 @@ sealed trait TriplePosition
 
 object TriplePosition {
 
-  case object Subject extends TriplePosition
+  sealed trait ConceptPosition extends TriplePosition
+
+  case object Subject extends ConceptPosition
 
   case object Predicate extends TriplePosition
 
-  case object Object extends TriplePosition
+  case object Object extends ConceptPosition
 
 }
