@@ -12,11 +12,11 @@ trait NewTriplesPostprocessor extends TaskPostProcessor[Ruleset, Seq[Metric]] {
 
   protected def postProcess(result: Ruleset): Seq[Metric] = {
     val rules = result.size
-    val crules = result.setParallelism(numberOfThreads).computeConfidence(0.5).sorted.cache
+    val crules = result.setParallelism(numberOfThreads).computePcaConfidence(0.8).sorted.cache
     List(
       Metric.Number("rules", rules),
       Metric.Number("rulesConf", crules.size),
-      Metric.Number("newTriples", crules.predictedTriples(PredictionType.Missing).distinct.triples.size)
+      Metric.Number("newTriples", crules.predictedTriples(PredictionType.Complementary).distinct.triples.size)
     )
   }
 

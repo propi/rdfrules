@@ -23,7 +23,21 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
   private var graph: Option[T] = None
   private var severalGraphs: Boolean = false
 
-  lazy val size: Int = predicates.valuesIterator.map(_.size).sum
+  @volatile private var _size: Int = -1
+
+  def size: Int = {
+    if (_size == -1) {
+      _size = predicates.valuesIterator.map(_.size).sum
+    }
+    _size
+  }
+
+  def reset(): Unit = {
+    _size = -1
+    subjects.valuesIterator.foreach(_.reset())
+    predicates.valuesIterator.foreach(_.reset())
+    objects.valuesIterator.foreach(_.reset())
+  }
 
   def evaluateAllLazyVals(): Unit = {
     size
@@ -209,24 +223,49 @@ object TripleHashIndex {
   implicit def anyWithGraphsTo[T](hashSetWithGraphs: AnyWithGraphs[T, _]): T = hashSetWithGraphs.value
 
   class TriplePredicateIndex[T] private[TripleHashIndex](val subjects: ItemMapWithGraphsAndMap[T], val objects: ItemMapWithGraphsAndSet[T])(implicit collectionsBuilder: CollectionsBuilder[T]) {
-    lazy val size: Int = subjects.valuesIterator.map(_.size).sum
+    @volatile private var _size: Int = -1
+    @volatile private var _graphs: Option[HashSet[T]] = None
+    @volatile private var _leastFunctionalVariable: Option[ConceptPosition] = None
+
+    def size: Int = {
+      if (_size == -1) {
+        _size = subjects.valuesIterator.map(_.size).sum
+      }
+      _size
+    }
+
+    def reset(): Unit = {
+      _size = -1
+      _graphs = None
+      _leastFunctionalVariable = None
+    }
+
     //add all graphs to this predicate index - it is suitable for atom p(a, b) to enumerate all graphs
     //it is contructed from all predicate-subject graphs
-    lazy val graphs: HashSet[T] = {
-      val set = collectionsBuilder.emptySet
-      subjects.valuesIterator.flatMap(_.graphs.iterator).foreach(set += _)
-      set.trim()
-      set
+    def graphs: HashSet[T] = _graphs match {
+      case Some(x) => x
+      case None =>
+        val set = collectionsBuilder.emptySet
+        subjects.valuesIterator.flatMap(_.graphs.iterator).foreach(set += _)
+        set.trim()
+        _graphs = Some(set)
+        set
     }
 
     /**
       * (C hasCitizen ?a), or (?a isCitizenOf C)
       * For this example C is the least functional variable
       */
-    lazy val leastFunctionalVariable: ConceptPosition = if (functionality >= inverseFunctionality) {
-      TriplePosition.Object
-    } else {
-      TriplePosition.Subject
+    def leastFunctionalVariable: ConceptPosition = _leastFunctionalVariable match {
+      case Some(x) => x
+      case None =>
+        val pos = if (functionality >= inverseFunctionality) {
+          TriplePosition.Object
+        } else {
+          TriplePosition.Subject
+        }
+        _leastFunctionalVariable = Some(pos)
+        pos
     }
 
     /**
@@ -245,11 +284,29 @@ object TripleHashIndex {
   }
 
   class TripleSubjectIndex[T] private[TripleHashIndex](val objects: ItemMap[T], val predicates: HashSet[T]) {
-    lazy val size: Int = objects.valuesIterator.map(_.size).sum
+    @volatile private var _size: Int = -1
+
+    def reset(): Unit = _size = -1
+
+    def size: Int = {
+      if (_size == -1) {
+        _size = objects.valuesIterator.map(_.size).sum
+      }
+      _size
+    }
   }
 
   class TripleObjectIndex[T] private[TripleHashIndex](val predicates: HashSet[T], computePredicateObjectSize: T => Int) {
-    lazy val size: Int = predicates.iterator.map(computePredicateObjectSize(_)).sum
+    @volatile private var _size: Int = -1
+
+    def reset(): Unit = _size = -1
+
+    def size: Int = {
+      if (_size == -1) {
+        _size = predicates.iterator.map(computePredicateObjectSize(_)).sum
+      }
+      _size
+    }
   }
 
   class Quad[T](val s: T, val p: T, val o: T, val g: T)

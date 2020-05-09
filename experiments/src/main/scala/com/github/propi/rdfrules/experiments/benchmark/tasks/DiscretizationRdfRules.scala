@@ -22,6 +22,7 @@ class DiscretizationRdfRules(val name: String, override val minHeadCoverage: Dou
     val predicates = input.useRichOps(_.getNumericPredicates(Iterator.empty, minSupport).toList)
     val trees = input.useRichOps(_.getDiscretizedTrees(predicates.iterator.map(_._1), minSupport, 2).toList)
     input.useRichOps(x => trees.foreach(y => x.addDiscretizedTreeToIndex(y._1.asInstanceOf[TripleItem.Uri], y._2)))
+    input.tripleMap(_.reset())
     input
   }
 

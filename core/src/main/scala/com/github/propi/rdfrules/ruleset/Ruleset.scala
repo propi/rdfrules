@@ -205,6 +205,7 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
     * @param predictionType Existing = all predicted triples are contained in the input datasets
     *                       Missing = all predicted triples are not contained in the input datasets
     *                       All = predicted triples can be Existing or Missing
+    *                       Complementary = predicted triple is Missing and the subject did not contain any information related with the predicted predicate (it is new valuable knowledge)
     * @return predicted triples
     */
   def predictedTriples(predictionType: PredictionType): PredictionResult = model.predictForIndex(index, predictionType)

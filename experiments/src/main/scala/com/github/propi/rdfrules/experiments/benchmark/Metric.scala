@@ -186,7 +186,7 @@ object Metric {
           case x: TripleItem.PrefixedUri => x.toLongUri.uri
         }.count(_.contains("_discretized_level_"))
         val numPredicates = thi.predicates.valuesIterator.count(_.objects.keysIterator.exists(mapper.getTripleItem(_).isInstanceOf[TripleItem.Number[_]]))
-        List(Number("predicates", thi.predicates.keySet.size), Number("numPredicates", numPredicates), Number("discretized_*", totalDisc))
+        List(Number("predicates", thi.predicates.keySet.size), Number("numPredicates", numPredicates), Number("discretized_*", totalDisc), Number("triples", thi.size))
       }
     }
   }

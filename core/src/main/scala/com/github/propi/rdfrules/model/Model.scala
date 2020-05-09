@@ -4,7 +4,7 @@ import java.io._
 
 import com.github.propi.rdfrules.algorithm.amie.AtomCounting
 import com.github.propi.rdfrules.data.ops.{Cacheable, Transformable}
-import com.github.propi.rdfrules.data.{Dataset, Graph}
+import com.github.propi.rdfrules.data.{Dataset, Graph, TriplePosition}
 import com.github.propi.rdfrules.index.{CompressedQuad, Index, TripleHashIndex, TripleItemHashIndex}
 import com.github.propi.rdfrules.model.Model.PredictionType
 import com.github.propi.rdfrules.rule.{Atom, Measure, ResolvedRulePatternMatcher, RulePattern}
@@ -94,10 +94,21 @@ class Model private(val rules: Traversable[ResolvedRule], val parallelism: Int)
             val atomCounting = new AtomCounting {
               implicit val tripleIndex: TripleHashIndex[Int] = thi
             }
+
+            def isCompletelyMissing(predictedTriple: PredictedTriple): Boolean = {
+              val predicateIndex = thi.predicates(mapper.getIndex(predictedTriple.triple.predicate))
+              predicateIndex.mostFunctionalVariable match {
+                case TriplePosition.Subject => !predicateIndex.subjects.contains(mapper.getIndex(predictedTriple.triple.subject))
+                case TriplePosition.Object => !predicateIndex.objects.contains(mapper.getIndex(predictedTriple.triple.`object`))
+              }
+            }
+
             val filterPredictedTriple: PredictedTriple => Boolean = predictionType match {
               case PredictionType.All => _ => true
               case PredictionType.Existing => _.existing
               case PredictionType.Missing => !_.existing
+              case PredictionType.Complementary => predictedTriple =>
+                !predictedTriple.existing && isCompletelyMissing(predictedTriple)
             }
             rules.view.map(ResolvedRule.simple(_)(mapper)).foreach { case (rule, ruleMapper) =>
               implicit val mapper2: TripleItemHashIndex = mapper.extendWith(ruleMapper)
@@ -145,6 +156,8 @@ object Model {
     case object Missing extends PredictionType
 
     case object Existing extends PredictionType
+
+    case object Complementary extends PredictionType
 
     case object All extends PredictionType
 
