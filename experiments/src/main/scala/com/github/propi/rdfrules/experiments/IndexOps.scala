@@ -41,7 +41,12 @@ class IndexOps private(implicit mapper: TripleItemHashIndex, thi: TripleHashInde
     buildLevel(levels, Nil)
   }
 
-  def addDiscretizedTreeToIndex(predicate: TripleItem.Uri, discretizedTree: DiscretizedTree): Unit = {
+  def addDiscretizedTreeToIndex(predicate: TripleItem.Uri, minSupportUpper: Int, discretizedTree: DiscretizedTree): Unit = {
+    def isCutOff(tree: DiscretizedTree): Boolean = tree match {
+      case DiscretizedTree.Node(_, children) => children.nonEmpty && children.forall(_.interval.frequency >= minSupportUpper)
+      case _ => false
+    }
+
     val predicateQuads: Traversable[Quad] = {
       val predicateIndex = mapper.getIndexOpt(predicate).map(x => x -> thi.predicates(x))
       new Traversable[Quad] {
@@ -69,12 +74,13 @@ class IndexOps private(implicit mapper: TripleItemHashIndex, thi: TripleHashInde
         if (level > 0) {
           val suffix = "_discretized_level_" + level
           val newPredicate = buildPredicate(suffix)
+          val cutOffIntervals = intervals.filter(!isCutOff(_))
           for {
             quad <- predicateQuads
             objectNumber <- Option(quad.triple.`object`).collect {
               case TripleItem.NumberDouble(value) => value
             }
-            interval <- intervals.iterator.map(_.interval).find(_.isInInterval(objectNumber))
+            interval <- cutOffIntervals.iterator.map(_.interval).find(_.isInInterval(objectNumber))
           } {
             val newQuad = Quad(data.Triple(quad.triple.subject, newPredicate, TripleItem.Interval(interval)), quad.graph)
             mapper.addQuad(newQuad)
@@ -89,6 +95,20 @@ class IndexOps private(implicit mapper: TripleItemHashIndex, thi: TripleHashInde
     }
 
     addLevelToIndex(0, List(discretizedTree))
+  }
+
+  private def removeDuplicitIntervals(tree: DiscretizedTree): DiscretizedTree = tree match {
+    case DiscretizedTree.Node(interval, children) =>
+      val filteredChildren = children.collect {
+        case child@DiscretizedTree.Node(interval2, _) if interval != interval2 => removeDuplicitIntervals(child)
+        case child@DiscretizedTree.Leaf(interval2) if interval != interval2 => child
+      }
+      if (filteredChildren.isEmpty) {
+        DiscretizedTree.Leaf(interval)
+      } else {
+        DiscretizedTree.Node(interval, filteredChildren)
+      }
+    case _: DiscretizedTree.Leaf => tree
   }
 
   def getDiscretizedTrees(predicates: Iterator[TripleItem], minSupport: Int, arity: Int): Iterator[(TripleItem, DiscretizedTree)] = {
@@ -106,7 +126,8 @@ class IndexOps private(implicit mapper: TripleItemHashIndex, thi: TripleHashInde
           }.foreach(f)
         }
       }
-      predicate -> buildDiscretizedTree(discretization.discretize(SortedInMemoryNumericTraversable(col, task.buffer)), arity)
+      val tree = buildDiscretizedTree(discretization.discretize(SortedInMemoryNumericTraversable(col, task.buffer)), arity)
+      predicate -> removeDuplicitIntervals(tree)
     }
   }
 
@@ -116,8 +137,12 @@ class IndexOps private(implicit mapper: TripleItemHashIndex, thi: TripleHashInde
     }.filter(_._2 >= minSupport)
   }
 
-  def getMinSupport(minHeadSize: MinHeadSize, minHeadCoverage: MinHeadCoverage): Int = {
+  def getMinSupportLower(minHeadSize: MinHeadSize, minHeadCoverage: MinHeadCoverage): Int = {
     Try(thi.predicates.valuesIterator.map(_.size).filter(_ >= minHeadSize.value).min).toOption.map(x => math.ceil(x * minHeadCoverage.value).toInt).getOrElse(Int.MaxValue)
+  }
+
+  def getMinSupportUpper(minHeadSize: MinHeadSize, minHeadCoverage: MinHeadCoverage): Int = {
+    Try(thi.predicates.valuesIterator.map(_.size).filter(_ >= minHeadSize.value).max).toOption.map(x => math.ceil(x * minHeadCoverage.value).toInt).getOrElse(Int.MaxValue)
   }
 
 }

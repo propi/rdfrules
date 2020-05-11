@@ -125,7 +125,8 @@ object OriginalAmieComparison {
           } withInput (yago1.toDataset + yago2 + dbpedia1 + dbpedia2 + yagoDbpedia).index() andFinallyProcessResultWith BasicPrinter()
         } else if (cli.hasOption("rundiscretization")) {
           for (minHc <- minHcs) {
-            val index = Graph(inputTsvDataset).index().withEvaluatedLazyVals
+            val index = Graph(inputTsvDataset).index()
+            index.tripleMap(thi => thi.reset())
             Once executeTask new MinHcRdfRules[Seq[Metric]](s"RDFRules: mine without discretization, minHc: $minHc", minHc, true, numberOfThreads = numberOfThreads) with NewTriplesPostprocessor {
               override val withConstantsAtTheObjectPosition: Boolean = true
               override val minPcaConfidence: Double = 0.0
@@ -233,12 +234,14 @@ object OriginalAmieComparison {
             } withInput index andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
           }
           if (cli.hasOption("runconfidence")) {
-            val rules = index.mine(Amie().setParallelism(numberOfThreads).addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Object)).addThreshold(Threshold.MinHeadCoverage(0.01)).addThreshold(Threshold.TopK(10000))).cache
-            xTimes executeTask new ConfidenceRdfRules[IndexedSeq[ResolvedRule]]("RDFRules: confidence counting, minPcaConfidence=0.1, input 10000 rules with constants", 0, 0.1, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput rules andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
-            xTimes executeTask new ConfidenceRdfRules[IndexedSeq[ResolvedRule]]("RDFRules: confidence counting, minPcaConfidence=0.1, input 10000 rules with constants, topK=100", 0, 0.1, topK = 100, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput rules andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
+            val rules = index.mine(Amie().setParallelism(numberOfThreads).addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Object)).addThreshold(Threshold.MinHeadCoverage(0.01)).addThreshold(Threshold.TopK(100000))).cache
+            xTimes executeTask new ConfidenceRdfRules[IndexedSeq[ResolvedRule]]("RDFRules: confidence counting, minPcaConfidence=0.1, input 100000 rules with constants", 0, 0.1, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput rules andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
+            xTimes executeTask new ConfidenceRdfRules[IndexedSeq[ResolvedRule]]("RDFRules: confidence counting, minConfidence=0.1, input 100000 rules with constants", 0.1, 0.0, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput rules andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
+            xTimes executeTask new ConfidenceRdfRules[IndexedSeq[ResolvedRule]]("RDFRules: confidence counting, minPcaConfidence=0.1, input 100000 rules with constants, topK=100", 0, 0.1, topK = 100, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput rules andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
+            xTimes executeTask new ConfidenceRdfRules[IndexedSeq[ResolvedRule]]("RDFRules: confidence counting, minConfidence=0.1, input 100000 rules with constants, topK=100", 0.1, 0.0, topK = 100, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput rules andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
           }
           if (cli.hasOption("runclusters")) {
-            val rules = index.mine(Amie().setParallelism(numberOfThreads).addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LeastFunctionalVariable)).addThreshold(Threshold.MinHeadCoverage(0.01)).addThreshold(Threshold.TopK(10000))).cache
+            val rules = index.mine(Amie().setParallelism(numberOfThreads).addThreshold(Threshold.MinHeadCoverage(0.01)).addThreshold(Threshold.TopK(10000))).cache
             val sims = cli.getOptionValue("minsims", "0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8").split(",").iterator.map(_.trim).filter(_.nonEmpty).map(_.toDouble).toList
             for (minSim <- sims) {
               Once executeTask new ClusteringRdfRules[Seq[Metric]](s"RDFRules: clustering, minSim = $minSim", 1, minSim, numberOfThreads) with ClusterDistancesTaskPostprocessor withInput rules andFinallyProcessResultWith BasicPrinter()
@@ -247,7 +250,7 @@ object OriginalAmieComparison {
           if (cli.hasOption("runpruning")) {
             val topKs = cli.getOptionValue("topks", "500, 1000, 2000, 4000, 8000, 16000, 32000").split(",").iterator.map(_.trim).filter(_.nonEmpty).map(_.toInt).toList
             for (topK <- topKs) {
-              val rules = index.mine(Amie().setParallelism(numberOfThreads).addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LeastFunctionalVariable)).addThreshold(Threshold.MinHeadCoverage(0.01)).addThreshold(Threshold.TopK(topK))).computeConfidence(0.1).cache
+              val rules = index.mine(Amie().setParallelism(numberOfThreads).addThreshold(Threshold.MinHeadCoverage(0.01)).addThreshold(Threshold.TopK(topK))).computeConfidence(0.1).cache
               Once executeTask new PruningRdfRules(s"RDFRules: pruning, rules: ${rules.size}, topK: $topK") withInput rules andFinallyProcessResultWith BasicPrinter()
             }
           }

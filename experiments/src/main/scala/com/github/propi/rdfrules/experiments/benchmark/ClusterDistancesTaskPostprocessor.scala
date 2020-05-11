@@ -86,9 +86,9 @@ trait ClusterDistancesTaskPostprocessor extends TaskPostProcessor[Ruleset, Seq[M
     println("CLUSTER 1")
     cluster1.foreach(println)
     println("CLUSTER 2")
-    cluster2.foreach(println)
-    println(s"stats max: $intersections / ${tripleSet.size}, $intersections / $clusterLen2")*/
-    math.min(intersections.toDouble / tripleSet.size, intersections.toDouble / clusterLen2)
+    cluster2.foreach(println)*/
+    //println(s"stats max: $intersections / ${tripleSet.size}, $intersections / $clusterLen2")
+    math.max(intersections.toDouble / tripleSet.size, intersections.toDouble / clusterLen2)
   }
 
   protected def postProcess(result: Ruleset): Seq[Metric] = {

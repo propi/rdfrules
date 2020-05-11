@@ -118,7 +118,11 @@ object Metric {
 
     private lazy val rangeIndex = {
       if (matrix.length > 1) {
-        var interTotal = 0
+        matrix.indices.iterator.map { i =>
+          val interMax = matrix.indices.iterator.filter(_ != i).map(matrix(i)(_)).max
+          matrix(i)(i) - interMax
+        }.sum / matrix.length
+        /*var interTotal = 0
         val interSum = matrix.indices.combinations(2).map { indices =>
           val i = indices(0)
           val j = indices(1)
@@ -128,17 +132,25 @@ object Metric {
         val intraSum = matrix.indices.map(i => matrix(i)(i)).sum
         val interAvg = interSum / interTotal
         val intraAvg = intraSum / matrix.length
-        intraAvg - interAvg
+        intraAvg - interAvg*/
       } else {
         matrix.head.head
       }
     }
 
+    private lazy val avgIntra = matrix.indices.iterator.map { i =>
+      matrix(i)(i)
+    }.sum / matrix.length
+
+    private lazy val avgInter = matrix.indices.iterator.map { i =>
+      matrix.indices.iterator.filter(_ != i).map(matrix(i)(_)).sum
+    }.sum / (matrix.length * matrix.length - matrix.length)
+
     def doubleValue: Double = rangeIndex
 
     def getSimple: Simple = Number(name, doubleValue)
 
-    override def toString: String = s"score: $doubleValue, dunnIndex: $dunnIndex, matrix: \n" + matrix.iterator.map(_.mkString(", ")).mkString("\n")
+    override def toString: String = s"score: $doubleValue, dunnIndex: $dunnIndex, avgInter: $avgInter, avgIntra: $avgIntra matrix: \n" + matrix.iterator.map(_.mkString(", ")).mkString("\n")
   }
 
   case class Stats(avg: Simple, stdDev: Simple, min: Simple, max: Simple) extends Complex {
