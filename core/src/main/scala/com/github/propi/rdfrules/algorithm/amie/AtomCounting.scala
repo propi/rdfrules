@@ -1,6 +1,5 @@
 package com.github.propi.rdfrules.algorithm.amie
 
-import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
 import com.github.propi.rdfrules.index.TripleHashIndex
 import com.github.propi.rdfrules.rule.{Atom, FreshAtom}
 import com.typesafe.scalalogging.Logger
@@ -16,6 +15,7 @@ trait AtomCounting {
   //For this variant it should be banned - so no mapped atom should be returned if the same atom was mapped in the previous rule refinement (it should reduce support and body size)
   //We need to check it whether it is a good premision, because some ?a can have more official languages inluding English
   //For this variant it should be useful: ( ?c <direction> "east" ) ^ ( ?b <train_id> ?c ) ^ ( ?b <train_id> ?a ) ⇒ ( ?a <direction> "east" )
+  //ABOVE It is isomorphic group and should be filteren after projections counting
   //We partialy solved that by the switch allowDuplicitAtoms. It is true for bodySize counting, but false for projectionBounding and support counzing. Check it whether it is right!
   class VariableMap private(hmap: Map[Atom.Variable, Atom.Constant], atoms: Set[Atom], allowDuplicitAtoms: Boolean) {
     def this(allowDuplicitAtoms: Boolean) = this(Map.empty, Set.empty, allowDuplicitAtoms)
@@ -48,11 +48,11 @@ trait AtomCounting {
       new VariableMap(hmap + s, atoms + Atom(s._2, p, o), allowDuplicitAtoms)
     }
 
-    def +(s: Atom.Constant, p: Int, o: Atom.Constant): VariableMap = if (allowDuplicitAtoms) {
+    /*def +(s: Atom.Constant, p: Int, o: Atom.Constant): VariableMap = if (allowDuplicitAtoms) {
       new VariableMap(hmap, atoms, allowDuplicitAtoms)
     } else {
       new VariableMap(hmap, atoms + Atom(s, p, o), allowDuplicitAtoms)
-    }
+    }*/
 
     def isEmpty: Boolean = hmap.isEmpty
   }
@@ -188,9 +188,10 @@ trait AtomCounting {
     * @param atoms       all atoms
     * @param headVars    variables to be instantiated
     * @param variableMap variable mapping to a concrete constant
+    * @param pairFilter  additional filter for each found pair - suitable for PCA confidence
     * @return iterator of instantiated distinct pairs for variables which have covered all atoms
     */
-  def selectDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], variableMap: VariableMap): Iterator[Seq[Atom.Constant]] = {
+  def selectDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], variableMap: VariableMap, pairFilter: Seq[Atom.Constant] => Boolean = _ => true): Iterator[Seq[Atom.Constant]] = {
     val foundPairs = collection.mutable.Set.empty[Seq[Atom.Constant]]
 
     //TODO check it. This is maybe better solution to choose best atom but it must be tested!
@@ -219,7 +220,7 @@ trait AtomCounting {
       if (headVars.forall(variableMap.contains)) {
         //if all variables are mapped then we create an instantiated pair
         val pair = headVars.map(variableMap.apply)
-        if (!foundPairs(pair) && (atoms.isEmpty || exists(atoms, variableMap))) {
+        if (!foundPairs(pair) && pairFilter(pair) && (atoms.isEmpty || exists(atoms, variableMap))) {
           //if the pair has not been found yet and atoms is empty or there exists a path for remaining atoms then we use this pair
           foundPairs += pair
           Iterator(pair)
@@ -242,13 +243,14 @@ trait AtomCounting {
   /**
     * For input atoms count all instantiated distinct pairs (or sequence) for input variables in the head atom
     *
-    * @param atoms    all atoms
-    * @param head     variables to be instantiated in the head
-    * @param maxCount a threshold for stopping counting
+    * @param atoms      all atoms
+    * @param head       variables to be instantiated in the head
+    * @param maxCount   a threshold for stopping counting
+    * @param pairFilter additional filter for each found pair - suitable for PCA confidence
     * @return number of distinct pairs for variables which have covered all atoms
     */
-  def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double): Int = {
-    countDistinctPairs(atoms, head, maxCount, new VariableMap(true))
+  def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double, pairFilter: Seq[Atom.Constant] => Boolean = _ => true): Int = {
+    countDistinctPairs(atoms, head, maxCount, new VariableMap(true), pairFilter)
   }
 
   /**
@@ -258,13 +260,14 @@ trait AtomCounting {
     * @param head        variables to be instantiated in the head
     * @param maxCount    a threshold for stopping counting
     * @param variableMap variable mapping to a concrete constant
+    * @param pairFilter  additional filter for each found pair - suitable for PCA confidence
     * @return number of distinct pairs for variables which have covered all atoms
     */
-  def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double, variableMap: VariableMap): Int = {
+  def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double, variableMap: VariableMap, pairFilter: Seq[Atom.Constant] => Boolean): Int = {
     val headVars = List(head.subject, head.`object`).collect {
       case x: Atom.Variable => x
     }
-    countDistinctPairs(atoms, headVars, maxCount, variableMap)
+    countDistinctPairs(atoms, headVars, maxCount, variableMap, pairFilter)
   }
 
   /**
@@ -274,11 +277,12 @@ trait AtomCounting {
     * @param headVars    variables to be instantiated
     * @param maxCount    a threshold for stopping counting
     * @param variableMap variable mapping to a concrete constant
+    * @param pairFilter  additional filter for each found pair - suitable for PCA confidence
     * @return number of distinct pairs for variables which have covered all atoms
     */
-  def countDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], maxCount: Double, variableMap: VariableMap): Int = {
+  def countDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], maxCount: Double, variableMap: VariableMap, pairFilter: Seq[Atom.Constant] => Boolean): Int = {
     var i = 0
-    val it = selectDistinctPairs(atoms, headVars, variableMap)
+    val it = selectDistinctPairs(atoms, headVars, variableMap, pairFilter)
     while (it.hasNext && i <= maxCount) {
       it.next()
       i += 1

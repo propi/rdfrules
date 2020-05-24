@@ -155,6 +155,8 @@ object RuleFilter {
       p.get(itemPosition).exists(_.exists(o => atoms.map(replaceItemInAtom(o, replacement)).size < atoms.size))
     }
 
+    //TODO it works only for variables. It should work also for constants
+    //For this variant it should filter: ( ?c <direction> "east" ) ^ ( ?b <train_id> ?c ) ^ ( ?b <train_id> ?a ) ⇒ ( ?a <direction> "east" )
     def apply(newAtom: Atom, support: Int): FilterResult = !(
       //we want to detect isomorphic group - if it exists then return true and then negate it - result is false
       //only variable atoms can cause isomorphic problem

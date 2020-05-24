@@ -123,7 +123,11 @@ object OriginalAmieComparison {
           Once executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: graphs-mining YAGO+DBpedia, minHeadCoverage = 0.01", 0.01, true, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor {
             override val withConstantsAtTheObjectPosition: Boolean = true
           } withInput (yago1.toDataset + yago2 + dbpedia1 + dbpedia2 + yagoDbpedia).index() andFinallyProcessResultWith BasicPrinter()
-        } else if (cli.hasOption("rundiscretization")) {
+        }/* else if (cli.hasOption("runlift")) {
+          val yago = Graph("experiments/data/yago2core_facts.clean.notypes.tsv.bz2")
+          val dbpedia = Graph("experiments/data/dbpedia.3.8.tsv.bz2")
+          val yagoDbpedia = Graph("experiments/data/yagoDBpediaInstancesAll.tsv.bz2")
+        }*/ else if (cli.hasOption("rundiscretization")) {
           for (minHc <- minHcs) {
             val index = Graph(inputTsvDataset).index()
             index.tripleMap(thi => thi.reset())

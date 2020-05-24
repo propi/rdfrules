@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.algorithm.amie
 
+import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.index.TripleHashIndex
 import com.github.propi.rdfrules.rule.{Atom, Measure, Rule}
 import com.github.propi.rdfrules.utils.TypedKeyMap
@@ -125,7 +126,7 @@ trait RuleCounting extends AtomCounting {
       val bodySet = rule.body.toSet
       val support = rule.measures[Measure.Support].value
       val maxPcaBodySize = (support / minPcaConfidence) + 1
-      val newVar = (rule.body.iterator ++ Iterator(rule.head)).flatMap(x => Iterator(x.subject, x.`object`)).collect {
+      /*val newVar = (rule.body.iterator ++ Iterator(rule.head)).flatMap(x => Iterator(x.subject, x.`object`)).collect {
         case x: Atom.Variable => x
       }.max.++
       //if the inverse functionality is greater than functionality then we need to inverse the head atom
@@ -141,12 +142,26 @@ trait RuleCounting extends AtomCounting {
         case (_: Atom.Variable, _) => rule.head.transform(subject = newVar)
         case (_, _: Atom.Variable) => rule.head.transform(`object` = newVar)
         case _ => rule.head
+      }*/
+      val isPCA: Seq[Atom.Constant] => Boolean = {
+        val pindex = tripleIndex.predicates(rule.head.predicate)
+        pindex.mostFunctionalVariable match {
+          case TriplePosition.Subject =>
+            if (rule.head.subject.isInstanceOf[Atom.Constant]) {
+              _ => true
+            } else {
+              constants => pindex.subjects.contains(constants.head.value)
+            }
+          case TriplePosition.Object =>
+            if (rule.head.`object`.isInstanceOf[Atom.Constant]) {
+              _ => true
+            } else {
+              constants => pindex.objects.contains(constants.last.value)
+            }
+        }
       }
-      val pcaBodySize = if (allPaths) {
-        count(bodySet + existentialTriple, maxPcaBodySize, new VariableMap(true))
-      } else {
-        countDistinctPairs(bodySet + existentialTriple, rule.head, maxPcaBodySize)
-      }
+      val pcaBodySize = countDistinctPairs(bodySet, rule.head, maxPcaBodySize, isPCA)
+      //}
       /*val pcaBodySize = headInstances.foldLeft(0) { (pcaBodySize, variableMap) =>
         println(variableMap)
         //for each head instance we compute body size and sum it with previously counted body size
