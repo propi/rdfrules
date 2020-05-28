@@ -7,7 +7,7 @@ import com.github.propi.rdfrules.index.TripleHashIndex
 import com.github.propi.rdfrules.rule.ExtendedRule.DanglingRule
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule.{Atom, AtomPatternMatcher, ExtendedRule, Measure, RulePattern, Threshold}
-import com.github.propi.rdfrules.utils.TypedKeyMap
+import com.github.propi.rdfrules.utils.{MutableRanges, TypedKeyMap}
 
 import scala.collection.parallel.ForkJoinTaskSupport
 
@@ -65,7 +65,8 @@ trait HeadsFetcher extends AtomCounting {
           patterns,
           x._1,
           x._1.danglings.max,
-          getAtomTriples(atom).toIndexedSeq
+          new MutableRanges/*,
+          getAtomTriples(atom).toIndexedSeq*/
         )
       )
       danglingRule

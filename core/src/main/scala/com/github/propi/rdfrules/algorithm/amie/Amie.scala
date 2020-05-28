@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.algorithm.amie
 
 import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.atomic.AtomicInteger
 
 import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.algorithm.amie.RuleRefinement.{Settings, _}
@@ -170,12 +171,18 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
       //queue for mined rules which can be also expanded
       //in this queue there can not be any duplicit rules (it speed up computation)
       val queue = new HashQueue[ExtendedRule]
+
+      def queueSize = queue.synchronized {
+        queue.size
+      }
+
       val lastStageResult = collection.mutable.HashSet.empty[ClosedRule]
       //add all possible head to the queue
       getHeads foreach queue.add
       //first we refine all rules with length 1 (stage 1)
       //once all rules with length 1 are refined we go to the stage 2 (refine rules with length 2), etc.
       var stage = 1
+      val foundRules = new AtomicInteger(0)
       //if the queue is not empty and the timeout is not reached, go to the stage X
       while (!queue.isEmpty && timeout.forall(_ > currentDuration)) {
         //starts P jobs in parallel where P is number of processors
@@ -188,6 +195,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
               if (!queue.isEmpty && queue.peek.ruleLength == stage) Some(queue.poll) else None
             }
           }.takeWhile(_.isDefined && timeout.forall(_ > currentDuration)).map(_.get).filter(result.isRefinable).foreach { rule =>
+            ad.done(s"processed rules, found closed rules: ${foundRules.get()}, queue size: $queueSize")
             //we continually take all defined (and valid) rules from queue until end of the stage or reaching of the timeout
             //if rule length is lower than max rule length we can expand this rule with one atom (in this refine phase it always applies)
             //if we use the topK approach the minHeadCoverage may change during mining; therefore we need to check minHC threshold for the current rule
@@ -201,7 +209,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
                 }
                 if (currentSize > beforeSize && rule.isInstanceOf[ClosedRule]) {
                   result.addRule(rule.asInstanceOf[ClosedRule])
-                  ad.done(s"found rules (queue size: $currentSize)")
+                  foundRules.incrementAndGet()
                 }
               })
             } else {
@@ -213,13 +221,14 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
                 }
                 if (currentSize > beforeSize) {
                   result.addRule(rule)
-                  ad.done(s"found rules (queue size: $currentSize)")
+                  ad.done(s"processed rules, found closed rules: ${foundRules.incrementAndGet()}, queue size: $queueSize")
                 }
               })
             }
           }
         }
         //wait for all jobs in the current stage
+        //TODO no Duration.Inf but timeout if it is set
         Await.result(Future.sequence(jobs), Duration.Inf)
         //stage is completed, go to the next stage
         stage += 1

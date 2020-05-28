@@ -22,7 +22,7 @@ trait AmieRulesMiningTask extends Task[String, AMIE, util.List[Rule], IndexedSeq
     val cmd = List(
       s"-oute -dpr -maxad $maxRuleLength -minhc $minHeadCoverage -minpca $minPcaConfidence -minc $minConfidence -nc $numberOfThreads",
       if (allowConstants) " -const" else "",
-      if (confidenceCountingHeuristicOn) " -optimcb" else "",
+      if (confidenceCountingHeuristicOn) " -optimcb -optimfh" else "",
       " " + input
     ).mkString
     HowLong.howLong("Original AMIE+ loading", memUsage = true, forceShow = true) {

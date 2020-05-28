@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.algorithm.amie
 
+import com.github.propi.rdfrules.Main
 import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.algorithm.amie.RuleFilter.{MinSupportRuleFilter, NoDuplicitRuleFilter, NoRepeatedGroups, RuleConstraints, RulePatternFilter}
 import com.github.propi.rdfrules.data.TriplePosition
@@ -10,7 +11,7 @@ import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.Constan
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.HowLong._
 import com.github.propi.rdfrules.utils.extensions.IteratorExtension._
-import com.github.propi.rdfrules.utils.{Debugger, IncrementalInt, Stringifier}
+import com.github.propi.rdfrules.utils.{Debugger, IncrementalInt, MutableRanges, Stringifier}
 
 import scala.collection.mutable
 import scala.language.implicitConversions
@@ -24,6 +25,8 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
   val settings: RuleRefinement.Settings
 
   import settings._
+
+  private lazy val minSupport = minComputedSupport(rule)
 
   /**
     * Next possible dangling variable for this rule
@@ -50,55 +53,57 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
   }
 
   /**
-    * Check whether fresh atom has been counted before the main mining stage or it should not be counted.
-    * Counted fresh atoms may be atoms which have same predicate as any atom in the rule AND connecting item is on the same position as connecting atom item in the rule
-    *
-    * p(a, c) -> p(a, b) AND !instantiated THEN isCounted
-    * p(a, c) -> p(a, B) AND !instantiated THEN isCounted
-    * p(a, C) -> p(a, b) AND instantiated THEN isCounted
-    * p(a, C) -> p(a, B) AND instantiated THEN !isCounted - COUNT IT!
-    * p(a, b) -> p(a, b) AND !instantiated THEN isCounted
-    * ( p(a, c) & p(b, c) -> p(a, b) NEBO p(a, c) & p(c, b) -> p(a, b) ) AND !instantiated THEN !isCounted - COUNT IT!
-    * p(a, c) & p(c, a) -> p(a, B) AND !instantiated THEN !isCounted - COUNT IT!
-    * other cases - COUNT IT!
+    * This function returns true if the fresh atom is valid and should be added for other refining
     *
     * @param instantiated if true we want to create instantiated fresh atom
     * @param freshAtom    fresh atom to be checked
     * @param predicate    check for this predicate
-    * @return true = fresh atom is counted (DONT COUNT IT!), false = fresh atom is not counted (COUNT IT!)
+    * @return true = fresh atom is valid (count it), false = fresh atom is not valid - is totally abandoned or is counted within fast support calculation for duplicit predicates (DONT COUNT IT!)
     */
-  private def isCounted(freshAtom: FreshAtom, predicate: Int, instantiated: Boolean): Boolean = {
-    //if the predicate is not valid by constraints OR is contained in the rule then the atom is counted (DONT COUNT IT!)
-    !isValidPredicate(predicate) || rulePredicates.get(predicate).exists { predicate =>
-      //if duplicit predicates are not allowed then then fresh atom is always counted and we dont count it!
-      //we will find whether fresh atom should be counted, if yes then we return false (!isCounted - COUNT IT!)
-      !withDuplicitPredicates || !((freshAtom.subject, freshAtom.`object`) match {
-        //fresh atom is dangling and object is connector then we count this fresh atom only if:
-        // - we want to create instantiated atom and all same redundant atoms have constants at the dangling position
-        // - e.g.: p(a, B) -> p(a, C) we count it; p(a, B) -> p(a, b) we dont count it (redundant noisy atom)
-        // - OR we want to create dangling atom and for this predicate there is an atom which has same object/subject (at a non-dangling position) as this fresh atom
-        // - e.g.: p(a, c) -> p(a, b) we dont count it (it has been counted in countAtomsWithExistingPredicate); p(a, c) -> p(a, B) we dont count it (redundant noisy atom)
-        // - e.g.: p(a, c) -> p(b, a) - count it!
-        case (`dangling`, _) => if (instantiated) {
-          predicate.get(freshAtom.objectPosition.asInstanceOf[TripleItemPosition[Atom.Item]]).forall(_.forall(_.isInstanceOf[Atom.Constant]))
+  private def isValidFreshAtom(freshAtom: FreshAtom, predicate: Int, instantiated: Boolean): Boolean = {
+    lazy val predicateIndex = tripleIndex.predicates(predicate)
+    lazy val isFunctional = predicateIndex.isFunction
+    lazy val isInverseFunctional = predicateIndex.isInverseFunction
+    lazy val freshIsValidForDuplicitAtom: collection.Map[TripleItemPosition[Atom.Item], Seq[Atom.Item]] => Boolean = (freshAtom.subject, freshAtom.`object`) match {
+      case (_, `dangling`) =>
+        if (instantiated && !isFunctional) {
+          //if we instantiate this atom and the predicate is not function then COUNT IT
+          //because for (?a p C) => (?a p ?b) the C can be different for instantiated ?b
+          _ => true
         } else {
-          // - e.g.: p(c, a) -> p(a, b) - count it!
-          !predicate.contains(freshAtom.objectPosition.asInstanceOf[TripleItemPosition[Atom.Item]])
+          //otherwise we COUNT IT only if there is no (?a p ?) where (?a p ?) is the fresh atom
+          //we DONT COUNT IT for any redundant atom since:
+          //for !instantiated - is counted within fast support calculation for duplicit predicates: (?a p ?c) => (?a p ?b)
+          //for instantiated - this should not be counted because p is function, therefore it would be redundant atom (?a p C) => (?a p ?b)
+          predicateMap => !predicateMap.contains(freshAtom.subjectPosition.asInstanceOf[TripleItemPosition[Atom.Item]])
         }
-        case (_, `dangling`) => if (instantiated) {
-          predicate.get(freshAtom.subjectPosition.asInstanceOf[TripleItemPosition[Atom.Item]]).forall(_.forall(_.isInstanceOf[Atom.Constant]))
+      case (`dangling`, _) =>
+        //same as above but for object
+        if (instantiated && !isInverseFunctional) {
+          _ => true
         } else {
-          // - e.g.: p(a, c) -> p(b, a) - count it!
-          !predicate.contains(freshAtom.subjectPosition.asInstanceOf[TripleItemPosition[Atom.Item]])
+          predicateMap => !predicateMap.contains(freshAtom.objectPosition.asInstanceOf[TripleItemPosition[Atom.Item]])
         }
-        //fresh atom is closed then we count this fresh atom only if:
-        // - we dont want to create instantiated atom (instantiated atom is possible only for dangling fresh atom)
-        // - for this predicate there is an atom which has same subject as this fresh atom
-        // - for each these atoms all objets must not equal fresh atom object
-        // - OR for this predicate there is an atom which has same object...same bahaviour
-        //shortly, if fresh atom is closed and has shared item with other atom in the rule in the same position then we count it unless there is a duplicit atom
-        case _ => !instantiated && predicate.get(freshAtom.subjectPosition.asInstanceOf[TripleItemPosition[Atom.Item]]).forall(_.forall(_ != freshAtom.`object`)) // || predicate.get(freshAtom.objectPosition).exists(_.forall(_ != freshAtom.subject)))
-      })
+      case _ =>
+        if (isFunctional) {
+          //we DONT COUNT redundant atoms if p is function: (?a p ?c) ^ (?b p ?c) => (?a p ?b)
+          //atom (?a p ?c) is not considered, because during binding there are always duplicit triples.
+          predicateMap => !predicateMap.contains(freshAtom.subjectPosition.asInstanceOf[TripleItemPosition[Atom.Item]])
+        } else if (isInverseFunctional) {
+          //we DONT COUNT redundant atoms if p is inverse function: (?c p ?a) ^ (?c p ?b) => (?a p ?b)
+          //atom (?c p ?b) is not considered, because during binding there are always duplicit triples.
+          predicateMap => !predicateMap.contains(freshAtom.objectPosition.asInstanceOf[TripleItemPosition[Atom.Item]])
+        } else {
+          //if p is not function or inverse function then it is always COUNTED unless there is an duplicit atom
+          //(?a p ?c) ^ (?b p ?c) => (?a p ?b) - now it is valid because ?c can be different from ?b after binding
+          //(?a p ?b) ^ (?b p ?a) => (?a p ?b) - duplicates are disabled
+          predicateMap => !predicateMap.get(freshAtom.subjectPosition.asInstanceOf[TripleItemPosition[Atom.Item]]).exists(_.contains(freshAtom.`object`))
+        }
+    }
+    //first we check whether the predicate is allowed.
+    //if yes, then for each duplicit predicate in the rule we check whether there is no duplicity and redundancy withing refining
+    isValidPredicate(predicate) && predicateIndex.size >= minSupport && rulePredicates.get(predicate).forall { predicateMap =>
+      withDuplicitPredicates && freshIsValidForDuplicitAtom(predicateMap)
     }
   }
 
@@ -110,8 +115,8 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
     * @param predicate checking for the predicate
     * @return true = is counted, false = it is not counted
     */
-  private def isCounted(freshAtom: FreshAtom, predicate: Int): Boolean = {
-    isCounted(freshAtom, predicate, false) && (!isWithInstances || isCounted(freshAtom, predicate, true))
+  private def isValidFreshAtom(freshAtom: FreshAtom, predicate: Int): Boolean = {
+    isValidFreshAtom(freshAtom, predicate, false) && (!isWithInstances || isValidFreshAtom(freshAtom, predicate, true))
   }
 
   /**
@@ -124,53 +129,60 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
     */
   def refine: Iterator[ExtendedRule] = {
     val patternFilter = new RulePatternFilter(rule)
-    if (rule.patterns.nonEmpty && !patternFilter.isDefined) {
+    if ( /*(rule.head.predicate != 1477783326 || rule.head.subject.isInstanceOf[Atom.Constant] || rule.head.`object`.isInstanceOf[Atom.Constant] || rule.body.nonEmpty) ||*/ (rule.patterns.nonEmpty && !patternFilter.isDefined)) {
       //if all paterns must be exact and are completely matched then we will not expand this rule
       Iterator.empty
     } else {
-      implicit val projections: mutable.HashMap[Atom, IncrementalInt] = mutable.HashMap.empty
+      implicit val projections: mutable.HashMap[Atom, (IncrementalInt, MutableRanges)] = mutable.HashMap.empty
       //first we get all possible fresh atoms for the current rule (with one dangling variable or with two exising variables as closed rule)
       //we separate fresh atoms to two parts: countable and others (possible)
       //countable fresh atoms are atoms for which we know all existing variables (we needn't know dangling variable)
       // - then we can count all projections for this fresh atom and then only check existence of rest atoms in the rule
       //for other fresh atoms we need to find instances for unknown variables (not for dangling variable)
       val (countableFreshAtoms, possibleFreshAtoms) = getPossibleFreshAtoms.filter(x => patternFilter.matchFreshAtom(x)).toList.partition(freshAtom => List(freshAtom.subject, freshAtom.`object`).forall(x => x == rule.head.subject || x == rule.head.`object` || x == dangling))
-      val minSupport = minComputedSupport(rule)
+      //val minSupport = minComputedSupport(rule)
       val bodySet = rule.body.toSet
       //maxSupport is variable where the maximal support from all extension rules is saved
       var maxSupport = 0
       //this function creates variable map with specified head variables
       val specifyHeadVariableMapWithAtom: (Int, Int) => VariableMap = {
         val specifyVariableMapWithAtom = specifyVariableMapForAtom(rule.head)
-        (s, o) => specifyVariableMapWithAtom(rule.head.transform(subject = Atom.Constant(s), `object` = Atom.Constant(o)), new VariableMap(false))
+        (s, o) => specifyVariableMapWithAtom(rule.head.transform(subject = Atom.Constant(s), `object` = Atom.Constant(o)), new VariableMap(true))
       }
-      debugger.debug("Rule expansion: " + rule, rule.headSize + 1) { ad =>
-        //if (logger.underlying.isTraceEnabled) logger.trace("Rule expansion - " + rule + "\n" + "countable: " + countableFreshAtoms + "\n" + "possible: " + possibleFreshAtoms)
-        //if duplicit predicates are allowed then
-        //for all fresh atoms return all extensions with duplicit predicates by more efficient way
-        howLong("Rule expansion - count duplicit", true) {
-          if (withDuplicitPredicates) (countableFreshAtoms.iterator ++ possibleFreshAtoms.iterator).foreach(countAtomsWithExistingPredicate)
-        }
-        ad.done()
-        howLong("Rule expansion - count projections", true) {
-          rule.headTriples.iterator.zipWithIndex.takeWhile { x =>
-            //if max support + remaining steps is lower than min support we can finish "count projection" process
-            //example 1: head size is 10, min support is 5. Only 4 steps are remaining and there are no projection found then we can stop "count projection"
-            // - because no projection can have support greater or equal 5
-            //example 2: head size is 10, min support is 5, remaining steps 2, projection with maximal support has value 2: 2 + 2 = 4 it is less than 5 - we can stop counting
-            val remains = rule.headTriples.length - x._2
-            maxSupport + remains >= minSupport
-          }.foreach { case ((_subject, _object), _) =>
-            //for each triple covering head of this rule, find and count all possible projections for all possible fresh atoms
-            val selectedAtoms = howLong("Rule expansion - bind projections", true)(bindProjections(bodySet, possibleFreshAtoms, countableFreshAtoms, specifyHeadVariableMapWithAtom(_subject, _object)))
-            for (atom <- selectedAtoms) {
-              //for each found projection increase support by 1 and find max support
-              maxSupport = math.max(projections.getOrElseUpdate(atom, IncrementalInt()).++.getValue, maxSupport)
-            }
-            ad.done()
+      val time = System.currentTimeMillis()
+      //debugger.debug("Rule expansion: " + rule, rule.headSize + 1) { ad =>
+      //if (logger.underlying.isTraceEnabled) logger.trace("Rule expansion - " + rule + "\n" + "countable: " + countableFreshAtoms + "\n" + "possible: " + possibleFreshAtoms)
+      //if duplicit predicates are allowed then
+      //for all fresh atoms return all extensions with duplicit predicates by more efficient way
+      howLong("Rule expansion - count duplicit", true) {
+        if (withDuplicitPredicates) (countableFreshAtoms.iterator ++ possibleFreshAtoms.iterator).foreach(countAtomsWithExistingPredicate)
+      }
+      //println(rule.headTriples.size -> rule.measures.get[Measure.Support])
+      //ad.done()
+      val headSize = rule.headSize
+      howLong("Rule expansion - count projections", true) {
+        rule.headTriples.zipWithIndex.takeWhile { x =>
+          //if max support + remaining steps is lower than min support we can finish "count projection" process
+          //example 1: head size is 10, min support is 5. Only 4 steps are remaining and there are no projection found then we can stop "count projection"
+          // - because no projection can have support greater or equal 5
+          //example 2: head size is 10, min support is 5, remaining steps 2, projection with maximal support has value 2: 2 + 2 = 4 it is less than 5 - we can stop counting
+          val remains = headSize - x._2
+          maxSupport + remains >= minSupport
+        }.foreach { case ((_subject, _object), index) =>
+          //for each triple covering head of this rule, find and count all possible projections for all possible fresh atoms
+          val selectedAtoms = howLong("Rule expansion - bind projections", true)(bindProjections(bodySet, possibleFreshAtoms, countableFreshAtoms, specifyHeadVariableMapWithAtom(_subject, _object)))
+          for (atom <- selectedAtoms) {
+            //for each found projection increase support by 1 and find max support
+            maxSupport = math.max(projections.getOrElseUpdate(atom, IncrementalInt()).++.getValue, maxSupport)
           }
+          //ad.done()
         }
       }
+      rule.skippedTriples.clear()
+      //}
+      Main.add(rule, System.currentTimeMillis() - time)
+      /*println(projections.size)
+      println("pr: " + projections.valuesIterator.map(_.getValue).sum.toDouble / projections.size)*/
       if (logger.underlying.isTraceEnabled) logger.trace("Rule expansion " + Stringifier[Rule](rule) + ": total projections = " + projections.size)
       //filter all projections by minimal support and remove all duplicit projections
       //then create new rules from all projections (atoms)
@@ -260,7 +272,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
     * @param projections map of projections which can be fulfilled if there is some duplicits within this new fresh atom
     */
   private def countAtomsWithExistingPredicate(freshAtom: FreshAtom)
-                                             (implicit projections: mutable.HashMap[Atom, IncrementalInt]): Unit = {
+                                             (implicit projections: mutable.HashMap[Atom, (IncrementalInt, MutableRanges)]): Unit = {
 
     /**
       * count all projections for fresh atom which is contained in the rule (only dangling atoms are supposed)
@@ -271,19 +283,19 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       //filter for all atoms within the rule
       //atom subject = fresh atom subject OR atom object = fresh atom object
       val filterAtoms: Atom => Boolean = variablePosition match {
-        case TripleItemPosition.Subject(s) => _.subject == s
-        case TripleItemPosition.Object(o) => _.`object` == o
+        case TripleItemPosition.Subject(s) => atom => atom.subject == s && !tripleIndex.predicates(atom.predicate).isFunction
+        case TripleItemPosition.Object(o) => atom => atom.`object` == o && !tripleIndex.predicates(atom.predicate).isInverseFunction
       }
       //get all atoms in the rule which satisfies the filter
       //get only atoms with distinct predicates
       (Iterator(rule.head) ++ rule.body.iterator).filter(filterAtoms).distinctBy(_.predicate).foreach { atom =>
         //add this atom as a new projection with the same support as the current rule
         //if we want to create new atom with existing predicate then we may expand atom with variables only (not instantiated atom)
-        // - only p(a, c) -> p(a, b) is allowed - not p(a, b) -> p(a, B), because it is noise = redundant pattern
+        // - only p(a, c) -> p(a, b) is allowed - not p(a, b) -> p(a, B), because it is noise = redundant pattern for functional p
         //if we want to create new instantiated atom with existing predicate then we may expand only other instantiated atom (not variable atom)
-        // - only p(a, C) -> p(a, B) is allowed - not p(a, C) -> p(a, b), because it is noise = redundant pattern
+        // - only p(a, C) -> p(a, B) is allowed - not p(a, C) -> p(a, b), because it is noise = redundant pattern for functional p
         // - this phase (for instantioned atoms with existing predicates) is doing during the main count projections process
-        if (atom.subject.isInstanceOf[Atom.Variable] && atom.`object`.isInstanceOf[Atom.Variable] && isValidPredicate(atom.predicate)) {
+        if ( /*atom.subject.isInstanceOf[Atom.Variable] && atom.`object`.isInstanceOf[Atom.Variable] && */ isValidPredicate(atom.predicate)) {
           projections += (Atom(freshAtom.subject, atom.predicate, freshAtom.`object`) -> IncrementalInt(rule.measures[Measure.Support].value))
         }
       }
@@ -343,11 +355,11 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
         freshAtom <- bestFreshAtoms
         //specify fresh atom only with predicate
         //filter only atoms which need to be counted
-        atomWithSpecifiedPredicate <- specifyAtom(freshAtom, variableMap) if !isCounted(freshAtom, atomWithSpecifiedPredicate.predicate)
+        atomWithSpecifiedPredicate <- specifyAtom(freshAtom, variableMap) if isValidFreshAtom(freshAtom, atomWithSpecifiedPredicate.predicate)
         //check whether a predicate of new variable fresh atoms or instantiated fresh atoms has been counted in past (within duplicit predicates)
         //if yes we do not need to count projections for this predicate and fresh atom (for variable atoms or for instantiated atoms)
-        notCountedInstanceProjections = !isCounted(freshAtom, atomWithSpecifiedPredicate.predicate, true)
-        notCountedVariableProjections = !isCounted(freshAtom, atomWithSpecifiedPredicate.predicate, false)
+        notCountedInstanceProjections = isValidFreshAtom(freshAtom, atomWithSpecifiedPredicate.predicate, true)
+        notCountedVariableProjections = isValidFreshAtom(freshAtom, atomWithSpecifiedPredicate.predicate, false)
         //for each predicate of the fresh atom we specify all variables and we filter projections which are connected with the rest of other atoms
         atom <- specifyAtom(atomWithSpecifiedPredicate, variableMap) if exists(atoms, variableMap + (freshAtom.subject -> atom.subject.asInstanceOf[Atom.Constant], atom.predicate, freshAtom.`object` -> atom.`object`.asInstanceOf[Atom.Constant]))
       } {
@@ -356,8 +368,8 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
           //then we add new atom projection to atoms set
           //if onlyObjectInstances is true we do not project instance atom in the subject position
           val ip = instantiatedPosition(atom.predicate)
-          if (freshAtom.subject == dangling && ip.forall(_ == TriplePosition.Subject)) projections += atom.transform(`object` = freshAtom.`object`)
-          else if (freshAtom.`object` == dangling && ip.forall(_ == TriplePosition.Object)) projections += atom.transform(subject = freshAtom.subject)
+          if (freshAtom.subject == dangling && ip.forall(_ == TriplePosition.Subject) && tripleIndex.predicates(atom.predicate).subjects(atom.subject.asInstanceOf[Atom.Constant].value).size >= minSupport) projections += atom.transform(`object` = freshAtom.`object`)
+          else if (freshAtom.`object` == dangling && ip.forall(_ == TriplePosition.Object) && tripleIndex.predicates(atom.predicate).subjects(atom.`object`.asInstanceOf[Atom.Constant].value).size >= minSupport) projections += atom.transform(subject = freshAtom.subject)
         }
         //if we may to create variable atoms for this predicate and fresh atom (not already counted)
         //then we add new atom projection to atoms set
@@ -392,38 +404,38 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
     //first we map all variables to constants
     (variableMap.getOrElse(atom.subject, atom.subject), variableMap.getOrElse(atom.`object`, atom.`object`)) match {
       //if there is variable on the subject place (it is dangling), count all dangling projections
-      case (sv: Atom.Variable, Atom.Constant(oc)) =>
+      case (sv: Atom.Variable, o@Atom.Constant(oc)) =>
         //get all predicates for this object constant
         //skip all counted predicates that are included in this rule
         for (predicate <- tripleIndex.objects.get(oc).iterator.flatMap(_.predicates.iterator)) {
           //if there exists atom in rule which has same predicate and object variable and is not instationed
-          // - then we dont use this fresh atom for this predicate because p(a, B) -> p(a, b) is not allowed (redundant and noisy rule)
-          if (isWithInstances && instantiatedPosition(predicate).forall(_ == TriplePosition.Subject) && !isCounted(atom, predicate, true)) {
-            for (subject <- tripleIndex.predicates(predicate).objects(oc).value.iterator) projections += Atom(Atom.Constant(subject), predicate, atom.`object`)
+          // - then we dont use this fresh atom for this predicate because p(a, B) -> p(a, b) is not allowed for functions (redundant and noisy rule)
+          if (isWithInstances && instantiatedPosition(predicate).forall(_ == TriplePosition.Subject) && isValidFreshAtom(atom, predicate, true)) {
+            for (subject <- tripleIndex.predicates(predicate).objects(oc).value.iterator if !variableMap.containsAtom(Atom(Atom.Constant(subject), predicate, o)) && tripleIndex.predicates(predicate).subjects(subject).size >= minSupport) projections += Atom(Atom.Constant(subject), predicate, atom.`object`)
           }
           //we dont count fresh atom only with variables if there exists atom in rule which has same predicate and object variable
-          // - because for p(a, c) -> p(a, b) it is counted AND for p(a, c) -> p(a, B) it is forbidden combination (redundant and noisy rule)
-          if (!isCounted(atom, predicate, false)) {
+          // - because for p(a, c) -> p(a, b) it is counted AND for p(a, c) -> p(a, B) it is forbidden combination for functions (redundant and noisy rule)
+          if (isValidFreshAtom(atom, predicate, false)) {
             projections += Atom(sv, predicate, atom.`object`)
           }
         }
       //if there is variable on the object place (it is dangling), count all dangling projections
-      case (Atom.Constant(sc), ov: Atom.Variable) =>
+      case (s@Atom.Constant(sc), ov: Atom.Variable) =>
         //get all predicates for this subject constant
         //skip all counted predicates that are included in this rule
         for (predicate <- tripleIndex.subjects.get(sc).iterator.flatMap(_.predicates.iterator)) {
-          if (isWithInstances && instantiatedPosition(predicate).forall(_ == TriplePosition.Object) && !isCounted(atom, predicate, true)) {
-            for (_object <- tripleIndex.predicates(predicate).subjects(sc).value.keysIterator) projections += Atom(atom.subject, predicate, Atom.Constant(_object))
+          if (isWithInstances && instantiatedPosition(predicate).forall(_ == TriplePosition.Object) && isValidFreshAtom(atom, predicate, true)) {
+            for (_object <- tripleIndex.predicates(predicate).subjects(sc).value.keysIterator if !variableMap.containsAtom(Atom(s, predicate, Atom.Constant(_object))) && tripleIndex.predicates(predicate).objects(_object).size >= minSupport) projections += Atom(atom.subject, predicate, Atom.Constant(_object))
           }
-          if (!isCounted(atom, predicate, false)) {
+          if (isValidFreshAtom(atom, predicate, false)) {
             projections += Atom(atom.subject, predicate, ov)
           }
         }
       //all variables are constants, there are not any dangling variables - atom is closed; there is only one projection
-      case (Atom.Constant(sc), Atom.Constant(oc)) =>
+      case (s@Atom.Constant(sc), o@Atom.Constant(oc)) =>
         //we skip counted predicate because in this case we count only with closed atom which are not counted for the existing predicate
         //we need to count all closed atoms
-        for (predicate <- tripleIndex.subjects.get(sc).iterator.flatMap(_.objects.get(oc).iterator.flatMap(_.iterator)) if !isCounted(atom, predicate, false)) {
+        for (predicate <- tripleIndex.subjects.get(sc).iterator.flatMap(_.objects.get(oc).iterator.flatMap(_.iterator)) if isValidFreshAtom(atom, predicate, false) && !variableMap.containsAtom(Atom(s, predicate, o))) {
           projections += Atom(atom.subject, predicate, atom.`object`)
         }
       case _ =>

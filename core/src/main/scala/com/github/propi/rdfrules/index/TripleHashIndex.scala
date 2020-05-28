@@ -280,6 +280,10 @@ object TripleHashIndex {
 
     def functionality: Double = subjects.size.toDouble / size
 
+    def isFunction: Boolean = functionality == 1.0
+
+    def isInverseFunction: Boolean = inverseFunctionality == 1.0
+
     def inverseFunctionality: Double = objects.size.toDouble / size
   }
 

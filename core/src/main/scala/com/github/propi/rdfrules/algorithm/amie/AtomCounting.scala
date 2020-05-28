@@ -385,7 +385,8 @@ trait AtomCounting {
           }
         }
       case (sv@Atom.Constant(sc), ov@Atom.Constant(oc)) =>
-        if (tm.subjects.get(sc).exists(x => x.contains(oc))) Iterator(Atom(sv, atom.predicate, ov)) else Iterator.empty
+        val instantiatedAtom = Atom(sv, atom.predicate, ov)
+        if (tm.subjects.get(sc).exists(x => x.contains(oc)) && !variableMap.containsAtom(instantiatedAtom)) Iterator(instantiatedAtom) else Iterator.empty
     }
   }
 
