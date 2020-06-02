@@ -5,12 +5,14 @@ import java.util
 /**
   * Created by Vaclav Zeman on 28. 5. 2020.
   */
-class MutableRanges {
-  private val ranges = new util.LinkedList[MutableRanges.Item]
-
+class MutableRanges private(ranges: util.LinkedList[MutableRanges.Item]) {
   private def getLast: Option[MutableRanges.Item] = if (ranges.isEmpty) None else Some(ranges.getLast)
 
   private def getFirst: Option[MutableRanges.Item] = if (ranges.isEmpty) None else Some(ranges.getFirst)
+
+  def size: Int = ranges.size()
+
+  def copy(): MutableRanges = new MutableRanges(ranges.clone().asInstanceOf[util.LinkedList[MutableRanges.Item]])
 
   def +=(x: Int): Unit = {
     getLast match {
@@ -59,7 +61,7 @@ class MutableRanges {
 
 object MutableRanges {
 
-  trait Item
+  sealed trait Item
 
   object Item {
 
@@ -67,6 +69,24 @@ object MutableRanges {
 
     case class Range(start: Int, end: Int) extends Item
 
+  }
+
+  def apply(): MutableRanges = new MutableRanges(new util.LinkedList[MutableRanges.Item])
+
+  /**
+    * Make mutable ranges from 0 to x included
+    *
+    * @param x to included
+    * @return
+    */
+  def apply(x: Int): MutableRanges = {
+    val ranges = new util.LinkedList[MutableRanges.Item]
+    if (x == 0) {
+      ranges.add(Item.Value(0))
+    } else if (x > 0) {
+      ranges.add(Item.Range(0, x))
+    }
+    new MutableRanges(ranges)
   }
 
 }

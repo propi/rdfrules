@@ -11,7 +11,7 @@ sealed trait ExtendedRule extends Rule {
   val maxVariable: Atom.Variable
   val patterns: List[RulePattern.Mapped]
   val measures: TypedKeyMap[Measure]
-  val skippedTriples: MutableRanges
+  val headValidTriples: MutableRanges
 
   def headTriples(implicit thi: TripleHashIndex[Int]): Iterator[(Int, Int)] = thi.predicates(head.predicate).subjects.iterator.flatMap {
     case (s, oi) => oi.keysIterator.map(s -> _)
@@ -131,10 +131,10 @@ object ExtendedRule {
                         val patterns: List[RulePattern.Mapped],
                         val variables: List[Atom.Variable],
                         val maxVariable: Atom.Variable,
-                        val skippedTriples: MutableRanges/*,
+                        val headValidTriples: MutableRanges /*,
                         val headTriples: IndexedSeq[(Int, Int)]*/) extends ExtendedRule {
 
-    def withPatterns(patterns: List[RulePattern.Mapped]): ExtendedRule = this.copy()(measures, patterns, variables, maxVariable, skippedTriples /*, headTriples*/)
+    def withPatterns(patterns: List[RulePattern.Mapped]): ExtendedRule = this.copy()(measures, patterns, variables, maxVariable, headValidTriples /*, headTriples*/)
 
     override def equals(obj: scala.Any): Boolean = obj match {
       case rule: ClosedRule => checkRuleContentsEquality(body, rule.body.toSet, head, rule.head)
@@ -148,10 +148,10 @@ object ExtendedRule {
                           val patterns: List[RulePattern.Mapped],
                           val variables: DanglingVariables,
                           val maxVariable: Atom.Variable,
-                          val skippedTriples: MutableRanges/*,
+                          val headValidTriples: MutableRanges /*,
                           val headTriples: IndexedSeq[(Int, Int)]*/) extends ExtendedRule {
 
-    def withPatterns(patterns: List[RulePattern.Mapped]): ExtendedRule = this.copy()(measures, patterns, variables, maxVariable, skippedTriples /*, headTriples*/)
+    def withPatterns(patterns: List[RulePattern.Mapped]): ExtendedRule = this.copy()(measures, patterns, variables, maxVariable, headValidTriples /*, headTriples*/)
 
     override def equals(obj: scala.Any): Boolean = obj match {
       case rule: DanglingRule if ruleLength == rule.ruleLength &&

@@ -65,7 +65,7 @@ trait HeadsFetcher extends AtomCounting {
           patterns,
           x._1,
           x._1.danglings.max,
-          new MutableRanges/*,
+          MutableRanges(x._2 - 1)/*,
           getAtomTriples(atom).toIndexedSeq*/
         )
       )
