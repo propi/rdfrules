@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.rule
 
 import com.github.propi.rdfrules.index.TripleHashIndex
-import com.github.propi.rdfrules.utils.{MutableRanges, TypedKeyMap}
+import com.github.propi.rdfrules.utils.TypedKeyMap
 
 /**
   * Created by Vaclav Zeman on 31. 7. 2017.
@@ -11,7 +11,6 @@ sealed trait ExtendedRule extends Rule {
   val maxVariable: Atom.Variable
   val patterns: List[RulePattern.Mapped]
   val measures: TypedKeyMap[Measure]
-  val headValidTriples: MutableRanges
 
   def headTriples(implicit thi: TripleHashIndex[Int]): Iterator[(Int, Int)] = thi.predicates(head.predicate).subjects.iterator.flatMap {
     case (s, oi) => oi.keysIterator.map(s -> _)
@@ -130,11 +129,9 @@ object ExtendedRule {
                        (val measures: TypedKeyMap[Measure],
                         val patterns: List[RulePattern.Mapped],
                         val variables: List[Atom.Variable],
-                        val maxVariable: Atom.Variable,
-                        val headValidTriples: MutableRanges /*,
-                        val headTriples: IndexedSeq[(Int, Int)]*/) extends ExtendedRule {
+                        val maxVariable: Atom.Variable) extends ExtendedRule {
 
-    def withPatterns(patterns: List[RulePattern.Mapped]): ExtendedRule = this.copy()(measures, patterns, variables, maxVariable, headValidTriples /*, headTriples*/)
+    def withPatterns(patterns: List[RulePattern.Mapped]): ExtendedRule = this.copy()(measures, patterns, variables, maxVariable)
 
     override def equals(obj: scala.Any): Boolean = obj match {
       case rule: ClosedRule => checkRuleContentsEquality(body, rule.body.toSet, head, rule.head)
@@ -147,11 +144,9 @@ object ExtendedRule {
                          (val measures: TypedKeyMap[Measure],
                           val patterns: List[RulePattern.Mapped],
                           val variables: DanglingVariables,
-                          val maxVariable: Atom.Variable,
-                          val headValidTriples: MutableRanges /*,
-                          val headTriples: IndexedSeq[(Int, Int)]*/) extends ExtendedRule {
+                          val maxVariable: Atom.Variable) extends ExtendedRule {
 
-    def withPatterns(patterns: List[RulePattern.Mapped]): ExtendedRule = this.copy()(measures, patterns, variables, maxVariable, headValidTriples /*, headTriples*/)
+    def withPatterns(patterns: List[RulePattern.Mapped]): ExtendedRule = this.copy()(measures, patterns, variables, maxVariable)
 
     override def equals(obj: scala.Any): Boolean = obj match {
       case rule: DanglingRule if ruleLength == rule.ruleLength &&
