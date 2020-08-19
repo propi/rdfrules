@@ -10,17 +10,19 @@ trait FromDatasetBuildable extends Buildable {
 
   self: Index =>
 
-  protected val dataset: Dataset
+  @volatile protected var dataset: Option[Dataset]
 
   protected def buildTripleHashIndex: TripleHashIndex[Int] = self.tripleItemMap { implicit tihi =>
-    TripleHashIndex(dataset.quads.filter(!_.triple.predicate.hasSameUriAs(TripleItem.sameAs)).map(q => new TripleHashIndex.Quad(
+    val thi = TripleHashIndex(dataset.map(_.quads.filter(!_.triple.predicate.hasSameUriAs(TripleItem.sameAs)).map(q => new TripleHashIndex.Quad(
       tihi.getIndex(q.triple.subject),
       tihi.getIndex(q.triple.predicate),
       tihi.getIndex(q.triple.`object`),
       tihi.getIndex(q.graph)
-    )))
+    ))).getOrElse(Nil))
+    dataset = None
+    thi
   }
 
-  protected def buildTripleItemHashIndex: TripleItemHashIndex = TripleItemHashIndex(dataset.quads)
+  protected def buildTripleItemHashIndex: TripleItemHashIndex = TripleItemHashIndex(dataset.map(_.quads).getOrElse(Nil))
 
 }

@@ -14,6 +14,12 @@ sealed trait Threshold extends Value {
 
 object Threshold {
 
+  case class MinAtomSize(value: Int) extends Threshold {
+    def companion: MinAtomSize.type = MinAtomSize
+  }
+
+  implicit object MinAtomSize extends Key[MinAtomSize]
+
   case class MinHeadSize(value: Int) extends Threshold {
     def companion: MinHeadSize.type = MinHeadSize
   }
@@ -45,7 +51,7 @@ object Threshold {
   implicit object TopK extends Key[TopK]
 
   case class Timeout(value: Int) extends Threshold {
-    lazy val duration = Duration(value, MINUTES)
+    lazy val duration: FiniteDuration = Duration(value, MINUTES)
 
     def companion: Timeout.type = Timeout
   }

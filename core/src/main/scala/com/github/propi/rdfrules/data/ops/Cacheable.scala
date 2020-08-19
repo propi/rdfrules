@@ -1,7 +1,10 @@
 package com.github.propi.rdfrules.data.ops
 
 import java.io._
+import java.util
+import scala.collection.JavaConverters._
 
+import com.github.propi.rdfrules.utils.Debugger
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 
 /**
@@ -21,7 +24,18 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
     *
     * @return in memory cached entity
     */
-  def cache: Coll = transform(coll.toVector)
+  def cache(implicit debugger: Debugger): Coll = {
+    debugger.debug("Dataset caching") { ad =>
+      val buffer = new util.LinkedList[T]()
+      for (x <- coll) {
+        buffer.add(x)
+        ad.done()
+      }
+      transform(new Traversable[T] {
+        def foreach[U](f: T => U): Unit = buffer.iterator().asScala.foreach(f)
+      })
+    }
+  }
 
   /**
     * Cache the entity through an output stream and return cached entity through an input stream.
@@ -31,10 +45,8 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
     * @param is input stream builder
     * @return the cached entity
     */
-  def cache(os: => OutputStream, is: => InputStream): Coll = {
-    Serializer.serializeToOutputStream[T](os) { writer =>
-      coll.foreach(writer.write)
-    }
+  def cache(os: => OutputStream, is: => InputStream)(implicit debugger: Debugger): Coll = {
+    cache(os)
     transform(new Traversable[T] {
       def foreach[U](f: T => U): Unit = {
         Deserializer.deserializeFromInputStream[T, Unit](is) { reader =>
@@ -56,9 +68,14 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
     * @param os output stream builder
     * @return the same entity
     */
-  def cache(os: => OutputStream): Unit = {
+  def cache(os: => OutputStream)(implicit debugger: Debugger): Unit = {
     Serializer.serializeToOutputStream[T](os) { writer =>
-      coll.foreach(writer.write)
+      debugger.debug("Dataset caching") { ad =>
+        coll.foreach { x =>
+          writer.write(x)
+          ad.done()
+        }
+      }
     }
   }
 

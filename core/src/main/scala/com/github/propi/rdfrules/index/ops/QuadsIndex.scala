@@ -12,13 +12,8 @@ trait QuadsIndex {
 
   protected def compressedQuads: Traversable[CompressedQuad] = new Traversable[CompressedQuad] {
     def foreach[U](f: CompressedQuad => U): Unit = self.tripleMap { thi =>
-      for {
-        (p, m1) <- thi.predicates.iterator
-        (s, m2) <- m1.subjects.iterator
-        (o, _) <- m2.iterator
-        g <- thi.getGraphs(s, p, o).iterator
-      } {
-        f(CompressedQuad(s, p, o, g))
+      for (quad <- thi.quads) {
+        f(CompressedQuad(quad.s, quad.p, quad.o, quad.g))
       }
     }
   }

@@ -4,9 +4,9 @@ import java.io.{BufferedInputStream, BufferedOutputStream, InputStream, OutputSt
 
 import com.github.propi.rdfrules.index.ops.Cacheable.SerItem
 import com.github.propi.rdfrules.index.{Index, TripleHashIndex, TripleItemHashIndex}
-import com.github.propi.rdfrules.utils.serialization.Deserializer
-import com.github.propi.rdfrules.serialization.TripleItemSerialization._
 import com.github.propi.rdfrules.serialization.CompressedQuadSerialization._
+import com.github.propi.rdfrules.serialization.TripleItemSerialization._
+import com.github.propi.rdfrules.utils.serialization.Deserializer
 
 
 /**
@@ -40,7 +40,12 @@ trait FromCacheBuildable extends Buildable {
       useInputStream { is =>
         val _is = new BufferedInputStream(is)
         try {
-          Stream.continually(is.read()).takeWhile(_ != -1).foreach(_os.write)
+          debugger.debug("Index caching") { ad =>
+            Stream.continually(is.read()).takeWhile(_ != -1).foreach { x =>
+              _os.write(x)
+              ad.done()
+            }
+          }
         } finally {
           _is.close()
         }

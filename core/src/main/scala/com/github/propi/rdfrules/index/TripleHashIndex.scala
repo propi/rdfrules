@@ -16,14 +16,25 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
   type M[V] = MutableHashMap[T, V]
   type M1 = M[MutableHashSet[T]]
 
-  val subjects: HashMap[T, TripleSubjectIndex[T]] = collectionsBuilder.emptyHashMap
   val predicates: HashMap[T, TriplePredicateIndex[T]] = collectionsBuilder.emptyHashMap
-  val objects: HashMap[T, TripleObjectIndex[T]] = collectionsBuilder.emptyHashMap
+  private val _subjects: HashMap[T, TripleSubjectIndex[T]] = collectionsBuilder.emptyHashMap
+  private val _objects: HashMap[T, TripleObjectIndex[T]] = collectionsBuilder.emptyHashMap
 
   private var graph: Option[T] = None
   private var severalGraphs: Boolean = false
 
   @volatile private var _size: Int = -1
+
+  def quads: Iterator[Quad[T]] = {
+    for {
+      (p, m1) <- predicates.iterator
+      (s, m2) <- m1.subjects.iterator
+      (o, _) <- m2.iterator
+      g <- getGraphs(s, p, o).iterator
+    } yield {
+      new Quad(s, p, o, g)
+    }
+  }
 
   def size: Int = {
     if (_size == -1) {
@@ -34,9 +45,36 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
 
   def reset(): Unit = {
     _size = -1
-    subjects.valuesIterator.foreach(_.reset())
+    _subjects.valuesIterator.foreach(_.reset())
     predicates.valuesIterator.foreach(_.reset())
-    objects.valuesIterator.foreach(_.reset())
+    _objects.valuesIterator.foreach(_.reset())
+  }
+
+  private def addQuadToSubjects(quad: Quad[T]): Unit = {
+    val si = _subjects.asInstanceOf[M[TripleSubjectIndex[T]]].getOrElseUpdate(quad.s, new TripleSubjectIndex(collectionsBuilder.emptyHashMap, collectionsBuilder.emptySet))
+    si.predicates.asInstanceOf[MutableHashSet[T]] += quad.p
+    si.objects.asInstanceOf[M1].getOrElseUpdate(quad.o, collectionsBuilder.emptySet) += quad.p
+  }
+
+  private def addQuadToObjects(quad: Quad[T]): Unit = {
+    val oi = _objects.asInstanceOf[M[TripleObjectIndex[T]]].getOrElseUpdate(quad.o, new TripleObjectIndex(collectionsBuilder.emptySet, p => predicates(p).objects(quad.o).value.size))
+    oi.predicates.asInstanceOf[MutableHashSet[T]] += quad.p
+  }
+
+  def subjects: HashMap[T, TripleSubjectIndex[T]] = {
+    if (_subjects.isEmpty) {
+      quads.foreach(addQuadToSubjects)
+      trimSubjects()
+    }
+    _subjects
+  }
+
+  def objects: HashMap[T, TripleObjectIndex[T]] = {
+    if (_objects.isEmpty) {
+      quads.foreach(addQuadToObjects)
+      trimObjects()
+    }
+    _objects
   }
 
   def evaluateAllLazyVals(): Unit = {
@@ -117,11 +155,12 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
       severalGraphs = true
       graph = None
     }
-    val si = subjects.asInstanceOf[M[TripleSubjectIndex[T]]].getOrElseUpdate(quad.s, new TripleSubjectIndex(collectionsBuilder.emptyHashMap, collectionsBuilder.emptySet))
-    val oi = objects.asInstanceOf[M[TripleObjectIndex[T]]].getOrElseUpdate(quad.o, new TripleObjectIndex(collectionsBuilder.emptySet, p => predicates(p).objects(quad.o).value.size))
-    si.predicates.asInstanceOf[MutableHashSet[T]] += quad.p
-    si.objects.asInstanceOf[M1].getOrElseUpdate(quad.o, collectionsBuilder.emptySet) += quad.p
-    oi.predicates.asInstanceOf[MutableHashSet[T]] += quad.p
+    if (!_subjects.isEmpty) {
+      addQuadToSubjects(quad)
+    }
+    if (!_objects.isEmpty) {
+      addQuadToObjects(quad)
+    }
     val pi = predicates.asInstanceOf[M[TriplePredicateIndex[T]]].getOrElseUpdate(quad.p, new TriplePredicateIndex(collectionsBuilder.emptyHashMap, collectionsBuilder.emptyHashMap))
     if (!severalGraphs) {
       pi.subjects.asInstanceOf[M[AnyWithGraphs[ItemMap[T], T]]]
@@ -131,15 +170,23 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
     pi.objects.asInstanceOf[M[AnyWithGraphs[HashSet[T], T]]].getOrElseUpdate(quad.o, emptySetWithGraphs).value.asInstanceOf[MutableHashSet[T]] += quad.s
   }
 
-  def trim(): Unit = {
-    for (x <- subjects.valuesIterator) {
+  private def trimSubjects(): Unit = {
+    for (x <- _subjects.valuesIterator) {
       for (x <- x.objects.valuesIterator) x.trim()
       x.predicates.trim()
       x.objects.trim()
     }
-    for (x <- objects.valuesIterator) {
+    _subjects.trim()
+  }
+
+  private def trimObjects(): Unit = {
+    for (x <- _objects.valuesIterator) {
       x.predicates.trim()
     }
+    _objects.trim()
+  }
+
+  def trim(): Unit = {
     for (x <- predicates.valuesIterator) {
       for (x <- x.subjects.valuesIterator) {
         x.value.trim()
@@ -154,8 +201,8 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
       x.objects.trim()
     }
     predicates.trim()
-    subjects.trim()
-    objects.trim()
+    trimSubjects()
+    trimObjects()
   }
 
 }
@@ -225,7 +272,6 @@ object TripleHashIndex {
   class TriplePredicateIndex[T] private[TripleHashIndex](val subjects: ItemMapWithGraphsAndMap[T], val objects: ItemMapWithGraphsAndSet[T])(implicit collectionsBuilder: CollectionsBuilder[T]) {
     @volatile private var _size: Int = -1
     @volatile private var _graphs: Option[HashSet[T]] = None
-    @volatile private var _leastFunctionalVariable: Option[ConceptPosition] = None
 
     def size: Int = {
       if (_size == -1) {
@@ -237,7 +283,6 @@ object TripleHashIndex {
     def reset(): Unit = {
       _size = -1
       _graphs = None
-      _leastFunctionalVariable = None
     }
 
     //add all graphs to this predicate index - it is suitable for atom p(a, b) to enumerate all graphs
@@ -256,16 +301,12 @@ object TripleHashIndex {
       * (C hasCitizen ?a), or (?a isCitizenOf C)
       * For this example C is the least functional variable
       */
-    def leastFunctionalVariable: ConceptPosition = _leastFunctionalVariable match {
-      case Some(x) => x
-      case None =>
-        val pos = if (functionality >= inverseFunctionality) {
-          TriplePosition.Object
-        } else {
-          TriplePosition.Subject
-        }
-        _leastFunctionalVariable = Some(pos)
-        pos
+    def leastFunctionalVariable: ConceptPosition = {
+      if (functionality >= inverseFunctionality) {
+        TriplePosition.Object
+      } else {
+        TriplePosition.Subject
+      }
     }
 
     /**

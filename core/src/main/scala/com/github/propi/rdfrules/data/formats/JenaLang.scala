@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.data.formats
 
-import java.io.{BufferedInputStream, BufferedOutputStream}
+import java.io.{BufferedInputStream, BufferedOutputStream, ByteArrayInputStream}
 
 import com.github.propi.rdfrules
 import com.github.propi.rdfrules.data._
@@ -8,8 +8,8 @@ import com.github.propi.rdfrules.data.ops.PrefixesOps
 import com.github.propi.rdfrules.utils.{InputStreamBuilder, OutputStreamBuilder}
 import org.apache.jena.graph
 import org.apache.jena.graph.{Node_Blank, Node_Literal, Node_URI}
-import org.apache.jena.riot.system.{StreamRDF, StreamRDFWriter}
-import org.apache.jena.riot.{Lang, RDFDataMgr, RDFFormat, RDFLanguages}
+import org.apache.jena.riot.system.{StreamRDF, StreamRDFLib, StreamRDFWriter}
+import org.apache.jena.riot.{Lang, RDFDataMgr, RDFFormat, RDFLanguages, RDFParser}
 import org.apache.jena.sparql.core.Quad
 
 import scala.language.implicitConversions
@@ -76,7 +76,13 @@ trait JenaLang {
     def foreach[U](f: rdfrules.data.Quad => U): Unit = {
       val is = new BufferedInputStream(inputStreamBuilder.build)
       try {
-        RDFDataMgr.parse(new StreamRdfImpl(f), is, jenaLang)
+        RDFParser.create()
+          .source(is)
+          .base(null)
+          .lang(jenaLang)
+          .context(null)
+          .checking(false)
+          .parse(new StreamRdfImpl(f))
       } finally {
         is.close()
       }

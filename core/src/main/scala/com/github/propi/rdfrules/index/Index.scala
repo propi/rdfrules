@@ -21,18 +21,18 @@ trait Index {
 
   def toDataset: Dataset
 
-  def cache(os: => OutputStream): Unit
+  def cache(os: => OutputStream)(implicit debugger: Debugger): Unit
 
-  def cache(file: File): Index
+  def cache(file: File)(implicit debugger: Debugger): Index
 
-  def cache(file: String): Index
-
-  def newIndex: Index
+  def cache(file: String)(implicit debugger: Debugger): Index
 
   def withEvaluatedLazyVals: Index
 
-  def mine(miner: RulesMining): Ruleset = tripleItemMap { implicit mapper =>
+  final def mine(miner: RulesMining): Ruleset = tripleItemMap { implicit mapper =>
     tripleMap { implicit thi =>
+      thi.subjects
+      thi.objects
       Ruleset(this, miner.mine)
     }
   }
@@ -41,38 +41,17 @@ trait Index {
 
 object Index {
 
-  sealed trait Mode
-
-  object Mode {
-
-    case object InUseInMemory extends Mode
-
-    case object PreservedInMemory extends Mode
-
-  }
-
-  def apply(dataset: Dataset, mode: Mode = Mode.PreservedInMemory)(implicit debugger: Debugger): Index = {
-    val _dataset = dataset
-    val _debugger = debugger
-    trait ConcreteIndex extends Index with Cacheable with FromDatasetBuildable {
+  def apply(_dataset: Dataset)(implicit _debugger: Debugger): Index = {
+    new Index with Cacheable with FromDatasetBuildable with PreservedInMemory {
       implicit val debugger: Debugger = _debugger
 
-      protected val dataset: Dataset = _dataset
-
-      def newIndex: Index = apply(_dataset, mode)
-    }
-    mode match {
-      case Mode.PreservedInMemory => new ConcreteIndex with PreservedInMemory
-      case Mode.InUseInMemory => new ConcreteIndex with InUseInMemory
+      @volatile protected val dataset: Option[Dataset] = Some(_dataset)
     }
   }
 
-  def fromCache(is: => InputStream, mode: Mode)(implicit debugger: Debugger): Index = {
-    val _debugger = debugger
-    trait ConcreteIndex extends Index with Cacheable with FromCacheBuildable {
+  def fromCache(is: => InputStream)(implicit _debugger: Debugger): Index = {
+    new Index with Cacheable with FromCacheBuildable with PreservedInMemory {
       implicit val debugger: Debugger = _debugger
-
-      def newIndex: Index = fromCache(is, mode)
 
       protected def useInputStream[T](f: InputStream => T): T = {
         val _is = is
@@ -85,19 +64,9 @@ object Index {
 
       override def cache(os: => OutputStream): Unit = super[FromCacheBuildable].cache(os)
     }
-    mode match {
-      case Mode.PreservedInMemory => new ConcreteIndex with PreservedInMemory
-      case Mode.InUseInMemory => new ConcreteIndex with InUseInMemory
-    }
   }
 
-  def fromCache(is: => InputStream)(implicit debugger: Debugger): Index = fromCache(is, Mode.PreservedInMemory)(debugger)
-
-  def fromCache(file: File, mode: Mode)(implicit debugger: Debugger): Index = fromCache(new FileInputStream(file), mode)
-
-  def fromCache(file: String, mode: Mode)(implicit debugger: Debugger): Index = fromCache(new File(file), mode)
-
-  def fromCache(file: File)(implicit debugger: Debugger): Index = fromCache(file, Mode.PreservedInMemory)
+  def fromCache(file: File)(implicit debugger: Debugger): Index = fromCache(new FileInputStream(file))
 
   def fromCache(file: String)(implicit debugger: Debugger): Index = fromCache(new File(file))
 
