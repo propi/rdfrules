@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.ruleset.formats
 
 import java.io.{BufferedInputStream, OutputStreamWriter, PrintWriter}
 
-import com.github.propi.rdfrules.data.TripleItem
+import com.github.propi.rdfrules.data.{Prefix, TripleItem}
 import com.github.propi.rdfrules.rule.Measure
 import com.github.propi.rdfrules.ruleset.ResolvedRule.Atom
 import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetReader, RulesetSource, RulesetWriter}
@@ -22,7 +22,7 @@ trait Json {
   implicit val tripleItemUriJsonFormat: RootJsonFormat[TripleItem.Uri] = new RootJsonFormat[TripleItem.Uri] {
     def write(obj: TripleItem.Uri): JsValue = obj match {
       case x: TripleItem.LongUri => x.toString.toJson
-      case x: TripleItem.PrefixedUri => JsObject("prefix" -> x.prefix.toJson, "nameSpace" -> x.nameSpace.toJson, "localName" -> x.localName.toJson)
+      case x: TripleItem.PrefixedUri => JsObject("prefix" -> x.prefix.prefix.toJson, "nameSpace" -> x.prefix.nameSpace.toJson, "localName" -> x.localName.toJson)
       case x: TripleItem.BlankNode => x.toString.toJson
     }
 
@@ -32,7 +32,10 @@ trait Json {
       json match {
         case JsString(LongUriPattern(uri)) => TripleItem.LongUri(uri)
         case JsString(BlankNodePattern(x)) => TripleItem.BlankNode(x)
-        case JsObject(fields) if List("prefix", "nameSpace", "localName").forall(fields.contains) => TripleItem.PrefixedUri(fields("prefix").convertTo[String], fields("nameSpace").convertTo[String], fields("localName").convertTo[String])
+        case JsObject(fields) if List("prefix", "nameSpace", "localName").forall(fields.contains) =>
+          val shortPrefix = fields("prefix").convertTo[String]
+          val prefix = if (shortPrefix.isEmpty) Prefix(fields("nameSpace").convertTo[String]) else Prefix(shortPrefix, fields("nameSpace").convertTo[String])
+          TripleItem.PrefixedUri(prefix, fields("localName").convertTo[String])
         case x => deserializationError(s"Invalid triple item value: $x")
       }
     }

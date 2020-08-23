@@ -12,8 +12,14 @@ sealed trait ExtendedRule extends Rule {
   val patterns: List[RulePattern.Mapped]
   val measures: TypedKeyMap[Measure]
 
-  def headTriples(implicit thi: TripleHashIndex[Int]): Iterator[(Int, Int)] = thi.predicates(head.predicate).subjects.iterator.flatMap {
-    case (s, oi) => oi.keysIterator.map(s -> _)
+  def headTriples(implicit thi: TripleHashIndex[Int]): Iterator[(Int, Int)] = (head.subject, head.`object`) match {
+    case (_: Atom.Variable, _: Atom.Variable) =>
+      thi.predicates(head.predicate).subjects.iterator.flatMap {
+        case (s, oi) => oi.keysIterator.map(s -> _)
+      }
+    case (Atom.Constant(s), _: Atom.Variable) => thi.predicates(head.predicate).subjects(s).keysIterator.map(s -> _)
+    case (_: Atom.Variable, Atom.Constant(o)) => thi.predicates(head.predicate).objects(o).iterator.map(_ -> o)
+    case (Atom.Constant(s), Atom.Constant(o)) => Iterator(s -> o)
   }
 
   def headSize: Int = measures(Measure.HeadSize).value

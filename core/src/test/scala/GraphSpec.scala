@@ -76,10 +76,10 @@ class GraphSpec extends FlatSpec with Matchers with Inside {
     intervals.last shouldBe Interval(IntervalBound.Inclusive(16009.4), IntervalBound.Inclusive(20010.0))
     val intervals2 = graphDbpedia.discretizeAndGetIntervals(DiscretizationTask.Equifrequency(5))(quad => quad.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
     intervals2.length shouldBe 5
-    intervals2.head shouldBe Interval(IntervalBound.Inclusive(7.0), IntervalBound.Exclusive(1962.5))
+    intervals2.head shouldBe Interval(IntervalBound.Inclusive(7.0), IntervalBound.Exclusive(1962.5), 453)
     val intervals3 = graphDbpedia.discretizeAndGetIntervals(DiscretizationTask.Equisize(0.2, mode = DiscretizationTask.Mode.InMemory))(quad => quad.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
     intervals3.length shouldBe 4
-    intervals3.head shouldBe Interval(IntervalBound.Inclusive(7.0), IntervalBound.Exclusive(1975.5))
+    intervals3.head shouldBe Interval(IntervalBound.Inclusive(7.0), IntervalBound.Exclusive(1975.5), 560)
     val dg = graphDbpedia.discretize(DiscretizationTask.Equifrequency(5))(quad => quad.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
     dg.size shouldBe 50000
     dg.types().find(_._1.hasSameUriAs("http://cs.dbpedia.org/property/rok")).get._2.get(TripleItemType.Interval) shouldBe Some(2340)
@@ -89,10 +89,6 @@ class GraphSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "be cacheable" in {
-    val `SeqView[Triple, _]` = implicitly[ClassTag[SeqView[Triple, _]]]
-    graphDbpedia.filter(_.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok")).cache.triples should matchPattern {
-      case `SeqView[Triple, _]`(_) =>
-    }
     val cached = graphDbpedia.cache(new FileOutputStream("test.cache"), new FileInputStream("test.cache"))
     cached.size shouldBe 50000
     val g2 = Graph.fromCache(new FileInputStream("test.cache"))

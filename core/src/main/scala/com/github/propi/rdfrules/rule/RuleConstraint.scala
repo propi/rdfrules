@@ -27,7 +27,7 @@ object RuleConstraint {
   case class OnlyPredicates(predicates: Set[TripleItem.Uri]) extends RuleConstraint {
     def companion: OnlyPredicates.type = OnlyPredicates
 
-    def mapped(implicit mapper: TripleItemHashIndex): Set[Int] = predicates.map(x => mapper.getIndex(x.resolved))
+    def mapped(implicit mapper: TripleItemHashIndex): Set[Int] = predicates.map(x => mapper.getIndex(x))
   }
 
   implicit object OnlyPredicates extends Key[OnlyPredicates] {
@@ -37,7 +37,7 @@ object RuleConstraint {
   case class WithoutPredicates(predicates: Set[TripleItem.Uri]) extends RuleConstraint {
     def companion: WithoutPredicates.type = WithoutPredicates
 
-    def mapped(implicit mapper: TripleItemHashIndex): Set[Int] = predicates.map(x => mapper.getIndex(x.resolved))
+    def mapped(implicit mapper: TripleItemHashIndex): Set[Int] = predicates.map(x => mapper.getIndex(x))
   }
 
   implicit object WithoutPredicates extends Key[WithoutPredicates] {

@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.index
 
-import com.github.propi.rdfrules.data.{Quad, Triple, TripleItem}
+import com.github.propi.rdfrules.data.{Prefix, Quad, Triple, TripleItem}
 import com.github.propi.rdfrules.utils.Debugger
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.objects.{Object2IntOpenHashMap, Object2ObjectOpenHashMap}
@@ -32,7 +32,7 @@ abstract class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleIt
     .get
 
   private def addPrefix(tripleItem: TripleItem): Unit = tripleItem match {
-    case TripleItem.PrefixedUri(prefix, nameSpace, _) if !prefixMap.containsKey(prefix) => prefixMap.put(prefix, nameSpace)
+    case TripleItem.PrefixedUri(Prefix.Full(prefix, nameSpace), _) if !prefixMap.containsKey(prefix) => prefixMap.put(prefix, nameSpace)
     case _ =>
   }
 
@@ -76,12 +76,21 @@ abstract class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleIt
 
   def getIndex(x: TripleItem): Int = getIndexOpt(x).get
 
-  def getIndexOpt(x: TripleItem): Option[Int] = Option(sameAs.get(x)).map(_.intValue()).orElse(
-    Stream.iterate(x.hashCode())(_ + 1)
-      .map(i => i -> Option(hmap.get(i)))
-      .find(_._2.forall(_ == x))
-      .flatMap(x => x._2.map(_ => x._1))
-  )
+  private def resolvedTripleItem(x: TripleItem): TripleItem = x match {
+    case x: TripleItem.PrefixedUri if x.prefix.prefix.nonEmpty && x.prefix.nameSpace.isEmpty =>
+      getNamespace(x.prefix.prefix).map(Prefix(x.prefix.prefix, _)).map(prefix => x.copy(prefix = prefix)).getOrElse(x)
+    case _ => x
+  }
+
+  def getIndexOpt(x: TripleItem): Option[Int] = {
+    val resolved = resolvedTripleItem(x)
+    Option(sameAs.get(resolved)).map(_.intValue()).orElse(
+      Stream.iterate(resolved.hashCode())(_ + 1)
+        .map(i => i -> Option(hmap.get(i)))
+        .find(_._2.forall(_ == resolved))
+        .flatMap(x => x._2.map(_ => x._1))
+    )
+  }
 
   def getTripleItem(x: Int): TripleItem = getTripleItemOpt(x).get
 
@@ -94,7 +103,6 @@ abstract class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleIt
 }
 
 object TripleItemHashIndex {
-
 
 
   class ExtendedTripleItemHashIndex private[TripleItemHashIndex](hmap: java.util.Map[Integer, TripleItem],

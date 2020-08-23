@@ -21,11 +21,11 @@ trait Index {
 
   def toDataset: Dataset
 
-  def cache(os: => OutputStream)(implicit debugger: Debugger): Unit
+  def cache(os: => OutputStream): Unit
 
-  def cache(file: File)(implicit debugger: Debugger): Index
+  def cache(file: File): Index
 
-  def cache(file: String)(implicit debugger: Debugger): Index
+  def cache(file: String): Index
 
   def withEvaluatedLazyVals: Index
 
@@ -45,7 +45,7 @@ object Index {
     new Index with Cacheable with FromDatasetBuildable with PreservedInMemory {
       implicit val debugger: Debugger = _debugger
 
-      @volatile protected val dataset: Option[Dataset] = Some(_dataset)
+      @volatile protected var dataset: Option[Dataset] = Some(_dataset)
     }
   }
 

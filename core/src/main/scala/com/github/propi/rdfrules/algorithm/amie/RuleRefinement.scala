@@ -320,7 +320,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
   /**
     * if minAtomSize is lower than 0 then the atom size must be greater than or equal to minCurrentSupport
     */
-  private val testAtomSize: Option[Int => Boolean] = {
+  private lazy val testAtomSize: Option[Int => Boolean] = {
     if (minAtomSize == 0) {
       None
     } else if (minAtomSize < 0) {

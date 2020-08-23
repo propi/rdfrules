@@ -25,7 +25,7 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
     * @return in memory cached entity
     */
   def cache(implicit debugger: Debugger): Coll = {
-    debugger.debug("Dataset caching") { ad =>
+    debugger.debug("Dataset loading") { ad =>
       val buffer = new util.LinkedList[T]()
       for (x <- coll) {
         buffer.add(x)

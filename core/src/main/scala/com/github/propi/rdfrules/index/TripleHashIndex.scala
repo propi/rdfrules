@@ -171,19 +171,23 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
   }
 
   private def trimSubjects(): Unit = {
-    for (x <- _subjects.valuesIterator) {
-      for (x <- x.objects.valuesIterator) x.trim()
-      x.predicates.trim()
-      x.objects.trim()
+    if (!_subjects.isEmpty) {
+      for (x <- _subjects.valuesIterator) {
+        for (x <- x.objects.valuesIterator) x.trim()
+        x.predicates.trim()
+        x.objects.trim()
+      }
+      _subjects.trim()
     }
-    _subjects.trim()
   }
 
   private def trimObjects(): Unit = {
-    for (x <- _objects.valuesIterator) {
-      x.predicates.trim()
+    if (!_objects.isEmpty) {
+      for (x <- _objects.valuesIterator) {
+        x.predicates.trim()
+      }
+      _objects.trim()
     }
-    _objects.trim()
   }
 
   def trim(): Unit = {

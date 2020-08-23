@@ -12,13 +12,17 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 15. 1. 2018.
   */
-case class Quad(triple: Triple, graph: TripleItem.Uri) {
+case class Quad private(triple: Triple, graph: TripleItem.Uri) {
   override def toString: String = Stringifier(this)
+
+  def copy(triple: Triple = triple, graph: TripleItem.Uri = graph): Quad = Quad(triple, graph)
 }
 
 object Quad {
 
   type QuadTraversableView = TraversableView[Quad, Traversable[_]]
+
+  def apply(triple: Triple, graph: TripleItem.Uri): Quad = new Quad(triple, graph.intern)
 
   def apply(triple: Triple): Quad = new Quad(triple, Graph.default)
 
@@ -29,7 +33,7 @@ object Quad {
 
   implicit class PimpedQuads(val col: QuadTraversableView) extends AnyVal {
     def prefixes: Traversable[Prefix] = col.flatMap(x => Iterator(x.graph, x.triple.subject, x.triple.predicate, x.triple.`object`)).collect {
-      case x: TripleItem.PrefixedUri => x.toPrefix
+      case x: TripleItem.PrefixedUri => x.prefix
     }.distinct
   }
 

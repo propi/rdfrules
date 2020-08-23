@@ -20,8 +20,6 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
 
   "Index" should "create from dataset and load items" in {
     val index = Index.apply(dataset1)
-    index.toDataset shouldBe dataset1
-    index.newIndex.toDataset shouldBe dataset1
     MemoryMeasurer.measureBytes(index) should be(700L +- 100)
     index.tripleItemMap { tihi =>
       val items = dataset1.take(5).quads.flatMap(x => List(x.triple.subject, x.triple.predicate, x.triple.`object`)).toList
@@ -47,7 +45,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
       thi.size shouldBe dataset1.size
     }
     val mem = MemoryMeasurer.measureBytes(index)
-    mem should be(41000000L +- 1000000)
+    mem should be(23000000L +- 1000000)
     val cq = index.tripleItemMap { implicit tim =>
       dataset1.quads.head.toCompressedQuad
     }
@@ -62,7 +60,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
       thi.subjects(cq.subject).objects(cq.`object`)(cq.predicate) shouldBe true
       thi.objects(cq.`object`).predicates(cq.predicate) shouldBe true
     }
-    MemoryMeasurer.measureBytes(index) shouldBe mem
+    MemoryMeasurer.measureBytes(index) should be(40763664L +- 1000000)
   }
 
   it should "load dataset with more graphs" in {
@@ -77,7 +75,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
       thi.size shouldBe dataset2.size
     }
     val indexMemory1 = MemoryMeasurer.measureBytes(index)
-    indexMemory1 should be(80041320L +- 5000000)
+    indexMemory1 should be(49127944L +- 5000000)
     val index2 = index.withEvaluatedLazyVals
     val indexMemory2 = MemoryMeasurer.measureBytes(index2)
     indexMemory1 should be < indexMemory2
@@ -113,15 +111,6 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
     }
   }
 
-  it should "use inUseInMemory mode" in {
-    val index = Index.apply(dataset1, Index.Mode.InUseInMemory)
-    val mem = MemoryMeasurer.measureBytes(index)
-    index.tripleItemMap(_.iterator.size)
-    MemoryMeasurer.measureBytes(index) should be(mem +- 150)
-    index.tripleMap(_.size)
-    MemoryMeasurer.measureBytes(index) should be(mem +- 300)
-  }
-
   it should "cache" in {
     val index = Index.apply(dataset2)
     index.cache(new FileOutputStream("test.index"))
@@ -144,18 +133,6 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
     index.cache(new BufferedOutputStream(new FileOutputStream("test2.index")))
     new File("test.index").length() shouldBe new File("test2.index").length()
     new File("test2.index").delete() shouldBe true
-  }
-
-  it should "be loaded from cache with inUseInMemory mode" in {
-    val index = Index.fromCache(new BufferedInputStream(new FileInputStream("test.index")), Index.Mode.InUseInMemory)
-    val mem = MemoryMeasurer.measureBytes(index)
-    mem should be(270L +- 10)
-    val dsize = dataset2.size
-    index.toDataset.size shouldBe dsize
-    MemoryMeasurer.measureBytes(index) should be(mem +- 150)
-    index.toDataset.size shouldBe dsize
-    MemoryMeasurer.measureBytes(index) should be(mem +- 300)
-    new File("test.index").delete() shouldBe true
   }
 
 }

@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.serialization
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 
-import com.github.propi.rdfrules.data.TripleItem
+import com.github.propi.rdfrules.data.{Prefix, TripleItem}
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, Serializer}
 import eu.easyminer.discretization.impl.{Interval, IntervalBound}
 
@@ -36,9 +36,9 @@ object TripleItemSerialization {
     baos.write(tripleItemToIndex(v))
     v match {
       case TripleItem.LongUri(uri) => baos.write(Serializer.serialize(uri))
-      case TripleItem.PrefixedUri(prefix, nameSpace, localName) =>
-        baos.write(Serializer.serialize(prefix))
-        baos.write(Serializer.serialize(nameSpace))
+      case TripleItem.PrefixedUri(prefix, localName) =>
+        baos.write(Serializer.serialize(prefix.prefix))
+        baos.write(Serializer.serialize(prefix.nameSpace))
         baos.write(Serializer.serialize(localName))
       case TripleItem.BlankNode(id) => baos.write(Serializer.serialize(id))
       case TripleItem.Text(value) => baos.write(Serializer.serialize(value))
@@ -67,7 +67,7 @@ object TripleItemSerialization {
         val prefix = Deserializer.deserialize[String](bais)
         val nameSpace = Deserializer.deserialize[String](bais)
         val localName = Deserializer.deserialize[String](bais)
-        TripleItem.PrefixedUri(prefix, nameSpace, localName)
+        TripleItem.PrefixedUri(if (prefix.isEmpty) Prefix(nameSpace) else Prefix(prefix, nameSpace), localName)
       case 3 => TripleItem.BlankNode(Deserializer.deserialize[String](bais))
       case 4 => TripleItem.Text(Deserializer.deserialize[String](bais))
       case 5 => TripleItem.Number(Deserializer.deserialize[Int](bais))

@@ -7,6 +7,7 @@ import com.github.propi.rdfrules.data.ops.PrefixesOps
 import com.github.propi.rdfrules.utils.{InputStreamBuilder, OutputStreamBuilder}
 import org.apache.jena.riot.Lang
 
+import scala.annotation.tailrec
 import scala.io.Source
 import scala.language.implicitConversions
 
@@ -19,6 +20,7 @@ trait Tsv {
 
   private def stripResource(x: String) = x.trim.stripPrefix("<").stripSuffix(">").replaceAll("[\\u0000-\\u0020]|[<>\"{}|^`\\\\]", "")
 
+  @tailrec
   private def stringifyTripleItem(x: TripleItem): String = x match {
     case TripleItem.LongUri(x) => s"<${stripResource(x)}>"
     case x: TripleItem.PrefixedUri => stringifyTripleItem(x.toLongUri)
@@ -60,7 +62,7 @@ trait Tsv {
         }).map { quad =>
           def shortenUri[T <: TripleItem](tripleItem: T): T = tripleItem match {
             case TripleItem.LongUri(x) => TripleItem.Uri(x.stripPrefix("http://tsv/")).asInstanceOf[T]
-            case TripleItem.PrefixedUri(_, "http://tsv/", ln) => TripleItem.Uri(ln).asInstanceOf[T]
+            case TripleItem.PrefixedUri(p, ln) if p.nameSpace == "http://tsv/" => TripleItem.Uri(ln).asInstanceOf[T]
             case x => x
           }
 

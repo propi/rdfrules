@@ -7,7 +7,6 @@ import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.data.Triple.TripleTraversableView
 import com.github.propi.rdfrules.data.ops._
 import com.github.propi.rdfrules.index.Index
-import com.github.propi.rdfrules.index.Index.Mode
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.serialization.QuadSerialization._
 import com.github.propi.rdfrules.utils.Debugger
@@ -58,7 +57,7 @@ class Dataset private(val quads: QuadTraversableView, val userDefinedPrefixes: T
 
   def mine(miner: RulesMining)(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = Index(this).mine(miner)
 
-  def index(mode: Mode = Mode.PreservedInMemory)(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = Index(this, mode)
+  def index(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = Index(this)
 
 }
 

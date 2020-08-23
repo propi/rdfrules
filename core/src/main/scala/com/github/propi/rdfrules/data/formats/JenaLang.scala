@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.data.formats
 
-import java.io.{BufferedInputStream, BufferedOutputStream, ByteArrayInputStream}
+import java.io.{BufferedInputStream, BufferedOutputStream}
 
 import com.github.propi.rdfrules
 import com.github.propi.rdfrules.data._
@@ -8,11 +8,12 @@ import com.github.propi.rdfrules.data.ops.PrefixesOps
 import com.github.propi.rdfrules.utils.{InputStreamBuilder, OutputStreamBuilder}
 import org.apache.jena.graph
 import org.apache.jena.graph.{Node_Blank, Node_Literal, Node_URI}
-import org.apache.jena.riot.system.{StreamRDF, StreamRDFLib, StreamRDFWriter}
-import org.apache.jena.riot.{Lang, RDFDataMgr, RDFFormat, RDFLanguages, RDFParser}
+import org.apache.jena.riot.system.{StreamRDF, StreamRDFWriter}
+import org.apache.jena.riot.{Lang, RDFFormat, RDFLanguages, RDFParser}
 import org.apache.jena.sparql.core.Quad
 
 import scala.language.implicitConversions
+import scala.util.Try
 
 /**
   * Created by Vaclav Zeman on 14. 1. 2018.
@@ -22,7 +23,7 @@ trait JenaLang {
   private class StreamRdfImpl[U](f: rdfrules.data.Quad => U) extends StreamRDF {
     private val prefixes = collection.mutable.ListBuffer.empty[Prefix]
 
-    private def uriToTripleItem(x: Node_URI): TripleItem.Uri = prefixes.find(p => x.getURI.startsWith(p.nameSpace)).map(p => TripleItem.PrefixedUri(p.prefix, p.nameSpace, x.getURI.substring(p.nameSpace.length))).getOrElse(TripleItem.LongUri(x.getURI))
+    private def uriToTripleItem(x: Node_URI): TripleItem.Uri = Try(prefixes.iterator.filter(p => x.getURI.startsWith(p.nameSpace)).maxBy(_.nameSpace.length)).map(p => TripleItem.PrefixedUri(p, x.getURI.substring(p.nameSpace.length))).getOrElse(TripleItem.LongUri(x.getURI))
 
     def prefix(prefix: String, iri: String): Unit = prefixes += Prefix(prefix, iri)
 

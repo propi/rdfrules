@@ -21,7 +21,7 @@ trait Text {
         (rule.body :+ rule.head).iterator.flatMap(x => x.predicate :: List(x.subject, x.`object`).collect {
           case ResolvedRule.Atom.Item.Constant(x) => x
         }).collect {
-          case x: TripleItem.PrefixedUri => x.toPrefix
+          case x: TripleItem.PrefixedUri => x.prefix
         }.foreach(prefixes += _)
         writer.println(stringifier.toStringValue(rule))
       }

@@ -9,15 +9,19 @@ import scala.language.implicitConversions
 /**
   * Created by propan on 16. 4. 2017.
   */
-case class Triple(subject: TripleItem.Uri, predicate: TripleItem.Uri, `object`: TripleItem) {
+case class Triple private(subject: TripleItem.Uri, predicate: TripleItem.Uri, `object`: TripleItem) {
   def toQuad: Quad = Quad(this)
 
   def toQuad(graph: TripleItem.Uri): Quad = Quad(this, graph)
+
+  def copy(subject: TripleItem.Uri = subject, predicate: TripleItem.Uri = predicate, `object`: TripleItem = `object`): Triple = Triple(subject, predicate, `object`)
 
   override def toString: String = Stringifier(this)
 }
 
 object Triple {
+
+  def apply(subject: TripleItem.Uri, predicate: TripleItem.Uri, `object`: TripleItem): Triple = new Triple(subject, predicate.intern, `object`)
 
   type TripleTraversableView = TraversableView[Triple, Traversable[_]]
 

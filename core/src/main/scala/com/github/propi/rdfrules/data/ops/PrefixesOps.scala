@@ -6,8 +6,6 @@ import com.github.propi.rdfrules.data.{Prefix, Quad, Triple, TripleItem}
 import com.github.propi.rdfrules.utils.PreservedTraversable
 import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension._
 
-import scala.util.Try
-
 /**
   * Created by Vaclav Zeman on 14. 1. 2020.
   */
@@ -19,15 +17,14 @@ trait PrefixesOps[Coll] extends QuadsOps[Coll] {
 
   def setPrefixes(prefixes: Traversable[Prefix]): Coll = transformPrefixesAndColl(prefixes, new Traversable[Quad] {
     def foreach[U](f: Quad => U): Unit = {
-      val map = prefixes.view.map(x => x.nameSpace -> x.prefix).toMap
+      val map = prefixes.view.map(x => x.nameSpace -> x).toMap
 
       def tryToPrefix(uri: TripleItem.Uri) = uri match {
         case x: TripleItem.LongUri =>
-          Try(x.toPrefixedUri).map { prefixedUri =>
-            map.get(prefixedUri.nameSpace).map(prefix => prefixedUri.copy(prefix = prefix)).getOrElse(x)
-          }.getOrElse(x)
+          val (nameSpace, localName) = x.explode
+          map.get(nameSpace).map(TripleItem.PrefixedUri(_, localName)).getOrElse(x)
         case x: TripleItem.PrefixedUri =>
-          map.get(x.nameSpace).map(prefix => x.copy(prefix = prefix)).getOrElse(x)
+          map.get(x.prefix.nameSpace).map(prefix => x.copy(prefix = prefix)).getOrElse(x)
         case x => x
       }
 
@@ -71,7 +68,7 @@ trait PrefixesOps[Coll] extends QuadsOps[Coll] {
     */
   def removePrefixes(removingPrefixes: Set[Prefix]): Coll = {
     def tryToRemovePrefix(uri: TripleItem.Uri) = uri match {
-      case x: TripleItem.PrefixedUri if removingPrefixes(x.toPrefix) => x.toLongUri
+      case x: TripleItem.PrefixedUri if removingPrefixes(x.prefix) => x.toLongUri
       case x => x
     }
 
@@ -85,6 +82,49 @@ trait PrefixesOps[Coll] extends QuadsOps[Coll] {
         }
       )
       Quad(updatedTriple, tryToRemovePrefix(quad.graph))
+    })
+  }
+
+  /**
+    * Transform all URIs to PrefixedUris with distinct prefixes
+    * All prefixes with short name are used.
+    * Otherwise nameSpace without short name is transformed only to nameSpace prefix with empty short string
+    *
+    * @return Coll
+    */
+  def withPrefixedUris: Coll = {
+    transformQuads(new Traversable[Quad] {
+      def foreach[U](f: Quad => U): Unit = {
+        val prefixes = collection.mutable.Map.empty[String, Prefix]
+
+        def uriToPrefixedUri(uri: TripleItem.Uri) = uri match {
+          case uri: TripleItem.LongUri =>
+            val (nameSpace, localName) = uri.explode
+            if (nameSpace.isEmpty) {
+              uri
+            } else {
+              val prefix = prefixes.getOrElseUpdate(nameSpace, Prefix(nameSpace))
+              TripleItem.PrefixedUri(prefix, localName)
+            }
+          case x => x
+        }
+
+        def tripleItemToPrefixedUri(tripleItem: TripleItem) = tripleItem match {
+          case uri: TripleItem.Uri => uriToPrefixedUri(uri)
+          case x => x
+        }
+
+        for (quad <- quads) {
+          f(Quad(
+            Triple(
+              uriToPrefixedUri(quad.triple.subject),
+              uriToPrefixedUri(quad.triple.subject),
+              tripleItemToPrefixedUri(quad.triple.subject)
+            ),
+            uriToPrefixedUri(quad.graph)
+          ))
+        }
+      }
     })
   }
 

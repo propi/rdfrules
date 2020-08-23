@@ -5,6 +5,7 @@ import com.github.propi.rdfrules.algorithm.dbscan.DbScan
 import com.github.propi.rdfrules.data._
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.index._
+import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.ruleset._
 import org.scalatest.enablers.Sortable
 import org.scalatest.{FlatSpec, Inside, Matchers}
@@ -19,30 +20,40 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
   private lazy val dataset1 = Dataset(Graph("yago", GraphSpec.dataYago))
 
   private lazy val ruleset = {
-    dataset1.mine(Amie().addConstraint(RuleConstraint.WithoutDuplicitPredicates()).addConstraint(RuleConstraint.WithInstances(true)))
+    dataset1.mine(Amie()
+      .addConstraint(RuleConstraint.WithoutDuplicitPredicates())
+      .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LeastFunctionalVariable))
+      .addThreshold(Threshold.MinHeadCoverage(0.02))
+    )
   }
 
   "Index" should "mine directly from index" in {
-    Index(dataset1).mine(Amie()).size shouldBe 124
+    Index(dataset1).mine(Amie()
+      .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere))
+      .addThreshold(Threshold.MinHeadCoverage(0.01))
+    ).size shouldBe 124
   }
 
   "Dataset" should "mine directly from dataset" in {
-    dataset1.mine(Amie()).size shouldBe 124
+    dataset1.mine(Amie()
+      .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere))
+      .addThreshold(Threshold.MinHeadCoverage(0.01))
+    ).size shouldBe 124
   }
 
   "Ruleset" should "count confidence" in {
-    val rules = ruleset.computeConfidence(0.9).rules
-    all(rules.map(_.measures[Measure.Confidence].value)) should be >= 0.9
-    rules.size shouldBe 166
+    val rules = ruleset.computeConfidence(0.9)
+    all(rules.rules.map(_.measures[Measure.Confidence].value)) should be >= 0.9
+    rules.size shouldBe 12
     val rules2 = ruleset.computeConfidence(0).rules
     all(rules2.map(_.measures[Measure.Confidence].value)) should be >= 0.001
-    rules2.size shouldBe 10029
+    rules2.size shouldBe 810
   }
 
   it should "count pca confidence" in {
     val rules = ruleset.computePcaConfidence(0.9).rules
     all(rules.map(_.measures[Measure.PcaConfidence].value)) should be >= 0.9
-    rules.size shouldBe 950
+    rules.size shouldBe 50
   }
 
   it should "count lift" in {
@@ -52,7 +63,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
       rule.measures.exists[Measure.Lift] shouldBe true
       rule.measures.exists[Measure.HeadConfidence] shouldBe true
     }
-    rules.size shouldBe 1333
+    rules.size shouldBe 103
   }
 
   it should "sort by interest measures" in {
@@ -79,8 +90,8 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "do transform operations" in {
-    ruleset.filter(_.measures[Measure.Support].value > 100).size shouldBe 3
-    ruleset.filterResolved(_.measures[Measure.Support].value > 100).size shouldBe 3
+    ruleset.filter(_.measures[Measure.Support].value > 100).size shouldBe 2
+    ruleset.filterResolved(_.measures[Measure.Support].value > 100).size shouldBe 2
     val emptyBodies = ruleset.map(x => x.copy(body = Vector())(x.measures)).rules.map(_.body)
     emptyBodies.size shouldBe ruleset.size
     for (body <- emptyBodies) {
@@ -113,7 +124,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
     ruleset.export("output.json")
     source = Source.fromFile("output.json", "UTF-8")
     try {
-      source.getLines().size shouldBe 441066
+      source.getLines().size shouldBe 35226
     } finally {
       source.close()
     }
@@ -125,13 +136,13 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
     for (rule <- x.resolvedRules) {
       rule.body.map(_.predicate) should contain(TripleItem.Uri("livesIn"))
     }
-    x.size shouldBe 1091
+    x.size shouldBe 36
     x = ruleset.filter(
-      AtomPattern(predicate = TripleItem.Uri("livesIn")) =>: AtomPattern(predicate = TripleItem.Uri("hasCapital")),
-      AtomPattern(predicate = TripleItem.Uri("isMarriedTo"))
+      AtomPattern(predicate = TripleItem.Uri("livesIn")) =>: AtomPattern(predicate = TripleItem.Uri("hasCurrency")),
+      AtomPattern(predicate = TripleItem.Uri("isCitizenOf"))
     )
-    x.resolvedRules.view.map(_.head.predicate) should contain allOf(TripleItem.Uri("hasCapital"), TripleItem.Uri("isMarriedTo"))
-    x.size shouldBe 4
+    x.resolvedRules.view.map(_.head.predicate) should contain allOf(TripleItem.Uri("hasCurrency"), TripleItem.Uri("isCitizenOf"))
+    x.size shouldBe 30
   }
 
   it should "work with graph-based rules" in {
@@ -161,7 +172,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
     d.export("output.json")
     source = Source.fromFile("output.json", "UTF-8")
     try {
-      source.getLines().size shouldBe 471129
+      source.getLines().size shouldBe 37613
     } finally {
       source.close()
     }

@@ -1,6 +1,5 @@
 package com.github.propi.rdfrules.data
 
-import com.github.propi.rdfrules.index.TripleItemHashIndex
 import com.github.propi.rdfrules.utils.BasicExtractors.AnyToDouble
 import eu.easyminer.discretization.impl.{IntervalBound, Interval => DiscretizationInterval}
 import org.apache.jena.datatypes.RDFDatatype
@@ -13,17 +12,19 @@ import scala.language.implicitConversions
   * Created by Vaclav Zeman on 3. 10. 2017.
   */
 sealed trait TripleItem {
-  def resolved(implicit mapper: TripleItemHashIndex): TripleItem = this
+  //def resolved(implicit mapper: TripleItemHashIndex): TripleItem = this
 }
 
 object TripleItem {
 
-  val sameAs = TripleItem.Uri("http://www.w3.org/2002/07/owl#sameAs")
+  val sameAs: Uri = TripleItem.Uri("http://www.w3.org/2002/07/owl#sameAs")
 
   sealed trait Uri extends TripleItem {
     def hasSameUriAs(uri: Uri): Boolean
 
-    override def resolved(implicit mapper: TripleItemHashIndex): Uri = this
+    def intern: Uri
+
+    //override def resolved(implicit mapper: TripleItemHashIndex): Uri = this
   }
 
   object Uri {
@@ -31,13 +32,32 @@ object TripleItem {
   }
 
   case class LongUri(uri: String) extends Uri {
-    def toPrefixedUri: PrefixedUri = {
+    /*def toPrefixedUri: PrefixedUri = {
       val PrefixedUriPattern = "(.+[/#])(.+)".r
       uri match {
         case PrefixedUriPattern(nameSpace, localName) => PrefixedUri("", nameSpace, localName)
         case _ => throw new IllegalArgumentException
       }
+    }*/
+
+    /**
+      * Explode URI to nameSpace and localName
+      *
+      * @return (String, String)
+      */
+    def explode: (String, String) = {
+      val PrefixedUriPattern = "(.+[/#])(.+)".r
+      uri match {
+        case PrefixedUriPattern(nameSpace, localName) => nameSpace -> localName
+        case _ => "" -> uri
+      }
     }
+
+    def intern: Uri = TripleItem.LongUri(uri.intern())
+
+    def nameSpace: String = explode._1
+
+    def localName: String = explode._2
 
     def hasSameUriAs(uri: Uri): Boolean = uri match {
       case LongUri(uri) => uri == this.uri
@@ -54,18 +74,18 @@ object TripleItem {
     override def toString: String = s"<$uri>"
   }
 
-  case class PrefixedUri(prefix: String, nameSpace: String, localName: String) extends Uri {
-    def toLongUri: LongUri = LongUri(nameSpace + localName)
+  case class PrefixedUri(prefix: Prefix, localName: String) extends Uri {
+    def toLongUri: LongUri = LongUri(prefix.nameSpace + localName)
 
     def hasSameUriAs(uri: Uri): Boolean = toLongUri.hasSameUriAs(uri)
 
-    def toPrefix: Prefix = Prefix(prefix, nameSpace)
-
-    override def resolved(implicit mapper: TripleItemHashIndex): Uri = if (nameSpace.isEmpty) {
+    /*override def resolved(implicit mapper: TripleItemHashIndex): Uri = if (nameSpace.isEmpty) {
       mapper.getNamespace(prefix).map(TripleItem.PrefixedUri(prefix, _, localName)).getOrElse(TripleItem.Uri(localName))
     } else {
       this
-    }
+    }*/
+
+    def intern: Uri = PrefixedUri(prefix, localName.intern())
 
     override def hashCode(): Int = toLongUri.hashCode()
 
@@ -80,6 +100,8 @@ object TripleItem {
 
   case class BlankNode(id: String) extends Uri {
     override def toString: String = "_:" + id
+
+    def intern: Uri = BlankNode(id.intern())
 
     def hasSameUriAs(uri: Uri): Boolean = this == uri
   }
@@ -136,7 +158,7 @@ object TripleItem {
 
   implicit def tripleItemToJenaNode(tripleItem: TripleItem): Node = tripleItem match {
     case LongUri(uri) => NodeFactory.createURI(uri)
-    case PrefixedUri(_, nameSpace, localName) => NodeFactory.createURI(nameSpace + localName)
+    case PrefixedUri(prefix, localName) => NodeFactory.createURI(prefix.nameSpace + localName)
     case BlankNode(id) => NodeFactory.createBlankNode(id)
     case Text(value) => NodeFactory.createLiteral(value)
     case number: Number[_] => NodeFactory.createLiteral(number.toString, number: RDFDatatype)
