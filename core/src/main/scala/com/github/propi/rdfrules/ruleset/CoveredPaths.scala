@@ -25,7 +25,7 @@ case class CoveredPaths(rule: Rule.Simple, paths: Ruleset) {
   }
 
   def graph: Graph = paths.index.tripleItemMap { implicit mapper =>
-    Graph(triples(true).view.map(_.toTriple))
+    Graph(triples(true).view.map(_.toTriple), paths.isCached)
   }
 
 }
@@ -53,7 +53,7 @@ object CoveredPaths {
         }
       }
     }
-    new CoveredPaths(rule, Ruleset(index, coveredTriples))
+    new CoveredPaths(rule, Ruleset(index, coveredTriples, false))
   }
 
   sealed trait Part

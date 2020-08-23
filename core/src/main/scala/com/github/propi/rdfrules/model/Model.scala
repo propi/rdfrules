@@ -20,7 +20,7 @@ import scala.util.Try
 /**
   * Created by Vaclav Zeman on 14. 10. 2019.
   */
-class Model private(val rules: Traversable[ResolvedRule], val parallelism: Int)
+class Model private(val rules: Traversable[ResolvedRule], val parallelism: Int, val isCached: Boolean)
   extends Transformable[ResolvedRule, Model]
     with Cacheable[ResolvedRule, Model]
     with Sortable[ResolvedRule, Model] {
@@ -30,9 +30,12 @@ class Model private(val rules: Traversable[ResolvedRule], val parallelism: Int)
   protected val serializationSize: SerializationSize[ResolvedRule] = implicitly[SerializationSize[ResolvedRule]]
   protected val ordering: Ordering[ResolvedRule] = implicitly[Ordering[ResolvedRule]]
 
+
+  protected def cachedTransform(col: Traversable[ResolvedRule]): Model = new Model(col, parallelism, true)
+
   protected def coll: Traversable[ResolvedRule] = rules
 
-  protected def transform(col: Traversable[ResolvedRule]): Model = new Model(col, parallelism)
+  protected def transform(col: Traversable[ResolvedRule]): Model = new Model(col, parallelism, isCached)
 
   /**
     * TODO in parallel prediction
@@ -48,7 +51,7 @@ class Model private(val rules: Traversable[ResolvedRule], val parallelism: Int)
     } else {
       parallelism
     }
-    new Model(rules, normParallelism)
+    new Model(rules, normParallelism, isCached)
   }
 
   def filter(pattern: RulePattern, patterns: RulePattern*): Model = {
@@ -78,7 +81,7 @@ class Model private(val rules: Traversable[ResolvedRule], val parallelism: Int)
 
   def toRuleset(index: Index): Ruleset = {
     index.tripleItemMap { implicit mapper =>
-      Ruleset(index, rules.view.map(ResolvedRule.simple(_)).filter(_._2.isEmpty).map(_._1).toVector)
+      Ruleset(index, rules.view.map(ResolvedRule.simple(_)).filter(_._2.isEmpty).map(_._1).toVector, isCached)
     }
   }
 
@@ -163,22 +166,22 @@ object Model {
 
   }
 
-  def apply(rules: Traversable[ResolvedRule]): Model = new Model(rules, Runtime.getRuntime.availableProcessors())
+  def apply(rules: Traversable[ResolvedRule], isCached: Boolean): Model = new Model(rules, Runtime.getRuntime.availableProcessors(), isCached)
 
   def apply(file: File)(implicit reader: RulesetReader): Model = {
     val newReader = if (reader == RulesetReader.NoReader) RulesetReader(file) else reader
-    apply(newReader.fromFile(file))
+    apply(newReader.fromFile(file), false)
   }
 
   def apply(file: String)(implicit reader: RulesetReader): Model = apply(new File(file))
 
-  def apply(is: => InputStream)(implicit reader: RulesetReader): Model = apply(reader.fromInputStream(is))
+  def apply(is: => InputStream)(implicit reader: RulesetReader): Model = apply(reader.fromInputStream(is), false)
 
   def fromCache(is: => InputStream): Model = apply(new Traversable[ResolvedRule] {
     def foreach[U](f: ResolvedRule => U): Unit = Deserializer.deserializeFromInputStream[ResolvedRule, Unit](is) { reader =>
       Stream.continually(reader.read()).takeWhile(_.isDefined).map(_.get).foreach(f)
     }
-  })
+  }, false)
 
   def fromCache(file: File): Model = fromCache(new FileInputStream(file))
 

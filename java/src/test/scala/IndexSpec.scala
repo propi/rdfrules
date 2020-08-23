@@ -21,7 +21,6 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
   "Index" should "create from dataset and load items" in {
     val index = Index.fromDataset(dataset1)
     index.toDataset.size() shouldBe dataset1.size()
-    index.newIndex.toDataset.size() shouldBe dataset1.size()
     val items = ListBuffer.empty[TripleItem]
     dataset1.take(5).forEach { x =>
       items += x.getTriple.getSubject

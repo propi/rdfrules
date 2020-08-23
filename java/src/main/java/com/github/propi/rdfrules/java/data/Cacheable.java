@@ -1,5 +1,7 @@
 package com.github.propi.rdfrules.java.data;
 
+import com.github.propi.rdfrules.java.algorithm.Debugger;
+
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -14,16 +16,28 @@ public interface Cacheable<ST, SColl, JColl> {
 
     JColl asJava(SColl scala);
 
+    default JColl cache(Debugger debugger) {
+        return asJava(asScala().cache(debugger.asScala()));
+    }
+
     default JColl cache() {
-        return asJava(asScala().cache());
+        return cache(Debugger.empty());
+    }
+
+    default void cache(Supplier<OutputStream> osb, Debugger debugger) {
+        asScala().cache(osb::get, debugger.asScala());
     }
 
     default void cache(Supplier<OutputStream> osb) {
-        asScala().cache(osb::get);
+        cache(osb, Debugger.empty());
+    }
+
+    default JColl cache(Supplier<OutputStream> osb, Supplier<InputStream> isb, Debugger debugger) {
+        return asJava(asScala().cache(osb::get, isb::get, debugger.asScala()));
     }
 
     default JColl cache(Supplier<OutputStream> osb, Supplier<InputStream> isb) {
-        return asJava(asScala().cache(osb::get, isb::get));
+        return cache(osb, isb, Debugger.empty());
     }
 
     default JColl cache(File file) {

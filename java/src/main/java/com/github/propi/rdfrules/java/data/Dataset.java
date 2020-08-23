@@ -80,8 +80,8 @@ public class Dataset implements
         return fromFile(new File(file));
     }
 
-    public static Dataset fromQuads(Iterable<Quad> quads) {
-        return new Dataset(com.github.propi.rdfrules.data.Dataset.apply(ScalaConverters.toIterable(quads, Quad::asScala)));
+    public static Dataset fromQuads(Iterable<Quad> quads, boolean isCached) {
+        return new Dataset(com.github.propi.rdfrules.data.Dataset.apply(ScalaConverters.toIterable(quads, Quad::asScala), isCached));
     }
 
     public static Dataset fromGraph(Graph graph) {
@@ -159,16 +159,8 @@ public class Dataset implements
         asScala().export(file, ReadersWriters.noRdfWriter());
     }
 
-    public Index index(Index.Mode mode) {
-        return Index.fromDataset(this, mode);
-    }
-
     public Index index() {
         return Index.fromDataset(this);
-    }
-
-    public Index index(Index.Mode mode, Debugger debugger) {
-        return Index.fromDataset(this, mode, debugger);
     }
 
     public Index index(Debugger debugger) {

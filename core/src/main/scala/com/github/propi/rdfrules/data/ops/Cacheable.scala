@@ -18,6 +18,8 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
   protected implicit val deserializer: Deserializer[T]
   protected implicit val serializationSize: SerializationSize[T]
 
+  protected def cachedTransform(col: Traversable[T]): Coll
+
   /**
     * Cache the entity into the memory and return cached entity (IndexedSeq abstraction is used)
     * Strict transformation
@@ -31,7 +33,7 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
         buffer.add(x)
         ad.done()
       }
-      transform(new Traversable[T] {
+      cachedTransform(new Traversable[T] {
         def foreach[U](f: T => U): Unit = buffer.iterator().asScala.foreach(f)
       })
     }
@@ -63,7 +65,7 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
   /**
     * Cache the entity through an output stream and return the original (not cached) entity.
     *  - if you want to return cached entity, use cache(os, is) or in memory cache()
-    * Streaming action
+    *    Streaming action
     *
     * @param os output stream builder
     * @return the same entity

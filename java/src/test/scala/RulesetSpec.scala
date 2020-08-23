@@ -17,7 +17,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
 
   private lazy val dataset1 = Dataset.fromTsv(GraphSpec.dataYago)
 
-  private lazy val ruleset = dataset1.mine(RulesMining.amie.withoutDuplicitPredicates().withInstances(true))
+  private lazy val ruleset = dataset1.mine(RulesMining.amie.withoutDuplicitPredicates().withoutConstantsAtObject())
 
   "Ruleset" should "count confidence" in {
     val rules = ruleset.computeConfidence(0.9)

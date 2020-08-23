@@ -11,7 +11,13 @@ import com.github.propi.rdfrules.utils.Debugger
 class Index(implicit debugger: Debugger) extends Task[Dataset, index.Index] {
   val companion: TaskDefinition = Index
 
-  def execute(input: Dataset): index.Index = input.index()
+  def execute(input: Dataset): index.Index = {
+    if (input.isCached) {
+      input.index()
+    } else {
+      input.withPrefixedUris.cache.index
+    }
+  }
 }
 
 object Index extends TaskDefinition {

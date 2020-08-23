@@ -33,7 +33,7 @@ trait Index {
     tripleMap { implicit thi =>
       thi.subjects
       thi.objects
-      Ruleset(this, miner.mine)
+      Ruleset(this, miner.mine, true)
     }
   }
 

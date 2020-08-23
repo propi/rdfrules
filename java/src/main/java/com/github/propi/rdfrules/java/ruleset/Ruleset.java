@@ -156,7 +156,7 @@ public class Ruleset implements
     }
 
     public Ruleset computeLift(Debugger debugger) {
-        return asJava(ruleset.computeLift(ruleset.computeLift$default$1(), debugger.asScala()));
+        return asJava(ruleset.computeLift(0.5, debugger.asScala()));
     }
 
     public Ruleset computeLift() {
@@ -204,8 +204,8 @@ public class Ruleset implements
      */
     public Ruleset makeClusters(Debugger debugger) {
         return new Ruleset(ruleset.makeClusters(DbScan$.MODULE$.apply(
-                DbScan$.MODULE$.apply$default$1(),
-                DbScan$.MODULE$.apply$default$2(),
+                5,
+                0.9,
                 getParallelism(),
                 SimilarityCounting.DEFAULT().asScala(),
                 debugger.asScala()

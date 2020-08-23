@@ -1,6 +1,5 @@
 package com.github.propi.rdfrules.java.data;
 
-import com.github.propi.rdfrules.data.Prefix;
 import eu.easyminer.discretization.impl.IntervalBound;
 
 /**
@@ -65,10 +64,6 @@ abstract public class TripleItem {
         public String getUri() {
             return this.tripleItem.uri();
         }
-
-        public PrefixedUri toPrefixedUri() {
-            return new PrefixedUri(this.tripleItem.toPrefixedUri());
-        }
     }
 
     public static class PrefixedUri extends Uri {
@@ -78,8 +73,8 @@ abstract public class TripleItem {
             this.tripleItem = tripleItem;
         }
 
-        public PrefixedUri(String prefix, String nameSpace, String localName) {
-            this(new com.github.propi.rdfrules.data.TripleItem.PrefixedUri(prefix, nameSpace, localName));
+        public PrefixedUri(com.github.propi.rdfrules.java.data.Prefix prefix, String localName) {
+            this(new com.github.propi.rdfrules.data.TripleItem.PrefixedUri(prefix.asScala(), localName));
         }
 
         @Override
@@ -87,20 +82,12 @@ abstract public class TripleItem {
             return this.tripleItem;
         }
 
-        public String getPrefix() {
-            return this.tripleItem.prefix();
-        }
-
-        public String getNameSpace() {
-            return this.tripleItem.nameSpace();
+        public com.github.propi.rdfrules.java.data.Prefix getPrefix() {
+            return new com.github.propi.rdfrules.java.data.Prefix(this.tripleItem.prefix());
         }
 
         public String getLocalName() {
             return this.tripleItem.localName();
-        }
-
-        public Prefix toPrefix() {
-            return this.tripleItem.toPrefix();
         }
 
         public LongUri toLongUri() {

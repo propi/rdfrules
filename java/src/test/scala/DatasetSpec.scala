@@ -28,13 +28,13 @@ class DatasetSpec extends FlatSpec with Matchers with Inside {
 
   it should "do all graph ops" in {
     var i = 0
-    dataset.prefixes(_ => i += 1)
+    dataset.userDefinedPrefixes(_ => i += 1)
     i shouldBe 0
-    dataset.addPrefixes(Prefix.fromInputStream(() => getClass.getResourceAsStream("/prefixes.ttl"))).prefixes(_ => i += 1)
+    dataset.addPrefixes(Prefix.fromInputStream(() => getClass.getResourceAsStream("/prefixes.ttl"))).userDefinedPrefixes(_ => i += 1)
     i shouldBe 2
     dataset.histogram(false, true, false).size shouldBe 1750
-    val intervals = dataset.discretizeAndGetIntervals(new DiscretizationTask.Equifrequency(5), _.getTriple.getPredicate.hasSameUriAs(new TripleItem.LongUri("http://cs.dbpedia.org/property/rok")))
-    intervals.length shouldBe 5
+    val intervals = dataset.discretizeAndGetIntervals(new DiscretizationTask.Equifrequency(5), _.getTriple.getPredicate.hasSameUriAs(new TripleItem.LongUri("http://cs.dbpedia.org/property/rok"))).asScala
+    intervals.size shouldBe 5
     intervals.head.getLeftBoundValue shouldBe 7.0
     intervals.last.getRightBoundValue shouldBe 20010.0
     dataset.types().size shouldBe 1750

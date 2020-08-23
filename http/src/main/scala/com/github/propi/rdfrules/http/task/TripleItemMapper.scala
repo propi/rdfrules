@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.http.task
 
-import com.github.propi.rdfrules.data.TripleItem
+import com.github.propi.rdfrules.data.{Prefix, TripleItem}
 import com.github.propi.rdfrules.http.task.TripleItemMatcher.Number.ComparingType
 import com.github.propi.rdfrules.http.util.ArithmeticEval
 import com.github.propi.rdfrules.utils.BasicExtractors.{AnyToBoolean, AnyToDouble}
@@ -19,7 +19,7 @@ object TripleItemMapper {
       arg match {
         case LongUriPattern(x) => Some(TripleItem.LongUri(x))
         case BlankNodePattern(x) => Some(TripleItem.BlankNode(x))
-        case PrefixedUriPattern(prefix, localName) => Some(TripleItem.PrefixedUri(prefix, "", localName))
+        case PrefixedUriPattern(prefix, localName) => Some(TripleItem.PrefixedUri(Prefix(prefix, ""), localName))
         case _ => None
       }
     }

@@ -17,7 +17,7 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 3. 10. 2017.
   */
-class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView, val userDefinedPrefixes: Traversable[Prefix])
+class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView, val userDefinedPrefixes: Traversable[Prefix], val isCached: Boolean)
   extends Transformable[Triple, Graph]
     with TriplesOps
     with QuadsOps[Graph]
@@ -31,11 +31,13 @@ class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView
 
   protected def coll: Traversable[Triple] = triples
 
-  protected def transform(col: Traversable[Triple]): Graph = new Graph(name, col.view, userDefinedPrefixes)
+  protected def cachedTransform(col: Traversable[Triple]): Graph = new Graph(name, col.view, userDefinedPrefixes, true)
+
+  protected def transform(col: Traversable[Triple]): Graph = new Graph(name, col.view, userDefinedPrefixes, isCached)
 
   protected def transformQuads(col: Traversable[Quad]): Graph = transform(col.view.map(_.triple))
 
-  protected def transformPrefixesAndColl(prefixes: Traversable[Prefix], col: Traversable[Quad]): Graph = new Graph(name, col.view.map(_.triple), prefixes.view)
+  protected def transformPrefixesAndColl(prefixes: Traversable[Prefix], col: Traversable[Quad]): Graph = new Graph(name, col.view.map(_.triple), prefixes.view, isCached)
 
   def foreach(f: Triple => Unit): Unit = triples.foreach(f)
 
@@ -50,7 +52,7 @@ class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView
 
   def quads: QuadTraversableView = triples.map(_.toQuad(name))
 
-  def withName(name: TripleItem.Uri): Graph = new Graph(name, triples, userDefinedPrefixes)
+  def withName(name: TripleItem.Uri): Graph = new Graph(name, triples, userDefinedPrefixes, isCached)
 
   def toDataset: Dataset = Dataset(this).setPrefixes(userDefinedPrefixes)
 
@@ -64,15 +66,15 @@ object Graph {
 
   val default: TripleItem.Uri = TripleItem.LongUri("")
 
-  def apply(triples: Traversable[Triple]): Graph = new Graph(default, triples.view, Set.empty)
+  def apply(triples: Traversable[Triple], isCached: Boolean): Graph = new Graph(default, triples.view, Set.empty, isCached)
 
-  def apply(name: TripleItem.Uri, triples: Traversable[Triple]): Graph = new Graph(name, triples.view, Set.empty)
+  def apply(name: TripleItem.Uri, triples: Traversable[Triple], isCached: Boolean): Graph = new Graph(name, triples.view, Set.empty, isCached)
 
-  def apply(name: TripleItem.Uri, is: => InputStream)(implicit reader: RdfReader): Graph = new Graph(name, reader.fromInputStream(is).map(_.triple), Set.empty)
+  def apply(name: TripleItem.Uri, is: => InputStream)(implicit reader: RdfReader): Graph = new Graph(name, reader.fromInputStream(is).map(_.triple), Set.empty, false)
 
   def apply(name: TripleItem.Uri, file: File)(implicit reader: RdfReader): Graph = {
     val newReader = if (reader == RdfReader.NoReader) RdfReader(file) else reader
-    new Graph(name, newReader.fromFile(file).map(_.triple), Set.empty)
+    new Graph(name, newReader.fromFile(file).map(_.triple), Set.empty, false)
   }
 
   def apply(name: TripleItem.Uri, file: String)(implicit reader: RdfReader): Graph = apply(name, new File(file))
@@ -92,7 +94,8 @@ object Graph {
         }
       }
     }.view,
-    Set.empty
+    Set.empty,
+    false
   )
 
   def fromCache(is: => InputStream): Graph = fromCache(default, is)

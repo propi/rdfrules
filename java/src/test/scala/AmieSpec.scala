@@ -27,9 +27,8 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     amie.asScala().thresholds.iterator.size shouldBe 4
     amie.asScala().thresholds.apply[Threshold.TopK].value shouldBe 10
     amie.asScala().constraints.iterator.size shouldBe 0
-    amie = amie.withInstances(true)
+    amie = amie.withoutConstantsAtObject
     amie.asScala().constraints.iterator.size shouldBe 1
-    amie.asScala().constraints.apply[RuleConstraint.WithInstances].onlyObjects shouldBe true
     amie = amie.addPattern(RulePattern.create(new RulePattern.AtomPattern()))
     amie.asScala().patterns should not be empty
     amie.asScala().patterns.head.exact shouldBe false
@@ -69,17 +68,17 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "mine with instances" in {
-    val rules = dataset1.mine(RulesMining.amie().withoutDuplicitPredicates().withInstances(false))
+    val rules = dataset1.mine(RulesMining.amie().withoutDuplicitPredicates())
     rules.size shouldBe 20643
   }
 
   it should "mine with instances and with duplicit predicates" in {
-    val rules = dataset1.mine(RulesMining.amie().withInstances(false))
+    val rules = dataset1.mine(RulesMining.amie())
     rules.size shouldBe 39924
   }
 
   it should "mine only with object instances" in {
-    val rules = dataset1.mine(RulesMining.amie().withoutDuplicitPredicates().withInstances(true))
+    val rules = dataset1.mine(RulesMining.amie().withoutDuplicitPredicates())
     rules.size shouldBe 10031
   }
 

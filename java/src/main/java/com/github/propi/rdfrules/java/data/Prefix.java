@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.java.data;
 
+import com.github.propi.rdfrules.data.Prefix$;
 import com.github.propi.rdfrules.java.IterableWrapper;
 
 import java.io.File;
@@ -19,7 +20,7 @@ public class Prefix {
     }
 
     public Prefix(String prefix, String nameSpace) {
-        this(new com.github.propi.rdfrules.data.Prefix(prefix, nameSpace));
+        this(Prefix$.MODULE$.apply(prefix, nameSpace));
     }
 
     public static Iterable<Prefix> fromFile(File file) {

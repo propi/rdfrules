@@ -50,7 +50,7 @@ object Rule {
 
   implicit val ruleSimpleOrdering: Ordering[Rule.Simple] = Ordering.by[Rule.Simple, Rule](_.asInstanceOf[Rule])
 
-  implicit val ruleSimilarityCounting: SimilarityCounting[Rule.Simple] = (0.5 * AtomsSimilarityCounting) ~
+  implicit val ruleSimilarityCounting: SimilarityCounting[Rule] = (0.5 * AtomsSimilarityCounting) ~
     (0.1 * LengthSimilarityCounting) ~
     (0.15 * SupportSimilarityCounting) ~
     (0.05 * ConfidenceSimilarityCounting) ~

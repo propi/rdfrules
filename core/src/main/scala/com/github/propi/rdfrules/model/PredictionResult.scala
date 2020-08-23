@@ -21,9 +21,9 @@ class PredictionResult private(_predictedTriples: Traversable[PredictedTriple], 
   def triples: Traversable[Triple] = predictedTriples.map(_.triple)
 
   def graph: Graph = if (_distinct) {
-    Graph(triples)
+    Graph(triples, false)
   } else {
-    Graph(distinct.triples)
+    Graph(distinct.triples, false)
   }
 
   def mergedDataset: Dataset = index.toDataset + graph

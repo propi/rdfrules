@@ -22,7 +22,7 @@ import scala.collection.mutable
 /**
   * Created by Vaclav Zeman on 6. 10. 2017.
   */
-class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val parallelism: Int)
+class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val parallelism: Int, val isCached: Boolean)
   extends Transformable[Rule.Simple, Ruleset]
     with Cacheable[Rule.Simple, Ruleset]
     with Sortable[Rule.Simple, Ruleset]
@@ -32,7 +32,9 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
 
   protected def coll: Traversable[Rule.Simple] = rules
 
-  protected def transform(col: Traversable[Rule.Simple]): Ruleset = new Ruleset(col, index, parallelism)
+  protected def transform(col: Traversable[Rule.Simple]): Ruleset = new Ruleset(col, index, parallelism, isCached)
+
+  protected def cachedTransform(col: Traversable[Rule.Simple]): Ruleset = new Ruleset(col, index, parallelism, true)
 
   protected val ordering: Ordering[Rule.Simple] = implicitly[Ordering[Rule.Simple]]
   protected val serializer: Serializer[Rule.Simple] = implicitly[Serializer[Rule.Simple]]
@@ -83,7 +85,7 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
 
   def findResolved(f: ResolvedRule => Boolean): Option[ResolvedRule] = resolvedRules.find(f)
 
-  def model: Model = Model(resolvedRules.toVector).setParallelism(parallelism)
+  def model: Model = Model(resolvedRules.toVector, true).setParallelism(parallelism)
 
   /**
     * Prune rules with CBA strategy
@@ -264,14 +266,14 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
     } else {
       parallelism
     }
-    new Ruleset(rules, index, normParallelism)
+    new Ruleset(rules, index, normParallelism, isCached)
   }
 
 }
 
 object Ruleset {
 
-  def apply(index: Index, rules: Traversable[Rule.Simple]): Ruleset = new Ruleset(rules, index, Runtime.getRuntime.availableProcessors())
+  def apply(index: Index, rules: Traversable[Rule.Simple], isCached: Boolean): Ruleset = new Ruleset(rules, index, Runtime.getRuntime.availableProcessors(), isCached)
 
   def apply(index: Index, file: File)(implicit reader: RulesetReader): Ruleset = Model(file).toRuleset(index)
 
@@ -286,7 +288,8 @@ object Ruleset {
       }
     },
     index,
-    Runtime.getRuntime.availableProcessors()
+    Runtime.getRuntime.availableProcessors(),
+    false
   )
 
   def fromCache(index: Index, file: File): Ruleset = fromCache(index, new FileInputStream(file))

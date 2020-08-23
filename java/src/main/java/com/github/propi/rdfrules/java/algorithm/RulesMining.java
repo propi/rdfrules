@@ -2,7 +2,6 @@ package com.github.propi.rdfrules.java.algorithm;
 
 import com.github.propi.rdfrules.algorithm.amie.Amie$;
 import com.github.propi.rdfrules.java.ConstantsPosition;
-import com.github.propi.rdfrules.java.ConstantsPosition$;
 import com.github.propi.rdfrules.java.RulesMiningWrapper;
 import com.github.propi.rdfrules.java.data.TripleItem;
 import com.github.propi.rdfrules.java.rule.RulePattern;

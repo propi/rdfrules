@@ -79,20 +79,20 @@ class GraphSpec extends FlatSpec with Matchers with Inside {
     val prefixes = Prefix.fromInputStream(() => getClass.getResourceAsStream("/prefixes.ttl"))
     val gp = graphDbpedia.addPrefixes(prefixes)
     var i = 0
-    gp.prefixes(_ => i = i + 1)
+    gp.userDefinedPrefixes(_ => i = i + 1)
     i shouldBe 2
     gp.take(10).forEach(x => x.getSubject.isInstanceOf[data.TripleItem.PrefixedUri] && x.getPredicate.isInstanceOf[data.TripleItem.PrefixedUri])
   }
 
   it should "discretize data" in {
-    val intervals = graphDbpedia.discretizeAndGetIntervals(new DiscretizationTask.Equidistance(5), quad => quad.getTriple.getPredicate.hasSameUriAs(new data.TripleItem.LongUri("http://cs.dbpedia.org/property/rok")))
-    intervals.length shouldBe 5
+    val intervals = graphDbpedia.discretizeAndGetIntervals(new DiscretizationTask.Equidistance(5), quad => quad.getTriple.getPredicate.hasSameUriAs(new data.TripleItem.LongUri("http://cs.dbpedia.org/property/rok"))).asScala
+    intervals.size shouldBe 5
     intervals.last shouldBe Interval(IntervalBound.Inclusive(16009.4), IntervalBound.Inclusive(20010.0))
-    val intervals2 = graphDbpedia.discretizeAndGetIntervals(new DiscretizationTask.Equifrequency(5), quad => quad.getTriple.getPredicate.hasSameUriAs(new data.TripleItem.LongUri("http://cs.dbpedia.org/property/rok")))
-    intervals2.length shouldBe 5
+    val intervals2 = graphDbpedia.discretizeAndGetIntervals(new DiscretizationTask.Equifrequency(5), quad => quad.getTriple.getPredicate.hasSameUriAs(new data.TripleItem.LongUri("http://cs.dbpedia.org/property/rok"))).asScala
+    intervals2.size shouldBe 5
     intervals2.head shouldBe Interval(IntervalBound.Inclusive(7.0), IntervalBound.Exclusive(1962.5))
-    val intervals3 = graphDbpedia.discretizeAndGetIntervals(new DiscretizationTask.Equisize(0.2), quad => quad.getTriple.getPredicate.hasSameUriAs(new data.TripleItem.LongUri("http://cs.dbpedia.org/property/rok")))
-    intervals3.length shouldBe 4
+    val intervals3 = graphDbpedia.discretizeAndGetIntervals(new DiscretizationTask.Equisize(0.2), quad => quad.getTriple.getPredicate.hasSameUriAs(new data.TripleItem.LongUri("http://cs.dbpedia.org/property/rok"))).asScala
+    intervals3.size shouldBe 4
     intervals3.head shouldBe Interval(IntervalBound.Inclusive(7.0), IntervalBound.Exclusive(1975.5))
     val dg = graphDbpedia.discretize(new DiscretizationTask.Equifrequency(5), quad => quad.getTriple.getPredicate.hasSameUriAs(new data.TripleItem.LongUri("http://cs.dbpedia.org/property/rok")))
     dg.size shouldBe 50000

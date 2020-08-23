@@ -10,8 +10,10 @@ import com.github.propi.rdfrules.data.{DiscretizationTask, RdfSource, TripleItem
 import com.github.propi.rdfrules.http.Main
 import com.github.propi.rdfrules.http.task.{QuadMapper, QuadMatcher, TripleItemMapper}
 import com.github.propi.rdfrules.http.util.Conf
+import com.github.propi.rdfrules.model.Model.PredictionType
+import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule.{AtomPattern, Measure, Rule, RuleConstraint, RulePattern, Threshold}
-import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetSource}
+import com.github.propi.rdfrules.ruleset.{CoveredPaths, ResolvedRule, RulesetSource}
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
 import org.apache.jena.riot.RDFFormat
 import spray.json.DefaultJsonProtocol._
@@ -110,6 +112,7 @@ object CommonDataJsonReaders {
     val fields = json.asJsObject.fields
     fields("name").convertTo[String] match {
       case "MinHeadSize" => Threshold.MinHeadSize(fields("value").convertTo[Int])
+      case "MinAtomSize" => Threshold.MinAtomSize(fields("value").convertTo[Int])
       case "MinHeadCoverage" => Threshold.MinHeadCoverage(fields("value").convertTo[Double])
       case "MinSupport" => Threshold.MinSupport(fields("value").convertTo[Int])
       case "MaxRuleLength" => Threshold.MaxRuleLength(fields("value").convertTo[Int])
@@ -117,6 +120,21 @@ object CommonDataJsonReaders {
       case "Timeout" => Threshold.Timeout(fields("value").convertTo[Int])
       case x => deserializationError(s"Invalid threshold name: $x")
     }
+  }
+
+  implicit val coveredPathsPartReader: RootJsonReader[CoveredPaths.Part] = (json: JsValue) => json.convertTo[String] match {
+    case "Head" => CoveredPaths.Part.Head
+    case "Body" => CoveredPaths.Part.Body
+    case "Whole" => CoveredPaths.Part.Whole
+    case x => deserializationError(s"Invalid covered paths part name: $x")
+  }
+
+  implicit val predictionTypeReader: RootJsonReader[PredictionType] = (json: JsValue) => json.convertTo[String] match {
+    case "All" => PredictionType.All
+    case "Missing" => PredictionType.Missing
+    case "Existing" => PredictionType.Existing
+    case "Complementary" => PredictionType.Complementary
+    case x => deserializationError(s"Invalid prediction type name: $x")
   }
 
   implicit val atomItemPatternReader: RootJsonReader[AtomPattern.AtomItemPattern] = (json: JsValue) => {
@@ -157,8 +175,10 @@ object CommonDataJsonReaders {
   implicit val constraintReader: RootJsonReader[RuleConstraint] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     fields("name").convertTo[String] match {
-      case "WithInstances" => RuleConstraint.WithInstances(false)
-      case "WithInstancesOnlyObjects" => RuleConstraint.WithInstances(true)
+      case "WithoutConstants" => RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere)
+      case "OnlyObjectConstants" => RuleConstraint.ConstantsAtPosition(ConstantsPosition.Object)
+      case "OnlySubjectConstants" => RuleConstraint.ConstantsAtPosition(ConstantsPosition.Subject)
+      case "OnlyLeastFunctionalConstants" => RuleConstraint.ConstantsAtPosition(ConstantsPosition.LeastFunctionalVariable)
       case "WithoutDuplicitPredicates" => RuleConstraint.WithoutDuplicitPredicates()
       case "OnlyPredicates" => RuleConstraint.OnlyPredicates(fields("values").convertTo[JsArray].elements.map(_.convertTo[TripleItem.Uri]).toSet)
       case "WithoutPredicates" => RuleConstraint.WithoutPredicates(fields("values").convertTo[JsArray].elements.map(_.convertTo[TripleItem.Uri]).toSet)
@@ -200,7 +220,7 @@ object CommonDataJsonReaders {
     case x => deserializationError(s"Invalid measure name: $x")
   }
 
-  implicit val weightedSimilarityCountingReader: RootJsonReader[WeightedSimilarityCounting[Rule.Simple]] = (json: JsValue) => {
+  implicit val weightedSimilarityCountingReader: RootJsonReader[WeightedSimilarityCounting[Rule]] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     val weight = fields("weight").convertTo[Double]
     fields("name").convertTo[String] match {
@@ -214,19 +234,19 @@ object CommonDataJsonReaders {
     }
   }
 
-  implicit val similarityCountingReader: RootJsonReader[SimilarityCounting[Rule.Simple]] = (json: JsValue) => json.convertTo[JsArray].elements
-    .map(_.convertTo[WeightedSimilarityCounting[Rule.Simple]])
-    .foldLeft(Option.empty[Comb[Rule.Simple]]) {
+  implicit val similarityCountingReader: RootJsonReader[SimilarityCounting[Rule]] = (json: JsValue) => json.convertTo[JsArray].elements
+    .map(_.convertTo[WeightedSimilarityCounting[Rule]])
+    .foldLeft(Option.empty[Comb[Rule]]) {
       case (None, x) => Some(x)
       case (Some(x), y) => Some(x ~ y)
-    }.getOrElse(implicitly[SimilarityCounting[Rule.Simple]])
+    }.getOrElse(implicitly[SimilarityCounting[Rule]])
 
   implicit def clusteringReader(implicit debugger: Debugger): RootJsonReader[Clustering[Rule.Simple]] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     DbScan(
       fields.get("minNeighbours").map(_.convertTo[Int]).getOrElse(5),
       fields.get("minSimilarity").map(_.convertTo[Double]).getOrElse(0.9)
-    )(fields.get("features").map(_.convertTo[SimilarityCounting[Rule.Simple]]).getOrElse(implicitly[SimilarityCounting[Rule.Simple]]), debugger)
+    )(fields.get("features").map(_.convertTo[SimilarityCounting[Rule]]).getOrElse(implicitly[SimilarityCounting[Rule]]), debugger)
   }
 
   implicit val resolvedRuleAtomItemReader: RootJsonReader[ResolvedRule.Atom.Item] = {

@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.http.task.ruleset
 
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 import com.github.propi.rdfrules.model.EvaluationResult
+import com.github.propi.rdfrules.model.Model.PredictionType
 import com.github.propi.rdfrules.ruleset.Ruleset
 
 /**
@@ -11,7 +12,7 @@ class Evaluate(onlyFunctionalProperties: Boolean) extends Task[Ruleset, Evaluati
   val companion: TaskDefinition = Evaluate
 
   def execute(input: Ruleset): EvaluationResult = {
-    val predictionResult = input.predictedTriples
+    val predictionResult = input.predictedTriples(PredictionType.All)
     if (onlyFunctionalProperties) predictionResult.onlyFunctionalProperties.evaluate(true) else predictionResult.evaluate(true)
   }
 }

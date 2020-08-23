@@ -11,10 +11,12 @@ import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.formats.CommonDataJsonReaders._
 import com.github.propi.rdfrules.http.task.Task.MergeDatasets
 import com.github.propi.rdfrules.http.task._
+import com.github.propi.rdfrules.http.task.ruleset.{Closed, Instantiate}
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.model.Model
+import com.github.propi.rdfrules.model.Model.PredictionType
 import com.github.propi.rdfrules.rule.{Measure, Rule, RulePattern}
-import com.github.propi.rdfrules.ruleset.{ResolvedRule, Ruleset, RulesetSource}
+import com.github.propi.rdfrules.ruleset.{CoveredPaths, ResolvedRule, Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
 import org.apache.jena.riot.RDFFormat
 import spray.json.DefaultJsonProtocol._
@@ -133,8 +135,8 @@ object PipelineJsonReaders {
     new data.Size()
   }
 
-  implicit val typesReader: RootJsonReader[data.Types] = (_: JsValue) => {
-    new data.Types()
+  implicit val typesReader: RootJsonReader[data.Properties] = (_: JsValue) => {
+    new data.Properties()
   }
 
   implicit val histogramReader: RootJsonReader[data.Histogram] = (json: JsValue) => {
@@ -192,28 +194,28 @@ object PipelineJsonReaders {
   implicit val completeDatasetReader: RootJsonReader[index.CompleteDataset] = (json: JsValue) => {
     val (path, format) = getModelPathFormat(json)
     val fields = json.asJsObject.fields
-    new index.CompleteDataset(path, format, fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
+    new index.CompleteDataset(path, format, fields.get("onlyNewPredicates").forall(_.convertTo[Boolean]), fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
   }
 
   implicit val rulesetCompleteDatasetReader: RootJsonReader[ruleset.CompleteDataset] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new ruleset.CompleteDataset(fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
+    new ruleset.CompleteDataset(fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]), fields.get("onlyNewPredicates").forall(_.convertTo[Boolean]))
   }
 
   implicit val predictTriplesReader: RootJsonReader[index.PredictTriples] = (json: JsValue) => {
     val (path, format) = getModelPathFormat(json)
     val fields = json.asJsObject.fields
-    new index.PredictTriples(path, format, fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
+    new index.PredictTriples(path, format, fields("predictionType").convertTo[PredictionType], fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
   }
 
   implicit val rulesetPredictTriplesReader: RootJsonReader[ruleset.PredictTriples] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new ruleset.PredictTriples(fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
+    new ruleset.PredictTriples(fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]), fields("predictionType").convertTo[PredictionType])
   }
 
   implicit val pruneReader: RootJsonReader[ruleset.Prune] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new ruleset.Prune(fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
+    new ruleset.Prune(fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]), fields.get("onlyExistingTriples").forall(_.convertTo[Boolean]))
   }
 
   implicit val evaluateReader: RootJsonReader[index.Evaluate] = (json: JsValue) => {
@@ -344,13 +346,13 @@ object PipelineJsonReaders {
 
   implicit val findSimilarReader: RootJsonReader[ruleset.FindSimilar] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    implicit val sc: SimilarityCounting[Rule.Simple] = fields.get("features").map(_.convertTo[SimilarityCounting[Rule.Simple]]).getOrElse(Rule.ruleSimilarityCounting)
+    implicit val sc: SimilarityCounting[Rule] = fields.get("features").map(_.convertTo[SimilarityCounting[Rule]]).getOrElse(Rule.ruleSimilarityCounting)
     new ruleset.FindSimilar(fields("rule").convertTo[ResolvedRule], fields("take").convertTo[Int])
   }
 
   implicit val findDissimilarReader: RootJsonReader[ruleset.FindDissimilar] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    implicit val sc: SimilarityCounting[Rule.Simple] = fields.get("features").map(_.convertTo[SimilarityCounting[Rule.Simple]]).getOrElse(Rule.ruleSimilarityCounting)
+    implicit val sc: SimilarityCounting[Rule] = fields.get("features").map(_.convertTo[SimilarityCounting[Rule]]).getOrElse(Rule.ruleSimilarityCounting)
     new ruleset.FindDissimilar(fields("rule").convertTo[ResolvedRule], fields("take").convertTo[Int])
   }
 
@@ -362,6 +364,25 @@ object PipelineJsonReaders {
   implicit val cacheModelReader: RootJsonReader[model.Cache] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new model.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
+  }
+
+  implicit val instantiateReader: RootJsonReader[ruleset.Instantiate] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new ruleset.Instantiate(fields("index").convertTo[Int], fields("index").convertTo[CoveredPaths.Part])
+  }
+
+  implicit val maximalReader: RootJsonReader[ruleset.Maximal] = (_: JsValue) => {
+    new ruleset.Maximal()
+  }
+
+  implicit val closedReader: RootJsonReader[ruleset.Closed] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new ruleset.Closed(fields("measure").convertTo[TypedKeyMap.Key[Measure]])
+  }
+
+  implicit val onlyBetterDescendantReader: RootJsonReader[ruleset.OnlyBetterDescendant] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new ruleset.OnlyBetterDescendant(fields("measure").convertTo[TypedKeyMap.Key[Measure]])
   }
 
   implicit val graphBasedRulesReader: RootJsonReader[ruleset.GraphBasedRules] = (_: JsValue) => {
@@ -434,7 +455,7 @@ object PipelineJsonReaders {
           case data.Size.name => pipeline ~> params.convertTo[data.Size] ~> ToJsonTask.FromInt
           case data.Slice.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Slice], tail)
           case data.Take.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Take], tail)
-          case data.Types.name => pipeline ~> params.convertTo[data.Types] ~> ToJsonTask.FromTypes
+          case data.Properties.name => pipeline ~> params.convertTo[data.Properties] ~> ToJsonTask.FromTypes
           case data.Index.name => addTaskFromIndex(pipeline ~> params.convertTo[data.Index], tail)
           case MergeDatasets.name => addTaskFromDataset(pipeline |~> params.convertTo[MergeDatasets], tail)
           case x => throw deserializationError(s"Invalid task '$x' can not be bound to Dataset")
@@ -508,6 +529,10 @@ object PipelineJsonReaders {
           case ruleset.PredictTriples.name => addTaskFromDataset(pipeline ~> params.convertTo[ruleset.PredictTriples], tail)
           case ruleset.Prune.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Prune], tail)
           case ruleset.Evaluate.name => pipeline ~> params.convertTo[ruleset.Evaluate] ~> ToJsonTask.FromEvaluationResult
+          case ruleset.Instantiate.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Instantiate], tail)
+          case ruleset.Maximal.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Maximal], tail)
+          case ruleset.Closed.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Closed], tail)
+          case ruleset.OnlyBetterDescendant.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.OnlyBetterDescendant], tail)
           case x => throw deserializationError(s"Invalid task '$x' can not be bound to Ruleset")
         }
       case _ => pipeline ~> new ToJsonTask.From[Ruleset]

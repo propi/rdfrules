@@ -25,7 +25,8 @@ trait QuadsIndex {
           compressedQuads.foreach(x => f(x.toQuad))
         }
       }
-    }.view
+    }.view,
+    true
   )
 
 }

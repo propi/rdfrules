@@ -38,7 +38,7 @@ class Cache(path: String, inMemory: Boolean, revalidate: Boolean) extends Task.C
 
   def execute(input: Dataset): Dataset = {
     if (inMemory) {
-      val cachedDataset = input.cache
+      val cachedDataset = input.withPrefixedUris.cache
       InMemoryCache.put(path, cachedDataset)
       cachedDataset
     } else {

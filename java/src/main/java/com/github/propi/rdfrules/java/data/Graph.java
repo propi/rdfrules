@@ -122,12 +122,12 @@ public class Graph implements
         return fromFile(name, new File(file));
     }
 
-    public static Graph fromTriples(Iterable<Triple> triples) {
-        return new Graph(com.github.propi.rdfrules.data.Graph.apply(ScalaConverters.toIterable(triples, Triple::asScala)));
+    public static Graph fromTriples(Iterable<Triple> triples, boolean isCached) {
+        return new Graph(com.github.propi.rdfrules.data.Graph.apply(ScalaConverters.toIterable(triples, Triple::asScala), isCached));
     }
 
-    public static Graph fromTriples(TripleItem.Uri name, Iterable<Triple> triples) {
-        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.asScala(), ScalaConverters.toIterable(triples, Triple::asScala)));
+    public static Graph fromTriples(TripleItem.Uri name, Iterable<Triple> triples, boolean isCached) {
+        return new Graph(com.github.propi.rdfrules.data.Graph.apply(name.asScala(), ScalaConverters.toIterable(triples, Triple::asScala), isCached));
     }
 
     public static Graph fromCache(Supplier<InputStream> isb) {
@@ -217,16 +217,8 @@ public class Graph implements
         return Dataset.fromGraph(this);
     }
 
-    public Index index(Index.Mode mode) {
-        return toDataset().index(mode);
-    }
-
     public Index index() {
         return toDataset().index();
-    }
-
-    public Index index(Index.Mode mode, Debugger debugger) {
-        return toDataset().index(mode, debugger);
     }
 
     public Index index(Debugger debugger) {

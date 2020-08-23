@@ -88,6 +88,6 @@ object InMemoryCache {
     logger.info(s"The memory cache was cleaned")
   }
 
-  def getMemoryInfo = MemoryInfo(Runtime.getRuntime.totalMemory(), Runtime.getRuntime.freeMemory(), hmap.size)
+  def getMemoryInfo: MemoryInfo = MemoryInfo(Runtime.getRuntime.totalMemory(), Runtime.getRuntime.freeMemory(), hmap.size)
 
 }
