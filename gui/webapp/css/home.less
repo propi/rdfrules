@@ -111,6 +111,7 @@ main {
       width: 90%;
       text-align: right;
       margin: auto auto 2em;
+
       span {
         display: inline-block;
         background-color: #548dff;
@@ -620,9 +621,30 @@ main {
     .rule {
       margin-bottom: 0.5em;
 
+      &:after {
+        content: '';
+        clear: both;
+        display: block;
+      }
+
+      .text {
+        float: left;
+      }
+
       .measures {
+        float: left;
         font-size: 0.9em;
         font-style: italic;
+        clear: left;
+        margin-right: 1em;
+      }
+
+      .rule-tools {
+        float: left;
+        font-size: 0.8em;
+        &.hidden {
+          display: none;
+        }
       }
     }
 

@@ -1,8 +1,9 @@
 package com.github.propi.rdfrules.gui.results
 
+import com.github.propi.rdfrules.gui.operations.Instantiate
 import com.github.propi.rdfrules.gui.results.Rules._
 import com.github.propi.rdfrules.gui.utils.StringConverters._
-import com.github.propi.rdfrules.gui.{ActionProgress, Downloader, Globals}
+import com.github.propi.rdfrules.gui.{ActionProgress, Downloader, Globals, Main, OperationInfo}
 import com.thoughtworks.binding.Binding.{Constants, Var}
 import com.thoughtworks.binding.{Binding, dom}
 import org.scalajs.dom.Event
@@ -57,8 +58,6 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
     span.innerHTML = record.body.map(viewAtom).mkString(" ^ ") + " &rArr; " + viewAtom(record.head)
     span}
    */
-
-  private def viewAtom(atom: Atom): String = s"( ${viewAtomItem(atom.subject)} ${viewAtomItem(atom.predicate)} ${viewAtomItem(atom.`object`)}${atom.graphs.toOption.map(x => if (x.length == 1) viewAtomItem(x.head) else x.map(viewAtomItem).mkString(", ")).map(" " + _).getOrElse("")} )"
 
   private def exportJson(rules: Seq[js.Dynamic]): Unit = {
     Downloader.download("rules.json", js.Array(rules: _*))
@@ -131,6 +130,17 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
     <div class="measures">
       {record._1.measures.map(x => s"${x.name}: ${x.value}").mkString(", ")}
     </div>
+    <div class={"rule-tools" + (if (Main.canvas.getOperations.last.previousOperation.value.exists(_.info.isInstanceOf[OperationInfo.RulesetTransformation]) && !record._1.isInstantiated) "" else " hidden")}>
+      <a href="#" onclick={e: Event =>
+        e.preventDefault()
+        Main.canvas.getOperations.last.delete()
+        val op0 = Main.canvas.getOperations.last
+        val op1 = op0.appendOperation(OperationInfo.RulesetTransformation.Instantiate)
+        op1.asInstanceOf[Instantiate].setRule(record._1)
+        Main.canvas.addOperation(op1)
+        Main.canvas.addOperation(op1.appendOperation(OperationInfo.GetRules))
+        op1.openModal()}>Instantiate</a>
+    </div>
   </div>
 
   @dom
@@ -170,6 +180,8 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
 
 object Rules {
 
+  def viewAtom(atom: Atom): String = s"( ${viewAtomItem(atom.subject)} ${viewAtomItem(atom.predicate)} ${viewAtomItem(atom.`object`)}${atom.graphs.toOption.map(x => if (x.length == 1) viewAtomItem(x.head) else x.map(viewAtomItem).mkString(", ")).map(" " + _).getOrElse("")} )"
+
   def viewAtomItem(atomItem: AtomItem): String = viewAtomItem(atomItem.value)
 
   def viewAtomItem(atomItem: js.Dynamic): String = {
@@ -208,6 +220,14 @@ object Rules {
     val head: Atom
     val body: js.Array[Atom]
     val measures: js.Array[Measure]
+  }
+
+  implicit class PimpedAtomItem(val atomItem: AtomItem) extends AnyVal {
+    def isConstant: Boolean = atomItem.`type` == "constant"
+  }
+
+  implicit class PimpedRule(val rule: Rule) extends AnyVal {
+    def isInstantiated: Boolean = (rule.head :: rule.body.toList).forall(x => x.subject.isConstant && x.`object`.isConstant)
   }
 
 }

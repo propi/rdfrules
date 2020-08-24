@@ -18,6 +18,8 @@ object StringConverters {
     def toJson: js.Dynamic = JSON.parse(x)
   }
 
+  implicit def stringToBoolean(x: String): Boolean = Predef.augmentString(x).toBoolean
+
   implicit def stringToInt(x: String): Int = Predef.augmentString(x).toInt
 
   implicit def stringToDouble(x: String): Double = Predef.augmentString(x).toDouble

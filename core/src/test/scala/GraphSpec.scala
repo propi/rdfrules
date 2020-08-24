@@ -44,7 +44,7 @@ class GraphSpec extends FlatSpec with Matchers with Inside {
     graph.types().size shouldBe 33
     val (uri, ranges) = graph.types().head
     uri shouldBe TripleItem.LongUri("hasWonPrize")
-    ranges.get(TripleItemType.Resource) shouldBe Some(1110)
+    ranges.get(TripleItemType.Uri) shouldBe Some(1110)
     graphDbpedia.types().size shouldBe 1717
     inside(graphDbpedia.types().find(_._1.hasSameUriAs("http://cs.dbpedia.org/property/rok"))) {
       case Some((uri, ranges)) =>

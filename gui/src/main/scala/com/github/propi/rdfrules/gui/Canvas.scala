@@ -73,6 +73,8 @@ class Canvas {
     </div>
   }
 
+  def getOperations: Seq[Operation] = operations.value
+
   def addOperation(operation: Operation): Unit = {
     if (operation.getNextOperation.isEmpty) {
       operations.value += operation

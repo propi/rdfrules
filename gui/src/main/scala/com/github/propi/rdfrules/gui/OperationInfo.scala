@@ -50,7 +50,7 @@ object OperationInfo {
       GetQuads,
       Prefixes,
       DatasetSize,
-      Types,
+      Properties,
       Histogram
     )
   }
@@ -85,6 +85,9 @@ object OperationInfo {
       RulesetTransformation.CompleteDataset,
       RulesetTransformation.PredictTriples,
       RulesetTransformation.Prune,
+      RulesetTransformation.Maximal,
+      RulesetTransformation.Closed,
+      RulesetTransformation.OnlyBetterDescendant,
       CacheRulesetAction,
       ExportRules,
       GetRules,
@@ -437,6 +440,38 @@ object OperationInfo {
       def buildOperation(from: Operation): Operation = new operations.Prune(from, this)
     }
 
+    object Maximal extends RulesetTransformation {
+      val name: String = "Maximal"
+      val title: String = "Maximal"
+      val description: String = "Return most specific rules (only rules with no descendants) within the ruleset tree."
+
+      def buildOperation(from: Operation): Operation = new operations.Maximal(from, this)
+    }
+
+    object Closed extends RulesetTransformation {
+      val name: String = "Closed"
+      val title: String = "Closed"
+      val description: String = "Return closed rules within the ruleset tree. A rule is closed if its parent has a different measure."
+
+      def buildOperation(from: Operation): Operation = new operations.Closed(from, this)
+    }
+
+    object OnlyBetterDescendant extends RulesetTransformation {
+      val name: String = "OnlyBetterDescendant"
+      val title: String = "Only better descendant"
+      val description: String = "This avoids outputting rules that do not improve the chosen measure w.r.t their parents."
+
+      def buildOperation(from: Operation): Operation = new operations.Closed(from, this)
+    }
+
+    object Instantiate extends RulesetTransformation {
+      val name: String = "Instantiate"
+      val title: String = "Instantiate"
+      val description: String = "Instantiate a selected rule."
+
+      def buildOperation(from: Operation): Operation = new operations.Instantiate(from, this)
+    }
+
     object ComputeConfidence extends RulesetTransformation {
       val name: String = "ComputeConfidence"
       val title: String = "Compute confidence"
@@ -587,12 +622,12 @@ object OperationInfo {
     def buildOperation(from: Operation): Operation = new actions.DatasetSize(from)
   }
 
-  object Types extends Action {
-    val name: String = "Types"
-    val title: String = "Types"
-    val description: String = "Get all predicates and their ranges with sizes."
+  object Properties extends Action {
+    val name: String = "Properties"
+    val title: String = "Properties"
+    val description: String = "Get all properties and their ranges with sizes."
 
-    def buildOperation(from: Operation): Operation = new actions.Types(from)
+    def buildOperation(from: Operation): Operation = new actions.Properties(from)
   }
 
   object Histogram extends Action {
@@ -666,6 +701,9 @@ object OperationInfo {
         RulesetTransformation.CompleteDataset,
         RulesetTransformation.PredictTriples,
         RulesetTransformation.Prune,
+        RulesetTransformation.Maximal,
+        RulesetTransformation.Closed,
+        RulesetTransformation.OnlyBetterDescendant,
         EvaluateRuleset
       )
       case _: IndexTransformation => Iterator(
@@ -688,7 +726,7 @@ object OperationInfo {
       GetQuads,
       Prefixes,
       DatasetSize,
-      Types,
+      Properties,
       Histogram,
       CacheIndexAction,
       CacheRulesetAction,

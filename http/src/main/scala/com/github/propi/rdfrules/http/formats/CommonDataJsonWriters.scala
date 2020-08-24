@@ -31,7 +31,7 @@ object CommonDataJsonWriters extends Json {
   )
 
   implicit val tripleItemTypeWriter: RootJsonWriter[TripleItemType] = {
-    case TripleItemType.Resource => JsString("Resource")
+    case TripleItemType.Uri => JsString("Uri")
     case TripleItemType.Text => JsString("Text")
     case TripleItemType.Boolean => JsString("Boolean")
     case TripleItemType.Number => JsString("Number")

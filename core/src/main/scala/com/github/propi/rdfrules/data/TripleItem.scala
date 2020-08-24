@@ -95,7 +95,10 @@ object TripleItem {
       case _ => false
     }
 
-    override def toString: String = prefix + ":" + localName
+    override def toString: String = prefix match {
+      case Prefix.Full(prefix, _) => prefix + ":" + localName
+      case _: Prefix.Namespace => toLongUri.toString
+    }
   }
 
   case class BlankNode(id: String) extends Uri {

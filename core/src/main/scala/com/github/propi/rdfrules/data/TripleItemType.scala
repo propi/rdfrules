@@ -9,7 +9,7 @@ sealed trait TripleItemType
 
 object TripleItemType {
 
-  case object Resource extends TripleItemType
+  case object Uri extends TripleItemType
 
   case object Number extends TripleItemType
 
@@ -20,7 +20,7 @@ object TripleItemType {
   case object Interval extends TripleItemType
 
   implicit def apply(tripleItem: TripleItem): TripleItemType = tripleItem match {
-    case _: TripleItem.Uri => Resource
+    case _: TripleItem.Uri => Uri
     case _: TripleItem.Text => Text
     case _: TripleItem.BooleanValue => Boolean
     case _: TripleItem.Number[_] => Number

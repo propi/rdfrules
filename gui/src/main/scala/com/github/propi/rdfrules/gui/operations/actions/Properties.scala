@@ -8,8 +8,8 @@ import scala.concurrent.Future
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class Types(fromOperation: Operation) extends Operation {
-  val info: OperationInfo = OperationInfo.Types
+class Properties(fromOperation: Operation) extends Operation {
+  val info: OperationInfo = OperationInfo.Properties
   val properties: Constants[Property] = Constants()
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 

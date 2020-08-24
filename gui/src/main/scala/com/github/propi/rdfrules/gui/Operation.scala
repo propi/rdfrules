@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.gui
 
+import com.github.propi.rdfrules.gui.properties.Hidden
 import com.thoughtworks.binding.Binding.{Constants, Var}
 import com.thoughtworks.binding.{Binding, dom}
 import org.scalajs.dom.html.{Anchor, Div}
@@ -50,16 +51,24 @@ trait Operation {
   }
 
   def appendOperation(operationInfo: OperationInfo): Operation = {
-    val newOps = operationInfo.buildOperation(self)
-    for (x <- nextOperation.value) {
-      newOps.nextOperation.value = Some(x)
-      x.previousOperation.value = Some(newOps)
-    }
-    nextOperation.value = Some(newOps)
-    newOps
+    appendOperation(operationInfo.buildOperation(self))
   }
 
-  private def delete(): Unit = {
+  def appendOperation(operation: Operation): Operation = {
+    for (x <- nextOperation.value) {
+      operation.nextOperation.value = Some(x)
+      x.previousOperation.value = Some(operation)
+    }
+    nextOperation.value = Some(operation)
+    operation
+  }
+
+  def openModal(): Unit = {
+    Main.canvas.closeModal()
+    Main.canvas.openModal(viewProperties)
+  }
+
+  def delete(): Unit = {
     (previousOperation.value, nextOperation.value) match {
       case (Some(prev), Some(next)) if prev.info.followingOperations.value.contains(next.info) =>
         prev.nextOperation.value = Some(next)
@@ -181,7 +190,7 @@ trait Operation {
   private def viewProperties: Binding[Div] = {
     <div class="properties">
       <table>
-        {for (property <- properties) yield {
+        {for (property <- properties if !property.isInstanceOf[Hidden[_]]) yield {
         property.view.bind
       }}
       </table>

@@ -577,9 +577,27 @@ main {
 .action-progress .result .rule {
   margin-bottom: 0.5em;
 }
+.action-progress .result .rule:after {
+  content: '';
+  clear: both;
+  display: block;
+}
+.action-progress .result .rule .text {
+  float: left;
+}
 .action-progress .result .rule .measures {
+  float: left;
   font-size: 0.9em;
   font-style: italic;
+  clear: left;
+  margin-right: 1em;
+}
+.action-progress .result .rule .rule-tools {
+  float: left;
+  font-size: 0.8em;
+}
+.action-progress .result .rule .rule-tools.hidden {
+  display: none;
 }
 .action-progress .result .model {
   margin-top: 1.5em;

@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.gui
 
 import com.github.propi.rdfrules.gui.Task.{Result, TaskException}
 import com.thoughtworks.binding.{Binding, dom}
-import com.thoughtworks.binding.Binding.{Constants, Var}
+import com.thoughtworks.binding.Binding.{Constants, Var, Vars}
 import org.scalajs.dom.html.Div
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -21,16 +21,28 @@ trait ActionProgress {
 
   private implicit val ec: ExecutionContext = ExecutionContext.global
   private val progress: Var[Option[Try[Result]]] = Var(None)
+  private val _logs: Vars[Task.Log] = Vars.empty
+
+  private def addLogs(newLogs: js.Array[Task.Log]): Unit = {
+    val logsBuffer = _logs.value
+    if (newLogs.length > logsBuffer.length) {
+      logsBuffer ++= newLogs.jsSlice(logsBuffer.length)
+    }
+  }
 
   private def getStatus(id: String): Unit = Task.getStatus(id).onComplete {
     case Success(result) =>
-      progress.value = Some(Success(result))
-      if (result.finished.isEmpty) {
-        setTimeout(3000)(getStatus(id))
+      addLogs(result.logs)
+      if (progress.value.isEmpty || result.finished.isDefined) {
+        progress.value = Some(Success(result))
+      } else {
         setTimeout(500) {
           val x = document.getElementById("logs").asInstanceOf[HTMLUListElement]
           if (x != null) x.scrollTop = x.scrollHeight
         }
+      }
+      if (result.finished.isEmpty) {
+        setTimeout(3000)(getStatus(id))
       }
     case Failure(th) => progress.value = Some(Failure(th))
   }
@@ -85,7 +97,7 @@ trait ActionProgress {
         </div>
         <h3>Logs</h3>
         <ul class="logs" id="logs">
-          {for (log <- result.getLogs) yield
+          {for (log <- _logs) yield
           <li>
             <span class="time">
               {log.time}

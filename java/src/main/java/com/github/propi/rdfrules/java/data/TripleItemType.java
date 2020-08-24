@@ -4,7 +4,7 @@ package com.github.propi.rdfrules.java.data;
  * Created by Vaclav Zeman on 10. 5. 2018.
  */
 public enum TripleItemType {
-    RESOURCE(com.github.propi.rdfrules.data.TripleItemType.Resource$.MODULE$),
+    RESOURCE(com.github.propi.rdfrules.data.TripleItemType.Uri$.MODULE$),
     NUMBER(com.github.propi.rdfrules.data.TripleItemType.Number$.MODULE$),
     BOOLEAN(com.github.propi.rdfrules.data.TripleItemType.Boolean$.MODULE$),
     TEXT(com.github.propi.rdfrules.data.TripleItemType.Text$.MODULE$),

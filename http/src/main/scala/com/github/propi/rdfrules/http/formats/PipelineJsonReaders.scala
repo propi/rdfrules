@@ -368,7 +368,7 @@ object PipelineJsonReaders {
 
   implicit val instantiateReader: RootJsonReader[ruleset.Instantiate] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new ruleset.Instantiate(fields("index").convertTo[Int], fields("index").convertTo[CoveredPaths.Part])
+    new ruleset.Instantiate(fields("rule").convertTo[ResolvedRule], fields("part").convertTo[CoveredPaths.Part])
   }
 
   implicit val maximalReader: RootJsonReader[ruleset.Maximal] = (_: JsValue) => {

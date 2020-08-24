@@ -6,7 +6,7 @@ import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting.{Comb, WeightedSimilarityCounting}
 import com.github.propi.rdfrules.algorithm.dbscan.{DbScan, SimilarityCounting}
 import com.github.propi.rdfrules.algorithm.{Clustering, RulesMining}
-import com.github.propi.rdfrules.data.{DiscretizationTask, RdfSource, TripleItem}
+import com.github.propi.rdfrules.data.{DiscretizationTask, Prefix, RdfSource, TripleItem}
 import com.github.propi.rdfrules.http.Main
 import com.github.propi.rdfrules.http.task.{QuadMapper, QuadMatcher, TripleItemMapper}
 import com.github.propi.rdfrules.http.util.Conf
@@ -21,6 +21,7 @@ import spray.json._
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.util.Try
 
 /**
   * Created by Vaclav Zeman on 14. 8. 2018.
@@ -29,7 +30,7 @@ object CommonDataJsonReaders {
 
   private val defaultMaxMiningTime = Conf[Duration](Main.confPrefix + ".default-max-mining-time").toOption.getOrElse(0 seconds)
 
-  implicit val tripleItemReader: RootJsonReader[TripleItem] = {
+  implicit val tripleItemReader: RootJsonReader[TripleItem] = (json: JsValue) => Try(tripleItemUriReader.read(json)).getOrElse(json match {
     case JsString(TripleItemMapper.Resource(uri)) => uri
     case JsString(TripleItemMapper.Text(text)) => text
     case JsString(TripleItemMapper.Number(number)) => number
@@ -38,10 +39,14 @@ object CommonDataJsonReaders {
     case JsBoolean(x) => TripleItem.BooleanValue(x)
     case JsString(TripleItemMapper.Interval(interval)) => interval
     case json => deserializationError(s"Json value '$json' can not be deserialized as a triple item.")
-  }
+  })
 
   implicit val tripleItemUriReader: RootJsonReader[TripleItem.Uri] = {
     case JsString(TripleItemMapper.Resource(uri)) => uri
+    case JsObject(fields) if List("prefix", "nameSpace", "localName").forall(fields.contains) =>
+      val shortPrefix = fields("prefix").convertTo[String]
+      val prefix = if (shortPrefix.isEmpty) Prefix(fields("nameSpace").convertTo[String]) else Prefix(shortPrefix, fields("nameSpace").convertTo[String])
+      TripleItem.PrefixedUri(prefix, fields("localName").convertTo[String])
     case json => deserializationError(s"Json value '$json' can not be deserialized as the URI.")
   }
 

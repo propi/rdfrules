@@ -5,6 +5,7 @@ import com.github.propi.rdfrules.gui.results.NoResult
 import com.github.propi.rdfrules.gui.utils.CommonValidators.NonEmpty
 import com.github.propi.rdfrules.gui.{ActionProgress, Operation, OperationInfo, Property}
 import com.thoughtworks.binding.Binding.{Constants, Var}
+import com.github.propi.rdfrules.gui.utils.StringConverters._
 
 import scala.concurrent.Future
 
@@ -14,7 +15,9 @@ import scala.concurrent.Future
 class CacheIndex(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.CacheIndexAction
   val properties: Constants[Property] = Constants(
-    new FixedText[String]("path", "Path", description = "A relative path to a file related to the workspace where the serialized index should be saved.", validator = NonEmpty)
+    new FixedText[String]("path", "Path", description = "A relative path to a file related to the workspace where the serialized index should be saved.", validator = NonEmpty),
+    new Hidden[Boolean]("inMemory", "false"),
+    new Hidden[Boolean]("revalidate", "false")
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 

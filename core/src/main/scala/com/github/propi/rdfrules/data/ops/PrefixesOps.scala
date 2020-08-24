@@ -118,8 +118,8 @@ trait PrefixesOps[Coll] extends QuadsOps[Coll] {
           f(Quad(
             Triple(
               uriToPrefixedUri(quad.triple.subject),
-              uriToPrefixedUri(quad.triple.subject),
-              tripleItemToPrefixedUri(quad.triple.subject)
+              uriToPrefixedUri(quad.triple.predicate),
+              tripleItemToPrefixedUri(quad.triple.`object`)
             ),
             uriToPrefixedUri(quad.graph)
           ))
