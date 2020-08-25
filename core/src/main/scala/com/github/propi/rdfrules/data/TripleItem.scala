@@ -96,7 +96,12 @@ object TripleItem {
     }
 
     override def toString: String = prefix match {
-      case Prefix.Full(prefix, _) => prefix + ":" + localName
+      case Prefix.Full(prefix, _) =>
+        if (prefix.isEmpty) {
+          toLongUri.toString
+        } else {
+          prefix + ":" + localName
+        }
       case _: Prefix.Namespace => toLongUri.toString
     }
   }

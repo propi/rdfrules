@@ -187,7 +187,11 @@ object Rules {
   def viewAtomItem(atomItem: js.Dynamic): String = {
     if (js.typeOf(atomItem) == "object" && !js.isUndefined(atomItem.prefix)) {
       val pu = atomItem.asInstanceOf[PrefixedUri]
-      s"${pu.prefix}:${pu.localName}"
+      if (pu.prefix.isEmpty && pu.nameSpace.nonEmpty) {
+        s"<${pu.nameSpace}${pu.localName}>"
+      } else {
+        s"${pu.prefix}:${pu.localName}"
+      }
     } else {
       atomItem.toString
     }
