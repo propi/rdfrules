@@ -24,7 +24,11 @@
 
 @echo off
 
-start "" ./webapp/index.html
+if exist ./webapp/index.html (
+    start "" ./webapp/index.html
+) else (
+    start "" ../webapp/index.html
+)
 
 @REM set %HOME% to equivalent of $HOME
 if "%HOME%" == "" (set HOME=%HOMEDRIVE%%HOMEPATH%)
