@@ -445,13 +445,24 @@ main {
   margin-bottom: 1em;
 }
 .action-progress ul.meta .hidden {
-  display: none;
+  display: none !important;
 }
 .action-progress ul.meta .loading {
-  width: 5em;
+  display: flex;
+  align-items: center;
+  margin: 0.5em 0;
 }
 .action-progress ul.meta .loading img {
-  width: 100%;
+  width: 5em;
+}
+.action-progress ul.meta .loading .cancel-send {
+  display: block;
+  margin-left: 1em;
+}
+.action-progress ul.meta .loading .cancel-sent {
+  margin-left: 1em;
+  font-style: italic;
+  font-size: 0.8em;
 }
 .action-progress ul.logs {
   background-color: whitesmoke;
@@ -577,9 +588,27 @@ main {
 .action-progress .result .rule {
   margin-bottom: 0.5em;
 }
+.action-progress .result .rule:after {
+  content: '';
+  clear: both;
+  display: block;
+}
+.action-progress .result .rule .text {
+  float: left;
+}
 .action-progress .result .rule .measures {
+  float: left;
   font-size: 0.9em;
   font-style: italic;
+  clear: left;
+  margin-right: 1em;
+}
+.action-progress .result .rule .rule-tools {
+  float: left;
+  font-size: 0.8em;
+}
+.action-progress .result .rule .rule-tools.hidden {
+  display: none;
 }
 .action-progress .result .model {
   margin-top: 1.5em;

@@ -111,6 +111,7 @@ main {
       width: 90%;
       text-align: right;
       margin: auto auto 2em;
+
       span {
         display: inline-block;
         background-color: #548dff;
@@ -478,14 +479,25 @@ main {
     margin-bottom: 1em;
 
     .hidden {
-      display: none;
+      display: none !important;
     }
 
     .loading {
-      width: 5em;
+      display: flex;
+      align-items: center;
+      margin: 0.5em 0;
 
       img {
-        width: 100%;
+        width: 5em;
+      }
+      .cancel-send {
+        display: block;
+        margin-left: 1em;
+      }
+      .cancel-sent {
+        margin-left: 1em;
+        font-style: italic;
+        font-size: 0.8em;
       }
     }
   }
@@ -620,9 +632,30 @@ main {
     .rule {
       margin-bottom: 0.5em;
 
+      &:after {
+        content: '';
+        clear: both;
+        display: block;
+      }
+
+      .text {
+        float: left;
+      }
+
       .measures {
+        float: left;
         font-size: 0.9em;
         font-style: italic;
+        clear: left;
+        margin-right: 1em;
+      }
+
+      .rule-tools {
+        float: left;
+        font-size: 0.8em;
+        &.hidden {
+          display: none;
+        }
       }
     }
 

@@ -15,7 +15,13 @@ trait Debugger {
 
   val logger: Logger
 
+  @volatile private var interrupted: Boolean = false
+
   def debug[T](name: String, num: Int = 0)(f: ActionDebugger => T): T
+
+  def interrupt(): Unit = interrupted = true
+
+  def isInterrupted: Boolean = interrupted
 
 }
 

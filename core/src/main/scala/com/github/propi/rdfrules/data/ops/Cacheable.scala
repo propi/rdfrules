@@ -29,9 +29,12 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
   def cache(implicit debugger: Debugger): Coll = {
     debugger.debug("Dataset loading") { ad =>
       val buffer = new util.LinkedList[T]()
-      for (x <- coll) {
+      for (x <- coll.view.takeWhile(_ => !debugger.isInterrupted)) {
         buffer.add(x)
         ad.done()
+      }
+      if (debugger.isInterrupted) {
+        debugger.logger.warn(s"The loading task has been interrupted. The loaded data may not be complete.")
       }
       cachedTransform(new Traversable[T] {
         def foreach[U](f: T => U): Unit = buffer.iterator().asScala.foreach(f)

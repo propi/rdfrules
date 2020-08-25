@@ -69,4 +69,8 @@ object Task {
     result.future
   }
 
+  def cancel(id: String): Unit = {
+    Endpoint.delete[String]("/task/" + id)(_ => {})
+  }
+
 }

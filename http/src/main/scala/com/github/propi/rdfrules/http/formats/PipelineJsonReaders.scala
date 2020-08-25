@@ -11,7 +11,6 @@ import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.formats.CommonDataJsonReaders._
 import com.github.propi.rdfrules.http.task.Task.MergeDatasets
 import com.github.propi.rdfrules.http.task._
-import com.github.propi.rdfrules.http.task.ruleset.{Closed, Instantiate}
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.model.Model
 import com.github.propi.rdfrules.model.Model.PredictionType
@@ -107,7 +106,7 @@ object PipelineJsonReaders {
     )
   }
 
-  implicit val cacheDatasetReader: RootJsonReader[data.Cache] = (json: JsValue) => {
+  implicit def cacheDatasetReader(implicit debugger: Debugger): RootJsonReader[data.Cache] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new data.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
   }
@@ -356,7 +355,7 @@ object PipelineJsonReaders {
     new ruleset.FindDissimilar(fields("rule").convertTo[ResolvedRule], fields("take").convertTo[Int])
   }
 
-  implicit val cacheRulesetReader: RootJsonReader[ruleset.Cache] = (json: JsValue) => {
+  implicit def cacheRulesetReader(implicit debugger: Debugger): RootJsonReader[ruleset.Cache] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new ruleset.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
   }

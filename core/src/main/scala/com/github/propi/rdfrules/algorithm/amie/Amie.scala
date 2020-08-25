@@ -43,7 +43,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
   def mine(implicit tripleIndex: TripleHashIndex[Int], mapper: TripleItemHashIndex): IndexedSeq[Rule.Simple] = {
     val logger = debugger.logger
     //create amie process with debugger and final triple index
-    implicit val settings: RuleRefinement.Settings = new Settings(this)(if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) debugger else Debugger.EmptyDebugger, mapper)
+    implicit val settings: RuleRefinement.Settings = new Settings(this)(/*if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) */debugger/* else Debugger.EmptyDebugger*/, mapper)
     val process = new AmieProcess()
     try {
       process.searchRules()
@@ -51,6 +51,9 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
       val rules = Await.result(process.result.getResult, 1 minute)
       if (timeoutReached) {
         logger.warn(s"The timeout limit '${thresholds.apply[Threshold.Timeout].duration.toMinutes} minutes' has been exceeded during mining. The miner returns ${rules.size} rules which need not be complete.")
+      }
+      if (debugger.isInterrupted) {
+        logger.warn(s"The mining task has been interrupted. The miner returns ${rules.size} rules which need not be complete.")
       }
       rules
     } finally {
@@ -181,7 +184,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
         var stage = 1
         val foundRules = new AtomicInteger(0)
         //if the queue is not empty and the timeout is not reached, go to the stage X
-        while (!queue.isEmpty && settings.timeout.forall(_ > settings.currentDuration)) {
+        while (!queue.isEmpty && settings.timeout.forall(_ > settings.currentDuration) && !debugger.isInterrupted) {
           //starts P jobs in parallel where P is number of processors
           //each job refines rules from queue with length X where X is the stage number.
           val jobs = for (_ <- 0 until parallelism) yield Future {
@@ -191,7 +194,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
               queue.synchronized {
                 if (!queue.isEmpty && queue.peek.ruleLength == stage) Some(queue.poll) else None
               }
-            }.takeWhile(_.isDefined && settings.timeout.forall(_ > settings.currentDuration)).map(_.get).filter(result.isRefinable).foreach { rule =>
+            }.takeWhile(_.isDefined && settings.timeout.forall(_ > settings.currentDuration) && !debugger.isInterrupted).map(_.get).filter(result.isRefinable).foreach { rule =>
               ad.done(s"processed rules, found closed rules: ${foundRules.get()}, queue size: $queueSize")
               //we continually take all defined (and valid) rules from queue until end of the stage or reaching of the timeout
               //if rule length is lower than max rule length we can expand this rule with one atom (in this refine phase it always applies)

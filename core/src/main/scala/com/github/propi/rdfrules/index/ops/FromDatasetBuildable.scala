@@ -13,12 +13,16 @@ trait FromDatasetBuildable extends Buildable {
   @volatile protected var dataset: Option[Dataset]
 
   protected def buildTripleHashIndex: TripleHashIndex[Int] = self.tripleItemMap { implicit tihi =>
-    val thi = TripleHashIndex(dataset.map(_.quads.filter(!_.triple.predicate.hasSameUriAs(TripleItem.sameAs)).map(q => new TripleHashIndex.Quad(
-      tihi.getIndex(q.triple.subject),
-      tihi.getIndex(q.triple.predicate),
-      tihi.getIndex(q.triple.`object`),
-      tihi.getIndex(q.graph)
-    ))).getOrElse(Nil))
+    val thi = TripleHashIndex(dataset.map(_.quads.filter(!_.triple.predicate.hasSameUriAs(TripleItem.sameAs)).flatMap { q =>
+      for {
+        s <- tihi.getIndexOpt(q.triple.subject)
+        p <- tihi.getIndexOpt(q.triple.predicate)
+        o <- tihi.getIndexOpt(q.triple.`object`)
+        g <- tihi.getIndexOpt(q.graph)
+      } yield {
+        new TripleHashIndex.Quad(s, p, o, g)
+      }
+    }).getOrElse(Nil))
     dataset = None
     thi
   }

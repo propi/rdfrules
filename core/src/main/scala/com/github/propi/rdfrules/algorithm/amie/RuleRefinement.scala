@@ -176,7 +176,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
         if (projections.size >= 100000 * debuggerStep) {
           actionDebugger.done("buckets, current rule projections: " + projections.size)
           debuggerStep += 1
-          if (timeout.exists(currentDuration >= _)) {
+          if (timeout.exists(currentDuration >= _) || debugger.isInterrupted) {
             maxSupport = Int.MinValue
             projections.clear()
           }

@@ -363,9 +363,12 @@ object TripleHashIndex {
   def apply[T](quads: Traversable[Quad[T]])(implicit debugger: Debugger, collectionsBuilder: CollectionsBuilder[T]): TripleHashIndex[T] = {
     val index = new TripleHashIndex[T]
     debugger.debug("Dataset indexing") { ad =>
-      for (quad <- quads) {
+      for (quad <- quads.view.takeWhile(_ => !debugger.isInterrupted)) {
         index.addQuad(quad)
         ad.done()
+      }
+      if (debugger.isInterrupted) {
+        debugger.logger.warn(s"The triple indexing task has been interrupted. The loaded index may not be complete.")
       }
       index.trim()
     }

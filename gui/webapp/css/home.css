@@ -445,13 +445,24 @@ main {
   margin-bottom: 1em;
 }
 .action-progress ul.meta .hidden {
-  display: none;
+  display: none !important;
 }
 .action-progress ul.meta .loading {
-  width: 5em;
+  display: flex;
+  align-items: center;
+  margin: 0.5em 0;
 }
 .action-progress ul.meta .loading img {
-  width: 100%;
+  width: 5em;
+}
+.action-progress ul.meta .loading .cancel-send {
+  display: block;
+  margin-left: 1em;
+}
+.action-progress ul.meta .loading .cancel-sent {
+  margin-left: 1em;
+  font-style: italic;
+  font-size: 0.8em;
 }
 .action-progress ul.logs {
   background-color: whitesmoke;

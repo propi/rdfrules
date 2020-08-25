@@ -155,9 +155,12 @@ object TripleItemHashIndex {
       }
     }
     debugger.debug("Triple items indexing") { ad =>
-      for (quad <- col) {
+      for (quad <- col.view.takeWhile(_ => !debugger.isInterrupted)) {
         tihi.addQuad(quad)
         ad.done()
+      }
+      if (debugger.isInterrupted) {
+        debugger.logger.warn(s"The triple item indexing task has been interrupted. The loaded index may not be complete.")
       }
       tihi.trim()
     }

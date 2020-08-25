@@ -9,7 +9,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
 import scala.scalajs.js.timers._
 import scala.util.{Failure, Success, Try}
-import org.scalajs.dom.document
+import org.scalajs.dom.{Event, document}
 import org.scalajs.dom.raw.HTMLUListElement
 
 /**
@@ -22,6 +22,7 @@ trait ActionProgress {
   private implicit val ec: ExecutionContext = ExecutionContext.global
   private val progress: Var[Option[Try[Result]]] = Var(None)
   private val _logs: Vars[Task.Log] = Vars.empty
+  private val cancelled: Var[Boolean] = Var(false)
 
   private def addLogs(newLogs: js.Array[Task.Log]): Unit = {
     val logsBuffer = _logs.value
@@ -45,6 +46,11 @@ trait ActionProgress {
         setTimeout(3000)(getStatus(id))
       }
     case Failure(th) => progress.value = Some(Failure(th))
+  }
+
+  private def cancel(id: String): Unit = {
+    Task.cancel(id)
+    cancelled.value = true
   }
 
   private def getDuration(start: String, end: String): String = {
@@ -77,7 +83,13 @@ trait ActionProgress {
             {result.started}
           </li>
           <li class={"loading" + (if (result.finished.isEmpty) "" else " hidden")}>
-            <img src="images/loading.gif"/>
+            <img src="images/loading.gif"/>{if (cancelled.bind) {
+            <div class="cancel-sent">the cancel signal was sent</div>
+          } else {
+            <a href="#" class="cancel-send" onclick={e: Event =>
+              e.preventDefault()
+              cancel(result.id)}>cancel</a>
+          }}
           </li>
           <li class={if (result.finished.nonEmpty) "" else " hidden"}>
             Finished:

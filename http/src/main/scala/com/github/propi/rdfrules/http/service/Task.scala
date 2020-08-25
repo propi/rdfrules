@@ -47,9 +47,9 @@ class Task(taskService: ActorRef[TaskServiceRequest])(implicit system: Scheduler
         }
       }
     } ~ path(JavaUUID) { id =>
-      get {
-        onComplete(taskService.ask[ReturnedTask](sender => TaskServiceRequest.GetTask(id, sender))) {
-          case Success(ReturnedTask(Some(task))) => onSuccess(task.ask[TaskResponse](TaskRequest.GetResult)) {
+      onComplete(taskService.ask[ReturnedTask](sender => TaskServiceRequest.GetTask(id, sender))) {
+        case Success(ReturnedTask(Some(task))) => get {
+          onSuccess(task.ask[TaskResponse](TaskRequest.GetResult)) {
             case x: TaskResponse.InProgress => complete(StatusCodes.Accepted, x)
             case x: TaskResponse.Result =>
               val header = x.toJson.compactPrint.replaceAll("\\}\\s*$", "")
@@ -59,9 +59,12 @@ class Task(taskService: ActorRef[TaskServiceRequest])(implicit system: Scheduler
               complete(ToResponseMarshallable.apply(x.result))
             case TaskResponse.Failure(th) => failWith(th)
           }
-          case Success(ReturnedTask(None)) => reject
-          case Failure(th) => failWith(th)
+        } ~ delete {
+          task ! TaskRequest.Interrupt
+          complete(StatusCodes.Accepted, "accepted")
         }
+        case Success(ReturnedTask(None)) => reject
+        case Failure(th) => failWith(th)
       }
     }
   }
@@ -92,6 +95,12 @@ object Task {
 
     case object Cancel extends TaskRequest
 
+    case object Interrupt extends TaskRequest
+
+    case class RegisterDebugger(debugger: Debugger) extends TaskRequest
+
+    case object UnregisterDebugger extends TaskRequest
+
   }
 
   sealed trait TaskResponse
@@ -114,12 +123,17 @@ object Task {
         if (level.toInt >= 20) context.self ! TaskRequest.AddMsg(msg)
       }
       val result = Debugger(logger) { debugger =>
-        pipeline(debugger).execute
+        context.self ! TaskRequest.RegisterDebugger(debugger)
+        try {
+          pipeline(debugger).execute
+        } finally {
+          context.self ! TaskRequest.UnregisterDebugger
+        }
       }
       new Date() -> result
     }
 
-    def changeTask(log: Vector[(String, Date)]): Behavior[TaskRequest] = Behaviors.receiveMessage {
+    def changeTask(log: Vector[(String, Date)], debugger: Option[Debugger]): Behavior[TaskRequest] = Behaviors.receiveMessage {
       case TaskRequest.GetResult(sender) => result.value match {
         case Some(Success((finished, result))) =>
           sender ! TaskResponse.Result(id, started, finished, log, result)
@@ -131,13 +145,21 @@ object Task {
           sender ! TaskResponse.InProgress(id, started, log)
           Behaviors.same
       }
+      case TaskRequest.RegisterDebugger(debugger) =>
+        changeTask(log, Some(debugger))
+      case TaskRequest.UnregisterDebugger =>
+        changeTask(log, None)
       case TaskRequest.AddMsg(msg) =>
-        changeTask(log :+ (msg -> new Date()))
+        changeTask(log :+ (msg -> new Date()), debugger)
+      case TaskRequest.Interrupt =>
+        debugger.foreach(_.interrupt())
+        Behaviors.same
       case TaskRequest.Cancel =>
+        debugger.foreach(_.interrupt())
         Behaviors.stopped
     }
 
-    changeTask(Vector.empty)
+    changeTask(Vector.empty, None)
   }
 
   def taskFactoryActor: Behavior[TaskServiceRequest] = Behaviors.receive {
