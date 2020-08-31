@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.model
 import java.io._
 
 import com.github.propi.rdfrules.algorithm.amie.AtomCounting
-import com.github.propi.rdfrules.data.ops.{Cacheable, Transformable}
+import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
 import com.github.propi.rdfrules.data.{Dataset, Graph, TriplePosition}
 import com.github.propi.rdfrules.index.{CompressedQuad, Index, TripleHashIndex, TripleItemHashIndex}
 import com.github.propi.rdfrules.model.Model.PredictionType
@@ -23,13 +23,14 @@ import scala.util.Try
 class Model private(val rules: Traversable[ResolvedRule], val parallelism: Int, val isCached: Boolean)
   extends Transformable[ResolvedRule, Model]
     with Cacheable[ResolvedRule, Model]
-    with Sortable[ResolvedRule, Model] {
+    with Sortable[ResolvedRule, Model]
+    with Debugable[ResolvedRule, Model] {
 
   protected val serializer: Serializer[ResolvedRule] = implicitly[Serializer[ResolvedRule]]
   protected val deserializer: Deserializer[ResolvedRule] = implicitly[Deserializer[ResolvedRule]]
   protected val serializationSize: SerializationSize[ResolvedRule] = implicitly[SerializationSize[ResolvedRule]]
   protected val ordering: Ordering[ResolvedRule] = implicitly[Ordering[ResolvedRule]]
-
+  protected val dataLoadingText: String = "Model loading"
 
   protected def cachedTransform(col: Traversable[ResolvedRule]): Model = new Model(col, parallelism, true)
 

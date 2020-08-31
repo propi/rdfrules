@@ -23,11 +23,13 @@ class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView
     with QuadsOps[Graph]
     with PrefixesOps[Graph]
     with Discretizable[Graph]
-    with Cacheable[Triple, Graph] {
+    with Cacheable[Triple, Graph]
+    with Debugable[Triple, Graph] {
 
   protected val serializer: Serializer[Triple] = implicitly[Serializer[Triple]]
   protected val deserializer: Deserializer[Triple] = implicitly[Deserializer[Triple]]
   protected val serializationSize: SerializationSize[Triple] = implicitly[SerializationSize[Triple]]
+  protected val dataLoadingText: String = "Graph loading"
 
   protected def coll: Traversable[Triple] = triples
 

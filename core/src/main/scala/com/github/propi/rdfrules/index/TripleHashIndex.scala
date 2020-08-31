@@ -61,18 +61,32 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
     oi.predicates.asInstanceOf[MutableHashSet[T]] += quad.p
   }
 
-  def subjects: HashMap[T, TripleSubjectIndex[T]] = {
+  def subjects(implicit debugger: Debugger): HashMap[T, TripleSubjectIndex[T]] = {
     if (_subjects.isEmpty) {
-      quads.foreach(addQuadToSubjects)
+      debugger.debug("Subjects indexing") { ad =>
+        for (quad <- quads) {
+          addQuadToSubjects(quad)
+          ad.done()
+        }
+      }
+      debugger.logger.info("Subjects trimming started.")
       trimSubjects()
+      debugger.logger.info("Subjects trimming ended.")
     }
     _subjects
   }
 
-  def objects: HashMap[T, TripleObjectIndex[T]] = {
+  def objects(implicit debugger: Debugger): HashMap[T, TripleObjectIndex[T]] = {
     if (_objects.isEmpty) {
-      quads.foreach(addQuadToObjects)
+      debugger.debug("Objects indexing") { ad =>
+        for (quad <- quads) {
+          addQuadToObjects(quad)
+          ad.done()
+        }
+      }
+      debugger.logger.info("Objects trimming started.")
       trimObjects()
+      debugger.logger.info("Objects trimming ended.")
     }
     _objects
   }
@@ -370,7 +384,9 @@ object TripleHashIndex {
       if (debugger.isInterrupted) {
         debugger.logger.warn(s"The triple indexing task has been interrupted. The loaded index may not be complete.")
       }
+      debugger.logger.info("Predicates trimming started.")
       index.trim()
+      debugger.logger.info("Predicates trimming ended.")
     }
     index
   }

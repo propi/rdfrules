@@ -189,11 +189,12 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       //filter all projections by minimal support and remove all duplicit projections
       //then create new rules from all projections (atoms)
       val ruleFilter = new MinSupportRuleFilter(minCurrentSupport) & new NoDuplicitRuleFilter(rule.head, bodySet) & new NoRepeatedGroups(withDuplicitPredicates, bodySet + rule.head, rulePredicates) & patternFilter & new RuleConstraints(rule, filters)
-      Iterator.continually(projections.headOption)
+      /*Iterator.continually(projections.headOption)
         .takeWhile(_.isDefined)
-        .flatten
+        .flatten*/
+      projections.iterator
         .map { x =>
-          projections -= x._1
+          //projections -= x._1
           x -> ruleFilter(x._1, x._2.getValue)
         }.filter(_._2._1)
         .map { case ((atom, support), (_, f)) =>

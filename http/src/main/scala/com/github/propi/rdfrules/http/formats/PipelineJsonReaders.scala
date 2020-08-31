@@ -26,7 +26,7 @@ import spray.json._
   */
 object PipelineJsonReaders {
 
-  implicit val loadGraphReader: RootJsonReader[data.LoadGraph] = (json: JsValue) => {
+  implicit def loadGraphReader(implicit debugger: Debugger): RootJsonReader[data.LoadGraph] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new data.LoadGraph(
       fields.get("graphName").map(_.convertTo[TripleItem.Uri]),
@@ -39,7 +39,7 @@ object PipelineJsonReaders {
     )
   }
 
-  implicit val loadDatasetReader: RootJsonReader[data.LoadDataset] = (json: JsValue) => {
+  implicit def loadDatasetReader(implicit debugger: Debugger): RootJsonReader[data.LoadDataset] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new data.LoadDataset(
       fields.get("path").map(_.convertTo[String]),
@@ -165,7 +165,7 @@ object PipelineJsonReaders {
     new index.Mine(json.convertTo[RulesMining])
   }
 
-  implicit val loadRulesetReader: RootJsonReader[ruleset.LoadRuleset] = (json: JsValue) => {
+  implicit def loadRulesetReader(implicit debugger: Debugger): RootJsonReader[ruleset.LoadRuleset] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     val format = fields.get("format").map {
       case JsString("cache") => Left(true)
@@ -185,7 +185,7 @@ object PipelineJsonReaders {
     path -> format
   }
 
-  implicit val loadModelReader: RootJsonReader[model.LoadModel] = (json: JsValue) => {
+  implicit def loadModelReader(implicit debugger: Debugger): RootJsonReader[model.LoadModel] = (json: JsValue) => {
     val (path, format) = getModelPathFormat(json)
     new model.LoadModel(path, format)
   }

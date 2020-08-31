@@ -2,10 +2,10 @@ package com.github.propi.rdfrules.data.ops
 
 import java.io._
 import java.util
-import scala.collection.JavaConverters._
 
-import com.github.propi.rdfrules.utils.Debugger
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
+
+import scala.collection.JavaConverters._
 
 /**
   * Created by Vaclav Zeman on 27. 2. 2018.
@@ -26,20 +26,15 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
     *
     * @return in memory cached entity
     */
-  def cache(implicit debugger: Debugger): Coll = {
-    debugger.debug("Dataset loading") { ad =>
-      val buffer = new util.LinkedList[T]()
-      for (x <- coll.view.takeWhile(_ => !debugger.isInterrupted)) {
-        buffer.add(x)
-        ad.done()
-      }
-      if (debugger.isInterrupted) {
-        debugger.logger.warn(s"The loading task has been interrupted. The loaded data may not be complete.")
-      }
-      cachedTransform(new Traversable[T] {
-        def foreach[U](f: T => U): Unit = buffer.iterator().asScala.foreach(f)
-      })
+  def cache: Coll = {
+    val buffer = new util.ArrayList[T]()
+    for (x <- coll) {
+      buffer.add(x)
     }
+    buffer.trimToSize()
+    cachedTransform(new Traversable[T] {
+      def foreach[U](f: T => U): Unit = buffer.iterator().asScala.foreach(f)
+    })
   }
 
   /**
@@ -50,7 +45,7 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
     * @param is input stream builder
     * @return the cached entity
     */
-  def cache(os: => OutputStream, is: => InputStream)(implicit debugger: Debugger): Coll = {
+  def cache(os: => OutputStream, is: => InputStream): Coll = {
     cache(os)
     transform(new Traversable[T] {
       def foreach[U](f: T => U): Unit = {
@@ -73,14 +68,9 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
     * @param os output stream builder
     * @return the same entity
     */
-  def cache(os: => OutputStream)(implicit debugger: Debugger): Unit = {
+  def cache(os: => OutputStream): Unit = {
     Serializer.serializeToOutputStream[T](os) { writer =>
-      debugger.debug("Dataset caching") { ad =>
-        coll.foreach { x =>
-          writer.write(x)
-          ad.done()
-        }
-      }
+      coll.foreach(writer.write)
     }
   }
 

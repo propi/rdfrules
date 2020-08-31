@@ -1,11 +1,10 @@
 package com.github.propi.rdfrules.data.formats
 
-import java.io.{BufferedInputStream, BufferedOutputStream, InputStream, PrintWriter}
+import java.io.{BufferedInputStream, BufferedOutputStream, PrintWriter}
 
 import com.github.propi.rdfrules.data._
 import com.github.propi.rdfrules.data.ops.PrefixesOps
 import com.github.propi.rdfrules.utils.{InputStreamBuilder, OutputStreamBuilder}
-import org.apache.jena.riot.Lang
 
 import scala.annotation.tailrec
 import scala.io.Source
@@ -28,7 +27,7 @@ trait Tsv {
     case x => x.toString
   }
 
-  implicit def tsvReader(rdfSource: RdfSource.Tsv.type): RdfReader = (inputStreamBuilder: InputStreamBuilder) => new Traversable[Quad] {
+  /*implicit def tsvReader(rdfSource: RdfSource.Tsv.type): RdfReader = (inputStreamBuilder: InputStreamBuilder) => new Traversable[Quad] {
     def foreach[U](f: Quad => U): Unit = {
       val is = new BufferedInputStream(inputStreamBuilder.build)
       val source = Source.fromInputStream(is, "UTF-8")
@@ -71,6 +70,55 @@ trait Tsv {
             predicate = shortenUri(quad.triple.predicate),
             `object` = shortenUri(quad.triple.`object`)
           ))
+        }.foreach(f)
+      } finally {
+        source.close()
+        is.close()
+      }
+    }
+  }.view*/
+
+  implicit def tsvReader(rdfSource: RdfSource.Tsv.type): RdfReader = (inputStreamBuilder: InputStreamBuilder) => new Traversable[Quad] {
+    def foreach[U](f: Quad => U): Unit = {
+      val is = new BufferedInputStream(inputStreamBuilder.build)
+      val source = Source.fromInputStream(is, "UTF-8")
+      try {
+        val prefixes = Array(
+          Prefix.Full("rdfs", "http://www.w3.org/2000/01/rdf-schema#"),
+          Prefix.Full("xsd", "http://www.w3.org/2001/XMLSchema#"),
+          Prefix.Full("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#"),
+          Prefix.Full("owl", "http://www.w3.org/2002/07/owl#")
+        )
+        val PrefixedMatcher = "(.+?):(.+)".r
+
+        def stringToPrefixedUri(x: String): Option[TripleItem.Uri] = {
+          x match {
+            case PrefixedMatcher(prefix, localName) =>
+              if (prefix == "_") {
+                Some(TripleItem.BlankNode(localName))
+              } else {
+                prefixes.find(_.prefix == prefix).map(p => TripleItem.PrefixedUri(p, localName))
+              }
+            case _ => None
+          }
+        }
+
+        def stringToUri(x: String): TripleItem.Uri = stringToPrefixedUri(x).getOrElse(TripleItem.LongUri(x))
+
+        source.getLines().map(_.trim.split("\t")).collect {
+          case Array(s, p, o) =>
+            val strippedSubject = stringToUri(stripResource(s))
+            val strippedPredicate = stringToUri(stripResource(p))
+            val strippedObject = o.trim.replaceFirst("\\s*\\.\\s*$", "")
+            Triple(
+              strippedSubject,
+              strippedPredicate,
+              if (strippedObject.headOption.contains('<') && strippedObject.lastOption.contains('>')) {
+                stringToUri(stripResource(strippedObject))
+              } else {
+                stringToPrefixedUri(strippedObject).getOrElse(TripleItem.Text(strippedObject))
+              }
+            ).toQuad
         }.foreach(f)
       } finally {
         source.close()

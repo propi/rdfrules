@@ -5,7 +5,7 @@ import java.io._
 import com.github.propi.rdfrules.algorithm.Clustering
 import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
-import com.github.propi.rdfrules.data.ops.{Cacheable, Transformable}
+import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
 import com.github.propi.rdfrules.index.{Index, TripleHashIndex}
 import com.github.propi.rdfrules.model.Model.PredictionType
 import com.github.propi.rdfrules.model.{Model, PredictionResult}
@@ -26,6 +26,7 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
   extends Transformable[Rule.Simple, Ruleset]
     with Cacheable[Rule.Simple, Ruleset]
     with Sortable[Rule.Simple, Ruleset]
+    with Debugable[Rule.Simple, Ruleset]
     with Treeable {
 
   self =>
@@ -40,6 +41,7 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
   protected val serializer: Serializer[Rule.Simple] = implicitly[Serializer[Rule.Simple]]
   protected val deserializer: Deserializer[Rule.Simple] = implicitly[Deserializer[Rule.Simple]]
   protected val serializationSize: SerializationSize[Rule.Simple] = implicitly[SerializationSize[Rule.Simple]]
+  protected val dataLoadingText: String = "Ruleset loading"
 
   def filter(pattern: RulePattern, patterns: RulePattern*): Ruleset = transform(new Traversable[Rule.Simple] {
     def foreach[U](f: Rule.Simple => U): Unit = index.tripleItemMap { implicit mapper =>

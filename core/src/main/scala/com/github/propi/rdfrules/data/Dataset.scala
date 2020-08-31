@@ -22,11 +22,13 @@ class Dataset private(val quads: QuadTraversableView, val userDefinedPrefixes: T
     with QuadsOps[Dataset]
     with PrefixesOps[Dataset]
     with Discretizable[Dataset]
-    with Cacheable[Quad, Dataset] {
+    with Cacheable[Quad, Dataset]
+    with Debugable[Quad, Dataset]{
 
   protected val serializer: Serializer[Quad] = implicitly[Serializer[Quad]]
   protected val deserializer: Deserializer[Quad] = implicitly[Deserializer[Quad]]
   protected val serializationSize: SerializationSize[Quad] = implicitly[SerializationSize[Quad]]
+  protected val dataLoadingText: String = "Dataset loading"
 
   protected def coll: Traversable[Quad] = quads
 

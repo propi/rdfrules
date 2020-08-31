@@ -1,12 +1,12 @@
 package com.github.propi.rdfrules.data
 
 import java.io.{File, FileInputStream}
+import java.nio.channels.Channels
 
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.utils.InputStreamBuilder
 
 import scala.util.Try
-
 import scala.language.implicitConversions
 
 /**
