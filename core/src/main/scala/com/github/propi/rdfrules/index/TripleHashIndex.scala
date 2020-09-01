@@ -17,22 +17,23 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
   type M1 = M[MutableHashSet[T]]
 
   val predicates: HashMap[T, TriplePredicateIndex[T]] = collectionsBuilder.emptyHashMap
-  private val _subjects: HashMap[T, TripleSubjectIndex[T]] = collectionsBuilder.emptyHashMap
-  private val _objects: HashMap[T, TripleObjectIndex[T]] = collectionsBuilder.emptyHashMap
+  private val _subjects: MutableHashMap[T, TripleSubjectIndex[T]] = collectionsBuilder.emptyHashMap
+  private val _objects: MutableHashMap[T, TripleObjectIndex[T]] = collectionsBuilder.emptyHashMap
+  private val _sameAs = collection.mutable.ListBuffer.empty[(T, T)]
 
   private var graph: Option[T] = None
   private var severalGraphs: Boolean = false
 
   @volatile private var _size: Int = -1
 
-  def quads: Iterator[Quad[T]] = {
+  def quads: Iterator[IndexItem.Quad[T]] = {
     for {
       (p, m1) <- predicates.iterator
       (s, m2) <- m1.subjects.iterator
       (o, _) <- m2.iterator
       g <- getGraphs(s, p, o).iterator
     } yield {
-      new Quad(s, p, o, g)
+      IndexItem.Quad(s, p, o, g)
     }
   }
 
@@ -50,14 +51,14 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
     _objects.valuesIterator.foreach(_.reset())
   }
 
-  private def addQuadToSubjects(quad: Quad[T]): Unit = {
-    val si = _subjects.asInstanceOf[M[TripleSubjectIndex[T]]].getOrElseUpdate(quad.s, new TripleSubjectIndex(collectionsBuilder.emptyHashMap, collectionsBuilder.emptySet))
+  private def addQuadToSubjects(quad: IndexItem.Quad[T]): Unit = {
+    val si = _subjects.getOrElseUpdate(quad.s, new TripleSubjectIndex(collectionsBuilder.emptyHashMap, collectionsBuilder.emptySet))
     si.predicates.asInstanceOf[MutableHashSet[T]] += quad.p
     si.objects.asInstanceOf[M1].getOrElseUpdate(quad.o, collectionsBuilder.emptySet) += quad.p
   }
 
-  private def addQuadToObjects(quad: Quad[T]): Unit = {
-    val oi = _objects.asInstanceOf[M[TripleObjectIndex[T]]].getOrElseUpdate(quad.o, new TripleObjectIndex(collectionsBuilder.emptySet, p => predicates(p).objects(quad.o).value.size))
+  private def addQuadToObjects(quad: IndexItem.Quad[T]): Unit = {
+    val oi = _objects.getOrElseUpdate(quad.o, new TripleObjectIndex(collectionsBuilder.emptySet, p => predicates(p).objects(quad.o).value.size))
     oi.predicates.asInstanceOf[MutableHashSet[T]] += quad.p
   }
 
@@ -133,7 +134,7 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
 
   private def emptySetWithGraphs = new MutableAnyWithGraphs[HashSet[T], T](collectionsBuilder.emptySet, collectionsBuilder.emptySet)
 
-  private def addGraph(quad: Quad[T]): Unit = {
+  private def addGraph(quad: IndexItem.Quad[T]): Unit = {
     //get predicate index by a specific predicate
     val pi = predicates.asInstanceOf[M[TriplePredicateIndex[T]]]
       .getOrElseUpdate(quad.p, new TriplePredicateIndex(collectionsBuilder.emptyHashMap, collectionsBuilder.emptyHashMap))
@@ -149,7 +150,64 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
     pi.objects.asInstanceOf[M[AnyWithGraphs[HashSet[T], T]]].getOrElseUpdate(quad.o, emptySetWithGraphs).asInstanceOf[MutableAnyWithGraphs[HashSet[T], T]].addGraph(quad.g)
   }
 
-  def addQuad(quad: Quad[T]): Unit = {
+  def addSameAs(sameAs: IndexItem.SameAs[T]): Unit = {
+    if (sameAs.s != sameAs.o) {
+      _sameAs += (sameAs.o -> sameAs.s)
+    }
+  }
+
+  def resolveSameAs(implicit debugger: Debugger): Unit = {
+    if (_sameAs.nonEmpty) {
+      debugger.debug("SameAs resolving") { ad =>
+        val mutablePredicates = predicates.asInstanceOf[M[TriplePredicateIndex[T]]]
+        for {
+          (p, pi) <- mutablePredicates.iterator
+          subjects = pi.subjects.asInstanceOf[M[AnyWithGraphs[ItemMap[T], T]]]
+          objects = pi.objects.asInstanceOf[M[AnyWithGraphs[HashSet[T], T]]]
+          (replace, replacement) <- _sameAs.iterator
+        } {
+          for (si <- subjects.get(replace)) {
+            for (o <- si.keysIterator) {
+              val graphs = getGraphs(replace, p, o).iterator.toList
+              pi.objects.get(o).foreach(_.value.asInstanceOf[MutableHashSet[T]] -= replace)
+              for (g <- graphs) {
+                addQuad(IndexItem.Quad(replacement, p, o, g))
+                ad.done()
+              }
+            }
+            subjects.remove(replace)
+          }
+          for (oi <- objects.get(replace)) {
+            for (s <- oi.iterator) {
+              val graphs = getGraphs(s, p, replace).iterator.toList
+              pi.subjects.get(s).foreach(_.value.asInstanceOf[M1].remove(replace))
+              for (g <- graphs) {
+                addQuad(IndexItem.Quad(s, p, replacement, g))
+                ad.done()
+              }
+            }
+            objects.remove(replace)
+          }
+        }
+        for ((replace, replacement) <- _sameAs.iterator) {
+          for {
+            (s, o) <- mutablePredicates
+              .get(replace)
+              .iterator
+              .flatMap(_.subjects.iterator.flatMap(x => x._2.keysIterator.map(x._1 -> _)))
+            g <- getGraphs(s, replace, o).iterator
+          } {
+            addQuad(IndexItem.Quad(s, replacement, o, g))
+            ad.done()
+          }
+          mutablePredicates.remove(replace)
+        }
+        _sameAs.clear()
+      }
+    }
+  }
+
+  def addQuad(quad: IndexItem.Quad[T]): Unit = {
     if (graph.isEmpty) {
       if (severalGraphs) {
         addGraph(quad)
@@ -163,7 +221,7 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
         s <- m2.iterator
         g <- graph
       } {
-        addGraph(new Quad(s, p, o, g))
+        addGraph(IndexItem.Quad(s, p, o, g))
       }
       addGraph(quad)
       severalGraphs = true
@@ -245,6 +303,8 @@ object TripleHashIndex {
 
   trait MutableHashSet[T] extends HashSet[T] {
     def +=(x: T): Unit
+
+    def -=(x: T): Unit
   }
 
   trait HashMap[K, V] {
@@ -271,6 +331,12 @@ object TripleHashIndex {
 
   trait MutableHashMap[K, V] extends HashMap[K, V] {
     def getOrElseUpdate(key: K, default: => V): V
+
+    def remove(key: K): Unit
+
+    def put(key: K, value: V): Unit
+
+    def clear(): Unit
   }
 
   trait CollectionsBuilder[T] {
@@ -372,22 +438,34 @@ object TripleHashIndex {
     }
   }
 
-  class Quad[T](val s: T, val p: T, val o: T, val g: T)
+  sealed trait IndexItem[T]
 
-  def apply[T](quads: Traversable[Quad[T]])(implicit debugger: Debugger, collectionsBuilder: CollectionsBuilder[T]): TripleHashIndex[T] = {
+  object IndexItem {
+
+    case class Quad[T](s: T, p: T, o: T, g: T) extends IndexItem[T]
+
+    case class SameAs[T](s: T, o: T) extends IndexItem[T]
+
+  }
+
+  def apply[T](quads: Traversable[IndexItem[T]])(implicit debugger: Debugger, collectionsBuilder: CollectionsBuilder[T]): TripleHashIndex[T] = {
     val index = new TripleHashIndex[T]
     debugger.debug("Dataset indexing") { ad =>
       for (quad <- quads.view.takeWhile(_ => !debugger.isInterrupted)) {
-        index.addQuad(quad)
+        quad match {
+          case quad: IndexItem.Quad[T] => index.addQuad(quad)
+          case sameAs: IndexItem.SameAs[T] => index.addSameAs(sameAs)
+        }
         ad.done()
       }
-      if (debugger.isInterrupted) {
-        debugger.logger.warn(s"The triple indexing task has been interrupted. The loaded index may not be complete.")
-      }
-      debugger.logger.info("Predicates trimming started.")
-      index.trim()
-      debugger.logger.info("Predicates trimming ended.")
     }
+    if (debugger.isInterrupted) {
+      debugger.logger.warn(s"The triple indexing task has been interrupted. The loaded index may not be complete.")
+    }
+    index.resolveSameAs
+    debugger.logger.info("Predicates trimming started.")
+    index.trim()
+    debugger.logger.info("Predicates trimming ended.")
     index
   }
 
