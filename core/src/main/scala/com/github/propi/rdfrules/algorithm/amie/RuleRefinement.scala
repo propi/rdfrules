@@ -4,7 +4,7 @@ import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.algorithm.amie.RuleFilter.{MinSupportRuleFilter, NoDuplicitRuleFilter, NoRepeatedGroups, RuleConstraints, RulePatternFilter}
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
-import com.github.propi.rdfrules.index.{TripleHashIndex, TripleItemHashIndex}
+import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.ExtendedRule.{ClosedRule, DanglingRule}
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule._
@@ -434,7 +434,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
           //if there exists atom in rule which has same predicate and object variable and is not instationed
           // - then we dont use this fresh atom for this predicate because p(a, B) -> p(a, b) is not allowed for functions (redundant and noisy rule)
           if (isWithInstances && instantiatedPosition(predicate).forall(_ == TriplePosition.Subject) && isValidFreshAtom(atom, predicate, true)) {
-            for (subject <- tripleIndex.predicates(predicate).objects(oc).value.iterator if !variableMap.containsAtom(Atom(Atom.Constant(subject), predicate, o)) && testAtomSize.forall(_ (tripleIndex.predicates(predicate).subjects(subject).size))) projections += Atom(Atom.Constant(subject), predicate, atom.`object`)
+            for (subject <- tripleIndex.predicates(predicate).objects(oc).iterator if !variableMap.containsAtom(Atom(Atom.Constant(subject), predicate, o)) && testAtomSize.forall(_ (tripleIndex.predicates(predicate).subjects(subject).size))) projections += Atom(Atom.Constant(subject), predicate, atom.`object`)
           }
           //we dont count fresh atom only with variables if there exists atom in rule which has same predicate and object variable
           // - because for p(a, c) -> p(a, b) it is counted AND for p(a, c) -> p(a, B) it is forbidden combination for functions (redundant and noisy rule)
@@ -448,7 +448,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
         //skip all counted predicates that are included in this rule
         for (predicate <- tripleIndex.subjects.get(sc).iterator.flatMap(_.predicates.iterator)) {
           if (isWithInstances && instantiatedPosition(predicate).forall(_ == TriplePosition.Object) && isValidFreshAtom(atom, predicate, true)) {
-            for (_object <- tripleIndex.predicates(predicate).subjects(sc).value.keysIterator if !variableMap.containsAtom(Atom(s, predicate, Atom.Constant(_object))) && testAtomSize.forall(_ (tripleIndex.predicates(predicate).objects(_object).size))) projections += Atom(atom.subject, predicate, Atom.Constant(_object))
+            for (_object <- tripleIndex.predicates(predicate).subjects(sc).iterator if !variableMap.containsAtom(Atom(s, predicate, Atom.Constant(_object))) && testAtomSize.forall(_ (tripleIndex.predicates(predicate).objects(_object).size))) projections += Atom(atom.subject, predicate, Atom.Constant(_object))
           }
           if (isValidFreshAtom(atom, predicate, false)) {
             projections += Atom(atom.subject, predicate, ov)
@@ -469,7 +469,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
 
 object RuleRefinement {
 
-  class Settings(rulesMining: RulesMining)(implicit val debugger: Debugger, val mapper: TripleItemHashIndex) {
+  class Settings(rulesMining: RulesMining)(implicit val debugger: Debugger, val mapper: TripleItemIndex) {
     @volatile private var _minHeadCoverage: Double = rulesMining.thresholds.get[Threshold.MinHeadCoverage].map(_.value).getOrElse(0.0)
 
     val parallelism: Int = rulesMining.parallelism
@@ -507,13 +507,13 @@ object RuleRefinement {
     def setMinHeadCoverage(value: Double): Unit = _minHeadCoverage = value
   }
 
-  implicit class PimpedRule(extendedRule: ExtendedRule)(implicit tripleHashIndex: TripleHashIndex[Int], settings: Settings, ad: Debugger.ActionDebugger) {
+  implicit class PimpedRule(extendedRule: ExtendedRule)(implicit tripleHashIndex: TripleIndex[Int], settings: Settings, ad: Debugger.ActionDebugger) {
     def refine: Iterator[ExtendedRule] = {
       val _settings = settings
       new RuleRefinement {
         val rule: ExtendedRule = extendedRule
         val settings: Settings = _settings
-        val tripleIndex: TripleHashIndex[Int] = implicitly[TripleHashIndex[Int]]
+        val tripleIndex: TripleIndex[Int] = implicitly[TripleIndex[Int]]
         protected val actionDebugger: Debugger.ActionDebugger = ad
       }.refine
     }

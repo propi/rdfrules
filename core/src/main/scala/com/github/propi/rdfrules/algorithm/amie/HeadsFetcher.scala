@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.algorithm.amie
 import java.util.concurrent.ForkJoinPool
 
 import com.github.propi.rdfrules.data.TriplePosition
-import com.github.propi.rdfrules.index.TripleHashIndex
+import com.github.propi.rdfrules.index.TripleIndex
 import com.github.propi.rdfrules.rule.ExtendedRule.DanglingRule
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule.{Atom, AtomPatternMatcher, ExtendedRule, Measure, RulePattern, Threshold}
@@ -16,7 +16,7 @@ import scala.collection.parallel.ForkJoinTaskSupport
   */
 trait HeadsFetcher extends AtomCounting {
 
-  implicit val tripleIndex: TripleHashIndex[Int]
+  implicit val tripleIndex: TripleIndex[Int]
   implicit val settings: RuleRefinement.Settings
   implicit val forAtomMatcher: AtomPatternMatcher[Atom]
 
@@ -80,7 +80,7 @@ trait HeadsFetcher extends AtomCounting {
   def getHeads: IndexedSeq[DanglingRule] = {
     //enumerate all possible head atoms with variables and instances
     //all unsatisfied predicates are filtered by constraints
-    val logicalHeads = tripleIndex.predicates.keysIterator.filter(settings.isValidPredicate).map(Atom(Atom.Variable(0), _, Atom.Variable(1))).filter(settings.test).toVector.par
+    val logicalHeads = tripleIndex.predicates.iterator.filter(settings.isValidPredicate).map(Atom(Atom.Variable(0), _, Atom.Variable(1))).filter(settings.test).toVector.par
     logicalHeads.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(settings.parallelism))
     logicalHeads.flatMap(logicalHeadToRules).seq
   }

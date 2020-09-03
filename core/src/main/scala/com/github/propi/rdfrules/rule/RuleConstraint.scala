@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.rule
 
 import com.github.propi.rdfrules.data.TripleItem
-import com.github.propi.rdfrules.index.TripleItemHashIndex
+import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.utils.TypedKeyMap.{Key, Value}
 
@@ -17,7 +17,7 @@ sealed trait RuleConstraint extends Value {
 object RuleConstraint {
 
   trait Filter extends RuleConstraint {
-    def mapped(implicit mapper: TripleItemHashIndex): MappedFilter
+    def mapped(implicit mapper: TripleItemIndex): MappedFilter
   }
 
   trait MappedFilter {
@@ -27,7 +27,7 @@ object RuleConstraint {
   case class OnlyPredicates(predicates: Set[TripleItem.Uri]) extends RuleConstraint {
     def companion: OnlyPredicates.type = OnlyPredicates
 
-    def mapped(implicit mapper: TripleItemHashIndex): Set[Int] = predicates.map(x => mapper.getIndex(x))
+    def mapped(implicit mapper: TripleItemIndex): Set[Int] = predicates.map(x => mapper.getIndex(x))
   }
 
   implicit object OnlyPredicates extends Key[OnlyPredicates] {
@@ -37,7 +37,7 @@ object RuleConstraint {
   case class WithoutPredicates(predicates: Set[TripleItem.Uri]) extends RuleConstraint {
     def companion: WithoutPredicates.type = WithoutPredicates
 
-    def mapped(implicit mapper: TripleItemHashIndex): Set[Int] = predicates.map(x => mapper.getIndex(x))
+    def mapped(implicit mapper: TripleItemIndex): Set[Int] = predicates.map(x => mapper.getIndex(x))
   }
 
   implicit object WithoutPredicates extends Key[WithoutPredicates] {

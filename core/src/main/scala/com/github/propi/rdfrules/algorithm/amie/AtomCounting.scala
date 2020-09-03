@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.algorithm.amie
 
-import com.github.propi.rdfrules.index.TripleHashIndex
+import com.github.propi.rdfrules.index.TripleIndex
 import com.github.propi.rdfrules.rule.{Atom, FreshAtom}
 import com.typesafe.scalalogging.Logger
 
@@ -58,7 +58,7 @@ trait AtomCounting {
   }
 
   val logger: Logger = Logger[AtomCounting]
-  implicit val tripleIndex: TripleHashIndex[Int]
+  implicit val tripleIndex: TripleIndex[Int]
 
   /**
     * Specify item from variableMap.
@@ -343,9 +343,9 @@ trait AtomCounting {
     }
   }
 
-  def specifySubject(atom: Atom): Iterator[Atom] = tripleIndex.predicates(atom.predicate).subjects.keysIterator.map(subject => atom.transform(subject = Atom.Constant(subject)))
+  def specifySubject(atom: Atom): Iterator[Atom] = tripleIndex.predicates(atom.predicate).subjects.iterator.map(subject => atom.transform(subject = Atom.Constant(subject)))
 
-  def specifyObject(atom: Atom): Iterator[Atom] = tripleIndex.predicates(atom.predicate).objects.keysIterator.map(`object` => atom.transform(`object` = Atom.Constant(`object`)))
+  def specifyObject(atom: Atom): Iterator[Atom] = tripleIndex.predicates(atom.predicate).objects.iterator.map(`object` => atom.transform(`object` = Atom.Constant(`object`)))
 
   /**
     * Get all specified atoms (projections) for input atom and variableMap
@@ -358,8 +358,8 @@ trait AtomCounting {
     val tm = tripleIndex.predicates(atom.predicate)
     (specifyItem(atom.subject, variableMap), specifyItem(atom.`object`, variableMap)) match {
       case (_: Atom.Variable, _: Atom.Variable) =>
-        tm.subjects.iterator.flatMap(x => x._2.iterator.flatMap { y =>
-          val mappedAtom = Atom(Atom.Constant(x._1), atom.predicate, Atom.Constant(y._1))
+        tm.subjects.pairIterator.flatMap(x => x._2.iterator.flatMap { y =>
+          val mappedAtom = Atom(Atom.Constant(x._1), atom.predicate, Atom.Constant(y))
           if (variableMap.containsAtom(mappedAtom)) {
             None
           } else {
@@ -376,7 +376,7 @@ trait AtomCounting {
           }
         }
       case (sv@Atom.Constant(sc), _: Atom.Variable) =>
-        tm.subjects.get(sc).iterator.flatMap(_.iterator.map(_._1)).flatMap { `object` =>
+        tm.subjects.get(sc).iterator.flatMap(_.iterator).flatMap { `object` =>
           val mappedAtom = Atom(sv, atom.predicate, Atom.Constant(`object`))
           if (variableMap.containsAtom(mappedAtom)) {
             None
@@ -401,7 +401,7 @@ trait AtomCounting {
   def specifyAtom(atom: FreshAtom, variableMap: VariableMap): Iterator[Atom] = {
     (variableMap.getOrElse(atom.subject, atom.subject), variableMap.getOrElse(atom.`object`, atom.`object`)) match {
       case (sv: Atom.Variable, ov: Atom.Variable) =>
-        tripleIndex.predicates.keysIterator.map(predicate => Atom(sv, predicate, ov))
+        tripleIndex.predicates.iterator.map(predicate => Atom(sv, predicate, ov))
       case (sv: Atom.Variable, ov@Atom.Constant(oc)) =>
         tripleIndex.objects.get(oc).iterator.flatMap(_.predicates.iterator).map(predicate => Atom(sv, predicate, ov))
       case (sv@Atom.Constant(sc), ov: Atom.Variable) =>

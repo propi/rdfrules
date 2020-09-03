@@ -9,6 +9,7 @@ import com.github.propi.rdfrules.utils.{InputStreamBuilder, OutputStreamBuilder}
 import scala.annotation.tailrec
 import scala.io.Source
 import scala.language.implicitConversions
+import scala.util.Try
 
 /**
   * Created by Vaclav Zeman on 14. 1. 2018.
@@ -116,7 +117,11 @@ trait Tsv {
               if (strippedObject.headOption.contains('<') && strippedObject.lastOption.contains('>')) {
                 stringToUri(stripResource(strippedObject))
               } else {
-                stringToPrefixedUri(strippedObject).getOrElse(TripleItem.Text(strippedObject))
+                stringToPrefixedUri(strippedObject).getOrElse(
+                  Try(TripleItem.Number(strippedObject.toInt))
+                    .orElse(Try(TripleItem.Number(strippedObject.toDouble)))
+                    .getOrElse(TripleItem.Text(strippedObject))
+                )
               }
             ).toQuad
         }.foreach(f)

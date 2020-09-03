@@ -33,7 +33,7 @@ trait Cacheable extends QuadsIndex {
 
   def cache(file: File): Index = {
     cache(new FileOutputStream(file))
-    Index.fromCache(file)
+    this
   }
 
   def cache(file: String): Index = cache(new File(file))

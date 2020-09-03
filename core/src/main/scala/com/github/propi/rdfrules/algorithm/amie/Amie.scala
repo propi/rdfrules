@@ -4,11 +4,10 @@ import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicInteger
 
 import com.github.propi.rdfrules.algorithm.RulesMining
-import com.github.propi.rdfrules.algorithm.amie.RuleRefinement.{Settings, _}
-import com.github.propi.rdfrules.index.{TripleHashIndex, TripleItemHashIndex}
+import com.github.propi.rdfrules.algorithm.amie.RuleRefinement.{PimpedRule, Settings}
+import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.ExtendedRule.ClosedRule
 import com.github.propi.rdfrules.rule._
-import com.github.propi.rdfrules.utils.HowLong._
 import com.github.propi.rdfrules.utils.{Debugger, HashQueue, TypedKeyMap}
 
 import scala.collection.mutable
@@ -40,10 +39,10 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
     *         Rules contains only these measures: head size, head coverage and support
     *         Rules are not ordered
     */
-  def mine(implicit tripleIndex: TripleHashIndex[Int], mapper: TripleItemHashIndex): IndexedSeq[Rule.Simple] = {
+  def mine(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): IndexedSeq[Rule.Simple] = {
     val logger = debugger.logger
     //create amie process with debugger and final triple index
-    implicit val settings: RuleRefinement.Settings = new Settings(this)(/*if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) */debugger/* else Debugger.EmptyDebugger*/, mapper)
+    implicit val settings: RuleRefinement.Settings = new Settings(this)(/*if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) */ debugger /* else Debugger.EmptyDebugger*/ , mapper)
     val process = new AmieProcess()
     try {
       process.searchRules()
@@ -154,7 +153,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
 
   }
 
-  private class AmieProcess(implicit val tripleIndex: TripleHashIndex[Int], val settings: RuleRefinement.Settings, val forAtomMatcher: AtomPatternMatcher[Atom]) extends HeadsFetcher {
+  private class AmieProcess(implicit val tripleIndex: TripleIndex[Int], val settings: RuleRefinement.Settings, val forAtomMatcher: AtomPatternMatcher[Atom]) extends HeadsFetcher {
 
     val patterns: List[RulePattern] = self.patterns
     val thresholds: TypedKeyMap.Immutable[Threshold] = self.thresholds
@@ -201,7 +200,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
               //if we use the topK approach the minHeadCoverage may change during mining; therefore we need to check minHC threshold for the current rule
               //refine the rule and add all expanded variants into the queue
               if (stage + 1 < settings.maxRuleLength) {
-                howLong("Rule expansion", true)(for (rule <- rule.refine) {
+                /*howLong("Rule expansion", true)(*/ for (rule <- rule.refine) {
                   val (beforeSize, currentSize) = queue.synchronized {
                     val beforeSize = queue.size
                     queue.add(rule)
@@ -211,9 +210,9 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
                     result.addRule(rule.asInstanceOf[ClosedRule])
                     foundRules.incrementAndGet()
                   }
-                })
+                } //)
               } else {
-                howLong("Rule expansion", true)(for (rule@ClosedRule(_, _) <- rule.refine) {
+                /*howLong("Rule expansion", true)(*/ for (rule@ClosedRule(_, _) <- rule.refine) {
                   val (beforeSize, currentSize) = lastStageResult.synchronized {
                     val beforeSize = lastStageResult.size
                     lastStageResult += rule
@@ -223,7 +222,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
                     result.addRule(rule)
                     ad.done(s"processed rules, found closed rules: ${foundRules.incrementAndGet()}, queue size: $queueSize")
                   }
-                })
+                } //)
               }
             }
           }

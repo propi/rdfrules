@@ -5,7 +5,7 @@ import com.github.propi.rdfrules.index.{Index, TripleHashIndex, TripleItemHashIn
 /**
   * Created by Vaclav Zeman on 13. 3. 2018.
   */
-trait PreservedInMemory extends Buildable {
+trait PartiallyPreservedInMemory extends Buildable {
 
   self: Index =>
 
@@ -15,19 +15,5 @@ trait PreservedInMemory extends Buildable {
   def tripleMap[T](f: TripleHashIndex[Int] => T): T = f(thi)
 
   def tripleItemMap[T](f: TripleItemHashIndex => T): T = f(tihi)
-
-  def withEvaluatedLazyVals: Index = new IndexDecorator(this) {
-    private var thiEvaluated = false
-
-    override def tripleMap[T](f: TripleHashIndex[Int] => T): T = super.tripleMap { thi =>
-      if (!thiEvaluated) {
-        thi.evaluateAllLazyVals()
-        thiEvaluated = true
-      }
-      f(thi)
-    }
-
-    override def withEvaluatedLazyVals: Index = this
-  }
 
 }

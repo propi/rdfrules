@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.rule
 
-import com.github.propi.rdfrules.index.TripleItemHashIndex
+import com.github.propi.rdfrules.index.TripleItemIndex
 
 import scala.language.implicitConversions
 
@@ -31,7 +31,7 @@ case class RulePattern private(antecedent: IndexedSeq[AtomPattern], consequent: 
     * @param mapper triple item mapper
     * @return a mapped rule pattern
     */
-  def mapped(implicit mapper: TripleItemHashIndex): RulePattern.Mapped = RulePattern.Mapped(antecedent.map(_.mapped), consequent.map(_.mapped), exact)
+  def mapped(implicit mapper: TripleItemIndex): RulePattern.Mapped = RulePattern.Mapped(antecedent.map(_.mapped), consequent.map(_.mapped), exact)
 
 }
 

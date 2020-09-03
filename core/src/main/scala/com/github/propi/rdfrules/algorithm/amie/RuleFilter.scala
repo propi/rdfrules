@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.algorithm.amie
 
-import com.github.propi.rdfrules.index.TripleHashIndex
+import com.github.propi.rdfrules.index.TripleIndex
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.extensions.EitherExtension._
 
@@ -68,7 +68,7 @@ object RuleFilter {
     *
     * @param rule original rule (without refinement)
     */
-  class RulePatternFilter(rule: ExtendedRule)(implicit thi: TripleHashIndex[Int], atomMatcher: AtomPatternMatcher[Atom], freshAtomMatcher: AtomPatternMatcher[FreshAtom]) extends RuleFilter {
+  class RulePatternFilter(rule: ExtendedRule)(implicit thi: TripleIndex[Int], atomMatcher: AtomPatternMatcher[Atom], freshAtomMatcher: AtomPatternMatcher[FreshAtom]) extends RuleFilter {
     /**
       * Patterns for remaining fresh atoms which can be added to this rule
       */

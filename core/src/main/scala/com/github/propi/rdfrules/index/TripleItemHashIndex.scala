@@ -12,7 +12,7 @@ import scala.collection.JavaConverters._
   */
 abstract class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleItem],
                                            sameAs: java.util.Map[TripleItem, Integer],
-                                           prefixMap: java.util.Map[String, String]) {
+                                           prefixMap: java.util.Map[String, String]) extends TripleItemIndex {
 
   def trim(): Unit
 
@@ -36,7 +36,7 @@ abstract class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleIt
     case _ =>
   }
 
-  def addTripleItem(tripleItem: TripleItem): Int = {
+  private def addTripleItem(tripleItem: TripleItem): Int = {
     addPrefix(tripleItem)
     if (!sameAs.containsKey(tripleItem)) {
       val (i, itemIsAdded) = getId(tripleItem)
@@ -47,15 +47,16 @@ abstract class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleIt
     }
   }
 
-  def addQuad(quad: Quad): Unit = {
+  private def addQuad(quad: Quad): IndexItem[Int] = {
     val Quad(Triple(s, p, o), g) = quad
     if (p.hasSameUriAs(TripleItem.sameAs)) {
-      List(s, p, o, g).foreach(addPrefix)
+      List(s, o).foreach(addPrefix)
       val (idSubject, subjectIsAdded) = getId(s)
       if (!subjectIsAdded) hmap.put(idSubject, s)
       sameAs.put(o, idSubject)
       val (idObject, objectIsAdded) = getId(o)
-      if (objectIsAdded) {
+      if (!objectIsAdded) hmap.put(idObject, o)
+      /*if (objectIsAdded) {
         //remove existed sameAs object
         hmap.remove(idObject)
         //if there are some holes after removing, we move all next related items by one step above
@@ -64,17 +65,15 @@ abstract class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleIt
           hmap.remove(oldId)
           hmap.put(oldId - 1, item)
         }
-      }
+      }*/
+      TripleHashIndex.IndexItem.SameAs(idSubject, idObject)
     } else {
-      for (item <- List(s, p, o, g)) {
-        addTripleItem(item)
-      }
+      val res = Array(s, p, o, g).map(addTripleItem)
+      TripleHashIndex.IndexItem.Quad(res(0), res(1), res(2), res(3))
     }
   }
 
   def getNamespace(prefix: String): Option[String] = Option(prefixMap.get(prefix))
-
-  def getIndex(x: TripleItem): Int = getIndexOpt(x).get
 
   private def resolvedTripleItem(x: TripleItem): TripleItem = x match {
     case x: TripleItem.PrefixedUri if x.prefix.prefix.nonEmpty && x.prefix.nameSpace.isEmpty =>
@@ -92,18 +91,15 @@ abstract class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleIt
     )
   }
 
-  def getTripleItem(x: Int): TripleItem = getTripleItemOpt(x).get
-
   def getTripleItemOpt(x: Int): Option[TripleItem] = Option(hmap.get(x))
 
   def iterator: Iterator[(Int, TripleItem)] = hmap.entrySet().iterator().asScala.map(x => x.getKey.intValue() -> x.getValue)
 
-  def extendWith(ext: collection.Map[Int, TripleItem]): TripleItemHashIndex = new TripleItemHashIndex.ExtendedTripleItemHashIndex(hmap, sameAs, prefixMap, ext, () => trim())
+  def extendWith(ext: collection.Map[Int, TripleItem]): TripleItemIndex = new TripleItemHashIndex.ExtendedTripleItemHashIndex(hmap, sameAs, prefixMap, ext, () => trim())
 
 }
 
 object TripleItemHashIndex {
-
 
   class ExtendedTripleItemHashIndex private[TripleItemHashIndex](hmap: java.util.Map[Integer, TripleItem],
                                                                  sameAs: java.util.Map[TripleItem, Integer],
@@ -143,7 +139,11 @@ object TripleItemHashIndex {
     tihi
   }
 
-  def apply(col: Traversable[Quad])(implicit debugger: Debugger): TripleItemHashIndex = {
+  /*def empty: TripleItemHashIndex = {
+
+  }*/
+
+  def apply[T](col: Traversable[Quad])(f: Traversable[IndexItem[Int]] => T)(implicit debugger: Debugger): (TripleItemHashIndex, T) = {
     val sameAs = new Object2IntOpenHashMap[TripleItem]()
     val hmap = new Int2ObjectOpenHashMap[TripleItem]()
     val pmap = new Object2ObjectOpenHashMap[String, String]()

@@ -16,6 +16,8 @@ trait Buildable {
 
       def +=(x: Int): Unit = hset.add(x)
 
+      def -=(x: Int): Unit = hset.remove(x)
+
       def iterator: Iterator[Int] = hset.iterator().asScala.asInstanceOf[Iterator[Int]]
 
       def apply(x: Int): Boolean = hset.contains(x)
@@ -38,6 +40,12 @@ trait Buildable {
         }
         v
       }
+
+      def remove(key: Int): Unit = hmap.remove(key)
+
+      def put(key: Int, value: V): Unit = hmap.put(key, value)
+
+      def clear(): Unit = hmap.clear()
 
       def apply(key: Int): V = {
         val v = hmap.get(key)
@@ -82,5 +90,7 @@ trait Buildable {
   protected def buildTripleHashIndex: TripleHashIndex[Int]
 
   protected def buildTripleItemHashIndex: TripleItemHashIndex
+
+  protected def buildAll: (TripleItemHashIndex, TripleHashIndex[Int])
 
 }

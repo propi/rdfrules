@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.rule
 
-import com.github.propi.rdfrules.index.TripleHashIndex
+import com.github.propi.rdfrules.index.TripleIndex
 import com.github.propi.rdfrules.rule.AtomPattern.AtomItemPattern
 
 /**
@@ -35,7 +35,7 @@ object AtomPatternMatcher {
     case _ => true
   }
 
-  def matchGraphPattern(atom: Atom, graphPattern: AtomItemPattern.Mapped)(implicit thi: TripleHashIndex[Int]): Boolean = graphPattern match {
+  def matchGraphPattern(atom: Atom, graphPattern: AtomItemPattern.Mapped)(implicit thi: TripleIndex[Int]): Boolean = graphPattern match {
     case _: AtomItemPattern.Mapped.Constant | _: AtomItemPattern.Mapped.OneOf | _: AtomItemPattern.Mapped.NoneOf => atom match {
       case atom: Atom.Basic => matchGraphPattern(atom.toGraphBasedAtom, graphPattern)
       case atom: Atom.GraphBased => matchGraphPattern(atom, graphPattern)
@@ -50,7 +50,7 @@ object AtomPatternMatcher {
   }
 
   //TODO: support variables for predicates and graphs
-  implicit def forAtom(implicit thi: TripleHashIndex[Int]): AtomPatternMatcher[Atom] = (x: Atom, pattern: AtomPattern.Mapped) => matchAtomItemPattern(x.subject, pattern.subject) &&
+  implicit def forAtom(implicit thi: TripleIndex[Int]): AtomPatternMatcher[Atom] = (x: Atom, pattern: AtomPattern.Mapped) => matchAtomItemPattern(x.subject, pattern.subject) &&
     matchAtomItemPattern(Atom.Constant(x.predicate), pattern.predicate) &&
     matchAtomItemPattern(x.`object`, pattern.`object`) &&
     matchGraphPattern(x, pattern.graph)

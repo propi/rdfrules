@@ -27,7 +27,19 @@ trait Index {
 
   def cache(file: String): Index
 
-  def withEvaluatedLazyVals: Index
+  def withEvaluatedLazyVals: Index = new IndexDecorator(this) {
+    private var thiEvaluated = false
+
+    override def tripleMap[T](f: TripleHashIndex[Int] => T): T = super.tripleMap { thi =>
+      if (!thiEvaluated) {
+        thi.evaluateAllLazyVals()
+        thiEvaluated = true
+      }
+      f(thi)
+    }
+
+    override def withEvaluatedLazyVals: Index = this
+  }
 
   final def mine(miner: RulesMining): Ruleset = tripleItemMap { implicit mapper =>
     tripleMap { implicit thi =>
@@ -42,7 +54,7 @@ trait Index {
 object Index {
 
   def apply(_dataset: Dataset)(implicit _debugger: Debugger): Index = {
-    new Index with Cacheable with FromDatasetBuildable with PreservedInMemory {
+    new Index with Cacheable with FromDatasetBuildable with PartiallyPreservedInMemory {
       implicit val debugger: Debugger = _debugger
 
       @volatile protected var dataset: Option[Dataset] = Some(_dataset)
@@ -50,7 +62,7 @@ object Index {
   }
 
   def fromCache(is: => InputStream)(implicit _debugger: Debugger): Index = {
-    new Index with Cacheable with FromCacheBuildable with PreservedInMemory {
+    new Index with Cacheable with FromCacheBuildable with PartiallyPreservedInMemory {
       implicit val debugger: Debugger = _debugger
 
       protected def useInputStream[T](f: InputStream => T): T = {

@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.rule
 
-import com.github.propi.rdfrules.index.TripleHashIndex
+import com.github.propi.rdfrules.index.TripleIndex
 import com.github.propi.rdfrules.utils.TypedKeyMap
 
 /**
@@ -12,12 +12,12 @@ sealed trait ExtendedRule extends Rule {
   val patterns: List[RulePattern.Mapped]
   val measures: TypedKeyMap[Measure]
 
-  def headTriples(implicit thi: TripleHashIndex[Int]): Iterator[(Int, Int)] = (head.subject, head.`object`) match {
+  def headTriples(implicit thi: TripleIndex[Int]): Iterator[(Int, Int)] = (head.subject, head.`object`) match {
     case (_: Atom.Variable, _: Atom.Variable) =>
-      thi.predicates(head.predicate).subjects.iterator.flatMap {
-        case (s, oi) => oi.keysIterator.map(s -> _)
+      thi.predicates(head.predicate).subjects.pairIterator.flatMap {
+        case (s, oi) => oi.iterator.map(s -> _)
       }
-    case (Atom.Constant(s), _: Atom.Variable) => thi.predicates(head.predicate).subjects(s).keysIterator.map(s -> _)
+    case (Atom.Constant(s), _: Atom.Variable) => thi.predicates(head.predicate).subjects(s).iterator.map(s -> _)
     case (_: Atom.Variable, Atom.Constant(o)) => thi.predicates(head.predicate).objects(o).iterator.map(_ -> o)
     case (Atom.Constant(s), Atom.Constant(o)) => Iterator(s -> o)
   }

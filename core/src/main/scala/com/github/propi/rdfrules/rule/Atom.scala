@@ -1,8 +1,8 @@
 package com.github.propi.rdfrules.rule
 
 import com.github.propi.rdfrules.data.TripleItem
-import com.github.propi.rdfrules.index.TripleHashIndex.HashSet
-import com.github.propi.rdfrules.index.{TripleHashIndex, TripleItemHashIndex}
+import com.github.propi.rdfrules.index.TripleIndex.HashSet
+import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 
 import scala.language.implicitConversions
 
@@ -14,13 +14,13 @@ sealed trait Atom {
   val predicate: Int
   val `object`: Atom.Item
 
-  def subjectPosition = TripleItemPosition.Subject(subject)
+  def subjectPosition: TripleItemPosition.Subject[Atom.Item] = TripleItemPosition.Subject(subject)
 
-  def objectPosition = TripleItemPosition.Object(`object`)
+  def objectPosition: TripleItemPosition.Object[Atom.Item] = TripleItemPosition.Object(`object`)
 
   def transform(subject: Atom.Item = subject, predicate: Int = predicate, `object`: Atom.Item = `object`): Atom
 
-  def toGraphBasedAtom(implicit thi: TripleHashIndex[Int]): Atom.GraphBased = this match {
+  def toGraphBasedAtom(implicit thi: TripleIndex[Int]): Atom.GraphBased = this match {
     case x: Atom.GraphBased => x
     case _: Atom.Basic =>
       val graphs = (subject, `object`) match {
@@ -60,7 +60,7 @@ object Atom {
   sealed trait Item
 
   object Item {
-    implicit def apply(tripleItem: TripleItem)(implicit mapper: TripleItemHashIndex): Constant = Constant(mapper.getIndex(tripleItem))
+    implicit def apply(tripleItem: TripleItem)(implicit mapper: TripleItemIndex): Constant = Constant(mapper.getIndex(tripleItem))
 
     implicit def apply(index: Char): Variable = Variable(index.toInt - 97)
 
@@ -76,9 +76,9 @@ object Atom {
         .foldLeft("")((x, y) => y + x)
     }
 
-    def ++ = Variable(index + 1)
+    def ++ : Variable = Variable(index + 1)
 
-    def -- = Variable(index - 1)
+    def -- : Variable = Variable(index - 1)
 
     override def toString: String = value
   }

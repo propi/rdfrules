@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.rule
 
 import com.github.propi.rdfrules.data.TripleItem
-import com.github.propi.rdfrules.index.TripleItemHashIndex
+import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.rule.AtomPattern.AtomItemPattern
 
 import scala.language.implicitConversions
@@ -10,7 +10,7 @@ import scala.language.implicitConversions
   * Created by Vaclav Zeman on 23. 9. 2017.
   */
 case class AtomPattern(subject: AtomItemPattern = Any, predicate: AtomItemPattern = Any, `object`: AtomItemPattern = Any, graph: AtomItemPattern = Any) {
-  def mapped(implicit mapper: TripleItemHashIndex): AtomPattern.Mapped = AtomPattern.Mapped(subject.mapped, predicate.mapped, `object`.mapped, graph.mapped)
+  def mapped(implicit mapper: TripleItemIndex): AtomPattern.Mapped = AtomPattern.Mapped(subject.mapped, predicate.mapped, `object`.mapped, graph.mapped)
 }
 
 object AtomPattern {
@@ -18,7 +18,7 @@ object AtomPattern {
   case class Mapped(subject: AtomItemPattern.Mapped, predicate: AtomItemPattern.Mapped, `object`: AtomItemPattern.Mapped, graph: AtomItemPattern.Mapped)
 
   sealed trait AtomItemPattern {
-    def mapped(implicit mapper: TripleItemHashIndex): AtomItemPattern.Mapped
+    def mapped(implicit mapper: TripleItemIndex): AtomItemPattern.Mapped
   }
 
   object AtomItemPattern {
@@ -36,11 +36,11 @@ object AtomPattern {
     }
 
     case object Any extends AtomItemPattern with Mapped {
-      def mapped(implicit mapper: TripleItemHashIndex): Mapped = this
+      def mapped(implicit mapper: TripleItemIndex): Mapped = this
     }
 
     case class OneOf(col: Seq[AtomItemPattern]) extends AtomItemPattern {
-      def mapped(implicit mapper: TripleItemHashIndex): Mapped.OneOf = Mapped.OneOf(col.map(_.mapped))
+      def mapped(implicit mapper: TripleItemIndex): Mapped.OneOf = Mapped.OneOf(col.map(_.mapped))
     }
 
     object OneOf {
@@ -48,7 +48,7 @@ object AtomPattern {
     }
 
     case class NoneOf(col: Seq[AtomItemPattern]) extends AtomItemPattern {
-      def mapped(implicit mapper: TripleItemHashIndex): Mapped.NoneOf = Mapped.NoneOf(col.map(_.mapped))
+      def mapped(implicit mapper: TripleItemIndex): Mapped.NoneOf = Mapped.NoneOf(col.map(_.mapped))
     }
 
     object NoneOf {
@@ -56,19 +56,19 @@ object AtomPattern {
     }
 
     case object AnyVariable extends AtomItemPattern with Mapped {
-      def mapped(implicit mapper: TripleItemHashIndex): Mapped = this
+      def mapped(implicit mapper: TripleItemIndex): Mapped = this
     }
 
     case object AnyConstant extends AtomItemPattern with Mapped {
-      def mapped(implicit mapper: TripleItemHashIndex): Mapped = this
+      def mapped(implicit mapper: TripleItemIndex): Mapped = this
     }
 
     case class Variable(variable: Atom.Variable) extends AtomItemPattern with Mapped {
-      def mapped(implicit mapper: TripleItemHashIndex): Mapped = this
+      def mapped(implicit mapper: TripleItemIndex): Mapped = this
     }
 
     case class Constant(constant: TripleItem) extends AtomItemPattern {
-      def mapped(implicit mapper: TripleItemHashIndex): Mapped.Constant = Mapped.Constant(Atom.Constant(mapper.getIndex(constant)))
+      def mapped(implicit mapper: TripleItemIndex): Mapped.Constant = Mapped.Constant(Atom.Constant(mapper.getIndex(constant)))
     }
 
     implicit def apply(tripleItem: TripleItem): AtomItemPattern = Constant(tripleItem)
