@@ -1,7 +1,7 @@
 import java.io._
 
 import GraphSpec.dataDbpedia
-
+import com.github.propi.rdfrules.data.Quad.PimpedQuad
 import com.github.propi.rdfrules.data._
 import com.github.propi.rdfrules.index._
 import com.github.propi.rdfrules.rule._
@@ -19,7 +19,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
   private lazy val dataset2 = Dataset() + Graph("yago", GraphSpec.dataYago) + Graph("dbpedia", dataDbpedia)(Lang.TTL)
 
   "Index" should "create from dataset and load items" in {
-    val index = Index.apply(dataset1)
+    val index = Index.apply(dataset1, true)
     MemoryMeasurer.measureBytes(index) should be(700L +- 100)
     index.tripleItemMap { tihi =>
       val items = dataset1.take(5).quads.flatMap(x => List(x.triple.subject, x.triple.predicate, x.triple.`object`)).toList
@@ -39,7 +39,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "create from dataset and load index" in {
-    val index = Index.apply(dataset1)
+    val index = Index.apply(dataset1, false)
     MemoryMeasurer.measureBytes(index) should be(700L +- 100)
     index.tripleMap { thi =>
       thi.size shouldBe dataset1.size
@@ -50,21 +50,21 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
       dataset1.quads.head.toCompressedQuad
     }
     index.tripleMap { thi =>
-      thi.predicates(cq.predicate).subjects(cq.subject).contains(cq.`object`) shouldBe true
-      thi.predicates(cq.predicate).subjects(cq.subject)(cq.`object`)(cq.graph) shouldBe false
-      thi.predicates(cq.predicate).subjects(cq.subject).graphs(cq.graph) shouldBe false
-      thi.predicates(cq.predicate).objects(cq.`object`).graphs(cq.graph) shouldBe false
-      thi.getGraphs(cq.predicate)(cq.graph) shouldBe true
-      thi.predicates(cq.predicate).objects(cq.`object`)(cq.subject) shouldBe true
-      thi.subjects(cq.subject).predicates(cq.predicate) shouldBe true
-      thi.subjects(cq.subject).objects(cq.`object`)(cq.predicate) shouldBe true
-      thi.objects(cq.`object`).predicates(cq.predicate) shouldBe true
+      thi.predicates(cq.p).subjects(cq.s).contains(cq.o) shouldBe true
+      thi.getGraphs(cq.s, cq.p, cq.o).contains(cq.g) shouldBe false
+      thi.getGraphs(cq.p, TripleItemPosition.Subject(cq.s)).contains(cq.g) shouldBe false
+      thi.getGraphs(cq.p, TripleItemPosition.Object(cq.o)).contains(cq.g) shouldBe false
+      thi.getGraphs(cq.p).contains(cq.g) shouldBe true
+      thi.predicates(cq.p).objects(cq.o).contains(cq.s) shouldBe true
+      thi.subjects(cq.s).predicates.contains(cq.p) shouldBe true
+      thi.subjects(cq.s).objects(cq.o).contains(cq.p) shouldBe true
+      thi.objects(cq.o).predicates.contains(cq.p) shouldBe true
     }
     MemoryMeasurer.measureBytes(index) should be(40763664L +- 1000000)
   }
 
   it should "load dataset with more graphs" in {
-    val index = Index.apply(dataset2)
+    val index = Index.apply(dataset2, true)
     MemoryMeasurer.measureBytes(index) should be(3000L +- 500)
     index.tripleItemMap { tihi =>
       tihi.iterator.size shouldBe 72263
@@ -86,33 +86,33 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "work with graphs" in {
-    val index = Index.apply(dataset1)
+    val index = Index.apply(dataset1, false)
     val cq = index.tripleItemMap { implicit tim =>
       dataset1.quads.head.toCompressedQuad
     }
     index.tripleMap { thi =>
-      thi.getGraphs(cq.predicate).iterator.toList should contain only cq.graph
-      thi.getGraphs(0).iterator.toList should contain only cq.graph
-      thi.getGraphs(cq.subject, cq.predicate, cq.`object`).iterator.toList should contain only cq.graph
-      thi.getGraphs(cq.predicate, TripleItemPosition.Subject(cq.subject)).iterator.toList should contain only cq.graph
+      thi.getGraphs(cq.p).iterator.toList should contain only cq.g
+      thi.getGraphs(0).iterator.toList should contain only cq.g
+      thi.getGraphs(cq.s, cq.p, cq.o).iterator.toList should contain only cq.g
+      thi.getGraphs(cq.p, TripleItemPosition.Subject(cq.s)).iterator.toList should contain only cq.g
     }
-    val index2 = Index.apply(dataset2)
+    val index2 = Index.apply(dataset2, false)
     val cq2 = index2.tripleItemMap { implicit tim =>
       dataset2.toGraphs.map(_.quads.head.toCompressedQuad).toList
     }
     cq2.size shouldBe 2
     for (cq <- cq2) {
       index2.tripleMap { thi =>
-        thi.getGraphs(cq.predicate).iterator.toList should contain only cq.graph
+        thi.getGraphs(cq.p).iterator.toList should contain only cq.g
         an[NoSuchElementException] should be thrownBy thi.getGraphs(0)
-        thi.getGraphs(cq.subject, cq.predicate, cq.`object`).iterator.toList should contain only cq.graph
-        thi.getGraphs(cq.predicate, TripleItemPosition.Subject(cq.subject)).iterator.toList should contain only cq.graph
+        thi.getGraphs(cq.s, cq.p, cq.o).iterator.toList should contain only cq.g
+        thi.getGraphs(cq.p, TripleItemPosition.Subject(cq.s)).iterator.toList should contain only cq.g
       }
     }
   }
 
   it should "cache" in {
-    val index = Index.apply(dataset2)
+    val index = Index.apply(dataset2, false)
     index.cache(new FileOutputStream("test.index"))
     val file = new File("test.index")
     file.exists() shouldBe true
@@ -120,7 +120,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
   }
 
   it should "be loaded from cache" in {
-    val index = Index.fromCache(new BufferedInputStream(new FileInputStream("test.index")))
+    val index = Index.fromCache(new BufferedInputStream(new FileInputStream("test.index")), false)
     index.tripleItemMap { tihi =>
       tihi.iterator.size shouldBe 72263
     }

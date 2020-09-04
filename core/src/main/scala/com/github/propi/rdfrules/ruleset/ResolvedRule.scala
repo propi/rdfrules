@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.ruleset
 
 import com.github.propi.rdfrules.data.TripleItem
-import com.github.propi.rdfrules.index.TripleItemHashIndex
+import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.rule
 import com.github.propi.rdfrules.rule.{Measure, Rule}
 import com.github.propi.rdfrules.ruleset.ResolvedRule.Atom
@@ -47,7 +47,7 @@ object ResolvedRule {
 
       def apply(tripleItem: TripleItem): Item = Constant(tripleItem)
 
-      implicit def apply(atomItem: rule.Atom.Item)(implicit mapper: TripleItemHashIndex): Item = atomItem match {
+      implicit def apply(atomItem: rule.Atom.Item)(implicit mapper: TripleItemIndex): Item = atomItem match {
         case x: rule.Atom.Variable => apply(x.value)
         case rule.Atom.Constant(x) => apply(mapper.getTripleItem(x))
       }
@@ -60,7 +60,7 @@ object ResolvedRule {
 
     def apply(subject: Item, predicate: TripleItem.Uri, `object`: Item): Atom = Basic(subject, predicate, `object`)
 
-    implicit def apply(atom: rule.Atom)(implicit mapper: TripleItemHashIndex): Atom = atom match {
+    implicit def apply(atom: rule.Atom)(implicit mapper: TripleItemIndex): Atom = atom match {
       case _: rule.Atom.Basic =>
         apply(atom.subject, mapper.getTripleItem(atom.predicate).asInstanceOf[TripleItem.Uri], atom.`object`)
       case x: rule.Atom.GraphBased =>
@@ -69,7 +69,7 @@ object ResolvedRule {
 
   }
 
-  def simple(resolvedRule: ResolvedRule)(implicit mapper: TripleItemHashIndex): (Rule.Simple, collection.Map[Int, TripleItem]) = {
+  def simple(resolvedRule: ResolvedRule)(implicit mapper: TripleItemIndex): (Rule.Simple, collection.Map[Int, TripleItem]) = {
     var i = 0
     val map = collection.mutable.Map.empty[TripleItem, Int]
 
@@ -102,7 +102,7 @@ object ResolvedRule {
 
   def apply(body: IndexedSeq[Atom], head: Atom, measures: Measure*): ResolvedRule = ResolvedRule(body, head)(TypedKeyMap(measures))
 
-  implicit def apply(rule: Rule.Simple)(implicit mapper: TripleItemHashIndex): ResolvedRule = ResolvedRule(
+  implicit def apply(rule: Rule.Simple)(implicit mapper: TripleItemIndex): ResolvedRule = ResolvedRule(
     rule.body.map(Atom.apply),
     rule.head
   )(rule.measures)

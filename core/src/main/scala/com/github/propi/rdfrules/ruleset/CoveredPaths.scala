@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.ruleset
 
 import com.github.propi.rdfrules.algorithm.amie.AtomCounting
 import com.github.propi.rdfrules.data.Graph
-import com.github.propi.rdfrules.index.{CompressedTriple, Index, TripleHashIndex}
+import com.github.propi.rdfrules.index.{Index, IndexItem, TripleIndex}
 import com.github.propi.rdfrules.rule.{Atom, Rule}
 import com.github.propi.rdfrules.utils.TypedKeyMap
 import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension._
@@ -16,11 +16,11 @@ case class CoveredPaths(rule: Rule.Simple, paths: Ruleset) {
     rule
   }
 
-  def triples(distinct: Boolean): Traversable[CompressedTriple] = {
+  def triples(distinct: Boolean): Traversable[IndexItem.IntTriple] = {
     val col = paths.rules
       .view
       .flatMap(x => x.body.iterator ++ Iterator(x.head))
-      .flatMap(CompressedTriple(_))
+      .flatMap(IndexItem(_))
     if (distinct) col.distinct else col
   }
 
@@ -38,7 +38,7 @@ object CoveredPaths {
         index.tripleMap { thi =>
           index.tripleItemMap { implicit mapper =>
             val atomCounting = new AtomCounting {
-              implicit val tripleIndex: TripleHashIndex[Int] = thi
+              implicit val tripleIndex: TripleIndex[Int] = thi
             }
             val (atoms, rest) = part match {
               case Part.Whole => (rule.body.toSet + rule.head) -> Set.empty[Atom]

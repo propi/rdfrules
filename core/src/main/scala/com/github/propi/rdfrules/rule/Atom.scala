@@ -42,7 +42,7 @@ object Atom {
   }
 
   case class GraphBased private(subject: Atom.Item, predicate: Int, `object`: Atom.Item)(graphs: HashSet[Int]) extends Atom {
-    def containsGraph(x: Int): Boolean = graphs(x)
+    def containsGraph(x: Int): Boolean = graphs.contains(x)
 
     def graphsIterator: Iterator[Int] = graphs.iterator
 

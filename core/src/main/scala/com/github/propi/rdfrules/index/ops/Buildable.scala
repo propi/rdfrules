@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.index.ops
 
-import com.github.propi.rdfrules.index.{TripleHashIndex, TripleItemHashIndex}
+import com.github.propi.rdfrules.index.{TripleHashIndex, TripleIndex, TripleItemIndex}
 import it.unimi.dsi.fastutil.ints.{Int2ReferenceOpenHashMap, IntOpenHashSet}
 
 import scala.collection.JavaConverters._
@@ -20,7 +20,7 @@ trait Buildable {
 
       def iterator: Iterator[Int] = hset.iterator().asScala.asInstanceOf[Iterator[Int]]
 
-      def apply(x: Int): Boolean = hset.contains(x)
+      def contains(x: Int): Boolean = hset.contains(x)
 
       def size: Int = hset.size()
 
@@ -52,30 +52,13 @@ trait Buildable {
         if (v == null) throw new NoSuchElementException else v
       }
 
-      def keySet: TripleHashIndex.HashSet[Int] = new TripleHashIndex.HashSet[Int] {
-        private val hset: java.util.Set[Integer] = hmap.keySet()
-
-        def iterator: Iterator[Int] = hset.iterator().asScala.asInstanceOf[Iterator[Int]]
-
-        def apply(x: Int): Boolean = hset.contains(x)
-
-        def size: Int = hset.size()
-
-        def trim(): Unit = hset match {
-          case x: IntOpenHashSet => x.trim()
-          case _ =>
-        }
-
-        def isEmpty: Boolean = hset.isEmpty
-      }
-
       def get(key: Int): Option[V] = Option(hmap.get(key))
 
-      def keysIterator: Iterator[Int] = hmap.keySet().iterator().asScala.asInstanceOf[Iterator[Int]]
+      def iterator: Iterator[Int] = hmap.keySet().iterator().asScala.asInstanceOf[Iterator[Int]]
 
       def valuesIterator: Iterator[V] = hmap.values().iterator().asScala
 
-      def iterator: Iterator[(Int, V)] = hmap.int2ReferenceEntrySet().iterator().asScala.map(x => x.getIntKey -> x.getValue)
+      def pairIterator: Iterator[(Int, V)] = hmap.int2ReferenceEntrySet().iterator().asScala.map(x => x.getIntKey -> x.getValue)
 
       def size: Int = hmap.size()
 
@@ -87,10 +70,10 @@ trait Buildable {
     }
   }
 
-  protected def buildTripleHashIndex: TripleHashIndex[Int]
+  protected def buildTripleIndex: TripleIndex[Int]
 
-  protected def buildTripleItemHashIndex: TripleItemHashIndex
+  protected def buildTripleItemIndex: TripleItemIndex
 
-  protected def buildAll: (TripleItemHashIndex, TripleHashIndex[Int])
+  protected def buildAll: (TripleItemIndex, TripleIndex[Int])
 
 }

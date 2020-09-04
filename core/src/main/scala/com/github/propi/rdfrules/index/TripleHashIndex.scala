@@ -12,13 +12,13 @@ import scala.language.implicitConversions
   */
 class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder[T]) extends TripleIndex[T] {
 
-  type ItemMap = MutableHashMap[T, MutableHashSet[T]]
-  type ItemMapWithGraphsAndSet = MutableHashMap[T, GraphsHashSet[MutableHashSet[T]]]
-  type ItemMapWithGraphsAndMap = MutableHashMap[T, GraphsHashSet[ItemMap]]
+  private type ItemMap = MutableHashMap[T, MutableHashSet[T]]
+  private type ItemMapWithGraphsAndSet = MutableHashMap[T, GraphsHashSet[MutableHashSet[T]]]
+  private type ItemMapWithGraphsAndMap = MutableHashMap[T, GraphsHashSet[ItemMap]]
 
-  val predicates: MutableHashMap[T, TriplePredicateIndex] = collectionsBuilder.emptyHashMap
-  val subjects: MutableHashMap[T, TripleSubjectIndex] = collectionsBuilder.emptyHashMap
-  val objects: MutableHashMap[T, TripleObjectIndex] = collectionsBuilder.emptyHashMap
+  private val _predicates: MutableHashMap[T, TriplePredicateIndex] = collectionsBuilder.emptyHashMap
+  private val _subjects: MutableHashMap[T, TripleSubjectIndex] = collectionsBuilder.emptyHashMap
+  private val _objects: MutableHashMap[T, TripleObjectIndex] = collectionsBuilder.emptyHashMap
   private val _sameAs = collection.mutable.ListBuffer.empty[(T, T)]
 
   private var graph: Option[T] = None
@@ -93,9 +93,15 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
     }
   }
 
+  def predicates: HashMap[T, PredicateIndex] = _predicates
+
+  def subjects: HashMap[T, SubjectIndex] = _subjects
+
+  def objects: HashMap[T, ObjectIndex] = _objects
+
   def quads: Iterator[IndexItem.Quad[T]] = {
     for {
-      (p, m1) <- predicates.pairIterator
+      (p, m1) <- _predicates.pairIterator
       (s, m2) <- m1.subjects.pairIterator
       o <- m2.iterator
       g <- getGraphs(s, p, o).iterator
@@ -106,35 +112,35 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
 
   def size: Int = {
     if (_size == -1) {
-      _size = predicates.valuesIterator.map(_.size).sum
+      _size = _predicates.valuesIterator.map(_.size).sum
     }
     _size
   }
 
   def reset(): Unit = {
     _size = -1
-    subjects.valuesIterator.foreach(_.reset())
-    predicates.valuesIterator.foreach(_.reset())
-    objects.valuesIterator.foreach(_.reset())
+    _subjects.valuesIterator.foreach(_.reset())
+    _predicates.valuesIterator.foreach(_.reset())
+    _objects.valuesIterator.foreach(_.reset())
   }
 
   private def addQuadToSubjects(quad: IndexItem.Quad[T]): Unit = {
-    val si = subjects.getOrElseUpdate(quad.s, new TripleSubjectIndex(collectionsBuilder.emptyHashMap, collectionsBuilder.emptySet))
+    val si = _subjects.getOrElseUpdate(quad.s, new TripleSubjectIndex(collectionsBuilder.emptyHashMap, collectionsBuilder.emptySet))
     si.predicates += quad.p
     si.objects.getOrElseUpdate(quad.o, collectionsBuilder.emptySet) += quad.p
   }
 
   private def addQuadToObjects(quad: IndexItem.Quad[T]): Unit = {
-    val oi = objects.getOrElseUpdate(quad.o, new TripleObjectIndex(collectionsBuilder.emptySet, p => predicates(p).objects(quad.o).value.size))
+    val oi = _objects.getOrElseUpdate(quad.o, new TripleObjectIndex(collectionsBuilder.emptySet, p => _predicates(p).objects(quad.o).value.size))
     oi.predicates += quad.p
   }
 
   def evaluateAllLazyVals(): Unit = {
     size
-    subjects.valuesIterator.foreach(_.size)
-    objects.valuesIterator.foreach(_.size)
+    _subjects.valuesIterator.foreach(_.size)
+    _objects.valuesIterator.foreach(_.size)
     if (graph.isEmpty) {
-      predicates.valuesIterator.foreach(_.graphs)
+      _predicates.valuesIterator.foreach(_.graphs)
     }
   }
 
@@ -143,7 +149,7 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
     set += graph.get
     set
   } else {
-    predicates(predicate).graphs
+    _predicates(predicate).graphs
   }
 
   def getGraphs(predicate: T, tripleItemPosition: TripleItemPosition[T]): HashSet[T] = if (graph.nonEmpty) {
@@ -151,7 +157,7 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
     set += graph.get
     set
   } else {
-    val pi = predicates(predicate)
+    val pi = _predicates(predicate)
     tripleItemPosition match {
       case TripleItemPosition.Subject(x) => pi.subjects(x).graphs
       case TripleItemPosition.Object(x) => pi.objects(x).graphs
@@ -164,7 +170,7 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
     set += graph.get
     set
   } else {
-    predicates(predicate).subjects(subject).value.apply(`object`)
+    _predicates(predicate).subjects(subject).value.apply(`object`)
   }
 
   private def emptyMapWithGraphs = new GraphsHashSet[ItemMap](collectionsBuilder.emptyHashMap, collectionsBuilder.emptySet)
@@ -173,7 +179,7 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
 
   private def addGraph(quad: IndexItem.Quad[T]): Unit = {
     //get predicate index by a specific predicate
-    val pi = predicates.getOrElseUpdate(quad.p, new TriplePredicateIndex(collectionsBuilder.emptyHashMap, collectionsBuilder.emptyHashMap))
+    val pi = _predicates.getOrElseUpdate(quad.p, new TriplePredicateIndex(collectionsBuilder.emptyHashMap, collectionsBuilder.emptyHashMap))
     //get predicate-subject index by a specific subject
     val psi = pi.subjects.getOrElseUpdate(quad.s, emptyMapWithGraphs)
     //add graph to this predicate-subject index - it is suitable for atom p(A, b) to enumerate all graphs
@@ -196,7 +202,7 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
     if (_sameAs.nonEmpty) {
       debugger.debug("SameAs resolving") { ad =>
         for {
-          (p, pi) <- predicates.pairIterator
+          (p, pi) <- _predicates.pairIterator
           (replace, replacement) <- _sameAs.iterator
         } {
           for (si <- pi.subjects.get(replace)) {
@@ -208,7 +214,7 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
                 ad.done()
               }
             }
-            subjects.remove(replace)
+            _subjects.remove(replace)
           }
           for (oi <- pi.objects.get(replace)) {
             for (s <- oi.iterator) {
@@ -219,12 +225,12 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
                 ad.done()
               }
             }
-            objects.remove(replace)
+            _objects.remove(replace)
           }
         }
         for ((replace, replacement) <- _sameAs.iterator) {
           for {
-            (s, o) <- predicates
+            (s, o) <- _predicates
               .get(replace)
               .iterator
               .flatMap(_.subjects.pairIterator.flatMap(x => x._2.iterator.map(x._1 -> _)))
@@ -233,7 +239,7 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
             addQuad(IndexItem.Quad(s, replacement, o, g))
             ad.done()
           }
-          predicates.remove(replace)
+          _predicates.remove(replace)
         }
         _sameAs.clear()
       }
@@ -249,7 +255,7 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
       }
     } else if (!graph.contains(quad.g)) {
       for {
-        (p, m1) <- predicates.pairIterator
+        (p, m1) <- _predicates.pairIterator
         (o, m2) <- m1.objects.pairIterator
         s <- m2.iterator
         g <- graph
@@ -260,7 +266,7 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
       severalGraphs = true
       graph = None
     }
-    val pi = predicates.getOrElseUpdate(quad.p, new TriplePredicateIndex(collectionsBuilder.emptyHashMap, collectionsBuilder.emptyHashMap))
+    val pi = _predicates.getOrElseUpdate(quad.p, new TriplePredicateIndex(collectionsBuilder.emptyHashMap, collectionsBuilder.emptyHashMap))
     if (!severalGraphs) {
       pi.subjects
         .getOrElseUpdate(quad.s, emptyMapWithGraphs).value
@@ -270,23 +276,23 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
   }
 
   private def trimSubjects(): Unit = {
-    for (x <- subjects.valuesIterator) {
+    for (x <- _subjects.valuesIterator) {
       for (x <- x.objects.valuesIterator) x.trim()
       x.predicates.trim()
       x.objects.trim()
     }
-    subjects.trim()
+    _subjects.trim()
   }
 
   private def trimObjects(): Unit = {
-    for (x <- objects.valuesIterator) {
+    for (x <- _objects.valuesIterator) {
       x.predicates.trim()
     }
-    objects.trim()
+    _objects.trim()
   }
 
   private def trimPredicates(): Unit = {
-    for (x <- predicates.valuesIterator) {
+    for (x <- _predicates.valuesIterator) {
       for (x <- x.subjects.valuesIterator) {
         x.value.trim()
         x.graphs.trim()
@@ -299,7 +305,7 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
       x.subjects.trim()
       x.objects.trim()
     }
-    predicates.trim()
+    _predicates.trim()
   }
 
 }
@@ -339,6 +345,7 @@ object TripleHashIndex {
         quad match {
           case quad: IndexItem.Quad[T] => index.addQuad(quad)
           case sameAs: IndexItem.SameAs[T] => index.addSameAs(sameAs)
+          case _ =>
         }
         ad.done()
       }

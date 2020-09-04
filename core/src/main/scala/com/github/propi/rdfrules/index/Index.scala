@@ -15,9 +15,9 @@ trait Index {
 
   implicit val debugger: Debugger
 
-  def tripleMap[T](f: TripleHashIndex[Int] => T): T
+  def tripleMap[T](f: TripleIndex[Int] => T): T
 
-  def tripleItemMap[T](f: TripleItemHashIndex => T): T
+  def tripleItemMap[T](f: TripleItemIndex => T): T
 
   def toDataset: Dataset
 
@@ -30,7 +30,7 @@ trait Index {
   def withEvaluatedLazyVals: Index = new IndexDecorator(this) {
     private var thiEvaluated = false
 
-    override def tripleMap[T](f: TripleHashIndex[Int] => T): T = super.tripleMap { thi =>
+    override def tripleMap[T](f: TripleIndex[Int] => T): T = super.tripleMap { thi =>
       if (!thiEvaluated) {
         thi.evaluateAllLazyVals()
         thiEvaluated = true
@@ -43,8 +43,6 @@ trait Index {
 
   final def mine(miner: RulesMining): Ruleset = tripleItemMap { implicit mapper =>
     tripleMap { implicit thi =>
-      thi.subjects
-      thi.objects
       Ruleset(this, miner.mine, true)
     }
   }
@@ -53,16 +51,21 @@ trait Index {
 
 object Index {
 
-  def apply(_dataset: Dataset)(implicit _debugger: Debugger): Index = {
-    new Index with Cacheable with FromDatasetBuildable with PartiallyPreservedInMemory {
+  def apply(_dataset: Dataset, partially: Boolean)(implicit _debugger: Debugger): Index = {
+    trait FromDataset extends Index with Cacheable with FromDatasetBuildable {
       implicit val debugger: Debugger = _debugger
 
       @volatile protected var dataset: Option[Dataset] = Some(_dataset)
     }
+    if (partially) {
+      new FromDataset with PartiallyPreservedInMemory
+    } else {
+      new FromDataset with FullyPreservedInMemory
+    }
   }
 
-  def fromCache(is: => InputStream)(implicit _debugger: Debugger): Index = {
-    new Index with Cacheable with FromCacheBuildable with PartiallyPreservedInMemory {
+  def fromCache(is: => InputStream, partially: Boolean)(implicit _debugger: Debugger): Index = {
+    trait FromCache extends Index with Cacheable with FromCacheBuildable {
       implicit val debugger: Debugger = _debugger
 
       protected def useInputStream[T](f: InputStream => T): T = {
@@ -76,10 +79,15 @@ object Index {
 
       override def cache(os: => OutputStream): Unit = super[FromCacheBuildable].cache(os)
     }
+    if (partially) {
+      new FromCache with PartiallyPreservedInMemory
+    } else {
+      new FromCache with FullyPreservedInMemory
+    }
   }
 
-  def fromCache(file: File)(implicit debugger: Debugger): Index = fromCache(new FileInputStream(file))
+  def fromCache(file: File, partially: Boolean)(implicit debugger: Debugger): Index = fromCache(new FileInputStream(file), partially)
 
-  def fromCache(file: String)(implicit debugger: Debugger): Index = fromCache(new File(file))
+  def fromCache(file: String, partially: Boolean)(implicit debugger: Debugger): Index = fromCache(new File(file), partially)
 
 }

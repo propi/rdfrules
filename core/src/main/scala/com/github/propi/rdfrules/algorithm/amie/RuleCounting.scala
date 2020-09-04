@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.data.TriplePosition
-import com.github.propi.rdfrules.index.TripleHashIndex
+import com.github.propi.rdfrules.index.TripleIndex
 import com.github.propi.rdfrules.rule.{Atom, Measure, Rule}
 import com.github.propi.rdfrules.utils.TypedKeyMap
 
@@ -191,6 +191,6 @@ trait RuleCounting extends AtomCounting {
 
 object RuleCounting {
 
-  implicit class PimpedClosedRule(val rule: Rule.Simple)(implicit val tripleIndex: TripleHashIndex[Int]) extends RuleCounting
+  implicit class PimpedClosedRule(val rule: Rule.Simple)(implicit val tripleIndex: TripleIndex[Int]) extends RuleCounting
 
 }

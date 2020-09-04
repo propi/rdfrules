@@ -28,6 +28,8 @@ trait TripleIndex[T] {
 
   def quads: Iterator[IndexItem.Quad[T]]
 
+  def evaluateAllLazyVals(): Unit
+
   trait PredicateIndex {
     def subjects: HashMap[T, HashSet[T]]
 

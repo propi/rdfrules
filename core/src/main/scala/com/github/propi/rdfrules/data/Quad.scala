@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.data
 
-import com.github.propi.rdfrules.index.{CompressedQuad, TripleItemHashIndex}
+import com.github.propi.rdfrules.index.{IndexItem, TripleItemIndex}
 import com.github.propi.rdfrules.utils.Stringifier
 import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension._
 import org.apache.jena.graph.Node
@@ -37,8 +37,8 @@ object Quad {
     }.distinct
   }
 
-  implicit class PimpedQuad(x: Quad)(implicit mapper: TripleItemHashIndex) {
-    def toCompressedQuad: CompressedQuad = CompressedQuad(
+  implicit class PimpedQuad(x: Quad)(implicit mapper: TripleItemIndex) {
+    def toCompressedQuad: IndexItem.IntQuad = IndexItem.Quad(
       mapper.getIndex(x.triple.subject),
       mapper.getIndex(x.triple.predicate),
       mapper.getIndex(x.triple.`object`),

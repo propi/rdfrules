@@ -28,7 +28,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside {
   }
 
   "Index" should "mine directly from index" in {
-    Index(dataset1).mine(Amie()
+    Index(dataset1, false).mine(Amie()
       .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere))
       .addThreshold(Threshold.MinHeadCoverage(0.01))
     ).size shouldBe 124

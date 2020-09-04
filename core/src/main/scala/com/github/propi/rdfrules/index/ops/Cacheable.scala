@@ -4,8 +4,8 @@ import java.io.{File, FileOutputStream, OutputStream}
 
 import com.github.propi.rdfrules.data.TripleItem
 import com.github.propi.rdfrules.index.ops.Cacheable.SerItem
-import com.github.propi.rdfrules.index.{CompressedQuad, Index}
-import com.github.propi.rdfrules.serialization.CompressedQuadSerialization._
+import com.github.propi.rdfrules.index.{Index, IndexItem}
+import com.github.propi.rdfrules.serialization.IndexItemSerialization._
 import com.github.propi.rdfrules.serialization.TripleItemSerialization._
 import com.github.propi.rdfrules.utils.serialization.Serializer
 
@@ -42,6 +42,6 @@ trait Cacheable extends QuadsIndex {
 
 object Cacheable {
 
-  type SerItem = Either[(Int, TripleItem), CompressedQuad]
+  type SerItem = Either[(Int, TripleItem), IndexItem.IntQuad]
 
 }

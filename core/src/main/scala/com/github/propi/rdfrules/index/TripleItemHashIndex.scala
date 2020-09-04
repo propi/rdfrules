@@ -47,6 +47,19 @@ abstract class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleIt
     }
   }
 
+  private def removeSameResources(): Unit = {
+    for (idObject <- sameAs.keySet().iterator().asScala.map(getId).filter(_._2).map(_._1)) {
+      //remove existed sameAs object
+      hmap.remove(idObject)
+      //if there are some holes after removing, we move all next related items by one step above
+      Stream.iterate(idObject + 1)(_ + 1).takeWhile(x => Option[TripleItem](hmap.get(x)).exists(_.hashCode() != x)).foreach { oldId =>
+        val item = hmap.get(oldId)
+        hmap.remove(oldId)
+        hmap.put(oldId - 1, item)
+      }
+    }
+  }
+
   private def addQuad(quad: Quad): IndexItem[Int] = {
     val Quad(Triple(s, p, o), g) = quad
     if (p.hasSameUriAs(TripleItem.sameAs)) {
@@ -56,20 +69,10 @@ abstract class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleIt
       sameAs.put(o, idSubject)
       val (idObject, objectIsAdded) = getId(o)
       if (!objectIsAdded) hmap.put(idObject, o)
-      /*if (objectIsAdded) {
-        //remove existed sameAs object
-        hmap.remove(idObject)
-        //if there are some holes after removing, we move all next related items by one step above
-        Stream.iterate(idObject + 1)(_ + 1).takeWhile(x => Option[TripleItem](hmap.get(x)).exists(_.hashCode() != x)).foreach { oldId =>
-          val item = hmap.get(oldId)
-          hmap.remove(oldId)
-          hmap.put(oldId - 1, item)
-        }
-      }*/
-      TripleHashIndex.IndexItem.SameAs(idSubject, idObject)
+      IndexItem.SameAs(idSubject, idObject)
     } else {
       val res = Array(s, p, o, g).map(addTripleItem)
-      TripleHashIndex.IndexItem.Quad(res(0), res(1), res(2), res(3))
+      IndexItem.Quad(res(0), res(1), res(2), res(3))
     }
   }
 
@@ -119,9 +122,14 @@ object TripleItemHashIndex {
     override def extendWith(ext: collection.Map[Int, TripleItem]): TripleItemHashIndex = new ExtendedTripleItemHashIndex(hmap, sameAs, prefixMap, ext1 ++ ext, _trim)
   }
 
-  def fromIndexedItem(col: Traversable[(Int, TripleItem)])(implicit debugger: Debugger): TripleItemHashIndex = {
+  private def buildBasicMaps = {
     val hmap = new Int2ObjectOpenHashMap[TripleItem]()
     val pmap = new Object2ObjectOpenHashMap[String, String]()
+    hmap -> pmap
+  }
+
+  def fromIndexedItem(col: Traversable[(Int, TripleItem)])(implicit debugger: Debugger): TripleItemHashIndex = {
+    val (hmap, pmap) = buildBasicMaps
     val tihi = new TripleItemHashIndex(hmap, new java.util.HashMap(), pmap) {
       def trim(): Unit = {
         hmap.trim()
@@ -139,14 +147,9 @@ object TripleItemHashIndex {
     tihi
   }
 
-  /*def empty: TripleItemHashIndex = {
-
-  }*/
-
-  def apply[T](col: Traversable[Quad])(f: Traversable[IndexItem[Int]] => T)(implicit debugger: Debugger): (TripleItemHashIndex, T) = {
+  def mapQuads[T](col: Traversable[Quad])(f: Traversable[IndexItem[Int]] => T): (TripleItemHashIndex, T) = {
     val sameAs = new Object2IntOpenHashMap[TripleItem]()
-    val hmap = new Int2ObjectOpenHashMap[TripleItem]()
-    val pmap = new Object2ObjectOpenHashMap[String, String]()
+    val (hmap, pmap) = buildBasicMaps
     val tihi = new TripleItemHashIndex(hmap, sameAs, pmap) {
       def trim(): Unit = {
         hmap.trim()
@@ -154,17 +157,30 @@ object TripleItemHashIndex {
         pmap.trim()
       }
     }
+    tihi -> f(new Traversable[IndexItem[Int]] {
+      def foreach[U](f: IndexItem[Int] => U): Unit = {
+        try {
+          for (quad <- col) {
+            f(tihi.addQuad(quad))
+          }
+        } finally {
+          tihi.removeSameResources()
+          tihi.trim()
+        }
+      }
+    })
+  }
+
+  def apply(col: Traversable[Quad])(implicit debugger: Debugger): TripleItemHashIndex = {
     debugger.debug("Triple items indexing") { ad =>
-      for (quad <- col.view.takeWhile(_ => !debugger.isInterrupted)) {
-        tihi.addQuad(quad)
-        ad.done()
+      val (tihi, _) = mapQuads(col.view.takeWhile(_ => !debugger.isInterrupted)) { col =>
+        col.foreach(_ => ad.done())
       }
       if (debugger.isInterrupted) {
         debugger.logger.warn(s"The triple item indexing task has been interrupted. The loaded index may not be complete.")
       }
-      tihi.trim()
+      tihi
     }
-    tihi
   }
 
 }

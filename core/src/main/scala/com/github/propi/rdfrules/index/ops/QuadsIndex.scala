@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.index.ops
 
 import com.github.propi.rdfrules.data.{Dataset, Quad}
-import com.github.propi.rdfrules.index.{CompressedQuad, Index}
+import com.github.propi.rdfrules.index.{Index, IndexItem}
 
 /**
   * Created by Vaclav Zeman on 12. 3. 2018.
@@ -10,11 +10,9 @@ trait QuadsIndex {
 
   self: Index =>
 
-  protected def compressedQuads: Traversable[CompressedQuad] = new Traversable[CompressedQuad] {
-    def foreach[U](f: CompressedQuad => U): Unit = self.tripleMap { thi =>
-      for (quad <- thi.quads) {
-        f(CompressedQuad(quad.s, quad.p, quad.o, quad.g))
-      }
+  protected def compressedQuads: Traversable[IndexItem.IntQuad] = new Traversable[IndexItem.IntQuad] {
+    def foreach[U](f: IndexItem.IntQuad => U): Unit = self.tripleMap { thi =>
+      thi.quads.foreach(f)
     }
   }
 

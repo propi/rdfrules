@@ -6,9 +6,6 @@ import eu.easyminer.discretization.impl.{Interval, IntervalBound}
 import org.apache.jena.riot.Lang
 import org.scalatest.{FlatSpec, Inside, Matchers}
 
-import scala.collection.SeqView
-import scala.reflect.ClassTag
-
 /**
   * Created by Vaclav Zeman on 14. 1. 2018.
   */

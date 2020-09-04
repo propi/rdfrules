@@ -23,7 +23,7 @@ class Dataset private(val quads: QuadTraversableView, val userDefinedPrefixes: T
     with PrefixesOps[Dataset]
     with Discretizable[Dataset]
     with Cacheable[Quad, Dataset]
-    with Debugable[Quad, Dataset]{
+    with Debugable[Quad, Dataset] {
 
   protected val serializer: Serializer[Quad] = implicitly[Serializer[Quad]]
   protected val deserializer: Deserializer[Quad] = implicitly[Deserializer[Quad]]
@@ -59,9 +59,9 @@ class Dataset private(val quads: QuadTraversableView, val userDefinedPrefixes: T
 
   def export(file: String)(implicit writer: RdfWriter): Unit = export(new File(file))
 
-  def mine(miner: RulesMining)(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = Index(this).mine(miner)
+  def mine(miner: RulesMining)(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = Index(this, false).mine(miner)
 
-  def index(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = Index(this)
+  def index(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = Index(this, false)
 
 }
 

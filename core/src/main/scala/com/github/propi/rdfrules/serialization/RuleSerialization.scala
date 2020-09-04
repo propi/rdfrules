@@ -66,9 +66,11 @@ object RuleSerialization {
 
       def +=(x: Int): Unit = hset.add(x)
 
+      def -=(x: Int): Unit = hset.remove(x)
+
       def iterator: Iterator[Int] = hset.iterator().asScala.asInstanceOf[Iterator[Int]]
 
-      def apply(x: Int): Boolean = hset.contains(x)
+      def contains(x: Int): Boolean = hset.contains(x)
 
       def size: Int = hset.size()
 

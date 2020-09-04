@@ -5,7 +5,7 @@ import java.io._
 import com.github.propi.rdfrules.algorithm.amie.AtomCounting
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
 import com.github.propi.rdfrules.data.{Dataset, Graph, TriplePosition}
-import com.github.propi.rdfrules.index.{CompressedQuad, Index, TripleHashIndex, TripleItemHashIndex}
+import com.github.propi.rdfrules.index.{Index, IndexItem, TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.model.Model.PredictionType
 import com.github.propi.rdfrules.rule.{Atom, Measure, ResolvedRulePatternMatcher, RulePattern}
 import com.github.propi.rdfrules.ruleset.ops.Sortable
@@ -96,7 +96,7 @@ class Model private(val rules: Traversable[ResolvedRule], val parallelism: Int, 
         index.tripleItemMap { mapper =>
           index.tripleMap { implicit thi =>
             val atomCounting = new AtomCounting {
-              implicit val tripleIndex: TripleHashIndex[Int] = thi
+              implicit val tripleIndex: TripleIndex[Int] = thi
             }
 
             def isCompletelyMissing(predictedTriple: PredictedTriple): Boolean = {
@@ -115,16 +115,16 @@ class Model private(val rules: Traversable[ResolvedRule], val parallelism: Int, 
                 !predictedTriple.existing && isCompletelyMissing(predictedTriple)
             }
             rules.view.map(ResolvedRule.simple(_)(mapper)).foreach { case (rule, ruleMapper) =>
-              implicit val mapper2: TripleItemHashIndex = mapper.extendWith(ruleMapper)
+              implicit val mapper2: TripleItemIndex = mapper.extendWith(ruleMapper)
               val ruleBody = rule.body.toSet
               val headVars = List(rule.head.subject, rule.head.`object`).collect {
                 case x: Atom.Variable => x
               }
-              val constantsToQuad: Seq[Atom.Constant] => CompressedQuad = (rule.head.subject, rule.head.`object`) match {
-                case (_: Atom.Variable, _: Atom.Variable) => constants => CompressedQuad(constants.head.value, rule.head.predicate, constants.last.value, 0)
-                case (_: Atom.Variable, Atom.Constant(o)) => constants => CompressedQuad(constants.head.value, rule.head.predicate, o, 0)
-                case (Atom.Constant(s), _: Atom.Variable) => constants => CompressedQuad(s, rule.head.predicate, constants.head.value, 0)
-                case (Atom.Constant(s), Atom.Constant(o)) => _ => CompressedQuad(s, rule.head.predicate, o, 0)
+              val constantsToQuad: Seq[Atom.Constant] => IndexItem.IntQuad = (rule.head.subject, rule.head.`object`) match {
+                case (_: Atom.Variable, _: Atom.Variable) => constants => IndexItem.Quad(constants.head.value, rule.head.predicate, constants.last.value, 0)
+                case (_: Atom.Variable, Atom.Constant(o)) => constants => IndexItem.Quad(constants.head.value, rule.head.predicate, o, 0)
+                case (Atom.Constant(s), _: Atom.Variable) => constants => IndexItem.Quad(s, rule.head.predicate, constants.head.value, 0)
+                case (Atom.Constant(s), Atom.Constant(o)) => _ => IndexItem.Quad(s, rule.head.predicate, o, 0)
               }
               if (predictionType == PredictionType.Existing) {
                 atomCounting.specifyVariableMap(rule.head, new atomCounting.VariableMap(true))
@@ -136,7 +136,7 @@ class Model private(val rules: Traversable[ResolvedRule], val parallelism: Int, 
                 Try(atomCounting
                   .selectDistinctPairs(ruleBody, headVars, new atomCounting.VariableMap(true))
                   .map(constantsToQuad)
-                  .map(x => thi.predicates.get(x.predicate).flatMap(_.subjects.get(x.subject)).exists(_.contains(x.`object`)) -> x.toTriple)
+                  .map(x => thi.predicates.get(x.p).flatMap(_.subjects.get(x.s)).exists(_.contains(x.o)) -> x.toTriple)
                   .map(x => PredictedTriple(x._2)(rule, x._1))
                   .filter(filterPredictedTriple)
                   .foreach(f))

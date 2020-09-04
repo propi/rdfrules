@@ -6,7 +6,7 @@ import com.github.propi.rdfrules.algorithm.Clustering
 import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
-import com.github.propi.rdfrules.index.{Index, TripleHashIndex}
+import com.github.propi.rdfrules.index.{Index, TripleIndex}
 import com.github.propi.rdfrules.model.Model.PredictionType
 import com.github.propi.rdfrules.model.{Model, PredictionResult}
 import com.github.propi.rdfrules.rule.{Measure, Rule, RulePattern, RulePatternMatcher}
@@ -119,7 +119,7 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
     })
   }
 
-  private def mapRuleset(f: TripleHashIndex[Int] => Rule.Simple => Rule.Simple)(implicit debugger: Int => (Debugger.ActionDebugger => Unit) => Unit): Ruleset = transform(new Traversable[Rule.Simple] {
+  private def mapRuleset(f: TripleIndex[Int] => Rule.Simple => Rule.Simple)(implicit debugger: Int => (Debugger.ActionDebugger => Unit) => Unit): Ruleset = transform(new Traversable[Rule.Simple] {
     def foreach[U](f2: Rule.Simple => U): Unit = index.tripleMap { thi =>
       val cached = self.cache
       debugger(cached.size) { ad =>
@@ -131,7 +131,7 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
     }
   })
 
-  private def shrinkRuleset[T](topK: Int, initThreshold: T, updateThreshold: Rule.Simple => T)(f: TripleHashIndex[Int] => (Rule.Simple, T) => Rule.Simple)(implicit ord: Ordering[Rule.Simple], debugger: Int => (Debugger.ActionDebugger => Unit) => Unit): Ruleset = transform(new Traversable[Rule.Simple] {
+  private def shrinkRuleset[T](topK: Int, initThreshold: T, updateThreshold: Rule.Simple => T)(f: TripleIndex[Int] => (Rule.Simple, T) => Rule.Simple)(implicit ord: Ordering[Rule.Simple], debugger: Int => (Debugger.ActionDebugger => Unit) => Unit): Ruleset = transform(new Traversable[Rule.Simple] {
     def foreach[U](f2: Rule.Simple => U): Unit = index.tripleMap { thi =>
       val cached = self.cache
       debugger(cached.size) { ad =>
