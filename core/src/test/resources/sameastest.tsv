@@ -1,0 +1,9 @@
+<a>	owl:sameAs	<b>.
+<a>	<p>	1.
+<b>	<p>	2.
+<a>	<p>	<b>.
+<c>	<x>	<b>.
+<b>	<x>	<c>.
+<d>	<p>	3.
+<d>	owl:sameAs	<c>.
+<p>	owl:sameAs	<x>.

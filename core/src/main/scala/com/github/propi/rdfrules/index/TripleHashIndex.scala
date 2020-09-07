@@ -214,7 +214,7 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
                 ad.done()
               }
             }
-            _subjects.remove(replace)
+            pi.subjects.remove(replace)
           }
           for (oi <- pi.objects.get(replace)) {
             for (s <- oi.iterator) {
@@ -225,7 +225,7 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
                 ad.done()
               }
             }
-            _objects.remove(replace)
+            pi.objects.remove(replace)
           }
         }
         for ((replace, replacement) <- _sameAs.iterator) {
@@ -370,7 +370,7 @@ object TripleHashIndex {
         ad.done()
       }
     }
-    debugger.logger.info("Objects trimming started.")
+    debugger.logger.info("Objects trimming.")
     index.trimObjects()
     index
   }

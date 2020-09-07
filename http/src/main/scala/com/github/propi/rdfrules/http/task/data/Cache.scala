@@ -7,12 +7,11 @@ import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 import com.github.propi.rdfrules.http.util.BasicExceptions.ValidationException
 import com.github.propi.rdfrules.http.{InMemoryCache, Workspace}
 import com.github.propi.rdfrules.index
-import com.github.propi.rdfrules.utils.Debugger
 
 /**
   * Created by Vaclav Zeman on 9. 8. 2018.
   */
-class Cache(path: String, inMemory: Boolean, revalidate: Boolean)(implicit debugger: Debugger) extends Task.CacheTask[Dataset] with Task.Prevalidate {
+class Cache(path: String, inMemory: Boolean, revalidate: Boolean) extends Task.CacheTask[Dataset] with Task.Prevalidate {
   val companion: TaskDefinition = Cache
 
   def validate(): Option[ValidationException] = if (!inMemory && !Workspace.filePathIsWritable(path)) {

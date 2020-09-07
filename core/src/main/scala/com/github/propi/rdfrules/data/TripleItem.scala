@@ -13,6 +13,7 @@ import scala.language.implicitConversions
   */
 sealed trait TripleItem {
   //def resolved(implicit mapper: TripleItemHashIndex): TripleItem = this
+  def intern: TripleItem
 }
 
 object TripleItem {
@@ -117,10 +118,14 @@ object TripleItem {
   sealed trait Literal extends TripleItem
 
   case class Text(value: String) extends Literal {
+    def intern: TripleItem = Text(value.intern())
+
     override def toString: String = "\"" + value + "\""
   }
 
   case class Number[T](value: T)(implicit val n: Numeric[T]) extends Literal {
+    def intern: TripleItem = this
+
     override def toString: String = value.toString
   }
 
@@ -132,6 +137,8 @@ object TripleItem {
   }
 
   case class Interval(interval: DiscretizationInterval) extends Literal {
+    def intern: TripleItem = this
+
     override def toString: String = s"${if (interval.isLeftBoundClosed()) "[" else "("} ${interval.getLeftBoundValue()} ; ${interval.getRightBoundValue()} ${if (interval.isRightBoundClosed()) "]" else ")"}"
   }
 
@@ -151,6 +158,8 @@ object TripleItem {
   }
 
   case class BooleanValue(value: Boolean) extends Literal {
+    def intern: TripleItem = this
+
     override def toString: String = if (value) "true" else "false"
   }
 

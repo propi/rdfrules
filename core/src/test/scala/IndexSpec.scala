@@ -20,7 +20,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
 
   "Index" should "create from dataset and load items" in {
     val index = Index.apply(dataset1, true)
-    MemoryMeasurer.measureBytes(index) should be(700L +- 100)
+    MemoryMeasurer.measureBytes(index) should be(800L +- 100)
     index.tripleItemMap { tihi =>
       val items = dataset1.take(5).quads.flatMap(x => List(x.triple.subject, x.triple.predicate, x.triple.`object`)).toList
       for (item <- items) {
@@ -40,20 +40,20 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
 
   it should "create from dataset and load index" in {
     val index = Index.apply(dataset1, false)
-    MemoryMeasurer.measureBytes(index) should be(700L +- 100)
+    MemoryMeasurer.measureBytes(index) should be(800L +- 100)
     index.tripleMap { thi =>
       thi.size shouldBe dataset1.size
     }
     val mem = MemoryMeasurer.measureBytes(index)
-    mem should be(23000000L +- 1000000)
+    mem should be(41135848L +- 1000000)
     val cq = index.tripleItemMap { implicit tim =>
       dataset1.quads.head.toCompressedQuad
     }
     index.tripleMap { thi =>
       thi.predicates(cq.p).subjects(cq.s).contains(cq.o) shouldBe true
-      thi.getGraphs(cq.s, cq.p, cq.o).contains(cq.g) shouldBe false
-      thi.getGraphs(cq.p, TripleItemPosition.Subject(cq.s)).contains(cq.g) shouldBe false
-      thi.getGraphs(cq.p, TripleItemPosition.Object(cq.o)).contains(cq.g) shouldBe false
+      thi.getGraphs(cq.s, cq.p, cq.o).contains(cq.g) shouldBe true
+      thi.getGraphs(cq.p, TripleItemPosition.Subject(cq.s)).contains(cq.g) shouldBe true
+      thi.getGraphs(cq.p, TripleItemPosition.Object(cq.o)).contains(cq.g) shouldBe true
       thi.getGraphs(cq.p).contains(cq.g) shouldBe true
       thi.predicates(cq.p).objects(cq.o).contains(cq.s) shouldBe true
       thi.subjects(cq.s).predicates.contains(cq.p) shouldBe true
@@ -75,7 +75,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
       thi.size shouldBe dataset2.size
     }
     val indexMemory1 = MemoryMeasurer.measureBytes(index)
-    indexMemory1 should be(49127944L +- 5000000)
+    indexMemory1 should be(79494960L +- 5000000)
     val index2 = index.withEvaluatedLazyVals
     val indexMemory2 = MemoryMeasurer.measureBytes(index2)
     indexMemory1 should be < indexMemory2
@@ -108,6 +108,21 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
         thi.getGraphs(cq.s, cq.p, cq.o).iterator.toList should contain only cq.g
         thi.getGraphs(cq.p, TripleItemPosition.Subject(cq.s)).iterator.toList should contain only cq.g
       }
+    }
+  }
+
+  it should "resolve sameAs" in {
+    val graph = Graph(GraphSpec.dataSameAs)
+    graph.size shouldBe 9
+    val index = graph.index
+    index.tripleMap { ti =>
+      ti.subjects.size shouldBe 2
+      ti.predicates.size shouldBe 1
+      ti.objects.size shouldBe 5
+      ti.quads.size shouldBe 6
+    }
+    index.tripleItemMap { implicit mapper =>
+      mapper.iterator.size shouldBe 7
     }
   }
 

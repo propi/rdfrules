@@ -21,7 +21,7 @@ case class Triple private(subject: TripleItem.Uri, predicate: TripleItem.Uri, `o
 
 object Triple {
 
-  def apply(subject: TripleItem.Uri, predicate: TripleItem.Uri, `object`: TripleItem): Triple = new Triple(subject, predicate.intern, `object`)
+  def apply(subject: TripleItem.Uri, predicate: TripleItem.Uri, `object`: TripleItem): Triple = new Triple(subject.intern, predicate.intern, `object`.intern)
 
   type TripleTraversableView = TraversableView[Triple, Traversable[_]]
 

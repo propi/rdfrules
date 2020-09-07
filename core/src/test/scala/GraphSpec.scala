@@ -67,6 +67,19 @@ class GraphSpec extends FlatSpec with Matchers with Inside {
     gp.take(10).triples.forall(x => x.subject.isInstanceOf[TripleItem.PrefixedUri] && x.predicate.isInstanceOf[TripleItem.PrefixedUri])
   }
 
+  /*it should "have lower size with prefixes items" in {
+    var graph = this.graph.cache
+    System.gc()
+    val res1 = Runtime.getRuntime.totalMemory() - Runtime.getRuntime.freeMemory()
+    println(StdIn.readLine())
+    graph = this.graph.withPrefixedUris.cache
+    System.gc()
+    val res2 = Runtime.getRuntime.totalMemory() - Runtime.getRuntime.freeMemory()
+    println(StdIn.readLine())
+    println(res1)
+    println(res2)
+  }*/
+
   it should "discretize data" in {
     val intervals = graphDbpedia.discretizeAndGetIntervals(DiscretizationTask.Equidistance(5))(quad => quad.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
     intervals.length shouldBe 5
@@ -108,5 +121,6 @@ object GraphSpec {
 
   val dataYago = new File(getClass.getResource("/yago.tsv").toURI)
   val dataDbpedia = new File(getClass.getResource("/dbpedia.ttl").toURI)
+  val dataSameAs = new File(getClass.getResource("/sameastest.tsv").toURI)
 
 }

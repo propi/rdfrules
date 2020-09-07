@@ -106,13 +106,14 @@ object PipelineJsonReaders {
     )
   }
 
-  implicit def cacheDatasetReader(implicit debugger: Debugger): RootJsonReader[data.Cache] = (json: JsValue) => {
+  implicit val cacheDatasetReader: RootJsonReader[data.Cache] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new data.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
   }
 
-  implicit def indexReader(implicit debugger: Debugger): RootJsonReader[data.Index] = (_: JsValue) => {
-    new data.Index()
+  implicit def indexReader(implicit debugger: Debugger): RootJsonReader[data.Index] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new data.Index(fields("prefixedUris").convertTo[Boolean])
   }
 
   implicit val exportQuadsReader: RootJsonReader[data.ExportQuads] = (json: JsValue) => {
@@ -149,7 +150,7 @@ object PipelineJsonReaders {
 
   implicit def loadIndexReader(implicit debugger: Debugger): RootJsonReader[index.LoadIndex] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new index.LoadIndex(fields("path").convertTo[String])
+    new index.LoadIndex(fields("path").convertTo[String], fields("partially").convertTo[Boolean])
   }
 
   implicit val cacheIndexReader: RootJsonReader[index.Cache] = (json: JsValue) => {
@@ -355,7 +356,7 @@ object PipelineJsonReaders {
     new ruleset.FindDissimilar(fields("rule").convertTo[ResolvedRule], fields("take").convertTo[Int])
   }
 
-  implicit def cacheRulesetReader(implicit debugger: Debugger): RootJsonReader[ruleset.Cache] = (json: JsValue) => {
+  implicit val cacheRulesetReader: RootJsonReader[ruleset.Cache] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new ruleset.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
   }

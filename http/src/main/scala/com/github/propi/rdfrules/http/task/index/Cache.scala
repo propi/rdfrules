@@ -27,7 +27,7 @@ class Cache(path: String, inMemory: Boolean, revalidate: Boolean) extends Task.C
     } else {
       val cacheFile = new File(Workspace.path(path))
       if (cacheFile.exists()) {
-        Some(Index.fromCache(cacheFile))
+        Some(Index.fromCache(cacheFile, false))
       } else {
         None
       }
