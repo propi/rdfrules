@@ -15,7 +15,7 @@ import scala.collection.JavaConverters._
   */
 trait AmieRulesMiningTask extends Task[String, AMIE, util.List[Rule], IndexedSeq[ResolvedRule]] with TaskPreProcessor[String, AMIE] with TaskPostProcessor[util.List[Rule], IndexedSeq[ResolvedRule]] with DefaultMiningSettings {
 
-  val confidenceCountingHeuristicOn = true
+  val confidenceCountingHeuristicOn = false
 
   // -optimfh
   protected def preProcess(input: String): AMIE = {
