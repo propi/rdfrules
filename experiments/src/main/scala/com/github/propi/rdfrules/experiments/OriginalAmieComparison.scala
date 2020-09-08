@@ -9,6 +9,7 @@ import com.github.propi.rdfrules.experiments.benchmark.MetricResultProcessor.Bas
 import com.github.propi.rdfrules.experiments.benchmark.MetricsAggregator.StatsAggregator
 import com.github.propi.rdfrules.experiments.benchmark.{ClusterDistancesTaskPostprocessor, DiscretizedRuleFilter, Metric, NewTriplesPostprocessor, RulesTaskPostprocessor}
 import com.github.propi.rdfrules.experiments.benchmark.tasks._
+import com.github.propi.rdfrules.index.TripleHashIndex
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule.{AtomPattern, RuleConstraint, Threshold}
 import com.github.propi.rdfrules.ruleset.ResolvedRule
@@ -130,7 +131,7 @@ object OriginalAmieComparison {
         }*/ else if (cli.hasOption("rundiscretization")) {
           for (minHc <- minHcs) {
             val index = Graph(inputTsvDataset).index()
-            index.tripleMap(thi => thi.reset())
+            index.tripleMap(thi => thi.asInstanceOf[TripleHashIndex[Int]].reset())
             Once executeTask new MinHcRdfRules[Seq[Metric]](s"RDFRules: mine without discretization, minHc: $minHc", minHc, true, numberOfThreads = numberOfThreads) with NewTriplesPostprocessor {
               override val withConstantsAtTheObjectPosition: Boolean = true
               override val minPcaConfidence: Double = 0.0

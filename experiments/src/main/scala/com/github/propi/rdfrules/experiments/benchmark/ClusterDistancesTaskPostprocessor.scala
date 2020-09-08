@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.experiments.benchmark
 
-import com.github.propi.rdfrules.index.CompressedTriple
+import com.github.propi.rdfrules.index.IndexItem
 import com.github.propi.rdfrules.rule.Measure
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension._
@@ -28,7 +28,7 @@ trait ClusterDistancesTaskPostprocessor extends TaskPostProcessor[Ruleset, Seq[M
 
   private def computeIntraClusterSimilarity(ruleset: Ruleset): Double = {
     if (ruleset.size > 1) {
-      val tripleMap = collection.mutable.Map.empty[CompressedTriple, MutableWeight]
+      val tripleMap = collection.mutable.Map.empty[IndexItem.IntTriple, MutableWeight]
       var maxWeight = 0
       for {
         coveredPaths <- ruleset.coveredPaths()

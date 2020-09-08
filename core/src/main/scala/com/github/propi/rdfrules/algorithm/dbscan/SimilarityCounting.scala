@@ -75,9 +75,9 @@ object SimilarityCounting {
       //NOW IT IS NOT USED!!! e.g. sim(A, X) + sim(B, Y) + max(sim(C, X), sim(C, Y)), sim(B, X) + sim(A, Y) + max(sim(C, X), sim(C, Y)), sim(A, X) + sim(C, Y) + max(sim(B, X), sim(B, Y)), ...
       //5. finally select the max similarity from permutations
       val maxSimilarity = index.indices.combinations(secondRule.ruleLength).flatMap(_.permutations).map { mainPermutation =>
-        val /*(rlist, */msim/*)*/ = mainPermutation.iterator.zipWithIndex.map {
-          case (i, j) => /*i -> */index(i)(j)
-        }.sum/*.foldLeft(List.empty[Int] -> 0.0) {
+        val /*(rlist, */ msim /*)*/ = mainPermutation.iterator.zipWithIndex.map {
+          case (i, j) => /*i -> */ index(i)(j)
+        }.sum /*.foldLeft(List.empty[Int] -> 0.0) {
           case ((rlist, sum), (i, sim)) => (i :: rlist) -> (sum + sim)
         }*/
         //val ssim = index.indices.iterator.filter(!rlist.contains(_)).map(mainAtomMaxSims(_)).sum
@@ -120,5 +120,7 @@ object SimilarityCounting {
   object LengthSimilarityCounting extends MeasuresSimilarityCounting {
     def apply(rule1: Rule, rule2: Rule): Double = absoluteNumbersSimilarity(rule1.ruleLength, rule2.ruleLength)
   }
+
+  implicit def ruleSimpleSimilarityCounting(implicit sc: SimilarityCounting[Rule]): SimilarityCounting[Rule.Simple] = sc
 
 }

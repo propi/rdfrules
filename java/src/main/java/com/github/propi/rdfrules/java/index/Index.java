@@ -1,7 +1,8 @@
 package com.github.propi.rdfrules.java.index;
 
 import com.github.propi.rdfrules.index.Index$;
-import com.github.propi.rdfrules.index.TripleHashIndex;
+import com.github.propi.rdfrules.index.TripleIndex;
+import com.github.propi.rdfrules.index.TripleItemIndex;
 import com.github.propi.rdfrules.java.algorithm.Debugger;
 import com.github.propi.rdfrules.java.algorithm.RulesMining;
 import com.github.propi.rdfrules.java.data.Dataset;
@@ -25,7 +26,7 @@ public class Index {
     }
 
     public static Index fromDataset(Dataset dataset, Debugger debugger) {
-        return new Index(Index$.MODULE$.apply(dataset.asScala(), debugger.asScala()));
+        return new Index(Index$.MODULE$.apply(dataset.asScala(), false, debugger.asScala()));
     }
 
     public static Index fromDataset(Dataset dataset) {
@@ -34,7 +35,7 @@ public class Index {
 
 
     public static Index fromCache(Supplier<InputStream> isb, Debugger debugger) {
-        return new Index(Index$.MODULE$.fromCache(isb::get, debugger.asScala()));
+        return new Index(Index$.MODULE$.fromCache(isb::get, false, debugger.asScala()));
     }
 
     public static Index fromCache(Supplier<InputStream> isb) {
@@ -43,7 +44,7 @@ public class Index {
 
 
     public static Index fromCache(File file, Debugger debugger) {
-        return new Index(Index$.MODULE$.fromCache(file, debugger.asScala()));
+        return new Index(Index$.MODULE$.fromCache(file, false, debugger.asScala()));
     }
 
     public static Index fromCache(File file) {
@@ -78,11 +79,11 @@ public class Index {
         return new Dataset(index.toDataset());
     }
 
-    public <T> T tripleItemMap(Function<TripleItemHashIndex, T> f) {
-        return index.tripleItemMap(x -> f.apply(new TripleItemHashIndex(x)));
+    public <T> T tripleItemMap(Function<TripleItemIndex, T> f) {
+        return index.tripleItemMap(f::apply);
     }
 
-    public <T> T tripleMap(Function<TripleHashIndex, T> f) {
+    public <T> T tripleMap(Function<TripleIndex, T> f) {
         return index.tripleMap(f::apply);
     }
 

@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.java.algorithm;
 
+import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting$;
 import com.github.propi.rdfrules.java.SimilarityCountingConverters;
 import com.github.propi.rdfrules.rule.Rule;
 import com.github.propi.rdfrules.rule.Rule$;
@@ -34,9 +35,9 @@ public class SimilarityCounting {
 
     public com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting<Rule.Simple> asScala() {
         if (similarityCounting == null) {
-            return Rule$.MODULE$.ruleSimilarityCounting();
+            return SimilarityCounting$.MODULE$.ruleSimpleSimilarityCounting(Rule$.MODULE$.ruleSimilarityCounting());
         }
-        return SimilarityCountingConverters.toScalaRuleSimilarityCounting(similarityCounting);
+        return SimilarityCounting$.MODULE$.ruleSimpleSimilarityCounting(SimilarityCountingConverters.toScalaRuleSimilarityCounting(similarityCounting));
     }
 
     public SimilarityCounting add(RuleSimilarityCounting ruleSimilarityCounting, double weight) {

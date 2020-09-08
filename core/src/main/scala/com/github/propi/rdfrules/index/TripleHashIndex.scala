@@ -338,6 +338,21 @@ object TripleHashIndex {
     def emptyHashMap[V]: MutableHashMap[T, V]
   }
 
+  def addQuads[T](quads: Traversable[IndexItem[T]])(implicit thi: TripleHashIndex[T]): Unit = {
+    try {
+      quads.foreach {
+        case quad: IndexItem.Quad[T] =>
+          thi.addQuad(quad)
+          thi.addQuadToSubjects(quad)
+          thi.addQuadToObjects(quad)
+        case sameAs: IndexItem.SameAs[T] => thi.addSameAs(sameAs)
+        case _ =>
+      }
+    } finally {
+      thi.resolveSameAs
+    }
+  }
+
   def apply[T](quads: Traversable[IndexItem[T]])(implicit debugger: Debugger, collectionsBuilder: CollectionsBuilder[T]): TripleHashIndex[T] = {
     val index = new TripleHashIndex[T]
     debugger.debug("Dataset indexing") { ad =>

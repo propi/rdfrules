@@ -193,12 +193,12 @@ object Metric {
   implicit def indexToMetrics(index: Index): Seq[Metric] = {
     index.tripleMap { thi =>
       index.tripleItemMap { mapper =>
-        val totalDisc = thi.predicates.keysIterator.map(mapper.getTripleItem).collect {
+        val totalDisc = thi.predicates.iterator.map(mapper.getTripleItem).collect {
           case TripleItem.LongUri(uri) => uri
           case x: TripleItem.PrefixedUri => x.toLongUri.uri
         }.count(_.contains("_discretized_level_"))
-        val numPredicates = thi.predicates.valuesIterator.count(_.objects.keysIterator.exists(mapper.getTripleItem(_).isInstanceOf[TripleItem.Number[_]]))
-        List(Number("predicates", thi.predicates.keySet.size), Number("numPredicates", numPredicates), Number("discretized_*", totalDisc), Number("triples", thi.size))
+        val numPredicates = thi.predicates.valuesIterator.count(_.objects.iterator.exists(mapper.getTripleItem(_).isInstanceOf[TripleItem.Number[_]]))
+        List(Number("predicates", thi.predicates.size), Number("numPredicates", numPredicates), Number("discretized_*", totalDisc), Number("triples", thi.size))
       }
     }
   }

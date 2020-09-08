@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.experiments
 import com.github.propi.rdfrules.data
 import com.github.propi.rdfrules.data.{DiscretizationTask, Quad, TripleItem}
 import com.github.propi.rdfrules.experiments.IndexOps.DiscretizedTree
-import com.github.propi.rdfrules.index.{CompressedQuad, Index, TripleHashIndex, TripleItemHashIndex}
+import com.github.propi.rdfrules.index.{Index, IndexItem, TripleHashIndex, TripleItemHashIndex}
 import com.github.propi.rdfrules.rule.Threshold.{MinHeadCoverage, MinHeadSize}
 import eu.easyminer.discretization.algorithm.Discretization
 import eu.easyminer.discretization.impl.Interval
@@ -54,10 +54,10 @@ class IndexOps private(implicit mapper: TripleItemHashIndex, thi: TripleHashInde
           for {
             (p, predicateIndex) <- predicateIndex
             g = thi.getGraphs(p).iterator.next()
-            (s, objects) <- predicateIndex.subjects.iterator
-            o <- objects.keysIterator
+            (s, objects) <- predicateIndex.subjects.pairIterator
+            o <- objects.iterator
           } {
-            f(CompressedQuad(s, p, o, g).toQuad)
+            f(IndexItem.Quad(s, p, o, g).toQuad)
           }
         }
       }
@@ -75,17 +75,16 @@ class IndexOps private(implicit mapper: TripleItemHashIndex, thi: TripleHashInde
           val suffix = "_discretized_level_" + level
           val newPredicate = buildPredicate(suffix)
           val cutOffIntervals = intervals.filter(!isCutOff(_))
-          for {
-            quad <- predicateQuads
+          val quads = for {
+            quad <- predicateQuads.view
             objectNumber <- Option(quad.triple.`object`).collect {
               case TripleItem.NumberDouble(value) => value
             }
             interval <- cutOffIntervals.iterator.map(_.interval).find(_.isInInterval(objectNumber))
-          } {
-            val newQuad = Quad(data.Triple(quad.triple.subject, newPredicate, TripleItem.Interval(interval)), quad.graph)
-            mapper.addQuad(newQuad)
-            thi.addQuad(newQuad.toCompressedQuad.toIndexedQuad)
+          } yield {
+            Quad(data.Triple(quad.triple.subject, newPredicate, TripleItem.Interval(interval)), quad.graph)
           }
+          TripleHashIndex.addQuads(TripleItemHashIndex.addQuads(quads))
         }
         val allChildren = intervals.iterator.collect {
           case x: DiscretizedTree.Node => x.children
@@ -121,7 +120,7 @@ class IndexOps private(implicit mapper: TripleItemHashIndex, thi: TripleHashInde
     } yield {
       val col = new Traversable[Double] {
         def foreach[U](f: Double => U): Unit = {
-          tpi.objects.keysIterator.map(mapper.getTripleItem).collect {
+          tpi.objects.iterator.map(mapper.getTripleItem).collect {
             case TripleItem.NumberDouble(value) => value
           }.foreach(f)
         }
@@ -132,8 +131,8 @@ class IndexOps private(implicit mapper: TripleItemHashIndex, thi: TripleHashInde
   }
 
   def getNumericPredicates(predicates: Iterator[TripleItem], minSupport: Int): Iterator[(TripleItem, Int)] = {
-    (if (predicates.nonEmpty) predicates.flatMap(mapper.getIndexOpt) else thi.predicates.keysIterator).map { predicate =>
-      mapper.getTripleItem(predicate) -> thi.predicates.get(predicate).iterator.flatMap(_.objects.iterator).filter(x => mapper.getTripleItem(x._1).isInstanceOf[TripleItem.Number[_]]).map(_._2.size).sum
+    (if (predicates.nonEmpty) predicates.flatMap(mapper.getIndexOpt) else thi.predicates.iterator).map { predicate =>
+      mapper.getTripleItem(predicate) -> thi.predicates.get(predicate).iterator.flatMap(_.objects.pairIterator).filter(x => mapper.getTripleItem(x._1).isInstanceOf[TripleItem.Number[_]]).map(_._2.size).sum
     }.filter(_._2 >= minSupport)
   }
 
@@ -166,9 +165,9 @@ object IndexOps {
   }
 
   implicit class PimpedIndex(val index: Index) extends AnyVal {
-    def useRichOps[T](f: IndexOps => T): T = index.tripleItemMap { implicit mapper =>
-      index.tripleMap { implicit thi =>
-        f(new IndexOps())
+    def useRichOps[T](f: IndexOps => T): T = index.tripleItemMap { mapper =>
+      index.tripleMap { thi =>
+        f(new IndexOps()(mapper.asInstanceOf[TripleItemHashIndex], thi.asInstanceOf[TripleHashIndex[Int]]))
       }
     }
   }

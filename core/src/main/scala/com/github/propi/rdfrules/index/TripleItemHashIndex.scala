@@ -171,6 +171,20 @@ object TripleItemHashIndex {
     })
   }
 
+  def addQuads(col: Traversable[Quad])(implicit tihi: TripleItemHashIndex): Traversable[IndexItem[Int]] = {
+    new Traversable[IndexItem[Int]] {
+      def foreach[U](f: IndexItem[Int] => U): Unit = {
+        try {
+          for (quad <- col) {
+            tihi.addQuad(quad)
+          }
+        } finally {
+          tihi.removeSameResources()
+        }
+      }
+    }
+  }
+
   def apply(col: Traversable[Quad])(implicit debugger: Debugger): TripleItemHashIndex = {
     debugger.debug("Triple items indexing") { ad =>
       val (tihi, _) = mapQuads(col.view.takeWhile(_ => !debugger.isInterrupted)) { col =>

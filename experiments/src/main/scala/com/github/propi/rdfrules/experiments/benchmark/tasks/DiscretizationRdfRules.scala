@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.experiments.benchmark.tasks
 import com.github.propi.rdfrules.data.TripleItem
 import com.github.propi.rdfrules.experiments.IndexOps._
 import com.github.propi.rdfrules.experiments.benchmark.{DefaultMiningSettings, Task, TaskPostProcessor, TaskPreProcessor}
-import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.index.{Index, TripleHashIndex}
 import com.github.propi.rdfrules.rule.Threshold
 import com.github.propi.rdfrules.utils.Debugger
 
@@ -23,7 +23,7 @@ class DiscretizationRdfRules(val name: String, override val minHeadCoverage: Dou
     val predicates = input.useRichOps(_.getNumericPredicates(Iterator.empty, minSupportLower).toList)
     val trees = input.useRichOps(_.getDiscretizedTrees(predicates.iterator.map(_._1), minSupportLower, 2).toList)
     input.useRichOps(x => trees.foreach(y => x.addDiscretizedTreeToIndex(y._1.asInstanceOf[TripleItem.Uri], minSupportUpper, y._2)))
-    input.tripleMap(_.reset())
+    input.tripleMap(_.asInstanceOf[TripleHashIndex[Int]].reset())
     input
   }
 

@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.experiments.benchmark
 
 import com.github.propi.rdfrules.data.TripleItem
-import com.github.propi.rdfrules.index.{Index, TripleItemHashIndex}
+import com.github.propi.rdfrules.index.{Index, TripleItemIndex}
 import com.github.propi.rdfrules.rule.{Atom, Rule, RuleConstraint}
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 
@@ -10,7 +10,7 @@ import com.github.propi.rdfrules.utils.TypedKeyMap.Key
   */
 case class DiscretizedRuleFilter(discretizedPredicates: Seq[TripleItem.Uri]) extends RuleConstraint.Filter {
 
-  def mapped(implicit mapper: TripleItemHashIndex): RuleConstraint.MappedFilter = {
+  def mapped(implicit mapper: TripleItemIndex): RuleConstraint.MappedFilter = {
     val discretizedGroups = discretizedPredicates.iterator.collect {
       case x@TripleItem.LongUri(uri) => x -> uri
       case x: TripleItem.PrefixedUri => x -> x.toLongUri.uri
@@ -37,7 +37,7 @@ object DiscretizedRuleFilter extends Key[DiscretizedRuleFilter] {
   def apply(index: Index): DiscretizedRuleFilter = {
     val discretizedPredicates = index.tripleMap { thi =>
       index.tripleItemMap { mapper =>
-        thi.predicates.keysIterator.map(mapper.getTripleItem).collect {
+        thi.predicates.iterator.map(mapper.getTripleItem).collect {
           case x@TripleItem.LongUri(uri) if uri.contains("_discretized_level_") => x
           case x: TripleItem.PrefixedUri if x.toLongUri.uri.contains("_discretized_level_") => x
         }.toList

@@ -21,6 +21,6 @@ object SimilarityCountingConverters {
 
   def toScalaRuleComb(x: SimilarityCounting.RuleSimilarityCounting, weight: Double): Comb[Rule] = toScalaWeightedSimilarityCounting(x, weight)
 
-  def toScalaRuleSimilarityCounting(x: Comb[Rule]): dbscan.SimilarityCounting[Rule.Simple] = x
+  def toScalaRuleSimilarityCounting(x: Comb[Rule]): dbscan.SimilarityCounting[Rule] = x
 
 }
