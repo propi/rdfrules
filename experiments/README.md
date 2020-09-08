@@ -13,7 +13,7 @@ Clone the RDFRules repository and run following SBT commands:
 After execution of the *run* command we can choose from three basic (fast) examples and one complex benchmark:
 - **YagoAndDbpediaSamples**: 5 samples with DBpedia and YAGO datasets. It operates with the Scala API.
 - **CompleteWorkflowScala**: one example with the complete workflow of rule mining. It operates with the Scala API.
-- **CompleteWorkflowJava**: the same example as in the CompleteWorkflowScala experiments, but it operates with the Java API.
+- **~~CompleteWorkflowJava~~**: DEPRECATED! the same example as in the CompleteWorkflowScala experiments, but it operates with the Java API.
 - **OriginalAmieComparison**: complex bechmark with comparison to original AMIE+.
 - **AllTests**: run all experiments with default settings and with `-input experiments/data/yago2core_facts.clean.notypes.tsv.bz2`.
 
