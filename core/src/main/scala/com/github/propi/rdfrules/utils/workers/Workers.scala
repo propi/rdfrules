@@ -6,6 +6,7 @@ import com.github.propi.rdfrules.utils.workers.WorkerActor.Message
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
+//TODO replace Future by new Thread
 /**
   * Created by Vaclav Zeman on 9. 5. 2019.
   *

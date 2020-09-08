@@ -6,7 +6,6 @@ import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
 
-import scala.concurrent.ExecutionContext
 import scala.language.postfixOps
 
 /**
@@ -16,7 +15,7 @@ class HeadsMiner private(_parallelism: Int = Runtime.getRuntime.availableProcess
                          _thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
                          _constraints: TypedKeyMap[RuleConstraint] = TypedKeyMap(),
                          _patterns: List[RulePattern] = Nil)
-                        (implicit debugger: Debugger, ec: ExecutionContext) extends RulesMining(_parallelism, _thresholds, _constraints, _patterns) {
+                        (implicit debugger: Debugger) extends RulesMining(_parallelism, _thresholds, _constraints, _patterns) {
 
   self =>
 
@@ -33,7 +32,7 @@ class HeadsMiner private(_parallelism: Int = Runtime.getRuntime.availableProcess
     process.getHeads.map(Rule.Simple.apply)
   }
 
-  private class AmieProcess(implicit val tripleIndex: TripleIndex[Int], val settings: RuleRefinement.Settings, val forAtomMatcher: AtomPatternMatcher[Atom], val ec: ExecutionContext) extends HeadsFetcher {
+  private class AmieProcess(implicit val tripleIndex: TripleIndex[Int], val settings: RuleRefinement.Settings, val forAtomMatcher: AtomPatternMatcher[Atom]) extends HeadsFetcher {
     val patterns: List[RulePattern] = self.patterns
     val thresholds: TypedKeyMap.Immutable[Threshold] = self.thresholds
   }
@@ -49,6 +48,6 @@ object HeadsMiner {
     * @param ec ec
     * @return
     */
-  def apply()(implicit debugger: Debugger, ec: ExecutionContext = ExecutionContext.global): RulesMining = new HeadsMiner()
+  def apply()(implicit debugger: Debugger): RulesMining = new HeadsMiner()
 
 }

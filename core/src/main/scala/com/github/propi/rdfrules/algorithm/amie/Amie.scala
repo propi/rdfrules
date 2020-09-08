@@ -12,7 +12,7 @@ import com.github.propi.rdfrules.utils.{Debugger, HashQueue, TypedKeyMap}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future, Promise}
+import scala.concurrent.{Await, Future, Promise}
 import scala.language.postfixOps
 
 /**
@@ -22,7 +22,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
                    _thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
                    _constraints: TypedKeyMap[RuleConstraint] = TypedKeyMap(),
                    _patterns: List[RulePattern] = Nil)
-                  (implicit debugger: Debugger, ec: ExecutionContext) extends RulesMining(_parallelism, _thresholds, _constraints, _patterns) {
+                  (implicit debugger: Debugger) extends RulesMining(_parallelism, _thresholds, _constraints, _patterns) {
 
   self =>
 
@@ -186,48 +186,58 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
         while (!queue.isEmpty && settings.timeout.forall(_ > settings.currentDuration) && !debugger.isInterrupted) {
           //starts P jobs in parallel where P is number of processors
           //each job refines rules from queue with length X where X is the stage number.
-          val jobs = for (_ <- 0 until parallelism) yield Future {
-            Stream.continually {
-              //poll head rule from queue with length X (wher X is the stage number)
-              //if queue is empty or head rule has length greater than X, return None
-              queue.synchronized {
-                if (!queue.isEmpty && queue.peek.ruleLength == stage) Some(queue.poll) else None
-              }
-            }.takeWhile(_.isDefined && settings.timeout.forall(_ > settings.currentDuration) && !debugger.isInterrupted).map(_.get).filter(result.isRefinable).foreach { rule =>
-              ad.done(s"processed rules, found closed rules: ${foundRules.get()}, queue size: $queueSize")
-              //we continually take all defined (and valid) rules from queue until end of the stage or reaching of the timeout
-              //if rule length is lower than max rule length we can expand this rule with one atom (in this refine phase it always applies)
-              //if we use the topK approach the minHeadCoverage may change during mining; therefore we need to check minHC threshold for the current rule
-              //refine the rule and add all expanded variants into the queue
-              if (stage + 1 < settings.maxRuleLength) {
-                /*howLong("Rule expansion", true)(*/ for (rule <- rule.refine) {
-                  val (beforeSize, currentSize) = queue.synchronized {
-                    val beforeSize = queue.size
-                    queue.add(rule)
-                    beforeSize -> queue.size
+
+          val jobs = List.fill(parallelism) {
+            val job = new Runnable {
+              def run(): Unit = {
+                Iterator.continually {
+                  //poll head rule from queue with length X (wher X is the stage number)
+                  //if queue is empty or head rule has length greater than X, return None
+                  queue.synchronized {
+                    if (!queue.isEmpty && queue.peek.ruleLength == stage) Some(queue.poll) else None
                   }
-                  if (currentSize > beforeSize && rule.isInstanceOf[ClosedRule]) {
-                    result.addRule(rule.asInstanceOf[ClosedRule])
-                    foundRules.incrementAndGet()
+                }.takeWhile(_.isDefined && settings.timeout.forall(_ > settings.currentDuration) && !debugger.isInterrupted).map(_.get).filter(result.isRefinable).foreach { rule =>
+                  ad.done(s"processed rules, found closed rules: ${foundRules.get()}, queue size: $queueSize")
+                  //we continually take all defined (and valid) rules from queue until end of the stage or reaching of the timeout
+                  //if rule length is lower than max rule length we can expand this rule with one atom (in this refine phase it always applies)
+                  //if we use the topK approach the minHeadCoverage may change during mining; therefore we need to check minHC threshold for the current rule
+                  //refine the rule and add all expanded variants into the queue
+                  if (stage + 1 < settings.maxRuleLength) {
+                    /*howLong("Rule expansion", true)(*/ for (rule <- rule.refine) {
+                      val (beforeSize, currentSize) = queue.synchronized {
+                        val beforeSize = queue.size
+                        queue.add(rule)
+                        beforeSize -> queue.size
+                      }
+                      if (currentSize > beforeSize && rule.isInstanceOf[ClosedRule]) {
+                        result.addRule(rule.asInstanceOf[ClosedRule])
+                        foundRules.incrementAndGet()
+                      }
+                    } //)
+                  } else {
+                    /*howLong("Rule expansion", true)(*/ for (rule@ClosedRule(_, _) <- rule.refine) {
+                      val (beforeSize, currentSize) = lastStageResult.synchronized {
+                        val beforeSize = lastStageResult.size
+                        lastStageResult += rule
+                        beforeSize -> lastStageResult.size
+                      }
+                      if (currentSize > beforeSize) {
+                        result.addRule(rule)
+                        ad.done(s"processed rules, found closed rules: ${foundRules.incrementAndGet()}, queue size: $queueSize")
+                      }
+                    } //)
                   }
-                } //)
-              } else {
-                /*howLong("Rule expansion", true)(*/ for (rule@ClosedRule(_, _) <- rule.refine) {
-                  val (beforeSize, currentSize) = lastStageResult.synchronized {
-                    val beforeSize = lastStageResult.size
-                    lastStageResult += rule
-                    beforeSize -> lastStageResult.size
-                  }
-                  if (currentSize > beforeSize) {
-                    result.addRule(rule)
-                    ad.done(s"processed rules, found closed rules: ${foundRules.incrementAndGet()}, queue size: $queueSize")
-                  }
-                } //)
+                }
               }
             }
+            val thread = new Thread(job)
+            thread.start()
+            thread
           }
           //wait for all jobs in the current stage
-          Await.result(Future.sequence(jobs), Duration.Inf)
+          for (job <- jobs) {
+            job.join()
+          }
           //stage is completed, go to the next stage
           stage += 1
         }
@@ -244,9 +254,8 @@ object Amie {
     * Create an AMIE+ miner. If you do not specify any threshold, default is minHeadSize = 100, minSupport = 1, maxRuleLength = 3
     *
     * @param debugger debugger
-    * @param ec       ec
     * @return
     */
-  def apply()(implicit debugger: Debugger, ec: ExecutionContext = ExecutionContext.global): RulesMining = new Amie()
+  def apply()(implicit debugger: Debugger): RulesMining = new Amie()
 
 }
