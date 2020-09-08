@@ -6,13 +6,13 @@ package com.github.propi.rdfrules.experiments
 object AllTests {
 
   def main(args: Array[String]): Unit = {
-    CompleteWorkflowScala.main(Array.empty)
-    YagoAndDbpediaSamples.main(Array.empty)
+    /*CompleteWorkflowScala.main(Array.empty)
+    YagoAndDbpediaSamples.main(Array.empty)*/
     val input = args.headOption match {
       case Some(input) => s"-input $input"
       case None => ""
     }
-    OriginalAmieComparison.main(s"-rungraphs $input -times 1 -output experiments/data/result_graphs.txt".split(' '))
+    //OriginalAmieComparison.main(s"-rungraphs $input -times 1 -output experiments/data/result_graphs.txt".split(' '))
     OriginalAmieComparison.main(s"-rundiscretization -input experiments/data/mappingbased_literals_sample.ttl.bz2 -times 1 -output experiments/data/result_discretization.txt".split(' '))
     OriginalAmieComparison.main(s"-runlogical $input -times 1 -output experiments/data/result_logical.txt".split(' '))
     OriginalAmieComparison.main(s"-runconstants $input -times 1 -output experiments/data/result_constants.txt".split(' '))

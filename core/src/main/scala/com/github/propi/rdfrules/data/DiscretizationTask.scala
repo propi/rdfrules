@@ -34,20 +34,21 @@ object DiscretizationTask {
   }
 
   case class Equisize(support: Double, buffer: Int = 15000000, mode: Mode = Mode.External) extends DiscretizationTask with EquisizeDiscretizationTask {
-    lazy val getMinSupport: Support = if (support >= 0 && support <= 1) {
+    lazy val getMinSupport: Support = if (support > 0 && support < 1) {
       new RelativeSupport(support)
     } else {
-      new AbsoluteSupport(support.toInt)
+      new AbsoluteSupport(math.max(support.toInt, 2))
     }
 
     def getBufferSize: Int = buffer
   }
 
   case class EquisizeTree(support: Double, arity: Int = 2, buffer: Int = 15000000) extends DiscretizationTask with EquisizeTreeDiscretizationTask {
-    lazy val getMinSupport: Support = if (support >= 0 && support <= 1) {
+    println(support)
+    lazy val getMinSupport: Support = if (support > 0 && support < 1) {
       new RelativeSupport(support)
     } else {
-      new AbsoluteSupport(support.toInt)
+      new AbsoluteSupport(math.max(support.toInt, 2))
     }
 
     def getArity: Int = arity

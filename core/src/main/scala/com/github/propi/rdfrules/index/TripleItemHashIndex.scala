@@ -176,7 +176,7 @@ object TripleItemHashIndex {
       def foreach[U](f: IndexItem[Int] => U): Unit = {
         try {
           for (quad <- col) {
-            tihi.addQuad(quad)
+            f(tihi.addQuad(quad))
           }
         } finally {
           tihi.removeSameResources()
