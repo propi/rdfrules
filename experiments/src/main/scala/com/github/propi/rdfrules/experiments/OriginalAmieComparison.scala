@@ -253,7 +253,7 @@ object OriginalAmieComparison {
             }
           }
           if (cli.hasOption("runpruning")) {
-            val topKs = cli.getOptionValue("topks", "500, 1000, 2000, 4000, 8000, 16000, 32000").split(",").iterator.map(_.trim).filter(_.nonEmpty).map(_.toInt).toList
+            val topKs = cli.getOptionValue("topks", "500,1000,2000,4000,8000,16000,32000").split(",").iterator.map(_.trim).filter(_.nonEmpty).map(_.toInt).toList
             for (topK <- topKs) {
               val rules = index.mine(Amie().setParallelism(numberOfThreads).addThreshold(Threshold.MinHeadCoverage(0.01)).addThreshold(Threshold.TopK(topK))).computeConfidence(0.1).cache
               Once executeTask new PruningRdfRules(s"RDFRules: pruning, rules: ${rules.size}, topK: $topK") withInput rules andFinallyProcessResultWith BasicPrinter()
