@@ -1,0 +1,4 @@
+******* TASK: RDFRules: minHeadCoverage = 0.01, minConfidence = 0.1, minPcaConfidence = 0.1, only logical rules *******
+memory: 197.2067 MB (stdDev: 0.0 B, min: 197.2067 MB, max: 197.2067 MB)
+rules: 3430.0 (stdDev: 0.0, min: 3430.0, max: 3430.0)
+time: 12.82 min (stdDev: 0.000 ns, min: 12.82 min, max: 12.82 min)

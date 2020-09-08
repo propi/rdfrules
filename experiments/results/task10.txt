@@ -1,0 +1,108 @@
+******* TASK: RDFRules: mine without discretization, minHc: 0.01 *******
+memory: 78.5844 MB
+newTriples: 501.0
+rules: 938.0
+rulesConf: 656.0
+time: 11.84 s
+******* TASK: RDFRules: discretization, minHc = 0.01 *******
+discretized_*: 192.0
+memory: 83.2381 MB
+numPredicates: 89.0
+predicates: 478.0
+time: 1.319 s
+******* TASK: RDFRules: mine with discretization, minHc: 0.01 *******
+memory: 172.1718 MB
+newTriples: 19409.0
+rules: 312736.0
+rulesConf: 166320.0
+time: 18.01 s
+******* TASK: RDFRules: mine without discretization, minHc: 0.02 *******
+memory: 77.5825 MB
+newTriples: 306.0
+rules: 147.0
+rulesConf: 71.0
+time: 6.251 s
+******* TASK: RDFRules: discretization, minHc = 0.02 *******
+discretized_*: 154.0
+memory: 78.3809 MB
+numPredicates: 89.0
+predicates: 440.0
+time: 726.7 ms
+******* TASK: RDFRules: mine with discretization, minHc: 0.02 *******
+memory: 41.7488 MB
+newTriples: 10038.0
+rules: 72630.0
+rulesConf: 33803.0
+time: 10.52 s
+******* TASK: RDFRules: mine without discretization, minHc: 0.05 *******
+memory: 77.5073 MB
+newTriples: 69.0
+rules: 20.0
+rulesConf: 7.0
+time: 5.228 s
+******* TASK: RDFRules: discretization, minHc = 0.05 *******
+discretized_*: 93.0
+memory: 58.4999 MB
+numPredicates: 89.0
+predicates: 379.0
+time: 367.4 ms
+******* TASK: RDFRules: mine with discretization, minHc: 0.05 *******
+memory: 7.4918 MB
+newTriples: 5117.0
+rules: 10404.0
+rulesConf: 4765.0
+time: 4.653 s
+******* TASK: RDFRules: mine without discretization, minHc: 0.1 *******
+memory: 77.3266 MB
+newTriples: 20.0
+rules: 6.0
+rulesConf: 2.0
+time: 4.699 s
+******* TASK: RDFRules: discretization, minHc = 0.1 *******
+discretized_*: 63.0
+memory: 48.4593 MB
+numPredicates: 89.0
+predicates: 349.0
+time: 323.1 ms
+******* TASK: RDFRules: mine with discretization, minHc: 0.1 *******
+memory: 2.5424 MB
+newTriples: 2998.0
+rules: 1981.0
+rulesConf: 887.0
+time: 3.008 s
+******* TASK: RDFRules: mine without discretization, minHc: 0.2 *******
+memory: 77.3541 MB
+newTriples: 0.0
+rules: 1.0
+rulesConf: 0.0
+time: 4.977 s
+******* TASK: RDFRules: discretization, minHc = 0.2 *******
+discretized_*: 39.0
+memory: 38.8706 MB
+numPredicates: 89.0
+predicates: 325.0
+time: 284.9 ms
+******* TASK: RDFRules: mine with discretization, minHc: 0.2 *******
+memory: 1.499 MB
+newTriples: 1902.0
+rules: 283.0
+rulesConf: 144.0
+time: 1.800 s
+******* TASK: RDFRules: mine without discretization, minHc: 0.3 *******
+memory: 77.352 MB
+newTriples: 0.0
+rules: 0.0
+rulesConf: 0.0
+time: 5.162 s
+******* TASK: RDFRules: discretization, minHc = 0.3 *******
+discretized_*: 28.0
+memory: 36.2516 MB
+numPredicates: 89.0
+predicates: 314.0
+time: 252.3 ms
+******* TASK: RDFRules: mine with discretization, minHc: 0.3 *******
+memory: 1.3768 MB
+newTriples: 1160.0
+rules: 64.0
+rulesConf: 32.0
+time: 1.172 s

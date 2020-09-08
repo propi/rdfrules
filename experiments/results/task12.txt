@@ -1,0 +1,49 @@
+******* TASK: RDFRules: pruning, rules: 350, topK: 500 *******
+coveredTriples: 16824.0
+memory: -30.768 kB
+prunedCoveredTriples: 16824.0
+prunedRules: 89.0
+rules: 350.0
+time: 478.9 ms
+******* TASK: RDFRules: pruning, rules: 764, topK: 1000 *******
+coveredTriples: 19091.0
+memory: 14.696 kB
+prunedCoveredTriples: 19091.0
+prunedRules: 120.0
+rules: 764.0
+time: 528.3 ms
+******* TASK: RDFRules: pruning, rules: 1604, topK: 2000 *******
+coveredTriples: 19252.0
+memory: -35.76 kB
+prunedCoveredTriples: 19252.0
+prunedRules: 166.0
+rules: 1604.0
+time: 691.0 ms
+******* TASK: RDFRules: pruning, rules: 3218, topK: 4000 *******
+coveredTriples: 26230.0
+memory: 22.416 kB
+prunedCoveredTriples: 26230.0
+prunedRules: 228.0
+rules: 3218.0
+time: 1.233 s
+******* TASK: RDFRules: pruning, rules: 5887, topK: 8000 *******
+coveredTriples: 27205.0
+memory: 67.632 kB
+prunedCoveredTriples: 27205.0
+prunedRules: 345.0
+rules: 5887.0
+time: 2.214 s
+******* TASK: RDFRules: pruning, rules: 11427, topK: 16000 *******
+coveredTriples: 28480.0
+memory: 115.648 kB
+prunedCoveredTriples: 28480.0
+prunedRules: 466.0
+rules: 11427.0
+time: 4.169 s
+******* TASK: RDFRules: pruning, rules: 21795, topK: 32000 *******
+coveredTriples: 31338.0
+memory: 112.4 kB
+prunedCoveredTriples: 31338.0
+prunedRules: 653.0
+rules: 21795.0
+time: 8.245 s

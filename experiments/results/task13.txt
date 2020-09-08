@@ -1,0 +1,12 @@
+******* TASK: RDFRules: graphs-mining YAGO, minHeadCoverage = 0.01 *******
+memory: 1.1348 GB
+rules: 1806326.0
+time: 29.80 s
+******* TASK: RDFRules: graphs-mining DBpedia, minHeadCoverage = 0.01 *******
+memory: 220.6118 MB
+rules: 88926.0
+time: 29.38 s
+******* TASK: RDFRules: graphs-mining YAGO+DBpedia, minHeadCoverage = 0.01 *******
+memory: 2.1588 GB
+rules: 2893492.0
+time: 1.507 min

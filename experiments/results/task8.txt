@@ -1,0 +1,4 @@
+******* TASK: AMIE: minHeadCoverage = 0.01, minConfidence = 0.1, minPcaConfidence = 0.1, only logical rules *******
+memory: 91.3605 MB (stdDev: 0.0 B, min: 91.3605 MB, max: 91.3605 MB)
+rules: 2884.0 (stdDev: 0.0, min: 2884.0, max: 2884.0)
+time: 7.140 h (stdDev: 0.000 ns, min: 7.140 h, max: 7.140 h)
