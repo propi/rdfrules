@@ -44,7 +44,6 @@ object DiscretizationTask {
   }
 
   case class EquisizeTree(support: Double, arity: Int = 2, buffer: Int = 15000000) extends DiscretizationTask with EquisizeTreeDiscretizationTask {
-    println(support)
     lazy val getMinSupport: Support = if (support > 0 && support < 1) {
       new RelativeSupport(support)
     } else {

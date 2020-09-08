@@ -12,11 +12,11 @@ object AllTests {
       case Some(input) => s"-input $input"
       case None => ""
     }
-    //OriginalAmieComparison.main(s"-rungraphs $input -times 1 -output experiments/data/result_graphs.txt".split(' '))
+    /*OriginalAmieComparison.main(s"-rungraphs $input -times 1 -output experiments/data/result_graphs.txt".split(' '))
     OriginalAmieComparison.main(s"-rundiscretization -input experiments/data/mappingbased_literals_sample.ttl.bz2 -times 1 -output experiments/data/result_discretization.txt".split(' '))
     OriginalAmieComparison.main(s"-runlogical $input -times 1 -output experiments/data/result_logical.txt".split(' '))
     OriginalAmieComparison.main(s"-runconstants $input -times 1 -output experiments/data/result_constants.txt".split(' '))
-    OriginalAmieComparison.main(s"-runcores $input -times 1 -output experiments/data/result_cores.txt".split(' '))
+    OriginalAmieComparison.main(s"-runcores $input -times 1 -output experiments/data/result_cores.txt".split(' '))*/
     OriginalAmieComparison.main(s"-runtopk $input -times 1 -output experiments/data/result_topk.txt".split(' '))
     OriginalAmieComparison.main(s"-runpatterns $input -times 1 -output experiments/data/result_patterns.txt".split(' '))
     OriginalAmieComparison.main(s"-runconfidence $input -times 1 -output experiments/data/result_confidence.txt".split(' '))

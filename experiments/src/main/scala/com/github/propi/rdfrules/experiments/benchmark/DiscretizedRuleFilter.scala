@@ -17,8 +17,8 @@ case class DiscretizedRuleFilter(discretizedPredicates: Seq[TripleItem.Uri]) ext
     }.map(x => x._1 -> x._2.replaceFirst("_discretized_level_.*", ""))
       .toSeq
       .groupBy(_._2)
-      .mapValues(_.iterator.map(_._1).map(mapper.getIndex(_)).toSet)
-      .valuesIterator
+      .iterator
+      .map(x => x._2.iterator.map(_._1).map(mapper.getIndex(_)).toSet + mapper.getIndex(TripleItem.LongUri(x._1)))
       .flatMap(x => x.iterator.map(_ -> x))
       .toMap
     (newAtom: Atom, rule: Option[Rule]) =>
