@@ -15,13 +15,14 @@ After execution of the *run* command we can choose from three basic (fast) examp
 - **CompleteWorkflowScala**: one example with the complete workflow of rule mining. It operates with the Scala API.
 - **CompleteWorkflowJava**: the same example as in the CompleteWorkflowScala experiments, but it operates with the Java API.
 - **OriginalAmieComparison**: complex bechmark with comparison to original AMIE+.
+- **AllTests**: run all experiments with default settings and with `-input experiments/data/yago2core_facts.clean.notypes.tsv.bz2`.
 
 ## Benchmark
 
 The main class *OriginalAmieComparison* requires some parameters to determine which kind of experiment should be launched:
 
 ```sbt
-> run-main com.github.propi.rdfrules.experiments.OriginalAmieComparison parameters...
+> runMain com.github.propi.rdfrules.experiments.OriginalAmieComparison parameters...
 ```
 
 | *Parameter name* | *Description* | *Default* |
@@ -38,31 +39,60 @@ The main class *OriginalAmieComparison* requires some parameters to determine wh
 | runcores | Run the experiment of scalability. Default thresholds are: minHeadCoverage = ${minhcs.head}, minConfidence = 0.1, minPcaConfidence = 0.1 |  |
 | runpatterns | Run rule mining with patterns |  |
 | runconfidence | Run confidence computing separately. The default threshold is minPcaConfidence=0.1, input 10000 rules with/without constants. |  |
+| rungraphs | Run mining of rules from two different graphs and from merged graphs together by owl:sameAs links. YAGO and DBpedia samples are used. |  |
+| rundiscretization | Run a heuristic for automatic discretization of numerical values in order to discover more interesting rules. There should by used an input dataset with numerical literals, e.g., experiments/data/mappingbased_literals_sample.ttl.bz2 |  |
+| runclusters | Run DBScan clustering for mined rules by different settings with calculated inter/intra cluster similarities and final score. MinNeigbours is set to 1 and Eps (min similarity) is set by the *minsims* option. Rules are clusteted based on their body and head contents. |  |
+| minsims | Minimum similarities to make a cluster by the clustering experiment. | 0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8 |
+| runpruning | Run CBA pruning strategy for reducing number of rules and compare results with the original ruleset. The original ruleset is mined by topK approach with different values set by the *topks* option and with MinHC=0.01 and MinConf=0.1 |  |
+| topks | TopK values for the pruning experiment.  | 500,1000,2000,4000,8000,16000,32000 |
 | rdfrulesonly | Run only RDFRules |  |
 | amieonly | Run only AMIE+ |  |
 
 ### Performed experiments
 
-We performed some experiments on the [CESNET Metacentrum](https://www.metacentrum.cz/en/index.html) computing cluster with the [sample YAGO dataset](./data/yago2core_facts.clean.notypes.tsv.bz2) containing around 1M triples with following input parameters:
+We performed some experiments on the [CESNET Metacentrum](https://www.metacentrum.cz/en/index.html) computing cluster with RDFRules 1.2.1 and the [sample YAGO dataset](./data/yago2core_facts.clean.notypes.tsv.bz2) containing around 1M triples with following input parameters:
 
 ```
 # task1 - mining only with variables
-> run-main com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 8 -runlogical -minhcs 0.2,0.1,0.05,0.02,0.01,0.005,0.003,0.001
+> runMain com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 8 -runlogical -minhcs 0.2,0.1,0.05,0.02,0.01,0.005,0.003,0.001
 # task2 - mining with constants
-> run-main com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 8 -runconstants
+> runMain com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 8 -runconstants
 # task3 - scalability
-> run-main com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 12 -minhcs 0.01 -runcores
+> runMain com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 12 -minhcs 0.01 -runcores
 # task4 - scalability
-> run-main com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 24 -coresc 12,16,20,24 -minhcs 0.01,0.005 -runcores
+> runMain com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 24 -coresc 12,16,20,24 -minhcs 0.01,0.005 -runcores
 # task5 - mining with constants with one thread
-> run-main com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 1 -minhcs 0.01 -runconstants
+> runMain com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 1 -minhcs 0.01 -runconstants
 # task6 - topK, patterns and confidence computing experiments with 8 cores
-> run-main com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 8 -runtopk -runpatterns -runconfidence
+> runMain com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 8 -runtopk -runpatterns -runconfidence
 # task7 - rule mining only with variables with a low head coverage
-> run-main com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 8 -runlogical -minhcs 0.2,0.1,0.05,0.02,0.01,0.005,0.003,0.001
+> runMain com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 8 -runlogical -minhcs 0.2,0.1,0.05,0.02,0.01,0.005,0.003,0.001
+```
+
+For RDFRules 1.4.0, the experiments were extended by dbpedia, discretization, clustering, pruning, and multiple-graphs experiments.
+
+```
+# task8 - mining rules without constants by AMIE+ for DBpedia 3.8
+> runMain com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 8 -times 1 -input "experiments/data/dbpedia.3.8.tsv.bz2" -minhcs 0.01 -runlogical -amieonly
+# task9 - mining rules without constants by RDFRules for DBpedia 3.8
+> runMain com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 8 -times 1 -input "experiments/data/dbpedia.3.8.tsv.bz2" -minhcs 0.01 -runlogical -rdfrulesonly
+# task10 - auto discretization of numerical values
+> runMain com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 8 -rundiscretization -minhcs 0.01,0.02,0.05,0.1,0.2,0.3 -input "experiments/data/mappingbased_literals_sample.ttl.bz2"
+# task11 - clustering by different settings with calculated inter/intra cluster similarities and final score
+> runMain com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 8 -runclusters
+# task12 - CBA pruning strategy for reducing number of rules without loss of predicted triples 
+> runMain com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 8 -runpruning
+# task13 - comparison between mining of rules from two different graphs and from merged graphs together
+> runMain com.github.propi.rdfrules.experiments.OriginalAmieComparison -cores 8 -rungraphs
 ```
 
 The results of individual tasks are placed in the [results](./results) folder. The parameters of the used machine for experiments are:
 - CPU: 4x 14-core Intel Xeon E7-4830 v4 (2GHz),
 - RAM: 512 GB,
 - OS: Debian 9.
+
+All experiments can be launched with default settings with the *yago2core_facts.clean.notypes.tsv.bz2* dataset and with the *mappingbased_literals_sample.ttl.bz2* dataset for discretization by the main class *AllTests*:
+
+```sbt
+> runMain com.github.propi.rdfrules.experiments.AllTests
+```
