@@ -1,5 +1,7 @@
 # RDFRules: Java API
 
+**IMPORTANT: The JAVA API is now deprecated and will be removed in the next release. Go to the [HTTP](../http) module if you plan to use RDFRules without Scala API.**
+
 This is the Java API of the RDFRules tool. It has implemented several facades over the Scala core.
 
 ## Getting Started
