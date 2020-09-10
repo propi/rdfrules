@@ -45,6 +45,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
     implicit val settings: RuleRefinement.Settings = new Settings(this)(/*if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) */ debugger /* else Debugger.EmptyDebugger*/ , mapper)
     val process = new AmieProcess()
     try {
+      logger.info("Amie task settings:\n" + settings)
       process.searchRules()
       val timeoutReached = settings.timeout.exists(settings.currentDuration >= _)
       val rules = Await.result(process.result.getResult, 1 minute)
@@ -165,30 +166,32 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
       *
       * @return expanded closed rules in the result set
       */
-    def searchRules(): Unit = debugger.debug("Amie rules mining") { ad =>
-      debugger.debug("Browsed projections large buckets") { implicit _ad =>
-        //queue for mined rules which can be also expanded
-        //in this queue there can not be any duplicit rules (it speed up computation)
-        val queue = new HashQueue[ExtendedRule]
+    def searchRules(): Unit = {
+      //queue for mined rules which can be also expanded
+      //in this queue there can not be any duplicit rules (it speed up computation)
+      val queue = new HashQueue[ExtendedRule]
 
-        def queueSize = queue.synchronized {
-          queue.size
-        }
+      def queueSize = queue.synchronized {
+        queue.size
+      }
 
-        val lastStageResult = collection.mutable.HashSet.empty[ClosedRule]
-        //add all possible head to the queue
-        getHeads foreach queue.add
-        //first we refine all rules with length 1 (stage 1)
-        //once all rules with length 1 are refined we go to the stage 2 (refine rules with length 2), etc.
-        var stage = 1
-        val foundRules = new AtomicInteger(0)
-        //if the queue is not empty and the timeout is not reached, go to the stage X
+      val lastStageResult = collection.mutable.HashSet.empty[ClosedRule]
+      //add all possible head to the queue
+      getHeads foreach queue.add
+      //first we refine all rules with length 1 (stage 1)
+      //once all rules with length 1 are refined we go to the stage 2 (refine rules with length 2), etc.
+      @volatile var stage = 1
+      val foundRules = new AtomicInteger(0)
+      //if the queue is not empty and the timeout is not reached, go to the stage X
+      debugger.debug("Amie rules mining") { ad =>
         while (!queue.isEmpty && settings.timeout.forall(_ > settings.currentDuration) && !debugger.isInterrupted) {
+          val activeThreads = new AtomicInteger(parallelism)
           //starts P jobs in parallel where P is number of processors
           //each job refines rules from queue with length X where X is the stage number.
-
           val jobs = List.fill(parallelism) {
             val job = new Runnable {
+              private def debug(): Unit = ad.done(s"processed rules, found closed rules: ${foundRules.get()}, queue size: $queueSize, stage: $stage, activeThreads: ${activeThreads.get()}")
+
               def run(): Unit = {
                 Iterator.continually {
                   //poll head rule from queue with length X (wher X is the stage number)
@@ -197,7 +200,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
                     if (!queue.isEmpty && queue.peek.ruleLength == stage) Some(queue.poll) else None
                   }
                 }.takeWhile(_.isDefined && settings.timeout.forall(_ > settings.currentDuration) && !debugger.isInterrupted).map(_.get).filter(result.isRefinable).foreach { rule =>
-                  ad.done(s"processed rules, found closed rules: ${foundRules.get()}, queue size: $queueSize")
+                  debug()
                   //we continually take all defined (and valid) rules from queue until end of the stage or reaching of the timeout
                   //if rule length is lower than max rule length we can expand this rule with one atom (in this refine phase it always applies)
                   //if we use the topK approach the minHeadCoverage may change during mining; therefore we need to check minHC threshold for the current rule
@@ -223,7 +226,8 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
                       }
                       if (currentSize > beforeSize) {
                         result.addRule(rule)
-                        ad.done(s"processed rules, found closed rules: ${foundRules.incrementAndGet()}, queue size: $queueSize")
+                        foundRules.incrementAndGet()
+                        debug()
                       }
                     } //)
                   }

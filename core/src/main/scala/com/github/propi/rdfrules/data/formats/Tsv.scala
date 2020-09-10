@@ -16,9 +16,9 @@ import scala.util.Try
   */
 trait Tsv {
 
-  self: JenaLang =>
+  private def stripResource(x: String) = x.trim.stripPrefix("<").stripSuffix(">").trim // replaceAll("[\\u0000-\\u0020]|[<>\"{}|^`\\\\]", "")
 
-  private def stripResource(x: String) = x.trim.stripPrefix("<").stripSuffix(">").replaceAll("[\\u0000-\\u0020]|[<>\"{}|^`\\\\]", "")
+  private def stripMargins(x: String): String = x.substring(1, x.length - 1).trim
 
   @tailrec
   private def stringifyTripleItem(x: TripleItem): String = x match {
@@ -90,41 +90,70 @@ trait Tsv {
           Prefix.Full("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#"),
           Prefix.Full("owl", "http://www.w3.org/2002/07/owl#")
         )
-        val PrefixedMatcher = "(.+?):(.+)".r
 
         def stringToPrefixedUri(x: String): Option[TripleItem.Uri] = {
-          x match {
-            case PrefixedMatcher(prefix, localName) =>
-              if (prefix == "_") {
-                Some(TripleItem.BlankNode(localName))
-              } else {
-                prefixes.find(_.prefix == prefix).map(p => TripleItem.PrefixedUri(p, localName))
-              }
-            case _ => None
+          val sepIndex = x.indexOf(':')
+          if (sepIndex >= 0) {
+            val prefix = x.substring(0, sepIndex)
+            val localName = if (x.length > (sepIndex + 1)) x.substring(sepIndex + 1) else ""
+            if (prefix == "_") {
+              Some(TripleItem.BlankNode(localName))
+            } else {
+              prefixes.find(_.prefix == prefix).map(p => TripleItem.PrefixedUri(p, localName)).orElse(Some(TripleItem.LongUri(x)))
+            }
+          } else {
+            None
           }
         }
 
-        def stringToUri(x: String): TripleItem.Uri = stringToPrefixedUri(x).getOrElse(TripleItem.LongUri(x))
+        def stringToLongUri(x: String): Option[TripleItem.Uri] = {
+          if (x.startsWith("<") && x.endsWith(">")) {
+            Some(TripleItem.LongUri(stripMargins(x)))
+          } else {
+            None
+          }
+        }
 
-        source.getLines().map(_.trim.split("\t")).collect {
-          case Array(s, p, o) =>
-            val strippedSubject = stringToUri(stripResource(s))
-            val strippedPredicate = stringToUri(stripResource(p))
-            val strippedObject = o.trim.replaceFirst("\\s*\\.\\s*$", "")
-            Triple(
+        def stringToNumber(x: String): Try[TripleItem] = {
+          Try(TripleItem.Number(x.toInt)).orElse(Try(TripleItem.Number(x.toDouble)))
+        }
+
+        def stringToText(x: String): Option[TripleItem] = {
+          if (x.startsWith("\"")) {
+            if (x.endsWith("\"")) {
+              Some(TripleItem.Text(stripMargins(x)))
+            } else {
+              val sepIndex = x.lastIndexOf("\"^^")
+              if (sepIndex >= 0) {
+                val text = x.substring(1, sepIndex)
+                Some(stringToNumber(text).getOrElse(TripleItem.Text(text)))
+              } else {
+                None
+              }
+            }
+          } else {
+            None
+          }
+        }
+
+        for (triple <- source.getLines().map(_.trim.split("\t"))) {
+          if (triple.length == 3) {
+            val trimmedSubject = triple(0).trim
+            val trimmedPredicate = triple(1).trim
+            val strippedSubject = stringToLongUri(trimmedSubject).orElse(stringToPrefixedUri(trimmedSubject)).getOrElse(TripleItem.LongUri(trimmedSubject))
+            val strippedPredicate = stringToLongUri(trimmedPredicate).orElse(stringToPrefixedUri(trimmedPredicate)).getOrElse(TripleItem.LongUri(trimmedPredicate))
+            val strippedObject = triple(2).trim.stripSuffix(".").trim
+            val quad = Triple(
               strippedSubject,
               strippedPredicate,
-              if (strippedObject.headOption.contains('<') && strippedObject.lastOption.contains('>')) {
-                stringToUri(stripResource(strippedObject))
-              } else {
-                stringToPrefixedUri(strippedObject).getOrElse(
-                  Try(TripleItem.Number(strippedObject.toInt))
-                    .orElse(Try(TripleItem.Number(strippedObject.toDouble)))
-                    .getOrElse(TripleItem.Text(strippedObject))
-                )
-              }
+              stringToLongUri(strippedObject)
+                .orElse(stringToText(strippedObject))
+                .orElse(stringToPrefixedUri(strippedObject))
+                .getOrElse(stringToNumber(strippedObject).getOrElse(TripleItem.Text(strippedObject)))
             ).toQuad
-        }.foreach(f)
+            f(quad)
+          }
+        }
       } finally {
         source.close()
         is.close()

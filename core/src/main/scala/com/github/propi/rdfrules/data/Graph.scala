@@ -56,7 +56,7 @@ class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView
 
   def withName(name: TripleItem.Uri): Graph = new Graph(name, triples, userDefinedPrefixes, isCached)
 
-  def toDataset: Dataset = Dataset(this).setPrefixes(userDefinedPrefixes)
+  def toDataset: Dataset = Dataset(this)
 
   def mine(miner: RulesMining)(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = toDataset.mine(miner)
 

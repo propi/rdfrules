@@ -371,19 +371,15 @@ object TripleHashIndex {
     index.resolveSameAs
     debugger.logger.info("Predicates trimming.")
     index.trimPredicates()
-    debugger.debug("Subjects indexing") { ad =>
-      for (quad <- index.quads) {
-        index.addQuadToSubjects(quad)
-        ad.done()
-      }
+    debugger.logger.info("Subjects indexing.")
+    for (quad <- index.quads) {
+      index.addQuadToSubjects(quad)
     }
     debugger.logger.info("Subjects trimming.")
     index.trimSubjects()
-    debugger.debug("Objects indexing") { ad =>
-      for (quad <- index.quads) {
-        index.addQuadToObjects(quad)
-        ad.done()
-      }
+    debugger.logger.info("Objects indexing.")
+    for (quad <- index.quads) {
+      index.addQuadToObjects(quad)
     }
     debugger.logger.info("Objects trimming.")
     index.trimObjects()

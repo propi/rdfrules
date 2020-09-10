@@ -146,13 +146,22 @@ object TripleItem {
     implicit def discretizationIntervalToInterval(interval: DiscretizationInterval): Interval = Interval(interval)
 
     def apply(text: String): Option[Interval] = {
-      val IntervalPattern = "\"?\\s*(\\[|\\()\\s*(.+?)\\s*;\\s*(.+?)\\s*(\\]|\\))\\s*\"?".r
-      text match {
-        case IntervalPattern(lb, AnyToDouble(lv), AnyToDouble(rv), rb) => Some(DiscretizationInterval(
-          if (lb == "[") IntervalBound.Inclusive(lv) else IntervalBound.Exclusive(lv),
-          if (rb == "]") IntervalBound.Inclusive(rv) else IntervalBound.Exclusive(rv)
-        ))
-        case _ => None
+      val trimmedText = if (text.length >= 2 && text.startsWith("\"") && text.endsWith("\"")) {
+        text.substring(1, text.length - 1).trim
+      } else {
+        text
+      }
+      if ((trimmedText.startsWith("[") || trimmedText.startsWith("(")) && (trimmedText.endsWith("]") || trimmedText.endsWith(")"))) {
+        val IntervalPattern = "(\\[|\\()\\s*(.+?)\\s*;\\s*(.+?)\\s*(\\]|\\))".r
+        text match {
+          case IntervalPattern(lb, AnyToDouble(lv), AnyToDouble(rv), rb) => Some(DiscretizationInterval(
+            if (lb == "[") IntervalBound.Inclusive(lv) else IntervalBound.Exclusive(lv),
+            if (rb == "]") IntervalBound.Inclusive(rv) else IntervalBound.Exclusive(rv)
+          ))
+          case _ => None
+        }
+      } else {
+        None
       }
     }
   }

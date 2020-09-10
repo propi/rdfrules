@@ -15,14 +15,16 @@ import scala.language.implicitConversions
 case class Quad private(triple: Triple, graph: TripleItem.Uri) {
   override def toString: String = Stringifier(this)
 
-  def copy(triple: Triple = triple, graph: TripleItem.Uri = graph): Quad = Quad(triple, graph)
+  def intern: Quad = new Quad(triple.intern, graph.intern)
+
+  //def copy(triple: Triple = triple, graph: TripleItem.Uri = graph): Quad = Quad(triple, graph)
 }
 
 object Quad {
 
   type QuadTraversableView = TraversableView[Quad, Traversable[_]]
 
-  def apply(triple: Triple, graph: TripleItem.Uri): Quad = new Quad(triple, graph.intern)
+  def apply(triple: Triple, graph: TripleItem.Uri): Quad = new Quad(triple, graph)
 
   def apply(triple: Triple): Quad = new Quad(triple, Graph.default)
 

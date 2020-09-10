@@ -10,6 +10,13 @@ trait QuadsOps[Coll] {
 
   def quads: QuadTraversableView
 
+  /**
+    * For all quads apply string interning
+    *
+    * @return
+    */
+  def intern: Coll = transformQuads(quads.map(_.intern))
+
   protected def transformQuads(col: Traversable[Quad]): Coll
 
 }

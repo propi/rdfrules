@@ -8,6 +8,7 @@ import com.github.propi.rdfrules.data.ops.PrefixesOps
 import com.github.propi.rdfrules.utils.{InputStreamBuilder, OutputStreamBuilder}
 import org.apache.jena.graph
 import org.apache.jena.graph.{Node_Blank, Node_Literal, Node_URI}
+import org.apache.jena.rdf.model.impl.Util
 import org.apache.jena.riot.system.{StreamRDF, StreamRDFWriter}
 import org.apache.jena.riot.{Lang, RDFFormat, RDFLanguages, RDFParser}
 import org.apache.jena.sparql.core.Quad
@@ -21,11 +22,19 @@ import scala.util.Try
 trait JenaLang {
 
   private class StreamRdfImpl[U](f: rdfrules.data.Quad => U) extends StreamRDF {
-    private val prefixes = collection.mutable.ListBuffer.empty[Prefix]
+    private val prefixes = collection.mutable.Map.empty[String, Prefix]
 
-    private def uriToTripleItem(x: Node_URI): TripleItem.Uri = Try(prefixes.iterator.filter(p => x.getURI.startsWith(p.nameSpace)).maxBy(_.nameSpace.length)).map(p => TripleItem.PrefixedUri(p, x.getURI.substring(p.nameSpace.length))).getOrElse(TripleItem.LongUri(x.getURI))
+    private def uriToTripleItem(x: Node_URI): TripleItem.Uri = {
+      if (prefixes.isEmpty) {
+        TripleItem.LongUri(x.getURI)
+      } else {
+        val i = Util.splitNamespaceXML(x.getURI)
+        val nameSpace = x.getURI.substring(0, i)
+        prefixes.get(nameSpace).map(p => TripleItem.PrefixedUri(p, x.getURI.substring(i))).getOrElse(TripleItem.LongUri(x.getURI))
+      }
+    } //Try(prefixes.iterator.filter(p => x.getURI.startsWith(p.nameSpace)).maxBy(_.nameSpace.length)).map(p => TripleItem.PrefixedUri(p, x.getURI.substring(p.nameSpace.length))).getOrElse(TripleItem.LongUri(x.getURI))
 
-    def prefix(prefix: String, iri: String): Unit = prefixes += Prefix(prefix, iri)
+    def prefix(prefix: String, iri: String): Unit = prefixes += (iri -> Prefix(prefix, iri))
 
     def start(): Unit = {}
 
@@ -41,20 +50,21 @@ trait JenaLang {
           case _ => throw new IllegalArgumentException
         },
         quad.getObject match {
-          case x: Node_Literal => x.getLiteralValue match {
-            case x: java.lang.Integer => TripleItem.Number(x.intValue())
-            case x: java.lang.Double => TripleItem.Number(x.doubleValue())
-            case x: java.lang.Short => TripleItem.Number(x.shortValue())
-            case x: java.lang.Float => TripleItem.Number(x.floatValue())
-            case x: java.lang.Long => TripleItem.Number(x.longValue())
-            case x: java.lang.Byte => TripleItem.Number(x.byteValue())
-            case x: java.lang.Boolean => TripleItem.BooleanValue(x.booleanValue())
-            case x: java.math.BigInteger => TripleItem.Number(x.longValueExact())
-            case x: java.math.BigDecimal => TripleItem.Number(x.doubleValue())
-            case _ =>
+          case x: Node_Literal =>
+            Try(x.getLiteralValue).collect {
+              case x: java.lang.Integer => TripleItem.Number(x.intValue())
+              case x: java.lang.Double => TripleItem.Number(x.doubleValue())
+              case x: java.lang.Short => TripleItem.Number(x.shortValue())
+              case x: java.lang.Float => TripleItem.Number(x.floatValue())
+              case x: java.lang.Long => TripleItem.Number(x.longValue())
+              case x: java.lang.Byte => TripleItem.Number(x.byteValue())
+              case x: java.lang.Boolean => TripleItem.BooleanValue(x.booleanValue())
+              case x: java.math.BigInteger => TripleItem.Number(x.longValueExact())
+              case x: java.math.BigDecimal => TripleItem.Number(x.doubleValue())
+            }.getOrElse {
               val text = x.getLiteralLexicalForm
               TripleItem.Interval(text).getOrElse(TripleItem.Text(text))
-          }
+            }
           case x: Node_URI => uriToTripleItem(x)
           case x: Node_Blank => TripleItem.BlankNode(x.getBlankNodeId.getLabelString)
           case _ => throw new IllegalArgumentException
@@ -70,7 +80,7 @@ trait JenaLang {
 
     def finish(): Unit = {}
 
-    def base(base: String): Unit = prefixes += Prefix("", base)
+    def base(base: String): Unit = prefixes += (base -> Prefix(base))
   }
 
   implicit def jenaLangToRdfReader(jenaLang: Lang): RdfReader = (inputStreamBuilder: InputStreamBuilder) => new Traversable[rdfrules.data.Quad] {

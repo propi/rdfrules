@@ -14,6 +14,8 @@ case class Triple private(subject: TripleItem.Uri, predicate: TripleItem.Uri, `o
 
   def toQuad(graph: TripleItem.Uri): Quad = Quad(this, graph)
 
+  def intern: Triple = new Triple(subject.intern, predicate.intern, `object`.intern)
+
   def copy(subject: TripleItem.Uri = subject, predicate: TripleItem.Uri = predicate, `object`: TripleItem = `object`): Triple = Triple(subject, predicate, `object`)
 
   override def toString: String = Stringifier(this)
@@ -21,7 +23,7 @@ case class Triple private(subject: TripleItem.Uri, predicate: TripleItem.Uri, `o
 
 object Triple {
 
-  def apply(subject: TripleItem.Uri, predicate: TripleItem.Uri, `object`: TripleItem): Triple = new Triple(subject.intern, predicate.intern, `object`.intern)
+  def apply(subject: TripleItem.Uri, predicate: TripleItem.Uri, `object`: TripleItem): Triple = new Triple(subject, predicate, `object`)
 
   type TripleTraversableView = TraversableView[Triple, Traversable[_]]
 

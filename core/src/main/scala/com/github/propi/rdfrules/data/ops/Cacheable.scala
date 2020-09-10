@@ -1,11 +1,8 @@
 package com.github.propi.rdfrules.data.ops
 
 import java.io._
-import java.util
 
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
-
-import scala.collection.JavaConverters._
 
 /**
   * Created by Vaclav Zeman on 27. 2. 2018.
@@ -27,14 +24,7 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
     * @return in memory cached entity
     */
   def cache: Coll = {
-    val buffer = new util.ArrayList[T]()
-    for (x <- coll) {
-      buffer.add(x)
-    }
-    buffer.trimToSize()
-    cachedTransform(new Traversable[T] {
-      def foreach[U](f: T => U): Unit = buffer.iterator().asScala.foreach(f)
-    })
+    cachedTransform(coll.toIndexedSeq)
   }
 
   /**

@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.utils
 
 import java.util.concurrent.LinkedBlockingQueue
 
+import com.github.propi.rdfrules.utils.BasicFunctions.round
 import com.github.propi.rdfrules.utils.Debugger.ActionDebugger
 import com.typesafe.scalalogging.Logger
 
@@ -85,10 +86,12 @@ object Debugger {
 
     private val messages = new LinkedBlockingQueue[Message]
     private val debugClock: FiniteDuration = 5 seconds
-    private val actions = collection.mutable.Map.empty[String, Action]
-    private var lastDump = 0L
+    private var currentAction: Option[Action] = None
+    //private val actions = collection.mutable.Map.empty[String, Action]
+    private var lastDump = System.currentTimeMillis()
+    private var lastNum = 0
 
-    class Action(name: String, maxNum: Int) {
+    private class Action(val name: String, maxNum: Int) {
 
       private var num = 0
       private var _state = ""
@@ -118,33 +121,42 @@ object Debugger {
 
     private def dump(action: Action, msg: String): Unit = {
       action.state = msg
-      if (lastDump + debugClock.toMillis < System.currentTimeMillis() || msg == "ended" || msg == "started") {
-        for (action <- actions.valuesIterator) {
-          logger.info(action.toString + (if (action.state.nonEmpty) " -- " + action.state else ""))
-        }
+      val isBorder = msg == "ended" || msg == "started"
+      if (lastDump + debugClock.toMillis < System.currentTimeMillis() || isBorder) {
+        val rating = if (!isBorder) {
+          val windowTime = System.currentTimeMillis() - lastDump
+          val windowNum = action.absoluteProgress - lastNum
+          s" (${round((windowNum.toDouble / windowTime) * 1000, 2)} per sec)"
+        } else ""
+        logger.info(action.toString + rating + (if (action.state.nonEmpty) " -- " + action.state else ""))
         lastDump = System.currentTimeMillis()
+        lastNum = action.absoluteProgress
       }
     }
 
     def run(): Unit = {
       var stopped = false
-      while (!stopped) {
+      while (!stopped)
         messages.take() match {
           case Message.NewAction(name, num) =>
-            val action = new Action(name, num)
-            actions += (name -> action)
-            dump(action, "started")
-          case Message.Debug(name, msg) => actions.get(name).foreach { action =>
-            action.++
-            dump(action, msg)
-          }
-          case Message.CloseAction(name) => actions.get(name).foreach { action =>
-            dump(action, "ended")
-            actions -= name
-          }
+            if (currentAction.isEmpty) {
+              val action = new Action(name, num)
+              currentAction = Some(action)
+              lastNum = 0
+              dump(action, "started")
+            }
+          case Message.Debug(name, msg) =>
+            for (action <- currentAction if action.name == name) {
+              action.++
+              dump(action, msg)
+            }
+          case Message.CloseAction(name) =>
+            for (action <- currentAction if action.name == name) {
+              dump(action, "ended")
+              currentAction = None
+            }
           case Message.Stop => stopped = true
         }
-      }
     }
 
     def !(message: Message): Unit = messages.put(message)
