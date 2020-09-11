@@ -51,18 +51,24 @@ trait JenaLang {
         },
         quad.getObject match {
           case x: Node_Literal =>
-            Try(x.getLiteralValue).collect {
-              case x: java.lang.Integer => TripleItem.Number(x.intValue())
-              case x: java.lang.Double => TripleItem.Number(x.doubleValue())
-              case x: java.lang.Short => TripleItem.Number(x.shortValue())
-              case x: java.lang.Float => TripleItem.Number(x.floatValue())
-              case x: java.lang.Long => TripleItem.Number(x.longValue())
-              case x: java.lang.Byte => TripleItem.Number(x.byteValue())
-              case x: java.lang.Boolean => TripleItem.BooleanValue(x.booleanValue())
-              case x: java.math.BigInteger => TripleItem.Number(x.longValueExact())
-              case x: java.math.BigDecimal => TripleItem.Number(x.doubleValue())
-            }.getOrElse {
-              val text = x.getLiteralLexicalForm
+            val literal = x.getLiteral
+            if (literal.isWellFormed) {
+              literal.getValue match {
+                case x: java.lang.Integer => TripleItem.Number(x.intValue())
+                case x: java.lang.Double => TripleItem.Number(x.doubleValue())
+                case x: java.lang.Short => TripleItem.Number(x.shortValue())
+                case x: java.lang.Float => TripleItem.Number(x.floatValue())
+                case x: java.lang.Long => TripleItem.Number(x.longValue())
+                case x: java.lang.Byte => TripleItem.Number(x.byteValue())
+                case x: java.lang.Boolean => TripleItem.BooleanValue(x.booleanValue())
+                case x: java.math.BigInteger => TripleItem.Number(x.longValueExact())
+                case x: java.math.BigDecimal => TripleItem.Number(x.doubleValue())
+                case _ =>
+                  val text = literal.getLexicalForm
+                  TripleItem.Interval(text).getOrElse(TripleItem.Text(text))
+              }
+            } else {
+              val text = literal.getLexicalForm
               TripleItem.Interval(text).getOrElse(TripleItem.Text(text))
             }
           case x: Node_URI => uriToTripleItem(x)

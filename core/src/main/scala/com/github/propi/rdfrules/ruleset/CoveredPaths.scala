@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.ruleset
 import com.github.propi.rdfrules.algorithm.amie.AtomCounting
 import com.github.propi.rdfrules.data.Graph
 import com.github.propi.rdfrules.index.{Index, IndexItem, TripleIndex}
-import com.github.propi.rdfrules.rule.{Atom, Rule}
+import com.github.propi.rdfrules.rule.Rule
 import com.github.propi.rdfrules.utils.TypedKeyMap
 import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension._
 
@@ -40,13 +40,13 @@ object CoveredPaths {
             val atomCounting = new AtomCounting {
               implicit val tripleIndex: TripleIndex[Int] = thi
             }
-            val (atoms, rest) = part match {
-              case Part.Whole => (rule.body.toSet + rule.head) -> Set.empty[Atom]
-              case Part.Body => rule.body.toSet -> Set(rule.head)
-              case Part.Head => Set(rule.head) -> rule.body.toSet
+            val /*(*/atoms/*, rest)*/ = part match {
+              case Part.Whole => rule.body.toSet + rule.head// -> Set.empty[Atom]
+              case Part.Body => rule.body.toSet// -> Set(rule.head)
+              case Part.Head => Set(rule.head)// -> rule.body.toSet
             }
             atomCounting.paths(atoms, new atomCounting.VariableMap(true))
-              .filter(atomCounting.exists(rest, _))
+              //.filter(atomCounting.exists(rest, _))
               .map(variableMap => Rule.Simple(variableMap.specifyAtom(rule.head), rule.body.map(variableMap.specifyAtom))(TypedKeyMap()))
               .foreach(f)
           }

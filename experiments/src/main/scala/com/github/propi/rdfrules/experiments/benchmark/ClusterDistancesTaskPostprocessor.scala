@@ -31,7 +31,7 @@ trait ClusterDistancesTaskPostprocessor extends TaskPostProcessor[Ruleset, Seq[M
       val tripleMap = collection.mutable.Map.empty[IndexItem.IntTriple, MutableWeight]
       var maxWeight = 0
       for {
-        coveredPaths <- ruleset.coveredPaths()
+        coveredPaths <- ruleset.instantiate()
       } {
         var i = 0
         val triplesWeights = collection.mutable.ListBuffer.empty[MutableWeight]
@@ -78,8 +78,8 @@ trait ClusterDistancesTaskPostprocessor extends TaskPostProcessor[Ruleset, Seq[M
   }
 
   private def computeInterClustersSimilarity(cluster1: Ruleset, cluster2: Ruleset): Double = {
-    val tripleSet = cluster1.coveredPaths().view.flatMap(_.triples(false)).toSet
-    val (clusterLen2, intersections) = cluster2.coveredPaths().view.flatMap(_.triples(false)).distinct.foldLeft((0, 0)) { case ((total, intersections), triple) =>
+    val tripleSet = cluster1.instantiate().view.flatMap(_.triples(false)).toSet
+    val (clusterLen2, intersections) = cluster2.instantiate().view.flatMap(_.triples(false)).distinct.foldLeft((0, 0)) { case ((total, intersections), triple) =>
       (total + 1) -> (intersections + (if (tripleSet(triple)) 1 else 0))
     }
     /*println("***** INTER BETWEEN")

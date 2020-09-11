@@ -4,12 +4,11 @@ import java.io.{BufferedInputStream, BufferedOutputStream, PrintWriter}
 
 import com.github.propi.rdfrules.data._
 import com.github.propi.rdfrules.data.ops.PrefixesOps
-import com.github.propi.rdfrules.utils.{InputStreamBuilder, OutputStreamBuilder}
+import com.github.propi.rdfrules.utils.{BasicFunctions, InputStreamBuilder, OutputStreamBuilder}
 
 import scala.annotation.tailrec
 import scala.io.Source
 import scala.language.implicitConversions
-import scala.util.Try
 
 /**
   * Created by Vaclav Zeman on 14. 1. 2018.
@@ -114,8 +113,15 @@ trait Tsv {
           }
         }
 
-        def stringToNumber(x: String): Try[TripleItem] = {
-          Try(TripleItem.Number(x.toInt)).orElse(Try(TripleItem.Number(x.toDouble)))
+        def stringToNumber(x: String): Option[TripleItem] = {
+          if (x.nonEmpty && (x.head.isDigit || x.head == '-')) {
+            BasicFunctions.parseNumber(x).map {
+              case Left(x) => TripleItem.Number(x)
+              case Right(x) => TripleItem.Number(x)
+            }
+          } else {
+            None
+          }
         }
 
         def stringToText(x: String): Option[TripleItem] = {
@@ -149,7 +155,8 @@ trait Tsv {
               stringToLongUri(strippedObject)
                 .orElse(stringToText(strippedObject))
                 .orElse(stringToPrefixedUri(strippedObject))
-                .getOrElse(stringToNumber(strippedObject).getOrElse(TripleItem.Text(strippedObject)))
+                .orElse(stringToNumber(strippedObject))
+                .getOrElse(TripleItem.Text(strippedObject))
             ).toQuad
             f(quad)
           }

@@ -30,9 +30,14 @@ object Debugger {
 
   import DebuggerActor.Message
 
-  def apply[T](logger: Logger = Logger[Debugger])(f: Debugger => T): T = {
-    val actor = new DebuggerActor(logger)
-    new Thread(actor).start()
+  def apply[T](logger: Logger = Logger[Debugger], sequentially: Boolean = false)(f: Debugger => T): T = {
+    val actor = if (sequentially) {
+      new DebuggerSeq(logger)
+    } else {
+      val actor = new DebuggerActor(logger)
+      new Thread(actor).start()
+      actor
+    }
     try {
       f(new ActorDebugger(logger, actor))
     } finally {
@@ -50,8 +55,7 @@ object Debugger {
     def debug[T](name: String, num: Int = 0)(f: ActionDebugger => T): T = f(EmptyActionDebugger)
   }
 
-  private class ActorDebugger(val logger: Logger, debugger: DebuggerActor) extends Debugger {
-
+  private class ActorDebugger(val logger: Logger, debugger: DebuggerMessageReceiver) extends Debugger {
     def debug[T](name: String, num: Int = 0)(f: ActionDebugger => T): T = {
       val ad = new ActorActionDebugger(name, num, debugger)
       debugger ! Message.NewAction(name, num)
@@ -61,7 +65,6 @@ object Debugger {
         debugger ! Message.CloseAction(name)
       }
     }
-
   }
 
   sealed trait ActionDebugger {
@@ -74,7 +77,7 @@ object Debugger {
     }
   }
 
-  private class ActorActionDebugger(name: String, num: Int, debugger: DebuggerActor) extends ActionDebugger {
+  private class ActorActionDebugger(name: String, num: Int, debugger: DebuggerMessageReceiver) extends ActionDebugger {
     def done(msg: String = ""): Unit = debugger ! Message.Debug(name, msg)
   }
 
@@ -82,12 +85,10 @@ object Debugger {
     def done(msg: String = ""): Unit = {}
   }
 
-  private class DebuggerActor(logger: Logger) extends Runnable {
-
-    private val messages = new LinkedBlockingQueue[Message]
-    private val debugClock: FiniteDuration = 5 seconds
+  private trait DebuggerMessageReceiver {
+    protected val logger: Logger
+    private val debugClock: Long = (5 seconds).toMillis
     private var currentAction: Option[Action] = None
-    //private val actions = collection.mutable.Map.empty[String, Action]
     private var lastDump = System.currentTimeMillis()
     private var lastNum = 0
 
@@ -119,10 +120,10 @@ object Debugger {
 
     }
 
-    private def dump(action: Action, msg: String): Unit = {
+    private def dump(action: Action, msg: String, started: Boolean, ended: Boolean): Unit = {
       action.state = msg
-      val isBorder = msg == "ended" || msg == "started"
-      if (lastDump + debugClock.toMillis < System.currentTimeMillis() || isBorder) {
+      val isBorder = started || ended
+      if (lastDump + debugClock < System.currentTimeMillis() || isBorder) {
         val rating = if (!isBorder) {
           val windowTime = System.currentTimeMillis() - lastDump
           val windowNum = action.absoluteProgress - lastNum
@@ -134,33 +135,55 @@ object Debugger {
       }
     }
 
+    protected def stop(): Unit
+
+    protected def processMessage(message: Message): Unit = {
+      message match {
+        case Message.Debug(name, msg) =>
+          for (action <- currentAction if action.name == name) {
+            action.++
+            dump(action, msg, false, false)
+          }
+        case Message.NewAction(name, num) =>
+          if (currentAction.isEmpty) {
+            val action = new Action(name, num)
+            currentAction = Some(action)
+            lastNum = 0
+            dump(action, "started", true, false)
+          }
+        case Message.CloseAction(name) =>
+          for (action <- currentAction if action.name == name) {
+            dump(action, "ended", false, true)
+            currentAction = None
+          }
+        case Message.Stop => stop()
+      }
+    }
+
+    def !(message: Message): Unit
+  }
+
+  private class DebuggerActor(protected val logger: Logger) extends Runnable with DebuggerMessageReceiver {
+    private val messages = new LinkedBlockingQueue[Message]
+    private var stopped = false
+
+    protected def stop(): Unit = {
+      stopped = true
+    }
+
     def run(): Unit = {
-      var stopped = false
-      while (!stopped)
-        messages.take() match {
-          case Message.NewAction(name, num) =>
-            if (currentAction.isEmpty) {
-              val action = new Action(name, num)
-              currentAction = Some(action)
-              lastNum = 0
-              dump(action, "started")
-            }
-          case Message.Debug(name, msg) =>
-            for (action <- currentAction if action.name == name) {
-              action.++
-              dump(action, msg)
-            }
-          case Message.CloseAction(name) =>
-            for (action <- currentAction if action.name == name) {
-              dump(action, "ended")
-              currentAction = None
-            }
-          case Message.Stop => stopped = true
-        }
+      while (!stopped) {
+        processMessage(messages.take())
+      }
     }
 
     def !(message: Message): Unit = messages.put(message)
+  }
 
+  private class DebuggerSeq(protected val logger: Logger) extends DebuggerMessageReceiver {
+    protected def stop(): Unit = {}
+
+    def !(message: Message): Unit = processMessage(message)
   }
 
   private object DebuggerActor {

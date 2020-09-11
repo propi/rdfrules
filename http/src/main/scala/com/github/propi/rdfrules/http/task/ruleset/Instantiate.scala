@@ -12,9 +12,9 @@ class Instantiate(rule: ResolvedRule, part: CoveredPaths.Part) extends Task[Rule
   def execute(input: Ruleset): Ruleset = {
     val ruleParts = rule.body.toSet -> rule.head
     input.filterResolved { x =>
-      val ruleParts2 = x.body.toSet -> rule.head
+      val ruleParts2 = x.body.toSet -> x.head
       ruleParts2 == ruleParts
-    }.coveredPaths(part).headOption.map(_.paths).getOrElse(Ruleset(input.index, Nil, true))
+    }.instantiate(part).headOption.map(_.paths).getOrElse(Ruleset(input.index, Nil, true))
   }
 }
 

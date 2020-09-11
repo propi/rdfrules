@@ -130,7 +130,7 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
     <div class="measures">
       {record._1.measures.map(x => s"${x.name}: ${x.value}").mkString(", ")}
     </div>
-    <div class={"rule-tools" + (if (Main.canvas.getOperations.last.previousOperation.value.exists(_.info.isInstanceOf[OperationInfo.RulesetTransformation]) && !record._1.isInstantiated) "" else " hidden")}>
+    <div class={"rule-tools" + (if (record._1.isInstantiated) " hidden" else "")}>
       <a href="#" onclick={e: Event =>
         e.preventDefault()
         Main.canvas.getOperations.last.delete()

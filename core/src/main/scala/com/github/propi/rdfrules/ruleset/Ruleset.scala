@@ -79,7 +79,7 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
 
   def foreach(f: ResolvedRule => Unit): Unit = resolvedRules.foreach(f)
 
-  def coveredPaths(part: CoveredPaths.Part = CoveredPaths.Part.Whole): Traversable[CoveredPaths] = rules.view.map(CoveredPaths(_, part, index))
+  def instantiate(part: CoveredPaths.Part = CoveredPaths.Part.Whole): Traversable[CoveredPaths] = rules.view.map(CoveredPaths(_, part, index))
 
   def headResolved: ResolvedRule = resolvedRules.head
 
