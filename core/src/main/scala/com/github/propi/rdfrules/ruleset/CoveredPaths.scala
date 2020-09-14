@@ -1,9 +1,10 @@
 package com.github.propi.rdfrules.ruleset
 
 import com.github.propi.rdfrules.algorithm.amie.AtomCounting
-import com.github.propi.rdfrules.data.Graph
+import com.github.propi.rdfrules.data.{Graph, TriplePosition}
 import com.github.propi.rdfrules.index.{Index, IndexItem, TripleIndex}
-import com.github.propi.rdfrules.rule.Rule
+import com.github.propi.rdfrules.model.Model.PredictionType
+import com.github.propi.rdfrules.rule.{Atom, Rule}
 import com.github.propi.rdfrules.utils.TypedKeyMap
 import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension._
 
@@ -40,13 +41,24 @@ object CoveredPaths {
             val atomCounting = new AtomCounting {
               implicit val tripleIndex: TripleIndex[Int] = thi
             }
-            val /*(*/atoms/*, rest)*/ = part match {
-              case Part.Whole => rule.body.toSet + rule.head// -> Set.empty[Atom]
-              case Part.Body => rule.body.toSet// -> Set(rule.head)
-              case Part.Head => Set(rule.head)// -> rule.body.toSet
+            val (atoms, filter) = part match {
+              case Part.Whole => (rule.body.toSet + rule.head) -> ((x: Iterator[atomCounting.VariableMap]) => x)
+              case Part.Body(predictionType) =>
+                predictionType match {
+                  case PredictionType.Existing => rule.body.toSet -> ((x: Iterator[atomCounting.VariableMap]) => x.filter(atomCounting.exists(Set(rule.head), _)))
+                  case PredictionType.Missing => rule.body.toSet -> ((x: Iterator[atomCounting.VariableMap]) => x.filterNot(atomCounting.exists(Set(rule.head), _)))
+                  case PredictionType.Complementary =>
+                    val predicateIndex = thi.predicates(rule.head.predicate)
+                    val isCompletelyMissing = predicateIndex.mostFunctionalVariable match {
+                      case TriplePosition.Subject => (atom: Atom) => !predicateIndex.subjects.contains(atom.subject.asInstanceOf[Atom.Constant].value)
+                      case TriplePosition.Object => (atom: Atom) => !predicateIndex.objects.contains(atom.`object`.asInstanceOf[Atom.Constant].value)
+                    }
+                    rule.body.toSet -> ((x: Iterator[atomCounting.VariableMap]) => x.filter(vm => isCompletelyMissing(vm.specifyAtom(rule.head))))
+                  case PredictionType.All => rule.body.toSet -> ((x: Iterator[atomCounting.VariableMap]) => x)
+                }
+              case Part.Head => Set(rule.head) -> ((x: Iterator[atomCounting.VariableMap]) => x)
             }
-            atomCounting.paths(atoms, new atomCounting.VariableMap(true))
-              //.filter(atomCounting.exists(rest, _))
+            filter(atomCounting.paths(atoms, new atomCounting.VariableMap(true)))
               .map(variableMap => Rule.Simple(variableMap.specifyAtom(rule.head), rule.body.map(variableMap.specifyAtom))(TypedKeyMap()))
               .foreach(f)
           }
@@ -62,7 +74,7 @@ object CoveredPaths {
 
     case object Head extends Part
 
-    case object Body extends Part
+    case class Body(predictionType: PredictionType) extends Part
 
     case object Whole extends Part
 

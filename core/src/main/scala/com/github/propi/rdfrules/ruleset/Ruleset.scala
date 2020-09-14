@@ -13,6 +13,7 @@ import com.github.propi.rdfrules.rule.{Measure, Rule, RulePattern, RulePatternMa
 import com.github.propi.rdfrules.ruleset.ops.{Sortable, Treeable}
 import com.github.propi.rdfrules.serialization.RuleSerialization._
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
+import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension.PimpedTraversableOnce
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 import com.github.propi.rdfrules.utils.workers.Workers._
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
@@ -80,6 +81,8 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
   def foreach(f: ResolvedRule => Unit): Unit = resolvedRules.foreach(f)
 
   def instantiate(part: CoveredPaths.Part = CoveredPaths.Part.Whole): Traversable[CoveredPaths] = rules.view.map(CoveredPaths(_, part, index))
+
+  def +(ruleset: Ruleset): Ruleset = transform(rules.concat(ruleset.rules))
 
   def headResolved: ResolvedRule = resolvedRules.head
 

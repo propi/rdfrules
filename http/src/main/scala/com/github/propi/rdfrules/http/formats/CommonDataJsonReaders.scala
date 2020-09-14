@@ -129,7 +129,10 @@ object CommonDataJsonReaders {
 
   implicit val coveredPathsPartReader: RootJsonReader[CoveredPaths.Part] = (json: JsValue) => json.convertTo[String] match {
     case "Head" => CoveredPaths.Part.Head
-    case "Body" => CoveredPaths.Part.Body
+    case "BodyAll" => CoveredPaths.Part.Body(PredictionType.All)
+    case "BodyMissing" => CoveredPaths.Part.Body(PredictionType.Missing)
+    case "BodyExisting" => CoveredPaths.Part.Body(PredictionType.Existing)
+    case "BodyComplementary" => CoveredPaths.Part.Body(PredictionType.Complementary)
     case "Whole" => CoveredPaths.Part.Whole
     case x => deserializationError(s"Invalid covered paths part name: $x")
   }
