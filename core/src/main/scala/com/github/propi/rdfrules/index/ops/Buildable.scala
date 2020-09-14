@@ -1,14 +1,27 @@
 package com.github.propi.rdfrules.index.ops
 
 import com.github.propi.rdfrules.index.{TripleHashIndex, TripleIndex, TripleItemIndex}
-import it.unimi.dsi.fastutil.ints.{Int2ReferenceOpenHashMap, IntOpenHashSet}
+import it.unimi.dsi.fastutil.ints.{Int2ReferenceOpenHashMap, IntIterator, IntOpenHashSet}
+import it.unimi.dsi.fastutil.objects.ObjectIterator
 
-import scala.collection.JavaConverters._
+import scala.language.implicitConversions
 
 /**
   * Created by Vaclav Zeman on 13. 3. 2018.
   */
 trait Buildable {
+
+  implicit private def intToScalaIterator(iterator: IntIterator): Iterator[Int] = new Iterator[Int] {
+    def hasNext: Boolean = iterator.hasNext
+
+    def next(): Int = iterator.nextInt()
+  }
+
+  implicit private def objectToScalaIterator[T](iterator: ObjectIterator[T]): Iterator[T] = new Iterator[T] {
+    def hasNext: Boolean = iterator.hasNext
+
+    def next(): T = iterator.next()
+  }
 
   protected implicit val indexCollectionBuilder: TripleHashIndex.CollectionsBuilder[Int] = new TripleHashIndex.CollectionsBuilder[Int] {
     def emptySet: TripleHashIndex.MutableHashSet[Int] = new TripleHashIndex.MutableHashSet[Int] {
@@ -18,7 +31,7 @@ trait Buildable {
 
       def -=(x: Int): Unit = hset.remove(x)
 
-      def iterator: Iterator[Int] = hset.iterator().asScala.asInstanceOf[Iterator[Int]]
+      def iterator: Iterator[Int] = hset.iterator()
 
       def contains(x: Int): Boolean = hset.contains(x)
 
@@ -54,11 +67,11 @@ trait Buildable {
 
       def get(key: Int): Option[V] = Option(hmap.get(key))
 
-      def iterator: Iterator[Int] = hmap.keySet().iterator().asScala.asInstanceOf[Iterator[Int]]
+      def iterator: Iterator[Int] = hmap.keySet().iterator()
 
-      def valuesIterator: Iterator[V] = hmap.values().iterator().asScala
+      def valuesIterator: Iterator[V] = hmap.values().iterator()
 
-      def pairIterator: Iterator[(Int, V)] = hmap.int2ReferenceEntrySet().iterator().asScala.map(x => x.getIntKey -> x.getValue)
+      def pairIterator: Iterator[(Int, V)] = hmap.int2ReferenceEntrySet().iterator().map(x => x.getIntKey -> x.getValue)
 
       def size: Int = hmap.size()
 
