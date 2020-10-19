@@ -37,7 +37,7 @@ class Server(context: ActorContext[MainMessage], route: Route, serverConf: Serve
     }.result().withFallback(RejectionHandler.default.mapRejectionResponse {
       case res@HttpResponse(status, _, ent: HttpEntity.Strict, _) =>
         val message = ent.data.utf8String.replaceAll("\"", """\"""")
-        res.copy(entity = HttpEntity(ContentTypes.`application/json`, s"""{ "code": "${status.value}", "message": "${message.replaceAll("\n", " ")}"}"""))
+        res.withEntity(HttpEntity(ContentTypes.`application/json`, s"""{ "code": "${status.value}", "message": "${message.replaceAll("\n", " ")}"}"""))
       case x => x
     })
     val exceptionHandler = ExceptionHandler {
@@ -101,7 +101,7 @@ class Server(context: ActorContext[MainMessage], route: Route, serverConf: Serve
   private def completeErrorMessage(code: String, msg: String, status: Int = 400) = complete(status, JsObject("code" -> JsString(code), "message" -> JsString(msg)))
 
   def bind(): Future[Http.ServerBinding] = {
-    val bindingFuture = Http().bindAndHandle(RouteResult.route2HandlerFlow(rootRoute), host, port)
+    val bindingFuture = Http().newServerAt(host, port).bind(rootRoute)
     bindingFuture.foreach { serverBinding =>
       println(s"Server online at http://$host:$port/$rootPath")
       bindingPromise.success(serverBinding)

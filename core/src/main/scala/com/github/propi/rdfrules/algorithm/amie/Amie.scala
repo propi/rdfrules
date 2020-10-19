@@ -189,7 +189,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
           //starts P jobs in parallel where P is number of processors
           //each job refines rules from queue with length X where X is the stage number.
           val jobs = List.fill(parallelism) {
-            val job = new Runnable {
+            val job: Runnable = new Runnable {
               private def debug(): Unit = ad.done(s"processed rules, found closed rules: ${foundRules.get()}, queue size: $queueSize, stage: $stage, activeThreads: ${activeThreads.get()}")
 
               def run(): Unit = {
