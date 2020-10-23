@@ -1,8 +1,11 @@
 package com.github.propi.rdfrules.ruleset.formats
 
-import java.io.{OutputStreamWriter, PrintWriter}
+import java.io.{File, FileOutputStream, OutputStreamWriter, PrintWriter}
 
+import com.github.propi.rdfrules.algorithm.consumer.OnDiskRuleConsumer.PrettyPrintedWriter
 import com.github.propi.rdfrules.data.{Prefix, TripleItem}
+import com.github.propi.rdfrules.index.TripleItemIndex
+import com.github.propi.rdfrules.rule.Rule
 import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetSource, RulesetWriter}
 import com.github.propi.rdfrules.utils.{OutputStreamBuilder, Stringifier}
 
@@ -35,5 +38,21 @@ trait Text {
       writer.close()
     }
   }
+
+  class TextPrettyPrintedWriter(file: File)(implicit mapper: TripleItemIndex, stringifier: Stringifier[ResolvedRule]) extends PrettyPrintedWriter {
+    private val fos = new FileOutputStream(file)
+    private val writer = new PrintWriter(new OutputStreamWriter(fos, "UTF-8"))
+
+    def write(rule: Rule.Simple): Unit = writer.println(stringifier.toStringValue(ResolvedRule(rule)))
+
+    def flush(): Unit = {
+      writer.flush()
+      fos.getFD.sync()
+    }
+
+    def close(): Unit = writer.close()
+  }
+
+  implicit def textPrettyPrintedWriter(source: RulesetSource.Text.type)(implicit mapper: TripleItemIndex, stringifier: Stringifier[ResolvedRule]): File => PrettyPrintedWriter = new TextPrettyPrintedWriter(_)
 
 }

@@ -43,7 +43,8 @@ trait Index {
 
   final def mine(miner: RulesMining): Ruleset = tripleItemMap { implicit mapper =>
     tripleMap { implicit thi =>
-      Ruleset(this, miner.mine, true)
+      val result = miner.mine
+      Ruleset(this, result.rules, result.isCached)
     }
   }
 

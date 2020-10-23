@@ -1,6 +1,11 @@
 package com.github.propi.rdfrules.ruleset
 
+import java.io.File
+
+import com.github.propi.rdfrules.algorithm.consumer.OnDiskRuleConsumer.PrettyPrintedWriter
 import com.github.propi.rdfrules.data.Compression
+import com.github.propi.rdfrules.index.TripleItemIndex
+import com.github.propi.rdfrules.utils.Stringifier
 import spray.json.DeserializationException
 
 import scala.language.implicitConversions
@@ -28,6 +33,11 @@ object RulesetSource {
   }
 
   implicit def rulesetSourceToRulesetWriter(rulesetSource: RulesetSource): RulesetWriter = rulesetSource match {
+    case Text => Text
+    case Json => Json
+  }
+
+  implicit def rulesetSourceToPrettyPrintedWriterBuilder(rulesetSource: RulesetSource)(implicit mapper: TripleItemIndex, stringifier: Stringifier[ResolvedRule]): File => PrettyPrintedWriter = rulesetSource match {
     case Text => Text
     case Json => Json
   }

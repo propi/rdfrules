@@ -91,7 +91,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
           if (queue.size < topK) {
             queue.enqueue(rule)
             enqueued = true
-          } else if (rule.measures[Measure.HeadCoverage].value > queue.head.measures[Measure.HeadCoverage].value) {
+          } else if (rule.headCoverage > queue.head.measures[Measure.HeadCoverage].value) {
             queue.dequeue()
             queue.enqueue(rule)
             enqueued = true
@@ -136,7 +136,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
       * @param rule a rule to be refinable
       * @return true = is refinable, false = do not refine it!
       */
-    def isRefinable(rule: ExtendedRule): Boolean = topK <= 0 || rule.measures[Measure.Support].value >= settings.minComputedSupport(rule)
+    def isRefinable(rule: ExtendedRule): Boolean = topK <= 0 || rule.support >= settings.minComputedSupport(rule)
 
     /**
       * We add rule synchronously and "thread-safely" into the result set.

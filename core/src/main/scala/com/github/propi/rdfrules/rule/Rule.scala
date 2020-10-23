@@ -15,13 +15,20 @@ trait Rule {
 
   val body: IndexedSeq[Atom]
   val head: Atom
-  val measures: TypedKeyMap.Immutable[Measure]
 
-  lazy val ruleLength: Int = body.size + 1
+  def measures: TypedKeyMap.Immutable[Measure]
+
+  def support: Int
+
+  def headSize: Int
+
+  def headCoverage: Double
+
+  def ruleLength: Int = body.size + 1
 
   override def hashCode(): Int = {
-    val support = measures[Measure.Support].value
-    val headSize = measures[Measure.HeadSize].value
+    val support = this.support
+    val headSize = this.headSize
     val bodyHashCode = body.iterator.map { atom =>
       atom.predicate +
         (atom.subject match {
@@ -40,10 +47,20 @@ trait Rule {
 
 object Rule {
 
-  case class Simple(head: Atom, body: IndexedSeq[Atom])(val measures: TypedKeyMap.Immutable[Measure]) extends Rule
+  case class Simple(head: Atom, body: IndexedSeq[Atom])(val measures: TypedKeyMap.Immutable[Measure]) extends Rule {
+    def support: Int = measures[Measure.Support].value
+
+    def headSize: Int = measures[Measure.HeadSize].value
+
+    def headCoverage: Double = measures[Measure.HeadCoverage].value
+  }
 
   object Simple {
-    implicit def apply(extendedRule: ExtendedRule): Simple = new Simple(extendedRule.head, extendedRule.body)(extendedRule.measures)
+    implicit def apply(rule: Rule): Simple = new Simple(rule.head, rule.body)(TypedKeyMap(
+      Measure.Support(rule.support),
+      Measure.HeadSize(rule.headSize),
+      Measure.HeadCoverage(rule.headCoverage)
+    ))
   }
 
   implicit val ruleOrdering: Ordering[Rule] = Ordering.by[Rule, TypedKeyMap.Immutable[Measure]](_.measures)

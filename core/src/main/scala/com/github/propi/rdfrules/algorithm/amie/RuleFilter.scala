@@ -116,7 +116,11 @@ object RuleFilter {
     * @param body body of the rule
     */
   class NoDuplicitRuleFilter(head: Atom, body: Set[Atom]) extends RuleFilter {
-    def apply(newAtom: Atom, support: Int): FilterResult = newAtom != head && !body(newAtom)
+    def apply(newAtom: Atom, support: Int): FilterResult = {
+      val x = newAtom != head && !body(newAtom)
+      if (!x) println(x)
+      x
+    }
   }
 
   /**
@@ -130,6 +134,7 @@ object RuleFilter {
     * @param atoms                  all atoms in the rule
     * @param rulePredicates         all predicates of the rule which are mapped to items Map(subject -> list(objects)) AND Map(object -> list(subjects))
     */
+  @deprecated("This is resolved by variables mapping because it is banned to have two identical instantiated atoms in the rule.", "1.4.3")
   class NoRepeatedGroups(withDuplicitPredicates: Boolean,
                          atoms: Set[Atom],
                          rulePredicates: collection.Map[Int, collection.Map[TripleItemPosition[Atom.Item], collection.Seq[Atom.Item]]]) extends RuleFilter {

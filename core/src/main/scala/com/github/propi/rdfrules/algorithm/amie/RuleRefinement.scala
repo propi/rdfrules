@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.algorithm.RulesMining
-import com.github.propi.rdfrules.algorithm.amie.RuleFilter.{MinSupportRuleFilter, NoDuplicitRuleFilter, NoRepeatedGroups, RuleConstraints, RulePatternFilter}
+import com.github.propi.rdfrules.algorithm.amie.RuleFilter.{MinSupportRuleFilter, NoDuplicitRuleFilter, RuleConstraints, RulePatternFilter}
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
@@ -193,7 +193,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       //if (logger.underlying.isTraceEnabled) logger.trace("Rule expansion " + Stringifier[Rule](rule) + ": total projections = " + projections.size)
       //filter all projections by minimal support and remove all duplicit projections
       //then create new rules from all projections (atoms)
-      val ruleFilter = new MinSupportRuleFilter(minCurrentSupport) & new NoDuplicitRuleFilter(rule.head, bodySet) & new NoRepeatedGroups(withDuplicitPredicates, bodySet + rule.head, rulePredicates) & patternFilter & new RuleConstraints(rule, filters)
+      val ruleFilter = new MinSupportRuleFilter(minCurrentSupport) & new NoDuplicitRuleFilter(rule.head, bodySet) & patternFilter & new RuleConstraints(rule, filters)
       /*Iterator.continually(projections.headOption)
         .takeWhile(_.isDefined)
         .flatten*/
@@ -497,11 +497,11 @@ object RuleRefinement {
     private val onlyPredicates = rulesMining.constraints.get[RuleConstraint.OnlyPredicates].map(_.mapped)
     private val withoutPredicates = rulesMining.constraints.get[RuleConstraint.WithoutPredicates].map(_.mapped)
 
-    def test(newAtom: Atom, rule: Option[Rule]): Boolean = filters.forall(_.test(newAtom, rule))
+    //def test(newAtom: Atom, rule: Option[Rule]): Boolean = filters.forall(_.test(newAtom, rule))
 
-    def test(newAtom: Atom, rule: Rule): Boolean = test(newAtom, Some(rule))
+    //def test(newAtom: Atom, rule: Rule): Boolean = test(newAtom, Some(rule))
 
-    def test(newAtom: Atom): Boolean = test(newAtom, None)
+    def test(newAtom: Atom): Boolean = filters.forall(_.test(newAtom, None))
 
     def isValidPredicate(predicate: Int): Boolean = onlyPredicates.forall(_ (predicate)) && withoutPredicates.forall(!_ (predicate))
 

@@ -1,14 +1,16 @@
 package com.github.propi.rdfrules.ruleset.formats
 
-import java.io.{BufferedInputStream, OutputStreamWriter, PrintWriter}
+import java.io.{BufferedInputStream, File, FileOutputStream, OutputStreamWriter, PrintWriter}
 
 import com.github.propi.rdfrules.data.{Prefix, TripleItem}
-import com.github.propi.rdfrules.rule.Measure
+import com.github.propi.rdfrules.rule.{Measure, Rule}
 import com.github.propi.rdfrules.ruleset.ResolvedRule.Atom
 import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetReader, RulesetSource, RulesetWriter}
 import com.github.propi.rdfrules.utils.{InputStreamBuilder, OutputStreamBuilder, TypedKeyMap}
 import spray.json._
 import DefaultJsonProtocol._
+import com.github.propi.rdfrules.algorithm.consumer.OnDiskRuleConsumer.PrettyPrintedWriter
+import com.github.propi.rdfrules.index.TripleItemIndex
 
 import scala.io.Source
 import scala.language.implicitConversions
@@ -176,5 +178,21 @@ trait Json {
       is.close()
     }
   }
+
+  class JsonPrettyPrintedWriter(file: File)(implicit mapper: TripleItemIndex) extends PrettyPrintedWriter {
+    private val fos = new FileOutputStream(file)
+    private val writer = new PrintWriter(new OutputStreamWriter(fos, "UTF-8"))
+
+    def write(rule: Rule.Simple): Unit = writer.println(ResolvedRule(rule).toJson.prettyPrint)
+
+    def flush(): Unit = {
+      writer.flush()
+      fos.getFD.sync()
+    }
+
+    def close(): Unit = writer.close()
+  }
+
+  implicit def jsonPrettyPrintedWriter(source: RulesetSource.Json.type)(implicit mapper: TripleItemIndex): File => PrettyPrintedWriter = new JsonPrettyPrintedWriter(_)
 
 }

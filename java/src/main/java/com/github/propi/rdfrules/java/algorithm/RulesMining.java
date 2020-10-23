@@ -7,7 +7,6 @@ import com.github.propi.rdfrules.java.data.TripleItem;
 import com.github.propi.rdfrules.java.rule.RulePattern;
 import com.github.propi.rdfrules.rule.RuleConstraint;
 import com.github.propi.rdfrules.rule.Threshold;
-import scala.concurrent.ExecutionContext;
 
 import java.util.Set;
 
@@ -23,11 +22,11 @@ public class RulesMining {
     }
 
     public static RulesMining amie(Debugger debugger) {
-        return new RulesMining(Amie$.MODULE$.apply(debugger.asScala(), ExecutionContext.global()));
+        return new RulesMining(Amie$.MODULE$.apply(debugger.asScala()));
     }
 
     public static RulesMining amie() {
-        return new RulesMining(Amie$.MODULE$.apply(Debugger.empty().asScala(), ExecutionContext.global()));
+        return new RulesMining(Amie$.MODULE$.apply(Debugger.empty().asScala()));
     }
 
     public com.github.propi.rdfrules.algorithm.RulesMining asScala() {

@@ -17,7 +17,76 @@ trait AtomCounting {
   //For this variant it should be useful: ( ?c <direction> "east" ) ^ ( ?b <train_id> ?c ) ^ ( ?b <train_id> ?a ) ⇒ ( ?a <direction> "east" )
   //ABOVE It is isomorphic group and should be filteren after projections counting
   //We partialy solved that by the switch allowDuplicitAtoms. It is true for bodySize counting, but false for projectionBounding and support counzing. Check it whether it is right!
-  class VariableMap private(hmap: Map[Atom.Variable, Atom.Constant], atoms: Set[Atom], allowDuplicitAtoms: Boolean) {
+  class VariableMap private(hmap: Array[Int], atoms: Set[Atom], allowDuplicitAtoms: Boolean) {
+    def this(allowDuplicitAtoms: Boolean) = this(Array.empty, Set.empty, allowDuplicitAtoms)
+
+    def getOrElse[T >: Atom.Constant](key: Atom.Variable, default: => T): T = {
+      if (contains(key)) {
+        Atom.Constant(hmap(key.index))
+      } else {
+        default
+      }
+    }
+
+    def contains(key: Atom.Variable): Boolean = key.index < hmap.length && hmap(key.index) != 0
+
+    def containsAtom(atom: Atom): Boolean = atoms(atom)
+
+    def specifyAtom(atom: Atom): Atom = Atom(specifyItem(atom.subject, this), atom.predicate, specifyItem(atom.`object`, this))
+
+    def apply(key: Atom.Variable): Atom.Constant = Atom.Constant(hmap(key.index))
+
+    private def addConstant(v: Atom.Variable, c: Atom.Constant): Array[Int] = {
+      if (v.index >= hmap.length) {
+        val newArray = new Array[Int](v.index + 1)
+        Array.copy(hmap, 0, newArray, 0, hmap.length)
+        newArray(v.index) = c.value
+        newArray
+      } else {
+        val newArray = hmap.clone()
+        newArray(v.index) = c.value
+        newArray
+      }
+    }
+
+    private def addConstant(v: Atom.Variable, c: Atom.Constant, v2: Atom.Variable, c2: Atom.Constant): Array[Int] = {
+      val maxIndex = math.max(v.index, v2.index)
+      if (maxIndex >= hmap.length) {
+        val newArray = new Array[Int](maxIndex + 1)
+        Array.copy(hmap, 0, newArray, 0, hmap.length)
+        newArray(v.index) = c.value
+        newArray(v2.index) = c2.value
+        newArray
+      } else {
+        val newArray = hmap.clone()
+        newArray(v.index) = c.value
+        newArray(v2.index) = c2.value
+        newArray
+      }
+    }
+
+    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = if (allowDuplicitAtoms) {
+      new VariableMap(addConstant(s._1, s._2, o._1, o._2), atoms, allowDuplicitAtoms)
+    } else {
+      new VariableMap(addConstant(s._1, s._2, o._1, o._2), atoms + Atom(s._2, p, o._2), allowDuplicitAtoms)
+    }
+
+    def +(s: Atom.Constant, p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = if (allowDuplicitAtoms) {
+      new VariableMap(addConstant(o._1, o._2), atoms, allowDuplicitAtoms)
+    } else {
+      new VariableMap(addConstant(o._1, o._2), atoms + Atom(s, p, o._2), allowDuplicitAtoms)
+    }
+
+    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: Atom.Constant): VariableMap = if (allowDuplicitAtoms) {
+      new VariableMap(addConstant(s._1, s._2), atoms, allowDuplicitAtoms)
+    } else {
+      new VariableMap(addConstant(s._1, s._2), atoms + Atom(s._2, p, o), allowDuplicitAtoms)
+    }
+
+    def isEmpty: Boolean = hmap.isEmpty
+  }
+
+  /*class VariableMap private(hmap: Map[Atom.Variable, Atom.Constant], atoms: Set[Atom], allowDuplicitAtoms: Boolean) {
     def this(allowDuplicitAtoms: Boolean) = this(Map.empty, Set.empty, allowDuplicitAtoms)
 
     def getOrElse[T >: Atom.Constant](key: Atom.Variable, default: => T): T = hmap.getOrElse(key, default)
@@ -48,14 +117,8 @@ trait AtomCounting {
       new VariableMap(hmap + s, atoms + Atom(s._2, p, o), allowDuplicitAtoms)
     }
 
-    /*def +(s: Atom.Constant, p: Int, o: Atom.Constant): VariableMap = if (allowDuplicitAtoms) {
-      new VariableMap(hmap, atoms, allowDuplicitAtoms)
-    } else {
-      new VariableMap(hmap, atoms + Atom(s, p, o), allowDuplicitAtoms)
-    }*/
-
     def isEmpty: Boolean = hmap.isEmpty
-  }
+  }*/
 
   val logger: Logger = Logger[AtomCounting]
   implicit val tripleIndex: TripleIndex[Int]
