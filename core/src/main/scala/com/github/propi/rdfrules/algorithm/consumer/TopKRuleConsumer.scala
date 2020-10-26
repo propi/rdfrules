@@ -4,6 +4,7 @@ import java.io.File
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 import com.github.propi.rdfrules.algorithm.RuleConsumer
+import com.github.propi.rdfrules.algorithm.consumer.TopKRuleConsumer.MinHeadCoverageUpdatedEvent
 import com.github.propi.rdfrules.rule.Rule
 import com.github.propi.rdfrules.utils.TopKQueue
 
@@ -11,7 +12,16 @@ import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Promise}
 import scala.language.postfixOps
 
-class TopKRuleConsumer private(k: Int, allowOverflowIfSameHeadCoverage: Boolean, minHcListener: Double => Unit, prettyPrintedFile: Option[(File, File => PrettyPrintedWriter)]) extends RuleConsumer {
+class TopKRuleConsumer private(k: Int, allowOverflowIfSameHeadCoverage: Boolean, prettyPrintedFile: Option[(File, File => PrettyPrintedWriter)]) extends RuleConsumer {
+
+  @volatile private var _listener: PartialFunction[RuleConsumer.Event, Unit] = PartialFunction.empty
+
+  protected def listener: PartialFunction[RuleConsumer.Event, Unit] = _listener
+
+  protected def withListener(listener: PartialFunction[RuleConsumer.Event, Unit]): RuleConsumer = {
+    _listener = listener
+    this
+  }
 
   private val _result = Promise[RuleConsumer.Result]
 
@@ -32,7 +42,7 @@ class TopKRuleConsumer private(k: Int, allowOverflowIfSameHeadCoverage: Boolean,
               case Some(rule) =>
                 val ruleSimple = Rule.Simple(rule)
                 if (queue.enqueue(ruleSimple)) {
-                  if (queue.isFull) queue.head.map(_.headCoverage).foreach(minHcListener)
+                  if (queue.isFull) queue.head.map(_.headCoverage).map(MinHeadCoverageUpdatedEvent).foreach(invokeEvent)
                   prettyPrintedWriter.foreach(_.write(ruleSimple))
                   isAdded = true
                 }
@@ -68,16 +78,20 @@ class TopKRuleConsumer private(k: Int, allowOverflowIfSameHeadCoverage: Boolean,
 
 object TopKRuleConsumer {
 
+  case class MinHeadCoverageUpdatedEvent(minHeadCoverage: Double) extends RuleConsumer.Event
+
+  private def normK(k: Int): Int = if (k < 1) 1 else k
+
   private def apply[T](ruleConsumer: TopKRuleConsumer)(f: TopKRuleConsumer => T): T = try {
     f(ruleConsumer)
   } finally {
     ruleConsumer.result
   }
 
-  def apply[T](k: Int, allowOverflowIfSameHeadCoverage: Boolean, minHcListener: Double => Unit)(f: TopKRuleConsumer => T): T = apply(new TopKRuleConsumer(k, allowOverflowIfSameHeadCoverage, minHcListener, None))(f)
+  def apply[T](k: Int, allowOverflowIfSameHeadCoverage: Boolean)(f: TopKRuleConsumer => T): T = apply(new TopKRuleConsumer(normK(k), allowOverflowIfSameHeadCoverage, None))(f)
 
-  def apply[T](k: Int, allowOverflowIfSameHeadCoverage: Boolean, minHcListener: Double => Unit, prettyPrintedFile: File)(f: TopKRuleConsumer => T)(implicit prettyPrintedWriterBuilder: File => PrettyPrintedWriter): T = {
-    apply(new TopKRuleConsumer(k, allowOverflowIfSameHeadCoverage, minHcListener, Some(prettyPrintedFile -> prettyPrintedWriterBuilder)))(f)
+  def apply[T](k: Int, allowOverflowIfSameHeadCoverage: Boolean, prettyPrintedFile: File)(f: TopKRuleConsumer => T)(implicit prettyPrintedWriterBuilder: File => PrettyPrintedWriter): T = {
+    apply(new TopKRuleConsumer(normK(k), allowOverflowIfSameHeadCoverage, Some(prettyPrintedFile -> prettyPrintedWriterBuilder)))(f)
   }
 
 }

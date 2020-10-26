@@ -44,6 +44,6 @@ abstract class RulesMining(_parallelism: Int, _thresholds: TypedKeyMap[Threshold
 
   final def parallelism: Int = _parallelism
 
-  def mine(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): RuleConsumer.Result
+  def mine(ruleConsumer: RuleConsumer)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): RuleConsumer.Result
 
 }

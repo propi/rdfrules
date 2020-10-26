@@ -1,14 +1,14 @@
 package com.github.propi.rdfrules.algorithm.amie
 
-import java.util.concurrent.ForkJoinPool
+import java.util.concurrent.{ConcurrentLinkedQueue, ForkJoinPool}
 
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.index.TripleIndex
 import com.github.propi.rdfrules.rule.ExtendedRule.DanglingRule
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
-import com.github.propi.rdfrules.rule.{Atom, AtomPatternMatcher, ExtendedRule, Measure, RulePattern, Threshold}
+import com.github.propi.rdfrules.rule.{Atom, AtomPatternMatcher, ExtendedRule, RulePattern, Threshold}
 import com.github.propi.rdfrules.utils.Debugger.ActionDebugger
-import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
+import com.github.propi.rdfrules.utils.{Debugger, UniqueQueue, TypedKeyMap}
 
 import scala.collection.parallel.ForkJoinTaskSupport
 
@@ -44,14 +44,9 @@ trait HeadsFetcher extends AtomCounting {
       Iterator(logicalHead)
     }
     //filter all atoms by patterns and join all valid patterns to the atom
-    possibleAtoms.flatMap { atom =>
-      val validPatterns = settings.patterns.filter(rp => rp.consequent.forall(atomPattern => forAtomMatcher.matchPattern(atom, atomPattern)))
-      if (patterns.isEmpty || validPatterns.nonEmpty) {
-        Iterator(atom -> validPatterns)
-      } else {
-        Iterator.empty
-      }
-    }.flatMap { case (atom, patterns) =>
+    possibleAtoms.filter { atom =>
+      settings.patterns.isEmpty || settings.patterns.exists(rp => rp.consequent.forall(atomPattern => forAtomMatcher.matchPattern(atom, atomPattern)))
+    }.flatMap { atom =>
       //convert all atoms to rules and filter it by min support
       val tm = tripleIndex.predicates(atom.predicate)
       actionDebugger.done()
@@ -61,8 +56,8 @@ trait HeadsFetcher extends AtomCounting {
         case (v1: Atom.Variable, Atom.Constant(c)) => (ExtendedRule.OneDangling(v1, Nil), tm.size, tm.objects.get(c).map(_.size).getOrElse(0))
       }.filter(x => x._2 >= settings.minHeadSize && x._3 >= math.max(settings.minSupport, settings.minHeadCoverage * x._2)).map(x =>
         DanglingRule(Vector.empty, atom)(
-          TypedKeyMap(Measure.HeadSize(x._2), Measure.Support(x._3), Measure.HeadCoverage(x._3.toDouble / x._2)),
-          patterns,
+          x._3,
+          x._2,
           x._1,
           x._1.danglings.max
         )
@@ -77,13 +72,17 @@ trait HeadsFetcher extends AtomCounting {
     *
     * @return atoms in dangling rule form - DanglingRule(no body, one head, one or two variables in head)
     */
-  def getHeads(implicit debugger: Debugger): IndexedSeq[DanglingRule] = {
+  def getHeads(implicit debugger: Debugger): UniqueQueue[ExtendedRule] = {
     //enumerate all possible head atoms with variables and instances
     //all unsatisfied predicates are filtered by constraints
     val logicalHeads = tripleIndex.predicates.iterator.filter(settings.isValidPredicate).map(Atom(Atom.Variable(0), _, Atom.Variable(1))).filter(settings.test).toVector.par
     logicalHeads.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(settings.parallelism))
     debugger.debug("Heads mining") { implicit ad =>
-      logicalHeads.flatMap(logicalHeadToRules).seq
+      val result = new ConcurrentLinkedQueue[ExtendedRule]()
+      logicalHeads.foreach { head =>
+        logicalHeadToRules(head).foreach(result.add)
+      }
+      result
     }
   }
 

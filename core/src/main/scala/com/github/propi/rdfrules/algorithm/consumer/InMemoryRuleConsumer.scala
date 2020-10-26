@@ -10,7 +10,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
-class InMemoryRuleConsumer private(prettyPrintedFile: Option[(File, File => PrettyPrintedWriter)]) extends RuleConsumer {
+class InMemoryRuleConsumer private(prettyPrintedFile: Option[(File, File => PrettyPrintedWriter)]) extends RuleConsumer.NoEventRuleConsumer {
 
   private val rules = new ConcurrentLinkedQueue[Rule.Simple]
   private val isSavingToDisk = prettyPrintedFile.isDefined

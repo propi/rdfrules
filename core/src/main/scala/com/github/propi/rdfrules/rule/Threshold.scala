@@ -44,11 +44,11 @@ object Threshold {
 
   implicit object MaxRuleLength extends Key[MaxRuleLength]
 
-  case class TopK(value: Int) extends Threshold {
+  /*case class TopK(value: Int) extends Threshold {
     def companion: TopK.type = TopK
   }
 
-  implicit object TopK extends Key[TopK]
+  implicit object TopK extends Key[TopK]*/
 
   case class Timeout(value: Int) extends Threshold {
     lazy val duration: FiniteDuration = Duration(value, MINUTES)
@@ -66,7 +66,7 @@ object Threshold {
     case MinSupport(x) if x < 1 => MinSupport(1)
     case MinHeadCoverage(x) if x < 0.001 => MinHeadCoverage(0.001)
     case MinHeadCoverage(x) if x > 1 => MinHeadCoverage(1)
-    case TopK(x) if x < 1 => TopK(1)
+    //case TopK(x) if x < 1 => TopK(1)
     case Timeout(x) if x < 1 => Timeout(1)
     case x => x
   }

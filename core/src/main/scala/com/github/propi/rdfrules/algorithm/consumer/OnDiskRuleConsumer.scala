@@ -12,7 +12,7 @@ import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Promise}
 import scala.language.postfixOps
 
-class OnDiskRuleConsumer private(file: File, prettyPrintedFile: Option[(File, File => PrettyPrintedWriter)]) extends RuleConsumer {
+class OnDiskRuleConsumer private(file: File, prettyPrintedFile: Option[(File, File => PrettyPrintedWriter)]) extends RuleConsumer.NoEventRuleConsumer {
 
   private val _result = Promise[RuleConsumer.Result]
 
