@@ -10,6 +10,7 @@ import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.ExtendedRule.ClosedRule
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap, UniqueQueue}
+import RulePatternMatcher._
 
 import scala.annotation.tailrec
 import scala.language.postfixOps
@@ -156,10 +157,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
 
   }*/
 
-  private class AmieProcess(ruleConsumer: RuleConsumer)(implicit val tripleIndex: TripleIndex[Int], val settings: RuleRefinement.Settings, val forAtomMatcher: AtomPatternMatcher[Atom]) extends HeadsFetcher {
-
-    val patterns: List[RulePattern] = self.patterns
-    val thresholds: TypedKeyMap.Immutable[Threshold] = self.thresholds
+  private class AmieProcess(ruleConsumer: RuleConsumer)(implicit val tripleIndex: TripleIndex[Int], val settings: RuleRefinement.Settings, val forAtomMatcher: MappedAtomPatternMatcher[Atom]) extends HeadsFetcher {
 
     private val foundRules = new AtomicInteger(0)
 
@@ -190,7 +188,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
               //refine the rule and add all expanded variants into the queue
               for (rule <- rule.refine) {
                 val ruleIsAdded = nextQueue.add(rule)
-                if (ruleIsAdded && rule.isInstanceOf[ClosedRule]) {
+                if (ruleIsAdded && rule.isInstanceOf[ClosedRule] && (settings.patterns.isEmpty || settings.patterns.exists(_.matchWith[Rule](rule)))) {
                   ruleConsumer.send(rule)
                   foundRules.incrementAndGet()
                 }

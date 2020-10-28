@@ -128,8 +128,8 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
     * @return all extended rules with new atom
     */
   def refine: Iterator[ExtendedRule] = {
-    val patternFilter = new RulePatternFilter(rule)
-    if (rule.patterns.nonEmpty && !patternFilter.isDefined) {
+    val patternFilter = new RulePatternFilter(rule, patterns, maxRuleLength)
+    if (patterns.nonEmpty && !patternFilter.isDefined) {
       //if all paterns must be exact and are completely matched then we will not expand this rule
       Iterator.empty
     } else {
@@ -175,13 +175,11 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
           //for each found projection increase support by 1 and find max support
           maxSupport = math.max(projections.getOrElseUpdate(atom, IncrementalInt()).++.getValue, maxSupport)
         }
-        if (i % 1000 == 0) {
-          val refineDuration = currentDuration
-          if (refineDuration - lastDumpDuration > 60000) {
-            debugger.logger.info(s"Long refining of rule $resolvedRule. Projections size: ${projections.size}. Step: $i of $headSize")
-            lastDumpDuration = refineDuration
-          }
-          if (timeout.exists(refineDuration >= _) || debugger.isInterrupted) {
+        val miningDuration = currentDuration
+        if (miningDuration - lastDumpDuration > 30000) {
+          debugger.logger.info(s"Long refining of rule $resolvedRule. Projections size: ${projections.size}. Step: $i of $headSize")
+          lastDumpDuration = miningDuration
+          if (timeout.exists(miningDuration >= _) || debugger.isInterrupted) {
             maxSupport = Int.MinValue
             projections.clear()
           }
@@ -311,7 +309,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
         // - only p(a, C) -> p(a, B) is allowed - not p(a, C) -> p(a, b), because it is noise = redundant pattern for functional p
         // - this phase (for instantioned atoms with existing predicates) is doing during the main count projections process
         if ( /*atom.subject.isInstanceOf[Atom.Variable] && atom.`object`.isInstanceOf[Atom.Variable] && */ isValidPredicate(atom.predicate)) {
-          projections += (Atom(freshAtom.subject, atom.predicate, freshAtom.`object`) -> IncrementalInt(rule.measures[Measure.Support].value))
+          projections += (Atom(freshAtom.subject, atom.predicate, freshAtom.`object`) -> IncrementalInt(rule.support))
         }
       }
       projections

@@ -32,8 +32,8 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     amie = amie.addPattern(RulePattern.create(new RulePattern.AtomPattern()))
     amie.asScala().patterns should not be empty
     amie.asScala().patterns.head.exact shouldBe false
-    amie.asScala().patterns.head.consequent should not be empty
-    amie.asScala().patterns.head.antecedent shouldBe empty
+    amie.asScala().patterns.head.head should not be empty
+    amie.asScala().patterns.head.body shouldBe empty
   }
 
   it should "mine with default params" in {

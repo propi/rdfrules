@@ -6,9 +6,9 @@ import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.index.TripleIndex
 import com.github.propi.rdfrules.rule.ExtendedRule.DanglingRule
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
-import com.github.propi.rdfrules.rule.{Atom, AtomPatternMatcher, ExtendedRule, RulePattern, Threshold}
+import com.github.propi.rdfrules.rule.{Atom, ExtendedRule, MappedAtomPatternMatcher}
 import com.github.propi.rdfrules.utils.Debugger.ActionDebugger
-import com.github.propi.rdfrules.utils.{Debugger, UniqueQueue, TypedKeyMap}
+import com.github.propi.rdfrules.utils.{Debugger, UniqueQueue}
 
 import scala.collection.parallel.ForkJoinTaskSupport
 
@@ -19,10 +19,7 @@ trait HeadsFetcher extends AtomCounting {
 
   implicit val tripleIndex: TripleIndex[Int]
   implicit val settings: RuleRefinement.Settings
-  implicit val forAtomMatcher: AtomPatternMatcher[Atom]
-
-  val patterns: List[RulePattern]
-  val thresholds: TypedKeyMap.Immutable[Threshold]
+  implicit val forAtomMatcher: MappedAtomPatternMatcher[Atom]
 
   private def logicalHeadToRules(logicalHead: Atom)(implicit actionDebugger: ActionDebugger): Iterator[DanglingRule] = {
     val possibleAtoms = if (settings.isWithInstances) {
@@ -45,7 +42,7 @@ trait HeadsFetcher extends AtomCounting {
     }
     //filter all atoms by patterns and join all valid patterns to the atom
     possibleAtoms.filter { atom =>
-      settings.patterns.isEmpty || settings.patterns.exists(rp => rp.consequent.forall(atomPattern => forAtomMatcher.matchPattern(atom, atomPattern)))
+      settings.patterns.isEmpty || settings.patterns.exists(rp => rp.head.forall(atomPattern => forAtomMatcher.matchPattern(atom, atomPattern)))
     }.flatMap { atom =>
       //convert all atoms to rules and filter it by min support
       val tm = tripleIndex.predicates(atom.predicate)

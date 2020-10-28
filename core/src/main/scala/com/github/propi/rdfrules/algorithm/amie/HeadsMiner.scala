@@ -32,7 +32,7 @@ class HeadsMiner private(_parallelism: Int = Runtime.getRuntime.availableProcess
     process.getHeads.map(Rule.Simple.apply)
   }
 
-  private class AmieProcess(implicit val tripleIndex: TripleIndex[Int], val settings: RuleRefinement.Settings, val forAtomMatcher: AtomPatternMatcher[Atom]) extends HeadsFetcher {
+  private class AmieProcess(implicit val tripleIndex: TripleIndex[Int], val settings: RuleRefinement.Settings, val forAtomMatcher: MappedAtomPatternMatcher[Atom]) extends HeadsFetcher {
     val patterns: List[RulePattern] = self.patterns
     val thresholds: TypedKeyMap.Immutable[Threshold] = self.thresholds
   }

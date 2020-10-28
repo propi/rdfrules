@@ -7,7 +7,7 @@ import com.github.propi.rdfrules.ruleset.ResolvedRule
 /**
   * Created by Vaclav Zeman on 2. 1. 2018.
   */
-trait ResolvedAtomPatternMatcher[T] {
+trait ResolvedAtomPatternMatcher[T] extends PatternMatcher[T, AtomPattern] {
   def matchPattern(x: T, pattern: AtomPattern): Boolean
 }
 

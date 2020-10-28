@@ -34,8 +34,8 @@ class AmieSpec extends FlatSpec with Matchers with Inside {
     amie = amie.addPattern(RulePattern(AtomPattern(AtomPattern.AtomItemPattern.AnyConstant, AtomPattern.AtomItemPattern.AnyConstant, AtomPattern.AtomItemPattern.AnyConstant)))
     amie.patterns.isEmpty shouldBe false
     amie.patterns.head.exact shouldBe false
-    amie.patterns.head.consequent shouldBe defined
-    amie.patterns.head.antecedent shouldBe empty
+    amie.patterns.head.head shouldBe defined
+    amie.patterns.head.body shouldBe empty
     amie = amie.addThreshold(Threshold.MinHeadCoverage(0)).addThreshold(Threshold.MaxRuleLength(1)).addThreshold(Threshold.Timeout(-5))
     amie.thresholds.apply[Threshold.MinHeadCoverage].value shouldBe 0.001
     amie.thresholds.apply[Threshold.MaxRuleLength].value shouldBe 2

@@ -6,11 +6,11 @@ import com.github.propi.rdfrules.rule.AtomPattern.AtomItemPattern
 /**
   * Created by Vaclav Zeman on 2. 1. 2018.
   */
-trait AtomPatternMatcher[T] {
+trait MappedAtomPatternMatcher[T] extends PatternMatcher[T, AtomPattern.Mapped] {
   def matchPattern(x: T, pattern: AtomPattern.Mapped): Boolean
 }
 
-object AtomPatternMatcher {
+object MappedAtomPatternMatcher {
 
   def matchAtomItemPattern(item: Atom.Item, pattern: AtomItemPattern.Mapped): Boolean = pattern match {
     case AtomItemPattern.Any => true
@@ -50,12 +50,12 @@ object AtomPatternMatcher {
   }
 
   //TODO: support variables for predicates and graphs
-  implicit def forAtom(implicit thi: TripleIndex[Int]): AtomPatternMatcher[Atom] = (x: Atom, pattern: AtomPattern.Mapped) => matchAtomItemPattern(x.subject, pattern.subject) &&
-    matchAtomItemPattern(Atom.Constant(x.predicate), pattern.predicate) &&
+  implicit def forAtom(implicit thi: TripleIndex[Int]): MappedAtomPatternMatcher[Atom] = (x: Atom, pattern: AtomPattern.Mapped) => matchAtomItemPattern(Atom.Constant(x.predicate), pattern.predicate) &&
+    matchAtomItemPattern(x.subject, pattern.subject) &&
     matchAtomItemPattern(x.`object`, pattern.`object`) &&
     matchGraphPattern(x, pattern.graph)
 
-  implicit val forFreshAtom: AtomPatternMatcher[FreshAtom] = (x: FreshAtom, pattern: AtomPattern.Mapped) => (mayBeConstant(pattern.subject) || matchAtomItemPattern(x.subject, pattern.subject)) &&
+  implicit val forFreshAtom: MappedAtomPatternMatcher[FreshAtom] = (x: FreshAtom, pattern: AtomPattern.Mapped) => (mayBeConstant(pattern.subject) || matchAtomItemPattern(x.subject, pattern.subject)) &&
     (mayBeConstant(pattern.`object`) || matchAtomItemPattern(x.`object`, pattern.`object`))
 
 }

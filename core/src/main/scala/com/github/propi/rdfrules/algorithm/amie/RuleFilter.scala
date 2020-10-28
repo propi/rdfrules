@@ -1,9 +1,8 @@
 package com.github.propi.rdfrules.algorithm.amie
 
-import com.github.propi.rdfrules.index.TripleIndex
 import com.github.propi.rdfrules.rule._
-import com.github.propi.rdfrules.utils.extensions.EitherExtension._
 
+import scala.annotation.tailrec
 import scala.language.implicitConversions
 
 /**
@@ -68,35 +67,219 @@ object RuleFilter {
     *
     * @param rule original rule (without refinement)
     */
-  class RulePatternFilter(rule: ExtendedRule)(implicit thi: TripleIndex[Int], atomMatcher: AtomPatternMatcher[Atom], freshAtomMatcher: AtomPatternMatcher[FreshAtom]) extends RuleFilter {
-    /**
-      * Patterns for remaining fresh atoms which can be added to this rule
-      */
-    private val patternAtoms = rule.patterns.map(x => x -> x.antecedent.lift(x.antecedent.size - rule.body.size - 1))
+  class RulePatternFilter(rule: ExtendedRule, patterns: List[RulePattern.Mapped], maxRuleLength: Int)(implicit atomMatcher: MappedAtomPatternMatcher[Atom], freshAtomMatcher: MappedAtomPatternMatcher[FreshAtom]) extends RuleFilter {
 
-    /**
-      * Check whether a new atom/fresh atom is matching with the current atom pattern
-      *
-      * @param atom new atom
-      * @return boolean
-      */
-    private def matchAtom(atom: Either[Atom, FreshAtom]): Iterator[RulePattern.Mapped] = patternAtoms.iterator.filter(x => (x._2.isEmpty && !x._1.exact) || x._2.exists(y => atom.fold(atomMatcher.matchPattern(_, y), freshAtomMatcher.matchPattern(_, y)))).map(_._1)
+    private def _matchAtom(atom: Either[Atom, FreshAtom], patterns: Iterable[AtomPattern.Mapped]): Boolean = atom.fold(atom => patterns.exists(atomMatcher.matchPattern(atom, _)), freshAtom => patterns.exists(freshAtomMatcher.matchPattern(freshAtom, _)))
 
-    /**
-      * this rule is defined only if
-      *  - rule pattern must not be empty and
-      *  - there is any partial pattern or nonEmpty atom pattern (if there are only exact patterns and are completely matched then we will not apply this filter)
-      *
-      * @return boolean
-      */
-    override val isDefined: Boolean = rule.patterns.nonEmpty && patternAtoms.exists { case (rp, ap) => !rp.exact || ap.nonEmpty }
-
-    def apply(newAtom: Atom, support: Int): FilterResult = {
-      val matchedPatterns = matchAtom(newAtom).toList
-      matchedPatterns.nonEmpty -> Some(_.withPatterns(matchedPatterns))
+    private def lowHighPermutations[A, B](higherCol: Set[A], loverCol: Iterable[B]): Iterator[List[(A, B)]] = {
+      if (loverCol.isEmpty) {
+        Iterator(Nil)
+      } else {
+        val head = loverCol.head
+        val tail = loverCol.tail
+        higherCol.iterator.flatMap(x => lowHighPermutations(higherCol - x, tail).map((x -> head) :: _))
+      }
     }
 
-    def matchFreshAtom(freshAtom: FreshAtom): Boolean = rule.patterns.isEmpty || matchAtom(freshAtom).nonEmpty
+    private def permutations[A, B](col1: Iterable[A], col2: Iterable[B]): Iterator[Seq[(A, B)]] = {
+      if (col1.size >= col2.size) {
+        lowHighPermutations(col1.toSet, col2)
+      } else {
+        lowHighPermutations(col2.toSet, col1).map(_.view.map(_.swap))
+      }
+    }
+
+    private sealed trait NewAtomMatcher {
+      def matchAtom(atom: Either[Atom, FreshAtom]): Boolean
+
+      def isDefined: Boolean
+    }
+
+    /**
+      * The main object here is remainingAtomPatterns. This set constains all non matched atoms.
+      * This matcher is defined only if remainingAtomPatterns has some elements (and rule.body < pattern.body)
+      * A fresh atom must match one of remainingAtomPatterns.
+      *
+      * @param pattern rule pattern
+      */
+    private class OrderlessExactAtomMatcher(pattern: RulePattern.Mapped) extends NewAtomMatcher {
+      private val remainingAtomPatterns: Set[AtomPattern.Mapped] = {
+        if (rule.body.length < pattern.body.length) {
+          def selectRemainingAtomPatterns(body: Seq[Atom], atomPatterns: Set[AtomPattern.Mapped]): Set[AtomPattern.Mapped] = {
+            if (body.isEmpty) {
+              atomPatterns
+            } else {
+              //each atom of the rule must match an atom pattern since it must be exact
+              //we start from the left-side atom to the right-side atom.
+              val x = body.head
+              val tail = body.tail
+              //for each atom we find all matching paterns and for each we create an individual branch
+              atomPatterns
+                .iterator
+                .filter(atomMatcher.matchPattern(x, _))
+                .map(pattern => selectRemainingAtomPatterns(tail, atomPatterns - pattern))
+                .reduceOption(_ ++ _)
+                .getOrElse(Set.empty)
+            }
+          }
+
+          selectRemainingAtomPatterns(rule.body, pattern.body.toSet)
+        } else {
+          Set.empty
+        }
+      }
+
+      def isDefined: Boolean = remainingAtomPatterns.nonEmpty
+
+      def matchAtom(atom: Either[Atom, FreshAtom]): Boolean = _matchAtom(atom, remainingAtomPatterns)
+    }
+
+    /**
+      * The main object here is nextAtomPattern. This optional value constains the optional next pattern to be matching for a fresh atom.
+      * This matcher is defined only if nextAtomPattern is defined - nextAtomPattern is:
+      *  - None = the rule is not matching the pattern
+      *  - Some(None) = the rule is matching the pattern and there are no other atom pattern to be matched (the rule has been completely matched). But the pattern is partial, therefore, the next fresh atom can be anything.
+      *  - Some(Some(..)) = the next atom pattern which must be matched by a fresh atom.
+      *
+      * @param pattern rule pattern
+      */
+    private class GradualPartialAtomMatcher(pattern: RulePattern.Mapped) extends NewAtomMatcher {
+      protected val nextAtomPattern: Option[Option[AtomPattern.Mapped]] = {
+        val isMatched = rule.body.reverseIterator.zip(pattern.body.reverseIterator).forall(x => atomMatcher.matchPattern(x._1, x._2))
+        if (isMatched) {
+          if (rule.body.length < pattern.body.length) {
+            Some(Some(pattern.body(pattern.body.length - rule.body.length - 1)))
+          } else {
+            Some(None)
+          }
+        } else {
+          None
+        }
+      }
+
+      def isDefined: Boolean = nextAtomPattern.isDefined
+
+      def matchAtom(atom: Either[Atom, FreshAtom]): Boolean = nextAtomPattern.exists(_.forall(x => _matchAtom(atom, Iterable(x))))
+    }
+
+    /**
+      * The behaviour is same as GradualPartialAtomMatcher, but this matcher is defined only if nextAtomPattern is Some(Some(..))
+      *
+      * @param pattern rule pattern
+      */
+    private class GradualExactAtomMatcher(pattern: RulePattern.Mapped) extends GradualPartialAtomMatcher(pattern) {
+      override def isDefined: Boolean = nextAtomPattern.flatten.isDefined
+
+      override def matchAtom(atom: Either[Atom, FreshAtom]): Boolean = _matchAtom(atom, nextAtomPattern.flatten)
+    }
+
+    /**
+      * The main object here is remainingAtomPatterns and minRequiredMatching.
+      * minRequiredMatching is the K value telling us that in the current refining process we need to match minimal K patterns by with rule atoms including a fresh atom.
+      * For example:
+      *  - minRequiredMatching = 0: the fresh atom need not match any pattern (e.g. maxRuleLength = 3, rule is () => (?a p ?b) and pattern is (? ? ?) => (? ? ?))
+      *  - minRequiredMatching = 1: the fresh atom must match minimal one pattern if no rules matching any pattern (e.g. maxRuleLength = 3, rule is (?a p ?b) => (?a p ?b) and pattern is (? ? ?) => (? ? ?)).
+      *  - minRequiredMatching > 1: the fresh atom must match minimal one pattern if min one pattern is matching with a rule atom (e.g. maxRuleLength = 3, rule is (?a p ?b) => (?a p ?b) and pattern is (? ? ?) & (? ? ?) => (? ? ?)).
+      *
+      * remainingAtomPatterns has these variants:
+      *  - None = the fresh atom can be anything
+      *  - Some(Nil) = this matcher is not defined because the rule can not match this pattern
+      *  - Some(Col) = the fresh atom must match one of patterns in the Col.
+      *
+      * @param pattern rule pattern
+      */
+    private class OrderlessPartialAtomMatcher(pattern: RulePattern.Mapped) extends NewAtomMatcher {
+      private val minRequiredMatching = pattern.body.length - maxRuleLength + rule.body.length + 2
+
+      private val remainingAtomPatterns: Option[Iterable[AtomPattern.Mapped]] = {
+        if (minRequiredMatching <= 0) {
+          None
+        } else if (minRequiredMatching == 1) {
+          val allIsMatched = pattern.body.exists(atomPattern => rule.body.exists(atom => atomMatcher.matchPattern(atom, atomPattern)))
+          if (allIsMatched) {
+            //if minRequiredMatching is 1 and some atom is matching any pattern then the fresh atom can be anything (because the rule pattern is satified).
+            None
+          } else {
+            //otherwise the fresh atom must match one of atom patterns
+            Some(pattern.body)
+          }
+        } else {
+          //only if minRequiredMatching >= 2
+          //Rule-pattern permutation, e.g, p1, p2 (atom patterns), a1, a2, a3 (rule atoms)
+          //- perms are: (p1:a1, p2:a2), (p1:a1, p2:a3), (p1:a2, p2:a1), (p1:a2, p2:a3), (p1:a3, p2:a1), (p1:a3, p2:a2)
+          //or, e.g, p1, p2, p3 (atom patterns), a1, a2 (rule atoms)
+          //- perms are: (a1:p1, a2:p2), (a1:p1, p2:p3), (a1:p2, a2:p1), (a1:p2, a2:p3), (a1:p3, a2:p1), (a1:p3, a2:p2)
+          collectNonMatchedPatterns(permutations(pattern.body, rule.body), Set.empty)
+        }
+      }
+
+      @tailrec
+      private def collectNonMatchedPatterns(it: Iterator[Seq[(AtomPattern.Mapped, Atom)]], res: Set[AtomPattern.Mapped]): Option[Set[AtomPattern.Mapped]] = {
+        if (it.hasNext) {
+          //get a permutation, e.g. (p1:a1, p2:a2)
+          val perm = it.next()
+          //we count all matched patterns
+          //we return all pattern which are matching with the paired atom of the permutation
+          val matchedPatterns = collection.mutable.Set.empty[AtomPattern.Mapped]
+          for ((atomPattern, atom) <- perm if atomMatcher.matchPattern(atom, atomPattern)) {
+            matchedPatterns += atomPattern
+          }
+          //we recompute minRequiredMatching without matched patterns
+          val newMinRequiredMatching = minRequiredMatching - matchedPatterns.size
+          if (newMinRequiredMatching <= 0) {
+            //all atoms are matching patterns therefore the rule is completely matched and the fresh atom can be anything
+            None
+          } else if (newMinRequiredMatching == 1) {
+            //only one atom pattern must be matched by the fresh atom, we save all nonMatchedPatterns which should be matched by the fresh atom (min one of them)
+            collectNonMatchedPatterns(it, res ++ pattern.body.iterator.filterNot(matchedPatterns))
+          } else {
+            //still more than one atom pattern must be matched. But now it is not possible to do because the fresh atom can match only one pattern
+            //therefore this permutation is invalid and skipped.
+            collectNonMatchedPatterns(it, res)
+          }
+        } else {
+          Some(res)
+        }
+      }
+
+      def isDefined: Boolean = remainingAtomPatterns.forall(_.nonEmpty)
+
+      def matchAtom(atom: Either[Atom, FreshAtom]): Boolean = remainingAtomPatterns.forall(_matchAtom(atom, _))
+    }
+
+    /**
+      * for each pattern create a new atom matcher which must be defined (valid pattern regarding the rule)
+      */
+    private val newAtomMatchers: List[NewAtomMatcher] = {
+      patterns.flatMap { pattern =>
+        val newAtomMatcher = (pattern.orderless, pattern.exact) match {
+          case (true, true) => new OrderlessExactAtomMatcher(pattern)
+          case (false, true) => new GradualExactAtomMatcher(pattern)
+          case (false, false) => new GradualPartialAtomMatcher(pattern)
+          case (true, false) => new OrderlessPartialAtomMatcher(pattern)
+        }
+        if (newAtomMatcher.isDefined) Some(newAtomMatcher) else None
+      }
+    }
+
+    /**
+      * this rule is defined only if there is a defined new atom matcher (from rule patterns)
+      *
+      * @return boolean
+      */
+    override val isDefined: Boolean = newAtomMatchers.nonEmpty
+
+    def apply(newAtom: Atom, support: Int): FilterResult = {
+      newAtomMatchers.exists { atomMatcher =>
+        atomMatcher.matchAtom(Left(newAtom))
+      }
+    }
+
+    def matchFreshAtom(freshAtom: FreshAtom): Boolean = {
+      newAtomMatchers.exists { atomMatcher =>
+        atomMatcher.matchAtom(Right(freshAtom))
+      }
+    }
   }
 
   /**
