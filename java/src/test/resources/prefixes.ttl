@@ -1,2 +1,0 @@
-@prefix dbp: <http://cs.dbpedia.org/property/> .
-@prefix dbr: <http://cs.dbpedia.org/resource/> .

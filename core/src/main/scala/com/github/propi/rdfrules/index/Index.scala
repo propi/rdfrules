@@ -2,7 +2,8 @@ package com.github.propi.rdfrules.index
 
 import java.io._
 
-import com.github.propi.rdfrules.algorithm.RulesMining
+import com.github.propi.rdfrules.algorithm.consumer.InMemoryRuleConsumer
+import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.data.Dataset
 import com.github.propi.rdfrules.index.ops._
 import com.github.propi.rdfrules.ruleset.Ruleset
@@ -41,10 +42,12 @@ trait Index {
     override def withEvaluatedLazyVals: Index = this
   }
 
-  final def mine(miner: RulesMining): Ruleset = tripleItemMap { implicit mapper =>
+  final def mine(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer(_))): Ruleset = tripleItemMap { implicit mapper =>
     tripleMap { implicit thi =>
-      val result = miner.mine
-      Ruleset(this, result.rules, result.isCached)
+      ruleConsumer.invoke { ruleConsumer =>
+        val result = miner.mine(ruleConsumer)
+        Ruleset(this, result.rules, result.isCached)
+      }
     }
   }
 

@@ -9,7 +9,7 @@ import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetReader, RulesetSo
 import com.github.propi.rdfrules.utils.{InputStreamBuilder, OutputStreamBuilder, TypedKeyMap}
 import spray.json._
 import DefaultJsonProtocol._
-import com.github.propi.rdfrules.algorithm.consumer.OnDiskRuleConsumer.PrettyPrintedWriter
+import com.github.propi.rdfrules.algorithm.consumer.PrettyPrintedWriter
 import com.github.propi.rdfrules.index.TripleItemIndex
 
 import scala.io.Source

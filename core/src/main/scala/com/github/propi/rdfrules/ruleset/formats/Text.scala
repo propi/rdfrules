@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.ruleset.formats
 
 import java.io.{File, FileOutputStream, OutputStreamWriter, PrintWriter}
 
-import com.github.propi.rdfrules.algorithm.consumer.OnDiskRuleConsumer.PrettyPrintedWriter
+import com.github.propi.rdfrules.algorithm.consumer.PrettyPrintedWriter
 import com.github.propi.rdfrules.data.{Prefix, TripleItem}
 import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.rule.Rule

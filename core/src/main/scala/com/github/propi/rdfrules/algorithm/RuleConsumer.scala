@@ -1,7 +1,10 @@
 package com.github.propi.rdfrules.algorithm
 
 import com.github.propi.rdfrules.algorithm.RuleConsumer.{Event, Result}
+import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.Rule
+
+import scala.language.implicitConversions
 
 trait RuleConsumer {
 
@@ -27,6 +30,26 @@ object RuleConsumer {
     protected def withListener(listener: PartialFunction[Event, Unit]): RuleConsumer = this
   }
 
-  case class Result(rules: Traversable[Rule.Simple], isCached: Boolean, size: Int)
+  trait Invoker[T] extends {
+    def invoke(f: RuleConsumer => T)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): T
+  }
+
+  def apply[T](g: (RuleConsumer => T) => T): Invoker[T] = new Invoker[T] {
+    def invoke(f: RuleConsumer => T)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): T = g(f)
+  }
+
+  def withIndices[T](g: TripleIndex[Int] => TripleItemIndex => (RuleConsumer => T) => T): Invoker[T] = new Invoker[T] {
+    def invoke(f: RuleConsumer => T)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): T = g(tripleIndex)(mapper)(f)
+  }
+
+  def withIndex[T](g: TripleIndex[Int] => (RuleConsumer => T) => T): Invoker[T] = new Invoker[T] {
+    def invoke(f: RuleConsumer => T)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): T = g(tripleIndex)(f)
+  }
+
+  def withMapper[T](g: TripleItemIndex => (RuleConsumer => T) => T): Invoker[T] = new Invoker[T] {
+    def invoke(f: RuleConsumer => T)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): T = g(mapper)(f)
+  }
+
+  case class Result(rules: Traversable[Rule.Simple], isCached: Boolean)
 
 }

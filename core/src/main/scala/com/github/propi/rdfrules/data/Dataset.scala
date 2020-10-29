@@ -2,7 +2,8 @@ package com.github.propi.rdfrules.data
 
 import java.io._
 
-import com.github.propi.rdfrules.algorithm.RulesMining
+import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
+import com.github.propi.rdfrules.algorithm.consumer.InMemoryRuleConsumer
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.data.Triple.TripleTraversableView
 import com.github.propi.rdfrules.data.ops._
@@ -59,7 +60,7 @@ class Dataset private(val quads: QuadTraversableView, val userDefinedPrefixes: T
 
   def export(file: String)(implicit writer: RdfWriter): Unit = export(new File(file))
 
-  def mine(miner: RulesMining)(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = Index(this, false).mine(miner)
+  def mine(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer(_)))(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = Index(this, false).mine(miner, ruleConsumer)
 
   def index(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = Index(this, false)
 

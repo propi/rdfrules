@@ -10,14 +10,10 @@ val basicSettings = Seq(
 lazy val root = project
   .in(file("."))
   .settings(basicSettings: _*)
-  .aggregate(core, java, http, gui, experiments)
+  .aggregate(core, http, gui, experiments)
 
 lazy val core = project
   .in(file("core"))
-
-lazy val java = project
-  .in(file("java"))
-  .dependsOn(core)
 
 lazy val http = project
   .in(file("http"))
@@ -33,4 +29,4 @@ lazy val experiments = project
   .in(file("experiments"))
   .settings(packMain := Map("main" -> "com.github.propi.rdfrules.experiments.OriginalAmieComparison"))
   .enablePlugins(PackPlugin)
-  .dependsOn(java)
+  .dependsOn(core)

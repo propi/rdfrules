@@ -2,7 +2,8 @@ package com.github.propi.rdfrules.data
 
 import java.io._
 
-import com.github.propi.rdfrules.algorithm.RulesMining
+import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
+import com.github.propi.rdfrules.algorithm.consumer.InMemoryRuleConsumer
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.data.Triple.TripleTraversableView
 import com.github.propi.rdfrules.data.ops._
@@ -58,7 +59,7 @@ class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView
 
   def toDataset: Dataset = Dataset(this)
 
-  def mine(miner: RulesMining)(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = toDataset.mine(miner)
+  def mine(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer(_)))(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = toDataset.mine(miner, ruleConsumer)
 
   def index(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = toDataset.index()
 
