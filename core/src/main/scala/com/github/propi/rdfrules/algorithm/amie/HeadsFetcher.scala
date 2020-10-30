@@ -1,14 +1,14 @@
 package com.github.propi.rdfrules.algorithm.amie
 
-import java.util.concurrent.{ConcurrentLinkedQueue, ForkJoinPool}
+import java.util.concurrent.ForkJoinPool
 
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.index.TripleIndex
 import com.github.propi.rdfrules.rule.ExtendedRule.DanglingRule
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule.{Atom, ExtendedRule, MappedAtomPatternMatcher}
+import com.github.propi.rdfrules.utils.Debugger
 import com.github.propi.rdfrules.utils.Debugger.ActionDebugger
-import com.github.propi.rdfrules.utils.{Debugger, UniqueQueue}
 
 import scala.collection.parallel.ForkJoinTaskSupport
 
@@ -69,17 +69,19 @@ trait HeadsFetcher extends AtomCounting {
     *
     * @return atoms in dangling rule form - DanglingRule(no body, one head, one or two variables in head)
     */
-  def getHeads(implicit debugger: Debugger): UniqueQueue[ExtendedRule] = {
+  def getHeads(implicit debugger: Debugger): Traversable[ExtendedRule] = {
     //enumerate all possible head atoms with variables and instances
     //all unsatisfied predicates are filtered by constraints
-    val logicalHeads = tripleIndex.predicates.iterator.filter(settings.isValidPredicate).map(Atom(Atom.Variable(0), _, Atom.Variable(1))).filter(settings.test).toVector.par
-    logicalHeads.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(settings.parallelism))
-    debugger.debug("Heads mining") { implicit ad =>
-      val result = new ConcurrentLinkedQueue[ExtendedRule]()
-      logicalHeads.foreach { head =>
-        logicalHeadToRules(head).foreach(result.add)
+    new Traversable[ExtendedRule] {
+      def foreach[U](f: ExtendedRule => U): Unit = {
+        val logicalHeads = tripleIndex.predicates.iterator.filter(settings.isValidPredicate).map(Atom(Atom.Variable(0), _, Atom.Variable(1))).filter(settings.test).toVector.par
+        logicalHeads.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(settings.parallelism))
+        debugger.debug("Heads mining") { implicit ad =>
+          logicalHeads.foreach { head =>
+            logicalHeadToRules(head).foreach(f)
+          }
+        }
       }
-      result
     }
   }
 

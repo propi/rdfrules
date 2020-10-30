@@ -50,12 +50,20 @@ object MappedAtomPatternMatcher {
   }
 
   //TODO: support variables for predicates and graphs
-  implicit def forAtom(implicit thi: TripleIndex[Int]): MappedAtomPatternMatcher[Atom] = (x: Atom, pattern: AtomPattern.Mapped) => matchAtomItemPattern(Atom.Constant(x.predicate), pattern.predicate) &&
-    matchAtomItemPattern(x.subject, pattern.subject) &&
-    matchAtomItemPattern(x.`object`, pattern.`object`) &&
-    matchGraphPattern(x, pattern.graph)
+  implicit def forAtom(implicit thi: TripleIndex[Int]): MappedAtomPatternMatcher[Atom] = new MappedAtomPatternMatcher[Atom] {
+    def matchPattern(x: Atom, pattern: AtomPattern.Mapped): Boolean = {
+      matchAtomItemPattern(Atom.Constant(x.predicate), pattern.predicate) &&
+        matchAtomItemPattern(x.subject, pattern.subject) &&
+        matchAtomItemPattern(x.`object`, pattern.`object`) &&
+        matchGraphPattern(x, pattern.graph)
+    }
+  }
 
-  implicit val forFreshAtom: MappedAtomPatternMatcher[FreshAtom] = (x: FreshAtom, pattern: AtomPattern.Mapped) => (mayBeConstant(pattern.subject) || matchAtomItemPattern(x.subject, pattern.subject)) &&
-    (mayBeConstant(pattern.`object`) || matchAtomItemPattern(x.`object`, pattern.`object`))
+  implicit val forFreshAtom: MappedAtomPatternMatcher[FreshAtom] = new MappedAtomPatternMatcher[FreshAtom] {
+    def matchPattern(x: FreshAtom, pattern: AtomPattern.Mapped): Boolean = {
+      (mayBeConstant(pattern.subject) || matchAtomItemPattern(x.subject, pattern.subject)) &&
+        (mayBeConstant(pattern.`object`) || matchAtomItemPattern(x.`object`, pattern.`object`))
+    }
+  }
 
 }

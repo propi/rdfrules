@@ -28,6 +28,8 @@ trait Index {
 
   def cache(file: String): Index
 
+  def withDebugger(implicit debugger: Debugger): Index
+
   def withEvaluatedLazyVals: Index = new IndexDecorator(this) {
     private var thiEvaluated = false
 
@@ -55,38 +57,52 @@ trait Index {
 
 object Index {
 
-  def apply(_dataset: Dataset, partially: Boolean)(implicit _debugger: Debugger): Index = {
-    trait FromDataset extends Index with Cacheable with FromDatasetBuildable {
-      implicit val debugger: Debugger = _debugger
+  private abstract class FromDatasetIndex(_dataset: Option[Dataset]) extends Index with Cacheable with FromDatasetBuildable {
+    @volatile protected var dataset: Option[Dataset] = _dataset
+  }
 
-      @volatile protected var dataset: Option[Dataset] = Some(_dataset)
+  private class FromDatasetPartiallyPreservedIndex(_dataset: Option[Dataset])(implicit val debugger: Debugger) extends FromDatasetIndex(_dataset) with PartiallyPreservedInMemory {
+    def withDebugger(implicit debugger: Debugger): Index = new FromDatasetPartiallyPreservedIndex(dataset)
+  }
+
+  private class FromDatasetFullyPreservedIndex(_dataset: Option[Dataset])(implicit val debugger: Debugger) extends FromDatasetIndex(_dataset) with FullyPreservedInMemory {
+    def withDebugger(implicit debugger: Debugger): Index = new FromDatasetFullyPreservedIndex(dataset)
+  }
+
+  private abstract class FromCacheIndex(is: => InputStream) extends Index with Cacheable with FromCacheBuildable {
+    protected def useInputStream[T](f: InputStream => T): T = {
+      val _is = is
+      try {
+        f(_is)
+      } finally {
+        _is.close()
+      }
     }
+
+    override def cache(os: => OutputStream): Unit = super[FromCacheBuildable].cache(os)
+  }
+
+  private class FromCachePartiallyPreservedIndex(is: => InputStream)(implicit val debugger: Debugger) extends FromCacheIndex(is) with PartiallyPreservedInMemory {
+    def withDebugger(implicit debugger: Debugger): Index = new FromCachePartiallyPreservedIndex(is)
+  }
+
+  private class FromCacheFullyPreservedIndex(is: => InputStream)(implicit val debugger: Debugger) extends FromCacheIndex(is) with FullyPreservedInMemory {
+    def withDebugger(implicit debugger: Debugger): Index = new FromCacheFullyPreservedIndex(is)
+  }
+
+  def apply(dataset: Dataset, partially: Boolean)(implicit _debugger: Debugger): Index = {
     if (partially) {
-      new FromDataset with PartiallyPreservedInMemory
+      new FromDatasetPartiallyPreservedIndex(Some(dataset))
     } else {
-      new FromDataset with FullyPreservedInMemory
+      new FromDatasetFullyPreservedIndex(Some(dataset))
     }
   }
 
   def fromCache(is: => InputStream, partially: Boolean)(implicit _debugger: Debugger): Index = {
-    trait FromCache extends Index with Cacheable with FromCacheBuildable {
-      implicit val debugger: Debugger = _debugger
-
-      protected def useInputStream[T](f: InputStream => T): T = {
-        val _is = is
-        try {
-          f(_is)
-        } finally {
-          _is.close()
-        }
-      }
-
-      override def cache(os: => OutputStream): Unit = super[FromCacheBuildable].cache(os)
-    }
     if (partially) {
-      new FromCache with PartiallyPreservedInMemory
+      new FromCachePartiallyPreservedIndex(is)
     } else {
-      new FromCache with FullyPreservedInMemory
+      new FromCacheFullyPreservedIndex(is)
     }
   }
 

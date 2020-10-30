@@ -9,7 +9,7 @@ import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
 import com.github.propi.rdfrules.index.{Index, TripleIndex}
 import com.github.propi.rdfrules.model.Model.PredictionType
 import com.github.propi.rdfrules.model.{Model, PredictionResult}
-import com.github.propi.rdfrules.rule.{Measure, Rule, RulePattern, MappedRulePatternMatcher}
+import com.github.propi.rdfrules.rule.{Measure, PatternMatcher, Rule, RulePattern}
 import com.github.propi.rdfrules.ruleset.ops.{Sortable, Treeable}
 import com.github.propi.rdfrules.serialization.RuleSerialization._
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
@@ -17,6 +17,7 @@ import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension.Pimpe
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 import com.github.propi.rdfrules.utils.workers.Workers._
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
+import com.github.propi.rdfrules.rule.RulePatternMatcher._
 
 import scala.collection.mutable
 
@@ -47,7 +48,7 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
   def filter(pattern: RulePattern, patterns: RulePattern*): Ruleset = transform(new Traversable[Rule.Simple] {
     def foreach[U](f: Rule.Simple => U): Unit = index.tripleItemMap { implicit mapper =>
       index.tripleMap { implicit thi =>
-        val rulePatternMatcher = implicitly[MappedRulePatternMatcher[Rule]]
+        val rulePatternMatcher = implicitly[PatternMatcher[Rule, RulePattern.Mapped]]
         val mappedPatterns = (pattern +: patterns).map(_.mapped)
         rules.view.filter(rule => mappedPatterns.exists(rulePattern => rulePatternMatcher.matchPattern(rule, rulePattern))).foreach(f)
       }

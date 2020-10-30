@@ -27,7 +27,7 @@ object RuleConsumer {
   trait NoEventRuleConsumer extends RuleConsumer {
     protected def listener: PartialFunction[Event, Unit] = PartialFunction.empty
 
-    protected def withListener(listener: PartialFunction[Event, Unit]): RuleConsumer = this
+    def withListener(listener: PartialFunction[Event, Unit]): RuleConsumer = this
   }
 
   trait Invoker[T] extends {

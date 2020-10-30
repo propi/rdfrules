@@ -31,7 +31,7 @@ trait RuleCounting extends AtomCounting {
       withConfidence(0.001, allPaths)
     } else {
       logger.debug(s"Confidence counting for rule: " + rule)
-      val support = rule.measures[Measure.Support].value
+      val support = rule.support
       //we count body size, it is number of all possible paths for this rule from dataset only for body atoms
       //first we count body size threshold: support / minConfidence
       //it counts wanted body site. If the body size is greater than wanted body size then confidence will be always lower than our defined threshold (min confidence)
@@ -124,7 +124,7 @@ trait RuleCounting extends AtomCounting {
       }*/
 
       val bodySet = rule.body.toSet
-      val support = rule.measures[Measure.Support].value
+      val support = rule.support
       val maxPcaBodySize = (support / minPcaConfidence) + 1
       /*val newVar = (rule.body.iterator ++ Iterator(rule.head)).flatMap(x => Iterator(x.subject, x.`object`)).collect {
         case x: Atom.Variable => x

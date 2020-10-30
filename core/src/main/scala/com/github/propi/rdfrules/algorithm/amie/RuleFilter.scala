@@ -170,7 +170,7 @@ object RuleFilter {
     private class GradualExactAtomMatcher(pattern: RulePattern.Mapped) extends GradualPartialAtomMatcher(pattern) {
       override def isDefined: Boolean = nextAtomPattern.flatten.isDefined
 
-      override def matchAtom(atom: Either[Atom, FreshAtom]): Boolean = _matchAtom(atom, nextAtomPattern.flatten)
+      override def matchAtom(atom: Either[Atom, FreshAtom]): Boolean = _matchAtom(atom, nextAtomPattern.toIterable.flatten)
     }
 
     /**
@@ -276,7 +276,7 @@ object RuleFilter {
     }
 
     def matchFreshAtom(freshAtom: FreshAtom): Boolean = {
-      newAtomMatchers.exists { atomMatcher =>
+      !isDefined || newAtomMatchers.exists { atomMatcher =>
         atomMatcher.matchAtom(Right(freshAtom))
       }
     }
@@ -300,9 +300,10 @@ object RuleFilter {
     */
   class NoDuplicitRuleFilter(head: Atom, body: Set[Atom]) extends RuleFilter {
     def apply(newAtom: Atom, support: Int): FilterResult = {
-      val x = newAtom != head && !body(newAtom)
-      if (!x) println(x)
-      x
+      newAtom != head && !body(newAtom)
+      //val x = newAtom != head && !body(newAtom)
+      //if (!x) println(s"atom: $newAtom, rule $body -> $head")
+      //x
     }
   }
 

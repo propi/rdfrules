@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.ruleset
 
 import java.io.File
 
-import com.github.propi.rdfrules.algorithm.consumer.OnDiskRuleConsumer.PrettyPrintedWriter
+import com.github.propi.rdfrules.algorithm.consumer.PrettyPrintedWriter
 import com.github.propi.rdfrules.data.Compression
 import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.utils.Stringifier

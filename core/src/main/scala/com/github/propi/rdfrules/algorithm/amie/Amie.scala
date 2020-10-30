@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.algorithm.amie
 
 import java.io.File
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
 
 import com.github.propi.rdfrules.algorithm.amie.RuleRefinement.{PimpedRule, Settings}
@@ -56,10 +57,10 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
     val timeoutReached = settings.timeout.exists(settings.currentDuration >= _)
     val result = observedRuleConsumer.result
     if (timeoutReached) {
-      logger.warn(s"The timeout limit '${thresholds.apply[Threshold.Timeout].duration.toMinutes} minutes' has been exceeded during mining. The miner returns ${result.size} rules which need not be complete.")
+      logger.warn(s"The timeout limit '${thresholds.apply[Threshold.Timeout].duration.toMinutes} minutes' has been exceeded during mining. The miner returns ${process.getFoundRules} rules which need not be complete.")
     }
     if (debugger.isInterrupted) {
-      logger.warn(s"The mining task has been interrupted. The miner returns ${result.size} rules which need not be complete.")
+      logger.warn(s"The mining task has been interrupted. The miner returns ${process.getFoundRules} rules which need not be complete.")
     }
     result
   }
@@ -161,6 +162,8 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
 
     private val foundRules = new AtomicInteger(0)
 
+    def getFoundRules: Int = foundRules.get()
+
     /**
       * It checks whether a rule may be refinable by topK approach.
       * If the topK is turned off then the rule is always refinable.
@@ -220,7 +223,8 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
       //queue for mined rules which can be also expanded
       //in this queue there can not be any duplicit rules (it speed up computation)
       //add all possible head to the queue
-      val queue = getHeads
+      val queue = new ConcurrentLinkedQueue[ExtendedRule]()
+      getHeads.foreach(queue.add)
       //first we refine all rules with length 1 (stage 1)
       //once all rules with length 1 are refined we go to the stage 2 (refine rules with length 2), etc.
       if (settings.maxRuleLength > 1 && !queue.isEmpty) {

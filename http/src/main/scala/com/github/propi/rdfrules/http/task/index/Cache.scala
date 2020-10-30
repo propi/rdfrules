@@ -23,7 +23,7 @@ class Cache(path: String, inMemory: Boolean, revalidate: Boolean) extends Task.C
     None
   } else {
     val index = if (inMemory) {
-      InMemoryCache.get[Index](path)
+      InMemoryCache.get[Index](path).map(_.cache())
     } else {
       val cacheFile = new File(Workspace.path(path))
       if (cacheFile.exists()) {

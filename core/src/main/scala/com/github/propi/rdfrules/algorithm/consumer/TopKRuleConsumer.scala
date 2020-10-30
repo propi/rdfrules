@@ -18,7 +18,7 @@ class TopKRuleConsumer private(k: Int, allowOverflowIfSameHeadCoverage: Boolean,
 
   protected def listener: PartialFunction[RuleConsumer.Event, Unit] = _listener
 
-  protected def withListener(listener: PartialFunction[RuleConsumer.Event, Unit]): RuleConsumer = {
+  def withListener(listener: PartialFunction[RuleConsumer.Event, Unit]): RuleConsumer = {
     _listener = listener
     this
   }
@@ -87,6 +87,8 @@ object TopKRuleConsumer {
   } finally {
     ruleConsumer.result
   }
+
+  def apply[T](k: Int)(f: TopKRuleConsumer => T): T = apply(new TopKRuleConsumer(normK(k), false, None))(f)
 
   def apply[T](k: Int, allowOverflowIfSameHeadCoverage: Boolean)(f: TopKRuleConsumer => T): T = apply(new TopKRuleConsumer(normK(k), allowOverflowIfSameHeadCoverage, None))(f)
 

@@ -1,8 +1,8 @@
 package com.github.propi.rdfrules.experiments.benchmark.tasks
 
-import com.github.propi.rdfrules.algorithm.RulesMining
+import com.github.propi.rdfrules.algorithm.RuleConsumer
+import com.github.propi.rdfrules.algorithm.consumer.TopKRuleConsumer
 import com.github.propi.rdfrules.experiments.benchmark.{DefaultMiningSettings, RdfRulesMiningTask, TaskPostProcessor}
-import com.github.propi.rdfrules.rule.Threshold
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.Debugger
 
@@ -19,7 +19,7 @@ class TopKRdfRules[T](val name: String,
 
   self: TaskPostProcessor[Ruleset, T] =>
 
-  override protected def miningTask(rulesMining: RulesMining): RulesMining = rulesMining.addThreshold(Threshold.TopK(topK))
+  override val ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(TopKRuleConsumer(topK))
 
   override protected def countOtherMetrics(ruleset: Ruleset): Ruleset = if (countConfidences) {
     super.countOtherMetrics(ruleset)

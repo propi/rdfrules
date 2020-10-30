@@ -2,7 +2,9 @@ package com.github.propi.rdfrules.experiments
 
 import java.io.{File, FileInputStream, FileOutputStream, PrintStream}
 
+import com.github.propi.rdfrules.algorithm.RuleConsumer
 import com.github.propi.rdfrules.algorithm.amie.Amie
+import com.github.propi.rdfrules.algorithm.consumer.TopKRuleConsumer
 import com.github.propi.rdfrules.data.{Graph, TripleItem}
 import com.github.propi.rdfrules.experiments.benchmark.Benchmark._
 import com.github.propi.rdfrules.experiments.benchmark.MetricResultProcessor.BasicPrinter
@@ -239,14 +241,14 @@ object OriginalAmieComparison {
             } withInput index andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
           }
           if (cli.hasOption("runconfidence")) {
-            val rules = index.mine(Amie().setParallelism(numberOfThreads).addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Object)).addThreshold(Threshold.MinHeadCoverage(0.01)).addThreshold(Threshold.TopK(100000))).cache
+            val rules = index.mine(Amie().setParallelism(numberOfThreads).addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Object)).addThreshold(Threshold.MinHeadCoverage(0.01)), RuleConsumer(TopKRuleConsumer(100000))).cache
             xTimes executeTask new ConfidenceRdfRules[IndexedSeq[ResolvedRule]]("RDFRules: confidence counting, minPcaConfidence=0.1, input 100000 rules with constants", 0, 0.1, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput rules andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
             xTimes executeTask new ConfidenceRdfRules[IndexedSeq[ResolvedRule]]("RDFRules: confidence counting, minConfidence=0.1, input 100000 rules with constants", 0.1, 0.0, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput rules andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
             xTimes executeTask new ConfidenceRdfRules[IndexedSeq[ResolvedRule]]("RDFRules: confidence counting, minPcaConfidence=0.1, input 100000 rules with constants, topK=100", 0, 0.1, topK = 100, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput rules andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
             xTimes executeTask new ConfidenceRdfRules[IndexedSeq[ResolvedRule]]("RDFRules: confidence counting, minConfidence=0.1, input 100000 rules with constants, topK=100", 0.1, 0.0, topK = 100, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput rules andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
           }
           if (cli.hasOption("runclusters")) {
-            val rules = index.mine(Amie().setParallelism(numberOfThreads).addThreshold(Threshold.MinHeadCoverage(0.01)).addThreshold(Threshold.TopK(10000))).cache
+            val rules = index.mine(Amie().setParallelism(numberOfThreads).addThreshold(Threshold.MinHeadCoverage(0.01)), RuleConsumer(TopKRuleConsumer(10000))).cache
             val sims = cli.getOptionValue("minsims", "0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8").split(",").iterator.map(_.trim).filter(_.nonEmpty).map(_.toDouble).toList
             for (minSim <- sims) {
               Once executeTask new ClusteringRdfRules[Seq[Metric]](s"RDFRules: clustering, minSim = $minSim", 1, minSim, numberOfThreads) with ClusterDistancesTaskPostprocessor withInput rules andFinallyProcessResultWith BasicPrinter()
@@ -255,7 +257,7 @@ object OriginalAmieComparison {
           if (cli.hasOption("runpruning")) {
             val topKs = cli.getOptionValue("topks", "500,1000,2000,4000,8000,16000,32000").split(",").iterator.map(_.trim).filter(_.nonEmpty).map(_.toInt).toList
             for (topK <- topKs) {
-              val rules = index.mine(Amie().setParallelism(numberOfThreads).addThreshold(Threshold.MinHeadCoverage(0.01)).addThreshold(Threshold.TopK(topK))).computeConfidence(0.1).cache
+              val rules = index.mine(Amie().setParallelism(numberOfThreads).addThreshold(Threshold.MinHeadCoverage(0.01)), RuleConsumer(TopKRuleConsumer(topK))).computeConfidence(0.1).cache
               Once executeTask new PruningRdfRules(s"RDFRules: pruning, rules: ${rules.size}, topK: $topK") withInput rules andFinallyProcessResultWith BasicPrinter()
             }
           }

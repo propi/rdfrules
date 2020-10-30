@@ -1,5 +1,9 @@
 package com.github.propi.rdfrules.experiments.benchmark
 
+import com.github.propi.rdfrules.algorithm.RuleConsumer
+import com.github.propi.rdfrules.algorithm.consumer.InMemoryRuleConsumer
+import com.github.propi.rdfrules.ruleset.Ruleset
+
 /**
   * Created by Vaclav Zeman on 17. 5. 2019.
   */
@@ -11,6 +15,7 @@ trait DefaultMiningSettings {
   val minConfidence: Double = 0.1
   val minHeadCoverage: Double = 0.01
   val numberOfThreads: Int = Runtime.getRuntime.availableProcessors()
+  val ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer(_))
 
 }
 

@@ -1,6 +1,8 @@
 package com.github.propi.rdfrules.experiments
 
+import com.github.propi.rdfrules.algorithm.RuleConsumer
 import com.github.propi.rdfrules.algorithm.amie.Amie
+import com.github.propi.rdfrules.algorithm.consumer.TopKRuleConsumer
 import com.github.propi.rdfrules.algorithm.dbscan.DbScan
 import com.github.propi.rdfrules.data._
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
@@ -29,7 +31,7 @@ object YagoAndDbpediaSamples {
 
     protected def example: Ruleset = {
       Dataset(Example.experimentsDir + "yago.tsv.bz2")
-        .mine(Amie().addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere)).addThreshold(Threshold.TopK(10)))
+        .mine(Amie().addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere)), RuleConsumer(TopKRuleConsumer(10)))
         .sorted
     }
   }
@@ -39,12 +41,13 @@ object YagoAndDbpediaSamples {
 
     protected def example: Ruleset = {
       val dataset = Dataset(Example.experimentsDir + "yago.tsv.bz2")
-      dataset.mine(Amie()
-        .addThreshold(Threshold.MinHeadSize(80))
-        .addThreshold(Threshold.MinHeadCoverage(0.001))
-        .addThreshold(Threshold.TopK(1000))
-        .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LeastFunctionalVariable)))
-        .computePcaConfidence(0.5)
+      dataset.mine(
+        Amie()
+          .addThreshold(Threshold.MinHeadSize(80))
+          .addThreshold(Threshold.MinHeadCoverage(0.001))
+          .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LeastFunctionalVariable)),
+        RuleConsumer(TopKRuleConsumer(1000))
+      ).computePcaConfidence(0.5)
         .computeLift()
         .makeClusters(DbScan(minNeighbours = 1))
         .sortBy(Measure.Cluster, Measure.PcaConfidence, Measure.Lift, Measure.HeadCoverage)

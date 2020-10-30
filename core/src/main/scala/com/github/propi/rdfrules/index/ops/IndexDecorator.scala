@@ -25,6 +25,8 @@ class IndexDecorator(index: Index) extends Index {
 
   def cache(file: String): Index = index.cache(file)
 
+  def withDebugger(implicit debugger: Debugger): Index = index.withDebugger
+
   override def withEvaluatedLazyVals: Index = index.withEvaluatedLazyVals
 
 }

@@ -99,6 +99,12 @@ object Endpoint {
       }
       callback(Response(xhr.status, headers, buffer.toString))
     }
+    xhr.onerror = { _: Event =>
+      callback(Response(xhr.status, Map.empty, xhr.statusText))
+    }
+    xhr.onabort = { _ =>
+      callback(Response(xhr.status, Map.empty, xhr.statusText))
+    }
     data match {
       case Some(data) =>
         contentType match {

@@ -10,7 +10,7 @@ import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.Constan
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.ruleset.ResolvedRule
 import com.github.propi.rdfrules.utils.extensions.IteratorExtension._
-import com.github.propi.rdfrules.utils.{Debugger, IncrementalInt}
+import com.github.propi.rdfrules.utils.{Debugger, IncrementalInt, TypedKeyMap}
 
 import scala.collection.mutable
 import scala.language.implicitConversions
@@ -158,7 +158,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       //}
       //ad.done()
       val headSize = rule.headSize
-      lazy val resolvedRule = ResolvedRule(rule.body.map(ResolvedRule.Atom(_)), rule.head)(rule.measures)
+      lazy val resolvedRule = ResolvedRule(rule.body.map(ResolvedRule.Atom(_)), rule.head)(TypedKeyMap(Measure.HeadSize(rule.headSize), Measure.Support(rule.support), Measure.HeadCoverage(rule.headCoverage)))
       var lastDumpDuration = currentDuration
       //howLong("Rule expansion - count projections", true) {
       rule.headTriples.zipWithIndex.takeWhile { x =>

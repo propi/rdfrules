@@ -44,9 +44,11 @@ object ResolvedAtomPatternMatcher {
     case _ => true
   }
 
-  implicit val forResolvedAtom: ResolvedAtomPatternMatcher[ResolvedRule.Atom] = (x: ResolvedRule.Atom, pattern: AtomPattern) => matchAtomItemPattern(x.subject, pattern.subject) &&
-    matchAtomItemPattern(ResolvedRule.Atom.Item.Constant(x.predicate), pattern.predicate) &&
-    matchAtomItemPattern(x.`object`, pattern.`object`) &&
-    matchGraphPattern(x, pattern.graph)
+  implicit val forResolvedAtom: ResolvedAtomPatternMatcher[ResolvedRule.Atom] = new ResolvedAtomPatternMatcher[ResolvedRule.Atom] {
+    def matchPattern(x: ResolvedRule.Atom, pattern: AtomPattern): Boolean = matchAtomItemPattern(x.subject, pattern.subject) &&
+      matchAtomItemPattern(ResolvedRule.Atom.Item.Constant(x.predicate), pattern.predicate) &&
+      matchAtomItemPattern(x.`object`, pattern.`object`) &&
+      matchGraphPattern(x, pattern.graph)
+  }
 
 }

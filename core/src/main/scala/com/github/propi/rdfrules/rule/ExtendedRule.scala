@@ -150,8 +150,8 @@ object ExtendedRule {
 
     override def equals(obj: scala.Any): Boolean = obj match {
       case rule: DanglingRule if ruleLength == rule.ruleLength &&
-        measures.get[Measure.HeadSize] == rule.measures.get[Measure.HeadSize] &&
-        measures.get[Measure.Support] == rule.measures.get[Measure.Support] =>
+        headSize == rule.headSize &&
+        support == rule.support =>
         checkRuleContentsEquality(body, rule.body.toSet, head, rule.head)
       case _ => false
     }

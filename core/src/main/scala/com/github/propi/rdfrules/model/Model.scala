@@ -7,13 +7,14 @@ import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
 import com.github.propi.rdfrules.data.{Dataset, Graph, TriplePosition}
 import com.github.propi.rdfrules.index.{Index, IndexItem, TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.model.Model.PredictionType
-import com.github.propi.rdfrules.rule.{Atom, Measure, ResolvedRulePatternMatcher, RulePattern}
+import com.github.propi.rdfrules.rule.{Atom, Measure, PatternMatcher, RulePattern}
 import com.github.propi.rdfrules.ruleset.ops.Sortable
 import com.github.propi.rdfrules.ruleset.{ResolvedRule, Ruleset, RulesetReader, RulesetWriter}
 import com.github.propi.rdfrules.serialization.RuleSerialization._
 import com.github.propi.rdfrules.utils.Debugger
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
+import com.github.propi.rdfrules.rule.RulePatternMatcher._
 
 import scala.util.Try
 
@@ -57,7 +58,7 @@ class Model private(val rules: Traversable[ResolvedRule], val parallelism: Int, 
 
   def filter(pattern: RulePattern, patterns: RulePattern*): Model = {
     val allPatterns = pattern +: patterns
-    val rulePatternMatcher = implicitly[ResolvedRulePatternMatcher[ResolvedRule]]
+    val rulePatternMatcher = implicitly[PatternMatcher[ResolvedRule, RulePattern]]
     filter(rule => allPatterns.exists(rulePattern => rulePatternMatcher.matchPattern(rule, rulePattern)))
   }
 
