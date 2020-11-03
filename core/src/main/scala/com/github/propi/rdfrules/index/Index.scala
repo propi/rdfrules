@@ -31,7 +31,7 @@ trait Index {
   def withDebugger(implicit debugger: Debugger): Index
 
   def withEvaluatedLazyVals: Index = new IndexDecorator(this) {
-    private var thiEvaluated = false
+    @volatile private var thiEvaluated = false
 
     override def tripleMap[T](f: TripleIndex[Int] => T): T = super.tripleMap { thi =>
       if (!thiEvaluated) {
@@ -61,12 +61,17 @@ object Index {
     @volatile protected var dataset: Option[Dataset] = _dataset
   }
 
-  private class FromDatasetPartiallyPreservedIndex(_dataset: Option[Dataset])(implicit val debugger: Debugger) extends FromDatasetIndex(_dataset) with PartiallyPreservedInMemory {
-    def withDebugger(implicit debugger: Debugger): Index = new FromDatasetPartiallyPreservedIndex(dataset)
+  private class FromDatasetPartiallyPreservedIndex(_dataset: Option[Dataset],
+                                                   protected val defaultTripleMap: Option[TripleIndex[Int]],
+                                                   protected val defaultTripleItemMap: Option[TripleItemIndex])
+                                                  (implicit val debugger: Debugger) extends FromDatasetIndex(_dataset) with PartiallyPreservedInMemory {
+    def withDebugger(implicit debugger: Debugger): Index = new FromDatasetPartiallyPreservedIndex(dataset, optTripleMap, optTripleItemMap)
   }
 
-  private class FromDatasetFullyPreservedIndex(_dataset: Option[Dataset])(implicit val debugger: Debugger) extends FromDatasetIndex(_dataset) with FullyPreservedInMemory {
-    def withDebugger(implicit debugger: Debugger): Index = new FromDatasetFullyPreservedIndex(dataset)
+  private class FromDatasetFullyPreservedIndex(_dataset: Option[Dataset],
+                                               protected val defaultIndex: Option[(TripleItemIndex, TripleIndex[Int])])
+                                              (implicit val debugger: Debugger) extends FromDatasetIndex(_dataset) with FullyPreservedInMemory {
+    def withDebugger(implicit debugger: Debugger): Index = new FromDatasetFullyPreservedIndex(dataset, optIndex)
   }
 
   private abstract class FromCacheIndex(is: => InputStream) extends Index with Cacheable with FromCacheBuildable {
@@ -82,27 +87,32 @@ object Index {
     override def cache(os: => OutputStream): Unit = super[FromCacheBuildable].cache(os)
   }
 
-  private class FromCachePartiallyPreservedIndex(is: => InputStream)(implicit val debugger: Debugger) extends FromCacheIndex(is) with PartiallyPreservedInMemory {
-    def withDebugger(implicit debugger: Debugger): Index = new FromCachePartiallyPreservedIndex(is)
+  private class FromCachePartiallyPreservedIndex(is: => InputStream,
+                                                 protected val defaultTripleMap: Option[TripleIndex[Int]],
+                                                 protected val defaultTripleItemMap: Option[TripleItemIndex])
+                                                (implicit val debugger: Debugger) extends FromCacheIndex(is) with PartiallyPreservedInMemory {
+    def withDebugger(implicit debugger: Debugger): Index = new FromCachePartiallyPreservedIndex(is, optTripleMap, optTripleItemMap)
   }
 
-  private class FromCacheFullyPreservedIndex(is: => InputStream)(implicit val debugger: Debugger) extends FromCacheIndex(is) with FullyPreservedInMemory {
-    def withDebugger(implicit debugger: Debugger): Index = new FromCacheFullyPreservedIndex(is)
+  private class FromCacheFullyPreservedIndex(is: => InputStream,
+                                             protected val defaultIndex: Option[(TripleItemIndex, TripleIndex[Int])])
+                                            (implicit val debugger: Debugger) extends FromCacheIndex(is) with FullyPreservedInMemory {
+    def withDebugger(implicit debugger: Debugger): Index = new FromCacheFullyPreservedIndex(is, optIndex)
   }
 
   def apply(dataset: Dataset, partially: Boolean)(implicit _debugger: Debugger): Index = {
     if (partially) {
-      new FromDatasetPartiallyPreservedIndex(Some(dataset))
+      new FromDatasetPartiallyPreservedIndex(Some(dataset), None, None)
     } else {
-      new FromDatasetFullyPreservedIndex(Some(dataset))
+      new FromDatasetFullyPreservedIndex(Some(dataset), None)
     }
   }
 
   def fromCache(is: => InputStream, partially: Boolean)(implicit _debugger: Debugger): Index = {
     if (partially) {
-      new FromCachePartiallyPreservedIndex(is)
+      new FromCachePartiallyPreservedIndex(is, None, None)
     } else {
-      new FromCacheFullyPreservedIndex(is)
+      new FromCacheFullyPreservedIndex(is, None)
     }
   }
 

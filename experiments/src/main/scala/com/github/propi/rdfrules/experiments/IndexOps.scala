@@ -5,6 +5,7 @@ import com.github.propi.rdfrules.data.{DiscretizationTask, Quad, TripleItem}
 import com.github.propi.rdfrules.experiments.IndexOps.DiscretizedTree
 import com.github.propi.rdfrules.index.{Index, IndexItem, TripleHashIndex, TripleItemHashIndex}
 import com.github.propi.rdfrules.rule.Threshold.{MinHeadCoverage, MinHeadSize}
+import com.github.propi.rdfrules.utils.Debugger
 import eu.easyminer.discretization.algorithm.Discretization
 import eu.easyminer.discretization.impl.Interval
 import eu.easyminer.discretization.impl.sorting.SortedInMemoryNumericTraversable
@@ -41,7 +42,7 @@ class IndexOps private(implicit mapper: TripleItemHashIndex, thi: TripleHashInde
     buildLevel(levels, Nil)
   }
 
-  def addDiscretizedTreeToIndex(predicate: TripleItem.Uri, minSupportUpper: Int, discretizedTree: DiscretizedTree): Unit = {
+  def addDiscretizedTreeToIndex(predicate: TripleItem.Uri, minSupportUpper: Int, discretizedTree: DiscretizedTree)(implicit debugger: Debugger): Unit = {
     def isCutOff(tree: DiscretizedTree): Boolean = tree match {
       case DiscretizedTree.Node(_, children) => children.nonEmpty && children.forall(_.interval.frequency >= minSupportUpper)
       case _ => false

@@ -6,11 +6,12 @@ import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.model.EvaluationResult
 import com.github.propi.rdfrules.model.Model.PredictionType
 import com.github.propi.rdfrules.ruleset.RulesetSource
+import com.github.propi.rdfrules.utils.Debugger
 
 /**
   * Created by Vaclav Zeman on 10. 8. 2018.
   */
-class Evaluate(path: String, format: Option[Option[RulesetSource]], onlyFunctionalProperties: Boolean) extends Task[Index, EvaluationResult] {
+class Evaluate(path: String, format: Option[Option[RulesetSource]], onlyFunctionalProperties: Boolean)(implicit debugger: Debugger) extends Task[Index, EvaluationResult] {
   val companion: TaskDefinition = Evaluate
 
   def execute(input: Index): EvaluationResult = {

@@ -483,7 +483,7 @@ object RuleRefinement {
     val constantsPosition: Option[ConstantsPosition] = rulesMining.constraints.get[RuleConstraint.ConstantsAtPosition].map(_.position)
     val isWithInstances: Boolean = !constantsPosition.contains(ConstantsPosition.Nowhere)
     val maxRuleLength: Int = rulesMining.thresholds.get[Threshold.MaxRuleLength].map(_.value).getOrElse(3)
-    val withDuplicitPredicates: Boolean = !rulesMining.constraints.exists[RuleConstraint.WithoutDuplicitPredicates]
+    val withDuplicitPredicates: Boolean = !rulesMining.constraints.exists[RuleConstraint.WithoutDuplicatePredicates]
     val filters: List[RuleConstraint.MappedFilter] = rulesMining.constraints.iterator.collect {
       case filter: RuleConstraint.Filter => filter.mapped
     }.toList

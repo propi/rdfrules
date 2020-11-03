@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.experiments.benchmark
 
 import com.github.propi.rdfrules.model.Model.PredictionType
 import com.github.propi.rdfrules.ruleset.Ruleset
+import com.github.propi.rdfrules.utils.Debugger
 
 /**
   * Created by Vaclav Zeman on 21. 5. 2019.
@@ -9,6 +10,8 @@ import com.github.propi.rdfrules.ruleset.Ruleset
 trait NewTriplesPostprocessor extends TaskPostProcessor[Ruleset, Seq[Metric]] {
 
   val numberOfThreads: Int
+
+  implicit val debugger: Debugger
 
   protected def postProcess(result: Ruleset): Seq[Metric] = {
     val rules = result.size

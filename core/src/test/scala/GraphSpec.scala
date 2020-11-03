@@ -4,12 +4,12 @@ import GraphSpec._
 import com.github.propi.rdfrules.data._
 import eu.easyminer.discretization.impl.{Interval, IntervalBound}
 import org.apache.jena.riot.Lang
-import org.scalatest.{FlatSpec, Inside, Matchers}
+import org.scalatest.{CancelAfterFailure, FlatSpec, Inside, Matchers}
 
 /**
   * Created by Vaclav Zeman on 14. 1. 2018.
   */
-class GraphSpec extends FlatSpec with Matchers with Inside {
+class GraphSpec extends FlatSpec with Matchers with Inside with CancelAfterFailure {
 
   private lazy val graph = Graph(dataYago)(RdfSource.Tsv)
   private lazy val graphDbpedia = Graph(dataDbpedia)(Lang.TTL)

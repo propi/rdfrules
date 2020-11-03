@@ -7,12 +7,12 @@ import com.github.propi.rdfrules.index._
 import com.github.propi.rdfrules.rule._
 import objectexplorer.MemoryMeasurer
 import org.apache.jena.riot.Lang
-import org.scalatest.{FlatSpec, Inside, Matchers}
+import org.scalatest.{CancelAfterFailure, FlatSpec, Inside, Matchers}
 
 /**
   * Created by Vaclav Zeman on 13. 3. 2018.
   */
-class IndexSpec extends FlatSpec with Matchers with Inside {
+class IndexSpec extends FlatSpec with Matchers with Inside with CancelAfterFailure {
 
   private lazy val dataset1 = Dataset(GraphSpec.dataYago)
 
@@ -20,7 +20,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
 
   "Index" should "create from dataset and load items" in {
     val index = Index.apply(dataset1, true)
-    MemoryMeasurer.measureBytes(index) should be(800L +- 100)
+    MemoryMeasurer.measureBytes(index) should be(650L +- 100)
     index.tripleItemMap { tihi =>
       val items = dataset1.take(5).quads.flatMap(x => List(x.triple.subject, x.triple.predicate, x.triple.`object`)).toList
       for (item <- items) {
@@ -30,7 +30,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
       }
     }
     val mem = MemoryMeasurer.measureBytes(index)
-    mem should be(4600000L +- 100000)
+    mem should be(3880592L +- 100000)
     index.tripleItemMap { tihi =>
       tihi.iterator.size shouldBe 42980
       tihi.iterator.size shouldBe dataset1.quads.flatMap(x => List(x.graph, x.triple.subject, x.triple.predicate, x.triple.`object`)).toSet.size
@@ -40,12 +40,12 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
 
   it should "create from dataset and load index" in {
     val index = Index.apply(dataset1, false)
-    MemoryMeasurer.measureBytes(index) should be(800L +- 100)
+    MemoryMeasurer.measureBytes(index) should be(650L +- 100)
     index.tripleMap { thi =>
       thi.size shouldBe dataset1.size
     }
     val mem = MemoryMeasurer.measureBytes(index)
-    mem should be(41135848L +- 1000000)
+    mem should be(42513144L +- 1000000)
     val cq = index.tripleItemMap { implicit tim =>
       dataset1.quads.head.toCompressedQuad
     }
@@ -60,7 +60,7 @@ class IndexSpec extends FlatSpec with Matchers with Inside {
       thi.subjects(cq.s).objects(cq.o).contains(cq.p) shouldBe true
       thi.objects(cq.o).predicates.contains(cq.p) shouldBe true
     }
-    MemoryMeasurer.measureBytes(index) should be(40763664L +- 1000000)
+    MemoryMeasurer.measureBytes(index) should be(42513144L +- 1000000)
   }
 
   it should "load dataset with more graphs" in {

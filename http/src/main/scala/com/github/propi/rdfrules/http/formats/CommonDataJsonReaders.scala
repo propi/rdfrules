@@ -121,7 +121,7 @@ object CommonDataJsonReaders {
       case "MinHeadCoverage" => Threshold.MinHeadCoverage(fields("value").convertTo[Double])
       case "MinSupport" => Threshold.MinSupport(fields("value").convertTo[Int])
       case "MaxRuleLength" => Threshold.MaxRuleLength(fields("value").convertTo[Int])
-      case "TopK" => Threshold.TopK(fields("value").convertTo[Int])
+      //case "TopK" => Threshold.TopK(fields("value").convertTo[Int])
       case "Timeout" => Threshold.Timeout(fields("value").convertTo[Int])
       case x => deserializationError(s"Invalid threshold name: $x")
     }
@@ -176,7 +176,8 @@ object CommonDataJsonReaders {
         case JsArray(x) => x.map(_.convertTo[AtomPattern])
       }.getOrElse(Vector.empty),
       fields.get("head").map(_.convertTo[AtomPattern]),
-      fields.get("exact").exists(_.convertTo[Boolean])
+      fields.get("exact").exists(_.convertTo[Boolean]),
+      fields.get("orderless").exists(_.convertTo[Boolean])
     )
   }
 
@@ -187,7 +188,7 @@ object CommonDataJsonReaders {
       case "OnlyObjectConstants" => RuleConstraint.ConstantsAtPosition(ConstantsPosition.Object)
       case "OnlySubjectConstants" => RuleConstraint.ConstantsAtPosition(ConstantsPosition.Subject)
       case "OnlyLeastFunctionalConstants" => RuleConstraint.ConstantsAtPosition(ConstantsPosition.LeastFunctionalVariable)
-      case "WithoutDuplicitPredicates" => RuleConstraint.WithoutDuplicitPredicates()
+      case "WithoutDuplicitPredicates" => RuleConstraint.WithoutDuplicatePredicates()
       case "OnlyPredicates" => RuleConstraint.OnlyPredicates(fields("values").convertTo[JsArray].elements.map(_.convertTo[TripleItem.Uri]).toSet)
       case "WithoutPredicates" => RuleConstraint.WithoutPredicates(fields("values").convertTo[JsArray].elements.map(_.convertTo[TripleItem.Uri]).toSet)
       case x => deserializationError(s"Invalid rule constraint name: $x")

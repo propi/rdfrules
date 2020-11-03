@@ -9,7 +9,16 @@ trait FullyPreservedInMemory extends Buildable {
 
   self: Index =>
 
-  private lazy val (tihi, thi) = buildAll
+  protected val defaultIndex: Option[(TripleItemIndex, TripleIndex[Int])]
+
+  @volatile private var _isEvaluated = false
+
+  private lazy val (tihi, thi) = {
+    _isEvaluated = true
+    defaultIndex.getOrElse(buildAll)
+  }
+
+  protected def optIndex: Option[(TripleItemIndex, TripleIndex[Int])] = defaultIndex.orElse(if (_isEvaluated) Some(tihi -> thi) else None)
 
   def tripleMap[T](f: TripleIndex[Int] => T): T = f(thi)
 

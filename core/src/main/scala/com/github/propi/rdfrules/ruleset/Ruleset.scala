@@ -45,6 +45,8 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
   protected val serializationSize: SerializationSize[Rule.Simple] = implicitly[SerializationSize[Rule.Simple]]
   protected val dataLoadingText: String = "Ruleset loading"
 
+  def withIndex(index: Index): Ruleset = new Ruleset(rules, index, parallelism, isCached)
+
   def filter(pattern: RulePattern, patterns: RulePattern*): Ruleset = transform(new Traversable[Rule.Simple] {
     def foreach[U](f: Rule.Simple => U): Unit = index.tripleItemMap { implicit mapper =>
       index.tripleMap { implicit thi =>

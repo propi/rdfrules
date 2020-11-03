@@ -153,7 +153,7 @@ object PipelineJsonReaders {
     new index.LoadIndex(fields("path").convertTo[String], fields("partially").convertTo[Boolean])
   }
 
-  implicit val cacheIndexReader: RootJsonReader[index.Cache] = (json: JsValue) => {
+  implicit def cacheIndexReader(implicit debugger: Debugger): RootJsonReader[index.Cache] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new index.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
   }
@@ -191,7 +191,7 @@ object PipelineJsonReaders {
     new model.LoadModel(path, format)
   }
 
-  implicit val completeDatasetReader: RootJsonReader[index.CompleteDataset] = (json: JsValue) => {
+  implicit def completeDatasetReader(implicit debugger: Debugger): RootJsonReader[index.CompleteDataset] = (json: JsValue) => {
     val (path, format) = getModelPathFormat(json)
     val fields = json.asJsObject.fields
     new index.CompleteDataset(path, format, fields.get("onlyNewPredicates").forall(_.convertTo[Boolean]), fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
@@ -202,7 +202,7 @@ object PipelineJsonReaders {
     new ruleset.CompleteDataset(fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]), fields.get("onlyNewPredicates").forall(_.convertTo[Boolean]))
   }
 
-  implicit val predictTriplesReader: RootJsonReader[index.PredictTriples] = (json: JsValue) => {
+  implicit def predictTriplesReader(implicit debugger: Debugger): RootJsonReader[index.PredictTriples] = (json: JsValue) => {
     val (path, format) = getModelPathFormat(json)
     val fields = json.asJsObject.fields
     new index.PredictTriples(path, format, fields("predictionType").convertTo[PredictionType], fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
@@ -218,7 +218,7 @@ object PipelineJsonReaders {
     new ruleset.Prune(fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]), fields.get("onlyExistingTriples").forall(_.convertTo[Boolean]))
   }
 
-  implicit val evaluateReader: RootJsonReader[index.Evaluate] = (json: JsValue) => {
+  implicit def evaluateReader(implicit debugger: Debugger): RootJsonReader[index.Evaluate] = (json: JsValue) => {
     val (path, format) = getModelPathFormat(json)
     val fields = json.asJsObject.fields
     new index.Evaluate(path, format, fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
@@ -356,7 +356,7 @@ object PipelineJsonReaders {
     new ruleset.FindDissimilar(fields("rule").convertTo[ResolvedRule], fields("take").convertTo[Int])
   }
 
-  implicit val cacheRulesetReader: RootJsonReader[ruleset.Cache] = (json: JsValue) => {
+  implicit def cacheRulesetReader(implicit debugger: Debugger): RootJsonReader[ruleset.Cache] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new ruleset.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
   }

@@ -251,7 +251,7 @@ object RuleFilter {
       * for each pattern create a new atom matcher which must be defined (valid pattern regarding the rule)
       */
     private val newAtomMatchers: List[NewAtomMatcher] = {
-      patterns.flatMap { pattern =>
+      patterns.iterator.filter(_.head.forall(atomMatcher.matchPattern(rule.head, _))).flatMap { pattern =>
         val newAtomMatcher = (pattern.orderless, pattern.exact) match {
           case (true, true) => new OrderlessExactAtomMatcher(pattern)
           case (false, true) => new GradualExactAtomMatcher(pattern)
@@ -259,7 +259,7 @@ object RuleFilter {
           case (true, false) => new OrderlessPartialAtomMatcher(pattern)
         }
         if (newAtomMatcher.isDefined) Some(newAtomMatcher) else None
-      }
+      }.toList
     }
 
     /**

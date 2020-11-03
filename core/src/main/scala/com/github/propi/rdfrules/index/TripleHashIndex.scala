@@ -338,7 +338,7 @@ object TripleHashIndex {
     def emptyHashMap[V]: MutableHashMap[T, V]
   }
 
-  def addQuads[T](quads: Traversable[IndexItem[T]])(implicit thi: TripleHashIndex[T]): Unit = {
+  def addQuads[T](quads: Traversable[IndexItem[T]])(implicit thi: TripleHashIndex[T], debugger: Debugger): Unit = {
     try {
       quads.foreach {
         case quad: IndexItem.Quad[T] =>

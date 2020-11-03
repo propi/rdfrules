@@ -66,11 +66,11 @@ object RuleConstraint {
 
   }
 
-  case class WithoutDuplicitPredicates() extends RuleConstraint {
-    def companion: WithoutDuplicitPredicates.type = WithoutDuplicitPredicates
+  case class WithoutDuplicatePredicates() extends RuleConstraint {
+    def companion: WithoutDuplicatePredicates.type = WithoutDuplicatePredicates
   }
 
-  implicit object WithoutDuplicitPredicates extends Key[WithoutDuplicitPredicates]
+  implicit object WithoutDuplicatePredicates extends Key[WithoutDuplicatePredicates]
 
   implicit def ruleConstraintToKeyValue(ruleConstraint: RuleConstraint): (Key[RuleConstraint], RuleConstraint) = ruleConstraint.companion -> ruleConstraint
 

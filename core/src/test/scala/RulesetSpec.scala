@@ -8,20 +8,20 @@ import com.github.propi.rdfrules.index._
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.ruleset._
 import org.scalatest.enablers.Sortable
-import org.scalatest.{FlatSpec, Inside, Matchers}
+import org.scalatest.{CancelAfterFailure, FlatSpec, Inside, Matchers}
 
 import scala.io.Source
 
 /**
   * Created by Vaclav Zeman on 18. 4. 2018.
   */
-class RulesetSpec extends FlatSpec with Matchers with Inside {
+class RulesetSpec extends FlatSpec with Matchers with Inside with CancelAfterFailure {
 
   private lazy val dataset1 = Dataset(Graph("yago", GraphSpec.dataYago))
 
   private lazy val ruleset = {
     dataset1.mine(Amie()
-      .addConstraint(RuleConstraint.WithoutDuplicitPredicates())
+      .addConstraint(RuleConstraint.WithoutDuplicatePredicates())
       .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LeastFunctionalVariable))
       .addThreshold(Threshold.MinHeadCoverage(0.02))
     )

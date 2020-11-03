@@ -3,12 +3,12 @@ import java.io.{File, FileInputStream, FileOutputStream}
 import GraphSpec.dataDbpedia
 import com.github.propi.rdfrules.data._
 import org.apache.jena.riot.Lang
-import org.scalatest.{FlatSpec, Inside, Matchers}
+import org.scalatest.{CancelAfterFailure, FlatSpec, Inside, Matchers}
 
 /**
   * Created by Vaclav Zeman on 12. 3. 2018.
   */
-class DatasetSpec extends FlatSpec with Matchers with Inside {
+class DatasetSpec extends FlatSpec with Matchers with Inside with CancelAfterFailure {
 
   private lazy val dataset = Dataset() + Graph("yago", GraphSpec.dataYago) + Graph("dbpedia", dataDbpedia)(Lang.TTL)
 
