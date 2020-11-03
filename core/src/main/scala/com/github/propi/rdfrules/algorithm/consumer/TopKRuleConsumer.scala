@@ -92,7 +92,7 @@ object TopKRuleConsumer {
 
   def apply[T](k: Int, allowOverflowIfSameHeadCoverage: Boolean)(f: TopKRuleConsumer => T): T = apply(new TopKRuleConsumer(normK(k), allowOverflowIfSameHeadCoverage, None))(f)
 
-  def apply[T](k: Int, allowOverflowIfSameHeadCoverage: Boolean, prettyPrintedFile: File)(f: TopKRuleConsumer => T)(implicit prettyPrintedWriterBuilder: File => PrettyPrintedWriter): T = {
+  def apply[T](k: Int, allowOverflowIfSameHeadCoverage: Boolean, prettyPrintedFile: File, prettyPrintedWriterBuilder: File => PrettyPrintedWriter)(f: TopKRuleConsumer => T): T = {
     apply(new TopKRuleConsumer(normK(k), allowOverflowIfSameHeadCoverage, Some(prettyPrintedFile -> prettyPrintedWriterBuilder)))(f)
   }
 

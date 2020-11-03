@@ -8,8 +8,8 @@ import com.github.propi.rdfrules.http.formats.CommonDataJsonWriters._
 import com.github.propi.rdfrules.http.util.TraversablePublisher._
 import com.github.propi.rdfrules.model.EvaluationResult
 import com.github.propi.rdfrules.ruleset.ResolvedRule
+import com.github.propi.rdfrules.ruleset.formats.Json._
 import spray.json._
-import DefaultJsonProtocol._
 
 /**
   * Created by Vaclav Zeman on 14. 8. 2018.

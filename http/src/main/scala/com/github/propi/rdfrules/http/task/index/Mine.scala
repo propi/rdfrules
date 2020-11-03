@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.http.task.index
 
-import com.github.propi.rdfrules.algorithm.RulesMining
+import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.ruleset.Ruleset
@@ -8,10 +8,10 @@ import com.github.propi.rdfrules.ruleset.Ruleset
 /**
   * Created by Vaclav Zeman on 10. 8. 2018.
   */
-class Mine(rulesMining: RulesMining) extends Task[Index, Ruleset] {
+class Mine(rulesMining: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset]) extends Task[Index, Ruleset] {
   val companion: TaskDefinition = Mine
 
-  def execute(input: Index): Ruleset = input.mine(rulesMining)
+  def execute(input: Index): Ruleset = input.mine(rulesMining, ruleConsumer).setParallelism(rulesMining.parallelism)
 }
 
 object Mine extends TaskDefinition {

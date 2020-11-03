@@ -5,7 +5,7 @@ import java.net.URL
 import akka.NotUsed
 import akka.stream.scaladsl.Source
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
-import com.github.propi.rdfrules.algorithm.{Clustering, RulesMining}
+import com.github.propi.rdfrules.algorithm.{Clustering, RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.data.{Dataset, DiscretizationTask, Prefix, RdfSource, TripleItem}
 import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.formats.CommonDataJsonReaders._
@@ -163,7 +163,7 @@ object PipelineJsonReaders {
   }
 
   implicit def mineReader(implicit debugger: Debugger): RootJsonReader[index.Mine] = (json: JsValue) => {
-    new index.Mine(json.convertTo[RulesMining])
+    new index.Mine(json.convertTo[RulesMining], json.convertTo[RuleConsumer.Invoker[Ruleset]])
   }
 
   implicit def loadRulesetReader(implicit debugger: Debugger): RootJsonReader[ruleset.LoadRuleset] = (json: JsValue) => {
@@ -173,7 +173,7 @@ object PipelineJsonReaders {
       case JsString("modelCache") => Left(false)
       case x => Right(x.convertTo[RulesetSource])
     }
-    new ruleset.LoadRuleset(fields("path").convertTo[String], format)
+    new ruleset.LoadRuleset(fields("path").convertTo[String], format, fields.get("parallelism").map(_.convertTo[Int]))
   }
 
   private def getModelPathFormat(json: JsValue) = {
@@ -368,7 +368,11 @@ object PipelineJsonReaders {
 
   implicit val instantiateReader: RootJsonReader[ruleset.Instantiate] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new ruleset.Instantiate(fields.get("rule").map(_.convertTo[ResolvedRule]), fields("part").convertTo[CoveredPaths.Part])
+    new ruleset.Instantiate(
+      fields.get("rule").map(_.convertTo[ResolvedRule]),
+      fields("part").convertTo[CoveredPaths.Part],
+      fields("allowDuplicateAtoms").convertTo[Boolean]
+    )
   }
 
   implicit val maximalReader: RootJsonReader[ruleset.Maximal] = (_: JsValue) => {

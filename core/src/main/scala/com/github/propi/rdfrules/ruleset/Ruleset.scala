@@ -51,7 +51,7 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
     def foreach[U](f: Rule.Simple => U): Unit = index.tripleItemMap { implicit mapper =>
       index.tripleMap { implicit thi =>
         val rulePatternMatcher = implicitly[PatternMatcher[Rule, RulePattern.Mapped]]
-        val mappedPatterns = (pattern +: patterns).map(_.mapped)
+        val mappedPatterns = (pattern +: patterns).map(_.withOrderless().mapped)
         rules.view.filter(rule => mappedPatterns.exists(rulePattern => rulePatternMatcher.matchPattern(rule, rulePattern))).foreach(f)
       }
     }
@@ -83,7 +83,7 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
 
   def foreach(f: ResolvedRule => Unit): Unit = resolvedRules.foreach(f)
 
-  def instantiate(part: CoveredPaths.Part = CoveredPaths.Part.Whole): Traversable[CoveredPaths] = rules.view.map(CoveredPaths(_, part, index))
+  def instantiate(part: CoveredPaths.Part = CoveredPaths.Part.Whole, allowDuplicateAtoms: Boolean = true): Traversable[CoveredPaths] = rules.view.map(CoveredPaths(_, part, index, allowDuplicateAtoms))
 
   def +(ruleset: Ruleset): Ruleset = transform(rules.concat(ruleset.rules))
 

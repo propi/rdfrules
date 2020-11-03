@@ -33,7 +33,7 @@ case class CoveredPaths(rule: Rule.Simple, paths: Ruleset) {
 
 object CoveredPaths {
 
-  def apply(rule: Rule.Simple, part: Part, index: Index): CoveredPaths = {
+  def apply(rule: Rule.Simple, part: Part, index: Index, allowDuplicateAtoms: Boolean): CoveredPaths = {
     val coveredTriples = new Traversable[Rule.Simple] {
       def foreach[U](f: Rule.Simple => U): Unit = {
         index.tripleMap { thi =>
@@ -58,7 +58,7 @@ object CoveredPaths {
                 }
               case Part.Head => Set(rule.head) -> ((x: Iterator[atomCounting.VariableMap]) => x)
             }
-            filter(atomCounting.paths(atoms, new atomCounting.VariableMap(true)))
+            filter(atomCounting.paths(atoms, new atomCounting.VariableMap(allowDuplicateAtoms)))
               .map(variableMap => Rule.Simple(variableMap.specifyAtom(rule.head), rule.body.map(variableMap.specifyAtom))(TypedKeyMap()))
               .foreach(f)
           }

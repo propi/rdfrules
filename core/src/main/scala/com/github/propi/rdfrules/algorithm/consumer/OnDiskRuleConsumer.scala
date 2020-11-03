@@ -85,7 +85,7 @@ object OnDiskRuleConsumer {
 
   def apply[T](file: File)(f: OnDiskRuleConsumer => T): T = apply(new OnDiskRuleConsumer(file, None))(f)
 
-  def apply[T](file: File, prettyPrintedFile: File)(f: OnDiskRuleConsumer => T)(implicit prettyPrintedWriterBuilder: File => PrettyPrintedWriter): T = {
+  def apply[T](file: File, prettyPrintedFile: File, prettyPrintedWriterBuilder: File => PrettyPrintedWriter)(f: OnDiskRuleConsumer => T): T = {
     apply(new OnDiskRuleConsumer(file, Some(prettyPrintedFile -> prettyPrintedWriterBuilder)))(f)
   }
 

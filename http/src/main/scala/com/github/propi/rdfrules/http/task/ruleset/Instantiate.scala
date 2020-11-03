@@ -6,7 +6,7 @@ import com.github.propi.rdfrules.ruleset.{CoveredPaths, ResolvedRule, Ruleset}
 /**
   * Created by Vaclav Zeman on 10. 8. 2018.
   */
-class Instantiate(rule: Option[ResolvedRule], part: CoveredPaths.Part) extends Task[Ruleset, Ruleset] {
+class Instantiate(rule: Option[ResolvedRule], part: CoveredPaths.Part, allowDuplicateAtoms: Boolean) extends Task[Ruleset, Ruleset] {
   val companion: TaskDefinition = Instantiate
 
   def execute(input: Ruleset): Ruleset = {
@@ -19,7 +19,7 @@ class Instantiate(rule: Option[ResolvedRule], part: CoveredPaths.Part) extends T
         }
       case None => input
     }
-    filteredRuleset.instantiate(part).view.map(_.paths).reduceOption(_ + _).getOrElse(Ruleset(input.index, Nil, true))
+    filteredRuleset.instantiate(part, allowDuplicateAtoms).view.map(_.paths).reduceOption(_ + _).getOrElse(Ruleset(input.index, Nil, true))
   }
 }
 

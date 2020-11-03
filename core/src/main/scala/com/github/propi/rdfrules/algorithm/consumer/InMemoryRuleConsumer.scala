@@ -53,7 +53,7 @@ class InMemoryRuleConsumer private(prettyPrintedFile: Option[(File, File => Pret
     val ruleSimple = Rule.Simple(rule)
     rules.add(ruleSimple)
     if (isSavingToDisk) {
-      messages.put(None)
+      messages.put(Some(ruleSimple))
     }
   }
 
@@ -72,7 +72,7 @@ object InMemoryRuleConsumer {
 
   def apply[T](f: InMemoryRuleConsumer => T): T = f(new InMemoryRuleConsumer(None))
 
-  def apply[T](prettyPrintedFile: File)(f: InMemoryRuleConsumer => T)(implicit prettyPrintedWriterBuilder: File => PrettyPrintedWriter): T = {
+  def apply[T](prettyPrintedFile: File, prettyPrintedWriterBuilder: File => PrettyPrintedWriter)(f: InMemoryRuleConsumer => T): T = {
     val x = new InMemoryRuleConsumer(Some(prettyPrintedFile -> prettyPrintedWriterBuilder))
     try {
       f(x)

@@ -14,7 +14,7 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 18. 4. 2018.
   */
-trait Text {
+object Text {
 
   implicit def textRulesetWriter(source: RulesetSource.Text.type)(implicit stringifier: Stringifier[ResolvedRule]): RulesetWriter = (rules: Traversable[ResolvedRule], outputStreamBuilder: OutputStreamBuilder) => {
     val writer = new PrintWriter(new OutputStreamWriter(outputStreamBuilder.build, "UTF-8"))

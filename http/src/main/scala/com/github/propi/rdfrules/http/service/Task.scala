@@ -143,7 +143,7 @@ object Task {
           Behaviors.stopped
         case None =>
           sender ! TaskResponse.InProgress(id, started, log)
-          Behaviors.same
+          changeTask(Vector.empty, debugger)
       }
       case TaskRequest.RegisterDebugger(debugger) =>
         changeTask(log, Some(debugger))

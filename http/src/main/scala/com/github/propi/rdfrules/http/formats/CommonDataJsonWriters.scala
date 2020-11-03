@@ -3,14 +3,14 @@ package com.github.propi.rdfrules.http.formats
 import com.github.propi.rdfrules.data.{Histogram, Quad, TripleItem, TripleItemType}
 import com.github.propi.rdfrules.http.service.Task.TaskResponse
 import com.github.propi.rdfrules.model.EvaluationResult
-import com.github.propi.rdfrules.ruleset.formats.Json
+import com.github.propi.rdfrules.ruleset.formats.Json._
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
 /**
   * Created by Vaclav Zeman on 15. 8. 2018.
   */
-object CommonDataJsonWriters extends Json {
+object CommonDataJsonWriters {
 
   implicit val evaluationResultWriter: RootJsonWriter[EvaluationResult] = (obj: EvaluationResult) => JsObject(
     "tp" -> obj.tp.toJson,

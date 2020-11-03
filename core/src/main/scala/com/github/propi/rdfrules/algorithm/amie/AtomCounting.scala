@@ -17,8 +17,8 @@ trait AtomCounting {
   //For this variant it should be useful: ( ?c <direction> "east" ) ^ ( ?b <train_id> ?c ) ^ ( ?b <train_id> ?a ) ⇒ ( ?a <direction> "east" )
   //ABOVE It is isomorphic group and should be filteren after projections counting
   //We partialy solved that by the switch allowDuplicitAtoms. It is true for bodySize counting, but false for projectionBounding and support counzing. Check it whether it is right!
-  class VariableMap private(hmap: Array[Int], atoms: Set[Atom], allowDuplicitAtoms: Boolean) {
-    def this(allowDuplicitAtoms: Boolean) = this(Array.empty, Set.empty, allowDuplicitAtoms)
+  class VariableMap private(hmap: Array[Int], atoms: Set[Atom], allowDuplicateAtoms: Boolean) {
+    def this(allowDuplicateAtoms: Boolean) = this(Array.empty, Set.empty, allowDuplicateAtoms)
 
     def getOrElse[T >: Atom.Constant](key: Atom.Variable, default: => T): T = {
       if (contains(key)) {
@@ -65,22 +65,22 @@ trait AtomCounting {
       }
     }
 
-    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = if (allowDuplicitAtoms) {
-      new VariableMap(addConstant(s._1, s._2, o._1, o._2), atoms, allowDuplicitAtoms)
+    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = if (allowDuplicateAtoms) {
+      new VariableMap(addConstant(s._1, s._2, o._1, o._2), atoms, allowDuplicateAtoms)
     } else {
-      new VariableMap(addConstant(s._1, s._2, o._1, o._2), atoms + Atom(s._2, p, o._2), allowDuplicitAtoms)
+      new VariableMap(addConstant(s._1, s._2, o._1, o._2), atoms + Atom(s._2, p, o._2), allowDuplicateAtoms)
     }
 
-    def +(s: Atom.Constant, p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = if (allowDuplicitAtoms) {
-      new VariableMap(addConstant(o._1, o._2), atoms, allowDuplicitAtoms)
+    def +(s: Atom.Constant, p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = if (allowDuplicateAtoms) {
+      new VariableMap(addConstant(o._1, o._2), atoms, allowDuplicateAtoms)
     } else {
-      new VariableMap(addConstant(o._1, o._2), atoms + Atom(s, p, o._2), allowDuplicitAtoms)
+      new VariableMap(addConstant(o._1, o._2), atoms + Atom(s, p, o._2), allowDuplicateAtoms)
     }
 
-    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: Atom.Constant): VariableMap = if (allowDuplicitAtoms) {
-      new VariableMap(addConstant(s._1, s._2), atoms, allowDuplicitAtoms)
+    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: Atom.Constant): VariableMap = if (allowDuplicateAtoms) {
+      new VariableMap(addConstant(s._1, s._2), atoms, allowDuplicateAtoms)
     } else {
-      new VariableMap(addConstant(s._1, s._2), atoms + Atom(s._2, p, o), allowDuplicitAtoms)
+      new VariableMap(addConstant(s._1, s._2), atoms + Atom(s._2, p, o), allowDuplicateAtoms)
     }
 
     def isEmpty: Boolean = hmap.isEmpty

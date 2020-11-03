@@ -7,7 +7,6 @@ import com.github.propi.rdfrules.data._
 import com.github.propi.rdfrules.index._
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule._
-import com.github.propi.rdfrules.ruleset.ResolvedRule
 import com.github.propi.rdfrules.utils.{CustomLogger, Debugger}
 import org.apache.jena.riot.Lang
 import org.scalatest.{CancelAfterFailure, FlatSpec, Inside, Matchers}
@@ -21,7 +20,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside with CancelAfterFailur
 
   private lazy val dataset2 = Dataset() + Graph("yago", GraphSpec.dataYago) + Graph("dbpedia", GraphSpec.dataDbpedia)(Lang.TTL)
 
-  "Amie" should "be created" ignore {
+  "Amie" should "be created" in {
     var amie = Amie()
     //amie.thresholds.get[Threshold.MinHeadSize] shouldBe Some(Threshold.MinHeadSize(100))
     //amie.thresholds.apply[Threshold.MinHeadSize].value shouldBe 100
@@ -41,14 +40,14 @@ class AmieSpec extends FlatSpec with Matchers with Inside with CancelAfterFailur
     amie.thresholds.apply[Threshold.Timeout].value shouldBe 1
   }
 
-  it should "mine with default params" ignore {
+  it should "mine with default params" in {
     val index = Index.apply(dataset1, false)
     val amie = Amie().addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere)).addThreshold(Threshold.MinHeadCoverage(0.01))
     val rules = index.mine(amie)
     rules.size shouldBe 124
   }
 
-  it should "mine without duplicit predicates" ignore {
+  it should "mine without duplicit predicates" in {
     val index = Index.apply(dataset1, false)
     val amie = Amie()
       .addConstraint(RuleConstraint.WithoutDuplicatePredicates())
@@ -68,7 +67,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside with CancelAfterFailur
     rules(2).measures[Measure.HeadCoverage].value shouldBe 0.16033755274261605
   }
 
-  it should "mine with only specified predicates" ignore {
+  it should "mine with only specified predicates" in {
     val index = Index.apply(dataset1, false)
     val onlyPredicates = RuleConstraint.OnlyPredicates("imports", "exports", "dealsWith")
     val amie = Amie()
@@ -91,7 +90,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside with CancelAfterFailur
     }
   }
 
-  it should "mine without specified predicates" ignore {
+  it should "mine without specified predicates" in {
     val index = Index.apply(dataset1, false)
     val onlyPredicates = RuleConstraint.WithoutPredicates("imports", "exports", "dealsWith")
     val amie = Amie()
@@ -112,7 +111,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside with CancelAfterFailur
     }
   }
 
-  it should "mine with instances" ignore {
+  it should "mine with instances" in {
     val index = Index.apply(dataset1, false)
     Debugger() { implicit debugger =>
       val amie = Amie().addConstraint(RuleConstraint.WithoutDuplicatePredicates()).addThreshold(Threshold.MinHeadCoverage(0.01))
@@ -130,7 +129,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside with CancelAfterFailur
     }
   }
 
-  it should "mine with instances quickly with evaluated lazy vals" ignore {
+  it should "mine with instances quickly with evaluated lazy vals" in {
     val index1 = Index.apply(dataset1, false)
     val index2 = Index.apply(dataset1, false).withEvaluatedLazyVals
     val amie = Amie().addConstraint(RuleConstraint.WithoutDuplicatePredicates()).addThreshold(Threshold.MinHeadCoverage(0.01))
@@ -161,7 +160,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside with CancelAfterFailur
     time1 should be > time2
   }
 
-  it should "mine with instances and with duplicit predicates" ignore {
+  it should "mine with instances and with duplicit predicates" in {
     Debugger() { implicit debugger =>
       val index = Index.apply(dataset1, false)
       val amie = Amie().addThreshold(Threshold.MinHeadCoverage(0.02))
@@ -181,7 +180,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside with CancelAfterFailur
     }
   }
 
-  it should "mine only with object instances" ignore {
+  it should "mine only with object instances" in {
     Debugger() { implicit debugger =>
       val index = Index.apply(dataset1, false)
       val amie = Amie()
@@ -203,7 +202,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside with CancelAfterFailur
     }
   }
 
-  it should "mine with min length" ignore {
+  it should "mine with min length" in {
     val index = Index.apply(dataset1, false)
     var amie = Amie()
       .addConstraint(RuleConstraint.WithoutDuplicatePredicates())
@@ -237,7 +236,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside with CancelAfterFailur
     rules.size shouldBe 139
   }
 
-  it should "mine with min head size" ignore {
+  it should "mine with min head size" in {
     val index = Index.apply(dataset1, false)
     val amie = Amie()
       .addConstraint(RuleConstraint.WithoutDuplicatePredicates())
@@ -257,7 +256,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside with CancelAfterFailur
     rules.forall(_.measures[Measure.HeadSize].value >= 1000) shouldBe true
   }
 
-  it should "mine with topK threshold" ignore {
+  it should "mine with topK threshold" in {
     Debugger() { implicit debugger =>
       val index = Index.apply(dataset1, false)
       val amie = Amie()
@@ -277,7 +276,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside with CancelAfterFailur
     }
   }
 
-  it should "count confidence" ignore {
+  it should "count confidence" in {
     val index = Index.apply(dataset1, false)
     val amie = Amie()
       .addConstraint(RuleConstraint.WithoutDuplicatePredicates())
@@ -296,7 +295,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside with CancelAfterFailur
     rules.forall(_.measures[Measure.Confidence].value >= 0.2) shouldBe true
   }
 
-  it should "mine with timemout" ignore {
+  it should "mine with timemout" in {
     val timeoutPrinted = new AtomicBoolean(false)
     val customLogger = CustomLogger("test") { (msg, _) =>
       if (msg.contains("timeout limit")) timeoutPrinted.set(true)
@@ -411,8 +410,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside with CancelAfterFailur
         }
       }
       rules.flatMap(x => x.body.map(_.predicate) :+ x.head.predicate).map(mapper.getTripleItem) should contain only(TripleItem.Uri("diedIn"), TripleItem.Uri("livesIn"), TripleItem.Uri("hasAcademicAdvisor"))
-      rules.map(ResolvedRule.apply(_)).foreach(println)
-      rules.size shouldBe 4
+      rules.size shouldBe 2
     }
     //exact pattern
     pattern = (AtomPattern(predicate = TripleItem.Uri("livesIn")) =>: None).withExact()
@@ -466,7 +464,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside with CancelAfterFailur
     }
   }
 
-  it should "mine across two graphs" ignore {
+  it should "mine across two graphs" in {
     val index = Index.apply(dataset2, false)
     val amie = Amie()
       .addConstraint(RuleConstraint.WithoutDuplicatePredicates())
@@ -485,7 +483,7 @@ class AmieSpec extends FlatSpec with Matchers with Inside with CancelAfterFailur
     }
   }
 
-  it should "mine across two graphs with pattern" ignore {
+  it should "mine across two graphs with pattern" in {
     val index = Index.apply(dataset2, false)
     val patterns: List[RulePattern] = List(
       AtomPattern(graph = TripleItem.Uri("yago")),

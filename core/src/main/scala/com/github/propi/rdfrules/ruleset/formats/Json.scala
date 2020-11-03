@@ -1,25 +1,22 @@
 package com.github.propi.rdfrules.ruleset.formats
 
-import java.io.{BufferedInputStream, File, FileOutputStream, OutputStreamWriter, PrintWriter}
+import java.io.{BufferedInputStream, OutputStreamWriter, PrintWriter}
 
 import com.github.propi.rdfrules.data.{Prefix, TripleItem}
-import com.github.propi.rdfrules.rule.{Measure, Rule}
+import com.github.propi.rdfrules.rule.Measure
 import com.github.propi.rdfrules.ruleset.ResolvedRule.Atom
 import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetReader, RulesetSource, RulesetWriter}
 import com.github.propi.rdfrules.utils.{InputStreamBuilder, OutputStreamBuilder, TypedKeyMap}
+import spray.json.DefaultJsonProtocol._
 import spray.json._
-import DefaultJsonProtocol._
-import com.github.propi.rdfrules.algorithm.consumer.PrettyPrintedWriter
-import com.github.propi.rdfrules.index.TripleItemIndex
 
 import scala.io.Source
-import scala.language.implicitConversions
-import scala.language.reflectiveCalls
+import scala.language.{implicitConversions, reflectiveCalls}
 
 /**
   * Created by Vaclav Zeman on 18. 4. 2018.
   */
-trait Json {
+object Json {
 
   implicit val tripleItemUriJsonFormat: RootJsonFormat[TripleItem.Uri] = new RootJsonFormat[TripleItem.Uri] {
     def write(obj: TripleItem.Uri): JsValue = obj match {
@@ -178,21 +175,5 @@ trait Json {
       is.close()
     }
   }
-
-  class JsonPrettyPrintedWriter(file: File)(implicit mapper: TripleItemIndex) extends PrettyPrintedWriter {
-    private val fos = new FileOutputStream(file)
-    private val writer = new PrintWriter(new OutputStreamWriter(fos, "UTF-8"))
-
-    def write(rule: Rule.Simple): Unit = writer.println(ResolvedRule(rule).toJson.prettyPrint)
-
-    def flush(): Unit = {
-      writer.flush()
-      fos.getFD.sync()
-    }
-
-    def close(): Unit = writer.close()
-  }
-
-  implicit def jsonPrettyPrintedWriter(source: RulesetSource.Json.type)(implicit mapper: TripleItemIndex): File => PrettyPrintedWriter = new JsonPrettyPrintedWriter(_)
 
 }

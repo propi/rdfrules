@@ -1,19 +1,21 @@
 package com.github.propi.rdfrules.http.formats
 
+import java.io.File
 import java.net.URL
 
 import com.github.propi.rdfrules.algorithm.amie.Amie
+import com.github.propi.rdfrules.algorithm.consumer.{InMemoryRuleConsumer, OnDiskRuleConsumer, TopKRuleConsumer}
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting.{Comb, WeightedSimilarityCounting}
 import com.github.propi.rdfrules.algorithm.dbscan.{DbScan, SimilarityCounting}
-import com.github.propi.rdfrules.algorithm.{Clustering, RulesMining}
+import com.github.propi.rdfrules.algorithm.{Clustering, RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.data.{DiscretizationTask, Prefix, RdfSource, TripleItem}
-import com.github.propi.rdfrules.http.Main
+import com.github.propi.rdfrules.http.{Main, Workspace}
 import com.github.propi.rdfrules.http.task.{QuadMapper, QuadMatcher, TripleItemMapper}
 import com.github.propi.rdfrules.http.util.Conf
 import com.github.propi.rdfrules.model.Model.PredictionType
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule.{AtomPattern, Measure, Rule, RuleConstraint, RulePattern, Threshold}
-import com.github.propi.rdfrules.ruleset.{CoveredPaths, ResolvedRule, RulesetSource}
+import com.github.propi.rdfrules.ruleset.{CoveredPaths, ResolvedRule, Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
 import org.apache.jena.riot.RDFFormat
 import spray.json.DefaultJsonProtocol._
@@ -211,8 +213,39 @@ object CommonDataJsonReaders {
       }.getOrElse(rm),
       rm => fields.get("constraints").collect {
         case JsArray(x) => x.map(_.convertTo[RuleConstraint]).foldLeft(rm)(_ addConstraint _)
-      }.getOrElse(rm)
+      }.getOrElse(rm),
+      rm => fields.get("parallelism").map(x => rm.setParallelism(x.convertTo[Int])).getOrElse(rm)
     ))(Amie())
+  }
+
+  implicit val ruleConsumerReader: RootJsonReader[RuleConsumer.Invoker[Ruleset]] = (json: JsValue) => {
+    json.asJsObject.fields.get("ruleConsumer") match {
+      case Some(ruleConsumerJson) =>
+        val fields = ruleConsumerJson.asJsObject.fields
+        val pfile = fields
+          .get("pfile")
+          .map(_.convertTo[String])
+          .zip(fields.get("format").map(_.convertTo[RulesetSource]))
+        fields("name").convertTo[String] match {
+          case "inMemory" =>
+            pfile.map { case (pfile, format) =>
+              RuleConsumer.withMapper[Ruleset](implicit mapper => InMemoryRuleConsumer(new File(Workspace.path(pfile)), format))
+            }.headOption.getOrElse(RuleConsumer(InMemoryRuleConsumer(_)))
+          case "onDisk" =>
+            val file = new File(Workspace.path(fields("file").convertTo[String]))
+            pfile.map { case (pfile, format) =>
+              RuleConsumer.withMapper[Ruleset](implicit mapper => OnDiskRuleConsumer(file, new File(Workspace.path(pfile)), format))
+            }.headOption.getOrElse(RuleConsumer(OnDiskRuleConsumer(file)))
+          case "topK" =>
+            val k = fields("k").convertTo[Int]
+            val allowOverflow = fields.get("allowOverflow").exists(_.convertTo[Boolean])
+            pfile.map { case (pfile, format) =>
+              RuleConsumer.withMapper[Ruleset](implicit mapper => TopKRuleConsumer(k, allowOverflow, new File(Workspace.path(pfile)), format))
+            }.headOption.getOrElse(RuleConsumer(TopKRuleConsumer(k, allowOverflow)))
+          case x => deserializationError(s"Invalid type of rule consumer: $x")
+        }
+      case None => RuleConsumer(InMemoryRuleConsumer(_))
+    }
   }
 
   implicit val measureKeyReader: RootJsonReader[TypedKeyMap.Key[Measure]] = (json: JsValue) => json.convertTo[String] match {
@@ -304,6 +337,7 @@ object CommonDataJsonReaders {
   implicit val rulesetSourceReader: RootJsonReader[RulesetSource] = (json: JsValue) => json.convertTo[String] match {
     case "txt" => RulesetSource.Text
     case "json" => RulesetSource.Json
+    case "ndjson" => RulesetSource.NDJson
     case x => deserializationError(s"Invalid ruleset format name: $x")
   }
 
