@@ -182,7 +182,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
         //starts P jobs in parallel where P is number of processors
         //each job refines rules from queue with length X where X is the stage number.
         val jobs = List.fill(parallelism) {
-          val job: Runnable = () => {
+          val job: Runnable = () => try {
             Iterator.continually(queue.pollOption).takeWhile(_.isDefined && settings.timeout.forall(_ > settings.currentDuration) && !debugger.isInterrupted).map(_.get).filter(isRefinable).foreach { rule =>
               //debug()
               //we continually take all defined (and valid) rules from queue until end of the stage or reaching of the timeout
@@ -198,6 +198,8 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
               }
               ad.done(s"processed rules, found closed rules: ${foundRules.get()}, activeThreads: ${activeThreads.get()}")
             }
+          } finally {
+            activeThreads.decrementAndGet()
           }
           val thread = new Thread(job)
           thread.start()

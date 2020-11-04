@@ -40,7 +40,8 @@ object Task {
   }
 
   private val notFound = TaskException("""{"code": "NotFound", "message": "Task not found"}""")
-  private val unspecifiedTaskError = TaskException("""{"code": "UnspecifiedTaskError", "message": "Unspecified task error"}""")
+
+  private def unspecifiedTaskError(msg: String) = TaskException(s"""{"code": "UnspecifiedTaskError", "message": "${msg.replace('"', '`')}"}""")
 
   def sendTask(data: js.Any): Future[String] = {
     val result = Promise[String]()
@@ -49,7 +50,7 @@ object Task {
         case Some(id) if id.nonEmpty && response.status == 202 => result.success(id)
         case None => response.status match {
           case 400 | 500 => result.failure(TaskException(response.data))
-          case _ => result.failure(unspecifiedTaskError)
+          case _ => result.failure(unspecifiedTaskError(response.data))
         }
       }
     }
@@ -63,7 +64,7 @@ object Task {
         case 202 | 200 => result.success(JSON.parse(response.data).asInstanceOf[Result])
         case 400 | 500 => result.failure(TaskException(response.data))
         case 404 => result.failure(notFound)
-        case _ => result.failure(unspecifiedTaskError)
+        case _ => result.failure(unspecifiedTaskError(response.data))
       }
     }
     result.future

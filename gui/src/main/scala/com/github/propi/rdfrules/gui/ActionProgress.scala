@@ -25,13 +25,12 @@ trait ActionProgress {
   private val cancelled: Var[Boolean] = Var(false)
 
   private def addLogs(newLogs: js.Array[Task.Log]): Unit = {
-    val logsBuffer = _logs.value
-    if (newLogs.length > logsBuffer.length) {
-      logsBuffer ++= newLogs.jsSlice(logsBuffer.length)
+    if (newLogs.nonEmpty) {
+      _logs.value ++= newLogs
     }
   }
 
-  private def getStatus(id: String): Unit = Task.getStatus(id).onComplete {
+  private def checkStatus(id: String): Unit = Task.getStatus(id).onComplete {
     case Success(result) =>
       addLogs(result.logs)
       if (progress.value.isEmpty || result.finished.isDefined) {
@@ -43,7 +42,7 @@ trait ActionProgress {
         }
       }
       if (result.finished.isEmpty) {
-        setTimeout(3000)(getStatus(id))
+        setTimeout(3000)(checkStatus(id))
       }
     case Failure(th) => progress.value = Some(Failure(th))
   }
@@ -65,7 +64,7 @@ trait ActionProgress {
   }
 
   id.onComplete {
-    case Success(id) => getStatus(id)
+    case Success(id) => checkStatus(id)
     case Failure(th) => progress.value = Some(Failure(th))
   }
 

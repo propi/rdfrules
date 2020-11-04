@@ -17,6 +17,7 @@ trait Property {
   val descriptionVar: Var[String]
 
   val errorMsg: ReactiveBinding.Var[Option[String]] = ReactiveBinding.Var(None)
+  val isHidden: Var[Boolean] = Var(false)
 
   def valueView: Binding[Div]
 
@@ -28,7 +29,7 @@ trait Property {
 
   @dom
   def view: Binding[TableRow] = {
-    <tr>
+    <tr class={if (isHidden.bind) "hidden" else ""}>
       <th>
         <div class="title">
           <div class="hints">

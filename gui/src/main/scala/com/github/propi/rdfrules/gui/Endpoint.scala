@@ -4,7 +4,7 @@ import com.thoughtworks.binding
 import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.Var
 import org.scalajs.dom
-import org.scalajs.dom.Event
+import org.scalajs.dom.{Event, console}
 import org.scalajs.dom.html.Div
 import org.scalajs.dom.raw.ProgressEvent
 import com.github.propi.rdfrules.gui.utils.StringConverters._
@@ -100,10 +100,10 @@ object Endpoint {
       callback(Response(xhr.status, headers, buffer.toString))
     }
     xhr.onerror = { _: Event =>
-      callback(Response(xhr.status, Map.empty, xhr.statusText))
+      callback(Response(xhr.status, Map.empty, s"(code ${xhr.status}) " + xhr.statusText))
     }
     xhr.onabort = { _ =>
-      callback(Response(xhr.status, Map.empty, xhr.statusText))
+      callback(Response(xhr.status, Map.empty, s"(code ${xhr.status}) " + xhr.statusText))
     }
     data match {
       case Some(data) =>

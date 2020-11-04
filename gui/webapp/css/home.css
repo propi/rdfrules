@@ -320,6 +320,9 @@ main {
   margin: auto;
   width: 90%;
 }
+.properties table tr.hidden {
+  display: none;
+}
 .properties table td,
 .properties table th {
   border: 2px solid black;

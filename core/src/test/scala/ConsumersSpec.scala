@@ -70,6 +70,7 @@ class ConsumersSpec extends FlatSpec with Matchers with Inside with CancelAfterF
       val nindex = index.withDebugger
       val ruleset = nindex.mine(amie, RuleConsumer.withMapper { implicit mapper => OnDiskRuleConsumer(file, filep, RulesetSource.NDJson)(_) })
       Ruleset(nindex, filep)(RulesetSource.NDJson).size shouldBe ruleset.size
+      Ruleset.fromCache(nindex, file).size shouldBe ruleset.size
     }
   }
 

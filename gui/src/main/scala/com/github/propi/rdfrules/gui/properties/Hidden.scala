@@ -17,10 +17,12 @@ class Hidden[T](val name: String, value: String)(implicit f: String => T, g: T =
   val title: String = ""
   val descriptionVar: Var[String] = Var("")
 
+  isHidden.value = true
+
   @dom
   def valueView: Binding[Div] = {
     <div>
-      <input type="hidden" value={_value}/>
+      <input type="hidden" name={name} value={_value}/>
     </div>
   }
 

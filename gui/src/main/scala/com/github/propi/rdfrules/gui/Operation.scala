@@ -190,7 +190,7 @@ trait Operation {
   private def viewProperties: Binding[Div] = {
     <div class="properties">
       <table>
-        {for (property <- properties if !property.isInstanceOf[Hidden[_]]) yield {
+        {for (property <- properties) yield {
         property.view.bind
       }}
       </table>
