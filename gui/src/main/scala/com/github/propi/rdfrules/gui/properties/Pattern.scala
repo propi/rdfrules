@@ -50,10 +50,11 @@ object Pattern {
     new Group("graph", "Graph", atomItemPatternProperties)
   )
 
-  def apply() = Constants(
+  def apply(): Constants[Property] = Constants(
     new Group("head", "Head", atomPatternProperties, description = "Atom pattern for the head of a rule."),
     new DynamicGroup("body", "Body", () => atomPatternProperties, description = "Atom patterns for body of a rule."),
-    new Checkbox("exact", "Exact", description = "If this field is checked then rules must match exactly this pattern. Otherwise, the partial matching is applied; that means rules must match the pattern but there may be additional atoms in the rule (the rule length may be greater than the pattern length).")
+    new Checkbox("exact", "Exact", description = "If this field is checked then rules must match exactly this pattern. Otherwise, the partial matching is applied; that means rules must match the pattern but there may be additional atoms in the rule (the rule length may be greater than the pattern length)."),
+    new Checkbox("orderless", "Orderless", description = "If this field is checked then it does not matter the order of atoms in the body of the rule and pattern.")
   )
 
 }

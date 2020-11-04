@@ -8,8 +8,8 @@ import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
 @JSExportTopLevel("RDFRules")
 object Main {
 
-  //TODO, add allowDuplicateAtoms (instantiation), rule consumers, remove topk, orderless pattern, parallelism (mining and load ruleset), ndjson format support, logs queueing
   //TODO no message if we want to overflow file (it is disabled)
+  //TODO instantiation in a new tab
   lazy val canvas = new Canvas
 
   @JSExport

@@ -18,12 +18,7 @@ class ExportRules(path: String, format: Option[RulesetSource]) extends Task[Rule
   }
 
   def execute(input: Ruleset): Unit = format match {
-    case Some(x) =>
-      implicit val writer: RulesetWriter = x match {
-        case x: RulesetSource.Text.type => x
-        case x: RulesetSource.Json.type => x
-      }
-      input.export(Workspace.path(path))
+    case Some(x) => input.export(Workspace.path(path))(x)
     case None => input.export(Workspace.path(path))
   }
 }

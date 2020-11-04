@@ -16,7 +16,7 @@ class Evaluate(fromOperation: Operation, val info: OperationInfo, allowToChooseM
     Constants(
       List(
         if (allowToChooseModel) Some(new ChooseFileFromWorkspace(Workspace.loadFiles, "path", description = "You can load a serialized model file from the workspace on the server side (just click onto a file name).", validator = NonEmpty)) else None,
-        if (allowToChooseModel) Some(new Select("format", "Rules format", Constants("json" -> "JSON", "cache" -> "Model cache"), description = "Rules format.")) else None,
+        if (allowToChooseModel) Some(new Select("format", "Rules format", Constants("json" -> "JSON", "ndjson" -> "NDJSON", "cache" -> "Model cache"), description = "Rules format.")) else None,
         Some(new Checkbox("onlyFunctionalProperties", "Only functional properties", true, "Generate only functional properties. That means only one object can be predicted for pair (subject, predicate)."))
       ).flatten: _*
     )
