@@ -20,7 +20,6 @@ class Cache(path: String, inMemory: Boolean, revalidate: Boolean)(implicit debug
     None
   }
 
-  //TODO do not use for actions
   def useCache(lastIndexTask: Option[Task[Task.NoInput.type, Index]]): Option[Task[Task.NoInput.type, Index]] = if (revalidate) {
     None
   } else {

@@ -1,17 +1,17 @@
 package com.github.propi.rdfrules.gui.results
 
-import com.github.propi.rdfrules.gui.operations.Instantiate
 import com.github.propi.rdfrules.gui.results.Rules._
 import com.github.propi.rdfrules.gui.utils.StringConverters._
-import com.github.propi.rdfrules.gui.{ActionProgress, Downloader, Globals, Main, OperationInfo}
+import com.github.propi.rdfrules.gui._
 import com.thoughtworks.binding.Binding.{Constants, Var}
 import com.thoughtworks.binding.{Binding, dom}
-import org.scalajs.dom.Event
 import org.scalajs.dom.html.Div
 import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
+import org.scalajs.dom.{Event, window}
 
 import scala.concurrent.Future
 import scala.scalajs.js
+import scala.scalajs.js.JSON
 
 /**
   * Created by Vaclav Zeman on 14. 9. 2018.
@@ -133,13 +133,18 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
     <div class={"rule-tools" + (if (record._1.isInstantiated) " hidden" else "")}>
       <a href="#" onclick={e: Event =>
         e.preventDefault()
-        Main.canvas.getOperations.last.delete()
+        val time = System.currentTimeMillis()
+        val op = Main.canvas.getOperations.last
+        LocalStorage.put(time.toString, js.Array(op.toJson(Nil): _*))(JSON.stringify(_))
+        LocalStorage.put(time.toString + "-rule", record._1)(JSON.stringify(_))
+        window.open(s"./?pickup=$time")
+        /*Main.canvas.getOperations.last.delete()
         val op0 = Main.canvas.getOperations.last
         val op1 = op0.appendOperation(OperationInfo.RulesetTransformation.Instantiate)
         op1.asInstanceOf[Instantiate].setRule(record._1)
         Main.canvas.addOperation(op1)
         Main.canvas.addOperation(op1.appendOperation(OperationInfo.GetRules))
-        op1.openModal()}>Instantiate</a>
+        op1.openModal()*/}>Instantiate</a>
     </div>
   </div>
 

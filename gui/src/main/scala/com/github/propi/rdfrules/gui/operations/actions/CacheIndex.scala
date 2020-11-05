@@ -17,7 +17,7 @@ class CacheIndex(fromOperation: Operation) extends Operation {
   val properties: Constants[Property] = Constants(
     new FixedText[String]("path", "Path", description = "A relative path to a file related to the workspace where the serialized index should be saved.", validator = NonEmpty),
     new Hidden[Boolean]("inMemory", "false"),
-    new Hidden[Boolean]("revalidate", "false")
+    new Hidden[Boolean]("revalidate", "true")
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 

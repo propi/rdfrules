@@ -1,5 +1,9 @@
 package com.github.propi.rdfrules.gui
 
+import com.github.propi.rdfrules.gui.operations.Instantiate
+import com.github.propi.rdfrules.gui.results.Rules
+
+import scala.scalajs.js.JSON
 import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
 
 /**
@@ -8,8 +12,6 @@ import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
 @JSExportTopLevel("RDFRules")
 object Main {
 
-  //TODO no message if we want to overflow file (it is disabled)
-  //TODO instantiation in a new tab
   lazy val canvas = new Canvas
 
   @JSExport
@@ -17,6 +19,22 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     canvas.render()
+    for {
+      taskId <- Option(Globals.getParameterByName("pickup")).map(_.trim).filter(_.nonEmpty)
+      task <- LocalStorage.get[String](taskId)(Some(_))
+      rule <- LocalStorage.get[String](taskId + "-rule")(Some(_)).map(JSON.parse(_)).map(_.asInstanceOf[Rules.Rule])
+    } {
+      LocalStorage.remove(taskId)
+      LocalStorage.remove(taskId + "-rule")
+      canvas.loadTask(task)
+      canvas.getOperations.last.delete()
+      val op0 = canvas.getOperations.last
+      val op1 = op0.appendOperation(OperationInfo.RulesetTransformation.Instantiate)
+      op1.asInstanceOf[Instantiate].setRule(rule)
+      canvas.addOperation(op1)
+      canvas.addOperation(op1.appendOperation(OperationInfo.GetRules))
+      op1.openModal()
+    }
   }
 
 }

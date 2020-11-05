@@ -131,6 +131,8 @@ object CommonDataJsonReaders {
 
   implicit val coveredPathsPartReader: RootJsonReader[CoveredPaths.Part] = (json: JsValue) => json.convertTo[String] match {
     case "Head" => CoveredPaths.Part.Head
+    case "HeadExisting" => CoveredPaths.Part.HeadExisting
+    case "HeadMissing" => CoveredPaths.Part.HeadMissing
     case "BodyAll" => CoveredPaths.Part.Body(PredictionType.All)
     case "BodyMissing" => CoveredPaths.Part.Body(PredictionType.Missing)
     case "BodyExisting" => CoveredPaths.Part.Body(PredictionType.Existing)

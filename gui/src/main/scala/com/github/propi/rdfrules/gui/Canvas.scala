@@ -5,7 +5,7 @@ import com.thoughtworks.binding.Binding.{Var, Vars}
 import com.thoughtworks.binding.{Binding, dom}
 import org.scalajs.dom.html.Div
 import org.scalajs.dom.raw.{FileReader, HTMLElement, HTMLInputElement}
-import org.scalajs.dom.{Event, MouseEvent, UIEvent, document}
+import org.scalajs.dom.{Event, MouseEvent, UIEvent, console, document}
 
 import scala.scalajs.js
 import scala.scalajs.js.JSON
@@ -41,7 +41,9 @@ class Canvas {
         </a>{modal.bind match {
         case Some(x) => x.bind
         case None => <div></div>
-      }}<div class="ok"><span onclick={_: Event => closeModal()}>Ok</span></div>
+      }}<div class="ok">
+        <span onclick={_: Event => closeModal()}>Ok</span>
+      </div>
       </div>
       <div class="content">
         <div class="tools">
@@ -127,14 +129,14 @@ class Canvas {
     val lastOps = JSON.parse(content)
       .asInstanceOf[js.Array[js.Dynamic]]
       .foldLeft[Operation](new Root) { (parent, data) =>
-      OperationInfo(data, parent)
-        .filter(parent.info.followingOperations.value.contains)
-        .map { opsInfo =>
-          val newOps = parent.appendOperation(opsInfo)
-          newOps.setValue(data.parameters)
-          newOps
-        }.getOrElse(parent)
-    }
+        OperationInfo(data, parent)
+          .filter(parent.info.followingOperations.value.contains)
+          .map { opsInfo =>
+            val newOps = parent.appendOperation(opsInfo)
+            newOps.setValue(data.parameters)
+            newOps
+          }.getOrElse(parent)
+      }
     val newOperations = Iterator.iterate(Option(lastOps))(_.flatMap(_.previousOperation.value)).takeWhile(_.nonEmpty).flatten.foldLeft(List.empty[Operation])((a, b) => b :: a)
     operations.value ++= newOperations
   }

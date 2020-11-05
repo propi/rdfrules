@@ -12,6 +12,10 @@ import scala.scalajs.js.annotation.JSGlobalScope
 @JSGlobalScope
 object Globals extends js.Object {
   var endpoint: String = js.native
+
   def stripText(x: String): String = js.native
+
+  def getParameterByName(name: String, url: String = js.native): String = js.native
+
   def saveAs(blob: Blob, filename: String): Unit = js.native
 }

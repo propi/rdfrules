@@ -106,7 +106,7 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
       ruleConsumer,
       new DynamicGroup("patterns", "Patterns", () => Pattern(), description = "In this property, you can define several rule patterns. During the mining phase, each rule must match at least one of the defined patterns."),
       constraints,
-      new FixedText[Int]("parallelism", "Parallelism", "0", "If the value is lower than 0 and greater than 'all available cores' then the parallelism level is set to 'all available cores'.", GreaterThanOrEqualsTo(0))
+      new FixedText[Int]("parallelism", "Parallelism", "0", "If the value is lower than or equal to 0 and greater than 'all available cores' then the parallelism level is set to 'all available cores'.", GreaterThanOrEqualsTo[Int](0))
     )
   }
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
