@@ -128,14 +128,14 @@ class Model private(val rules: Traversable[ResolvedRule], val parallelism: Int, 
                 case (Atom.Constant(s), Atom.Constant(o)) => _ => IndexItem.Quad(s, rule.head.predicate, o, 0)
               }
               if (predictionType == PredictionType.Existing) {
-                atomCounting.specifyVariableMap(rule.head, new atomCounting.VariableMap(true))
+                atomCounting.specifyVariableMap(rule.head, new atomCounting.VariableMap(false))
                   .filter(atomCounting.exists(ruleBody, _))
                   .map(variableMap => constantsToQuad(headVars.map(variableMap(_))))
                   .map(x => PredictedTriple(x.toTriple)(rule, true))
                   .foreach(f)
               } else {
                 Try(atomCounting
-                  .selectDistinctPairs(ruleBody, headVars, new atomCounting.VariableMap(true))
+                  .selectDistinctPairs(ruleBody, headVars, new atomCounting.VariableMap(false))
                   .map(constantsToQuad)
                   .map(x => thi.predicates.get(x.p).flatMap(_.subjects.get(x.s)).exists(_.contains(x.o)) -> x.toTriple)
                   .map(x => PredictedTriple(x._2)(rule, x._1))

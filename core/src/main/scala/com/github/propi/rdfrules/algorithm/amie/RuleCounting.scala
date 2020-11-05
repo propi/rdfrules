@@ -36,7 +36,7 @@ trait RuleCounting extends AtomCounting {
       //first we count body size threshold: support / minConfidence
       //it counts wanted body site. If the body size is greater than wanted body size then confidence will be always lower than our defined threshold (min confidence)
       val bodySize = if (allPaths) {
-        count(rule.body.toSet, (support / minConfidence) + 1, new VariableMap(true))
+        count(rule.body.toSet, (support / minConfidence) + 1, new VariableMap(false))
       } else {
         countDistinctPairs(rule.body.toSet, rule.head, (support / minConfidence) + 1)
       }

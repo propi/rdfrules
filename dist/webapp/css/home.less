@@ -331,6 +331,10 @@ main {
     margin: auto;
     width: 90%;
 
+    tr.hidden {
+      display: none;
+    }
+
     td, th {
       border: 2px solid black;
       padding: 0.5em;
@@ -490,10 +494,12 @@ main {
       img {
         width: 5em;
       }
+
       .cancel-send {
         display: block;
         margin-left: 1em;
       }
+
       .cancel-sent {
         margin-left: 1em;
         font-style: italic;
@@ -653,6 +659,7 @@ main {
       .rule-tools {
         float: left;
         font-size: 0.8em;
+
         &.hidden {
           display: none;
         }

@@ -313,7 +313,7 @@ trait AtomCounting {
     * @return number of distinct pairs for variables which have covered all atoms
     */
   def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double, pairFilter: Seq[Atom.Constant] => Boolean = _ => true): Int = {
-    countDistinctPairs(atoms, head, maxCount, new VariableMap(true), pairFilter)
+    countDistinctPairs(atoms, head, maxCount, new VariableMap(false), pairFilter)
   }
 
   /**
