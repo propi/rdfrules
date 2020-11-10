@@ -67,6 +67,7 @@ object Atom {
     implicit def apply(string: String): Variable = apply(string.stripPrefix("?").headOption.getOrElse('a'))
   }
 
+  //TODO extends AnyVal
   case class Variable(index: Int) extends Item {
     def value: String = {
       val doubleVal = math.abs(index).toDouble
@@ -83,6 +84,7 @@ object Atom {
     override def toString: String = value
   }
 
+  //TODO extends AnyVal
   case class Constant(value: Int) extends Item
 
   implicit val variableOrdering: Ordering[Variable] = Ordering.by[Variable, Int](_.index)

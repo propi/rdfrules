@@ -17,7 +17,7 @@ trait AtomCounting {
   //For this variant it should be useful: ( ?c <direction> "east" ) ^ ( ?b <train_id> ?c ) ^ ( ?b <train_id> ?a ) ⇒ ( ?a <direction> "east" )
   //ABOVE It is isomorphic group and should be filteren after projections counting
   //We partialy solved that by the switch allowDuplicitAtoms. It is true for bodySize counting, but false for projectionBounding and support counzing. Check it whether it is right!
-  class VariableMap private(hmap: Array[Int], atoms: Set[Atom], allowDuplicateAtoms: Boolean) {
+  class VariableMap private(hmap: Array[Int], atoms: Set[Atom], allowDuplicateMapping: Boolean) {
     def this(allowDuplicateAtoms: Boolean) = this(Array.empty, Set.empty, allowDuplicateAtoms)
 
     def getOrElse[T >: Atom.Constant](key: Atom.Variable, default: => T): T = {
@@ -32,9 +32,13 @@ trait AtomCounting {
 
     def containsAtom(atom: Atom): Boolean = atoms(atom)
 
+    def containsConstant(x: Int): Boolean = !allowDuplicateMapping && hmap.contains(x)
+
     def specifyAtom(atom: Atom): Atom = Atom(specifyItem(atom.subject, this), atom.predicate, specifyItem(atom.`object`, this))
 
     def apply(key: Atom.Variable): Atom.Constant = Atom.Constant(hmap(key.index))
+
+    def get(key: Atom.Variable): Option[Atom.Constant] = if (contains(key)) Some(apply(key)) else None
 
     private def addConstant(v: Atom.Variable, c: Atom.Constant): Array[Int] = {
       if (v.index >= hmap.length) {
@@ -65,22 +69,28 @@ trait AtomCounting {
       }
     }
 
-    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = if (allowDuplicateAtoms) {
-      new VariableMap(addConstant(s._1, s._2, o._1, o._2), atoms, allowDuplicateAtoms)
+    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = if (allowDuplicateMapping) {
+      new VariableMap(addConstant(s._1, s._2, o._1, o._2), atoms, allowDuplicateMapping)
     } else {
-      new VariableMap(addConstant(s._1, s._2, o._1, o._2), atoms + Atom(s._2, p, o._2), allowDuplicateAtoms)
+      new VariableMap(addConstant(s._1, s._2, o._1, o._2), atoms + Atom(s._2, p, o._2), allowDuplicateMapping)
     }
 
-    def +(s: Atom.Constant, p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = if (allowDuplicateAtoms) {
-      new VariableMap(addConstant(o._1, o._2), atoms, allowDuplicateAtoms)
+    def +(s: Atom.Constant, p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = if (allowDuplicateMapping) {
+      new VariableMap(addConstant(o._1, o._2), atoms, allowDuplicateMapping)
     } else {
-      new VariableMap(addConstant(o._1, o._2), atoms + Atom(s, p, o._2), allowDuplicateAtoms)
+      new VariableMap(addConstant(o._1, o._2), atoms + Atom(s, p, o._2), allowDuplicateMapping)
     }
 
-    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: Atom.Constant): VariableMap = if (allowDuplicateAtoms) {
-      new VariableMap(addConstant(s._1, s._2), atoms, allowDuplicateAtoms)
+    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: Atom.Constant): VariableMap = if (allowDuplicateMapping) {
+      new VariableMap(addConstant(s._1, s._2), atoms, allowDuplicateMapping)
     } else {
-      new VariableMap(addConstant(s._1, s._2), atoms + Atom(s._2, p, o), allowDuplicateAtoms)
+      new VariableMap(addConstant(s._1, s._2), atoms + Atom(s._2, p, o), allowDuplicateMapping)
+    }
+
+    def +(s: Atom.Constant, p: Int, o: Atom.Constant): VariableMap = if (allowDuplicateMapping) {
+      this
+    } else {
+      new VariableMap(hmap, atoms + Atom(s, p, o), allowDuplicateMapping)
     }
 
     def isEmpty: Boolean = hmap.isEmpty
@@ -423,7 +433,7 @@ trait AtomCounting {
       case (_: Atom.Variable, _: Atom.Variable) =>
         tm.subjects.pairIterator.flatMap(x => x._2.iterator.flatMap { y =>
           val mappedAtom = Atom(Atom.Constant(x._1), atom.predicate, Atom.Constant(y))
-          if (variableMap.containsAtom(mappedAtom)) {
+          if (variableMap.containsConstant(x._1) || variableMap.containsConstant(y) || variableMap.containsAtom(mappedAtom)) {
             None
           } else {
             Some(mappedAtom)
@@ -432,7 +442,7 @@ trait AtomCounting {
       case (_: Atom.Variable, ov@Atom.Constant(oc)) =>
         tm.objects.get(oc).iterator.flatMap(_.iterator).flatMap { subject =>
           val mappedAtom = Atom(Atom.Constant(subject), atom.predicate, ov)
-          if (variableMap.containsAtom(mappedAtom)) {
+          if (variableMap.containsConstant(subject) || variableMap.containsAtom(mappedAtom)) {
             None
           } else {
             Some(mappedAtom)
@@ -441,7 +451,7 @@ trait AtomCounting {
       case (sv@Atom.Constant(sc), _: Atom.Variable) =>
         tm.subjects.get(sc).iterator.flatMap(_.iterator).flatMap { `object` =>
           val mappedAtom = Atom(sv, atom.predicate, Atom.Constant(`object`))
-          if (variableMap.containsAtom(mappedAtom)) {
+          if (variableMap.containsConstant(`object`) || variableMap.containsAtom(mappedAtom)) {
             None
           } else {
             Some(mappedAtom)

@@ -21,6 +21,8 @@ class OnDiskRuleConsumer private(file: File, prettyPrintedFile: Option[(File, Fi
     val job = new Runnable {
       def run(): Unit = try {
         val fos = new FileOutputStream(file)
+        //TODO problem with buffers. It can flush not readable buckets so after crash it can be corrupted
+        //create own buffer and after some time flush and sync
         val bos = new BufferedOutputStream(fos)
         val prettyPrintedWriter = prettyPrintedFile.map(x => x._2(x._1))
         try {
