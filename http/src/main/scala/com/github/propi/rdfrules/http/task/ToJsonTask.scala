@@ -57,8 +57,8 @@ object ToJsonTask extends TaskDefinition {
     }
    */
 
-  object FromRules extends ToJsonTask[Traversable[ResolvedRule]] {
-    def execute(input: Traversable[ResolvedRule]): Source[JsValue, NotUsed] = Source.fromPublisher(input.view.map(_.toJson))
+  object FromRules extends ToJsonTask[Seq[ResolvedRule]] {
+    def execute(input: Seq[ResolvedRule]): Source[JsValue, NotUsed] = Source.fromPublisher(input.view.map(_.toJson))
   }
 
   object FromTypes extends ToJsonTask[Seq[(TripleItem.Uri, collection.Map[TripleItemType, Int])]] {

@@ -1,11 +1,10 @@
 package com.github.propi.rdfrules.http.service
 
 import java.util.{Date, UUID}
-
 import akka.NotUsed
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorRef, Behavior, Scheduler}
+import akka.actor.typed.{ActorRef, Behavior, PostStop, Scheduler}
 import akka.http.scaladsl.common.{EntityStreamingSupport, JsonEntityStreamingSupport}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
@@ -22,6 +21,7 @@ import com.github.propi.rdfrules.http.task.Pipeline
 import com.github.propi.rdfrules.utils.{CustomLogger, Debugger}
 import spray.json.{JsValue, _}
 
+import java.util.concurrent.Executor
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -73,6 +73,8 @@ class Task(taskService: ActorRef[TaskServiceRequest])(implicit system: Scheduler
 
 object Task {
 
+  private implicit val ec: ExecutionContext = ExecutionContext.fromExecutor((runnable: Runnable) => new Thread(runnable).start())
+
   sealed trait TaskServiceRequest
 
   object TaskServiceRequest {
@@ -117,7 +119,6 @@ object Task {
 
   private def createTask(id: UUID, started: Date, pipeline: Debugger => Pipeline[Source[JsValue, NotUsed]]): Behavior[TaskRequest] = Behaviors.setup { context =>
     context.setReceiveTimeout(10 minutes, TaskRequest.Cancel)
-    implicit val ec: ExecutionContext = context.executionContext
     val result = Future {
       val logger = CustomLogger("task-" + id.toString) { (msg, level) =>
         if (level.toInt >= 20) context.self ! TaskRequest.AddMsg(msg)
@@ -133,7 +134,7 @@ object Task {
       new Date() -> result
     }
 
-    def changeTask(log: Vector[(String, Date)], debugger: Option[Debugger]): Behavior[TaskRequest] = Behaviors.receiveMessage {
+    def changeTask(log: Vector[(String, Date)], debugger: Option[Debugger]): Behavior[TaskRequest] = Behaviors.receiveMessage[TaskRequest] {
       case TaskRequest.GetResult(sender) => result.value match {
         case Some(Success((finished, result))) =>
           sender ! TaskResponse.Result(id, started, finished, log, result)

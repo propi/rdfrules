@@ -1,7 +1,6 @@
 package com.github.propi.rdfrules.http.service
 
 import java.io.File
-
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.{ContentTypes, Multipart}
 import akka.http.scaladsl.server.Directives._
@@ -12,12 +11,12 @@ import com.github.propi.rdfrules.http
 import com.github.propi.rdfrules.http.formats.WorkspaceJsonFormats._
 import com.github.propi.rdfrules.http.util.BasicExceptions.ValidationException
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
   * Created by Vaclav Zeman on 22. 7. 2018.
   */
-class Workspace {
+class Workspace(implicit ec: ExecutionContext) {
 
   val route: Route = pathPrefix("workspace") {
     get {
@@ -27,7 +26,6 @@ class Workspace {
         getFromFile(new File(http.Workspace.path(pathToFile.mkString("/"))), ContentTypes.`application/octet-stream`)
       }
     } ~ post {
-      extractExecutionContext { implicit ec =>
         extractMaterializer { implicit mat =>
           withoutSizeLimit {
             entity(as[Multipart.FormData]) { form =>
@@ -50,7 +48,6 @@ class Workspace {
             }
           }
         }
-      }
     } ~ delete {
       path(Segments) { pathToFile =>
         if (http.Workspace.deleteFileIfWritable(pathToFile.mkString("/"))) {

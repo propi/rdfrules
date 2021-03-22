@@ -6,10 +6,10 @@ import com.github.propi.rdfrules.ruleset.{ResolvedRule, Ruleset}
 /**
   * Created by Vaclav Zeman on 9. 8. 2018.
   */
-class GetRules extends Task[Ruleset, Traversable[ResolvedRule]] {
+class GetRules extends Task[Ruleset, Seq[ResolvedRule]] {
   val companion: TaskDefinition = GetRules
 
-  def execute(input: Ruleset): Traversable[ResolvedRule] = input.take(10000).cache.resolvedRules
+  def execute(input: Ruleset): Seq[ResolvedRule] = input.take(10000).resolvedRules.toList
 }
 
 object GetRules extends TaskDefinition {

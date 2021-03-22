@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.http
 
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorSystem, Scheduler}
+import akka.actor.typed.{ActorSystem, DispatcherSelector, Scheduler}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.server.Directives._
@@ -10,7 +10,7 @@ import com.github.propi.rdfrules.http.service.Task
 import com.github.propi.rdfrules.http.util.Server.MainMessage
 import com.github.propi.rdfrules.http.util.{Server, ServerConf}
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
 import scala.io.StdIn
 import scala.language.postfixOps
@@ -29,6 +29,7 @@ object Main extends ServerConf {
       val taskService = context.spawn(Task.taskFactoryActor, "task-service")
       context.spawn(Workspace.lifetimeActor, "workspace-lifetime")
       context.spawn(InMemoryCache.autoCleaningActor, "inmemorycache-autocleaning")
+      implicit val ec: ExecutionContext = context.system.dispatchers.lookup(DispatcherSelector.fromConfig("task-dispatcher"))
       val route: Route = mapResponseHeaders { headers =>
         val memoryInfo = InMemoryCache.getMemoryInfo
         headers ++ List(RawHeader("MemoryCache-Total", memoryInfo.total.toString), RawHeader("MemoryCache-Free", memoryInfo.free.toString), RawHeader("MemoryCache-Items", memoryInfo.itemsInCache.toString))
