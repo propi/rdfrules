@@ -1,13 +1,12 @@
 package com.github.propi.rdfrules.algorithm.consumer
 
-import java.io.{BufferedOutputStream, File, FileInputStream, FileOutputStream}
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
-
 import com.github.propi.rdfrules.algorithm.RuleConsumer
 import com.github.propi.rdfrules.rule.Rule
 import com.github.propi.rdfrules.serialization.RuleSerialization._
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, Serializer}
 
+import java.io.{File, FileInputStream, FileOutputStream, OutputStream}
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Promise}
 import scala.language.postfixOps
@@ -15,6 +14,39 @@ import scala.language.postfixOps
 class OnDiskRuleConsumer private(file: File, prettyPrintedFile: Option[(File, File => PrettyPrintedWriter)]) extends RuleConsumer.NoEventRuleConsumer {
 
   private val _result = Promise[RuleConsumer.Result]
+
+  private class BufferedOutputStream(stream: OutputStream) extends OutputStream {
+    private val buffer = new Array[Byte](8192)
+    private var pointer = 0
+
+    def write(i: Int): Unit = throw new UnsupportedOperationException()
+
+    def write(rule: Rule.Simple): Unit = {
+      val bytes = Serializer.serialize(rule)
+      if (bytes.length > buffer.length) {
+        stream.write(bytes)
+      } else if (pointer + bytes.length > buffer.length) {
+        flush()
+        Array.copy(bytes, 0, buffer, 0, bytes.length)
+        pointer = bytes.length
+      } else {
+        Array.copy(bytes, 0, buffer, pointer, bytes.length)
+        pointer += bytes.length
+      }
+    }
+
+    override def flush(): Unit = {
+      if (pointer > 0) {
+        stream.write(buffer, 0, pointer)
+        pointer = 0
+      }
+    }
+
+    override def close(): Unit = {
+      flush()
+      stream.close()
+    }
+  }
 
   private lazy val messages = {
     val messages = new LinkedBlockingQueue[Option[Rule]]
@@ -35,7 +67,7 @@ class OnDiskRuleConsumer private(file: File, prettyPrintedFile: Option[(File, Fi
               case null =>
               case Some(rule) =>
                 val ruleSimple = Rule.Simple(rule)
-                bos.write(Serializer.serialize(ruleSimple))
+                bos.write(ruleSimple)
                 isAdded = true
                 prettyPrintedWriter.foreach(_.write(ruleSimple))
               case None => stopped = true

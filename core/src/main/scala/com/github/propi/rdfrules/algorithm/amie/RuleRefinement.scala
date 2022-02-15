@@ -379,6 +379,8 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
   private def bindProjections(atoms: Set[Atom], possibleFreshAtoms: List[FreshAtom], countableFreshAtoms: List[FreshAtom], variableMap: VariableMap)
                              (implicit projections: mutable.HashSet[Atom] = mutable.HashSet.empty): mutable.HashSet[Atom] = {
     //if there are some countable fresh atoms and there exists path for rest atoms then we can find all projections for these fresh atoms
+    //TODO exists function here is maybe redundant because we know that this mapping exists if variableMap constains such constants which were thruly mapped in the previous refining
+    //TODO it requires we know all head triples which can not be bound to the body of the refining rule
     if (countableFreshAtoms.nonEmpty && exists(atoms, variableMap)) {
       countableFreshAtoms.foreach(bindFreshAtom(_, atoms, variableMap))
     }
