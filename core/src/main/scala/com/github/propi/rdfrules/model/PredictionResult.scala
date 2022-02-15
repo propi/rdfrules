@@ -36,12 +36,10 @@ class PredictionResult private(_predictedTriples: Traversable[PredictedTriple], 
         val evaluationResult = (if (_distinct) predictedTriples else distinct.predictedTriples).foldLeft(EvaluationResult(0, 0, 0, Vector.empty)) { (result, predictedTriple) =>
           val p = mapper.getIndexOpt(predictedTriple.triple.predicate)
           val isTrue = predictedTriple.existing
-          //TODO zkontrolovat, jestli nevraci chybu - proc se zde pri kazde iteraci prepisuje FN.
-          //nemelo by tam byt result.fn + thi.predicates.get(p).map(_.size).getOrElse(0)?
           val fn = p match {
             case Some(p) if !headPredicates(p) =>
               headPredicates += p
-              thi.predicates.get(p).map(_.size).getOrElse(0)
+              result.fn + thi.predicates.get(p).map(_.size).getOrElse(0)
             case _ => result.fn
           }
           if (isTrue && withModel) modelSet += predictedTriple.rule

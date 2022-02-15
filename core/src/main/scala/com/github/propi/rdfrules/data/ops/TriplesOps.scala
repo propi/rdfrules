@@ -37,6 +37,6 @@ trait TriplesOps {
     *
     * @return
     */
-  def types(): collection.Map[TripleItem.Uri, collection.Map[TripleItemType, Int]] = PredicateInfo(triples)
+  def properties(): collection.Map[TripleItem.Uri, collection.Map[TripleItemType, Int]] = PredicateInfo(triples)
 
 }

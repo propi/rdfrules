@@ -33,7 +33,7 @@ class DatasetSpec extends FlatSpec with Matchers with Inside with CancelAfterFai
     intervals.length shouldBe 5
     intervals.head.getLeftBoundValue() shouldBe 7.0
     intervals.last.getRightBoundValue() shouldBe 20010.0
-    dataset.types().size shouldBe 1750
+    dataset.properties().size shouldBe 1750
     dataset.take(10).size shouldBe 10
     dataset.filter(q => q.graph == TripleItem.Uri("yago")).size shouldBe 46654
   }

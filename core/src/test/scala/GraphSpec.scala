@@ -38,12 +38,12 @@ class GraphSpec extends FlatSpec with Matchers with Inside with CancelAfterFailu
   }
 
   it should "have triples ops" in {
-    graph.types().size shouldBe 33
-    val (uri, ranges) = graph.types().head
+    graph.properties().size shouldBe 33
+    val (uri, ranges) = graph.properties().head
     uri shouldBe TripleItem.LongUri("hasWonPrize")
     ranges.get(TripleItemType.Uri) shouldBe Some(1110)
-    graphDbpedia.types().size shouldBe 1717
-    inside(graphDbpedia.types().find(_._1.hasSameUriAs("http://cs.dbpedia.org/property/rok"))) {
+    graphDbpedia.properties().size shouldBe 1717
+    inside(graphDbpedia.properties().find(_._1.hasSameUriAs("http://cs.dbpedia.org/property/rok"))) {
       case Some((uri, ranges)) =>
         uri shouldBe TripleItem.LongUri("http://cs.dbpedia.org/property/rok")
         ranges.get(TripleItemType.Text) shouldBe Some(13)
@@ -92,7 +92,7 @@ class GraphSpec extends FlatSpec with Matchers with Inside with CancelAfterFailu
     intervals3.head shouldBe Interval(IntervalBound.Inclusive(7.0), IntervalBound.Exclusive(1975.5), 560)
     val dg = graphDbpedia.discretize(DiscretizationTask.Equifrequency(5))(quad => quad.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
     dg.size shouldBe 50000
-    dg.types().find(_._1.hasSameUriAs("http://cs.dbpedia.org/property/rok")).get._2.get(TripleItemType.Interval) shouldBe Some(2340)
+    dg.properties().find(_._1.hasSameUriAs("http://cs.dbpedia.org/property/rok")).get._2.get(TripleItemType.Interval) shouldBe Some(2340)
     val histogram = dg.filter(_.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok")).histogram(false, false, true)
     histogram.filter(_._1.o.exists(_.isInstanceOf[TripleItem.Interval])).foreach(x => x._2 shouldBe 450 +- 60)
     histogram.filter(_._1.o.exists(_.isInstanceOf[TripleItem.Interval])).values.sum shouldBe 2340
