@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.data.ops
 
 import com.github.propi.rdfrules.data.Triple.TripleTraversableView
-import com.github.propi.rdfrules.data.{Histogram, PredicateInfo, Triple, TripleItem, TripleItemType}
+import com.github.propi.rdfrules.data.{Histogram, Properties, Triple}
 
 /**
   * Created by Vaclav Zeman on 2. 2. 2018.
@@ -19,7 +19,7 @@ trait TriplesOps {
     * @param `object`  aggregate by object
     * @return histogram Map(Aggregated triple items, number of occurs)
     */
-  def histogram(subject: Boolean = false, predicate: Boolean = false, `object`: Boolean = false): collection.Map[Histogram.Key, Int] = {
+  def histogram(subject: Boolean = false, predicate: Boolean = false, `object`: Boolean = false): Histogram = {
     def boolToOpt[T](x: T, bool: Boolean) = if (bool) Some(x) else None
 
     def tripleToKey(triple: Triple) = Histogram.Key(
@@ -37,6 +37,6 @@ trait TriplesOps {
     *
     * @return
     */
-  def properties(): collection.Map[TripleItem.Uri, collection.Map[TripleItemType, Int]] = PredicateInfo(triples)
+  def properties(): Properties = Properties(triples)
 
 }

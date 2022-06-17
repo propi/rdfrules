@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.experiments.benchmark
 import com.github.propi.rdfrules.index.IndexItem
 import com.github.propi.rdfrules.rule.Measure
 import com.github.propi.rdfrules.ruleset.Ruleset
-import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension._
+import com.github.propi.rdfrules.utils.extensions.IterableOnceExtension._
 
 import scala.language.postfixOps
 

@@ -1,7 +1,6 @@
 package com.github.propi.rdfrules.data
 
 import java.io._
-
 import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.algorithm.consumer.InMemoryRuleConsumer
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
@@ -10,7 +9,7 @@ import com.github.propi.rdfrules.data.ops._
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.serialization.TripleSerialization._
-import com.github.propi.rdfrules.utils.Debugger
+import com.github.propi.rdfrules.utils.{Debugger, ForEach}
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 
 import scala.language.implicitConversions
@@ -18,7 +17,7 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 3. 10. 2017.
   */
-class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView, val userDefinedPrefixes: Traversable[Prefix], val isCached: Boolean)
+class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView, val userDefinedPrefixes: ForEach[Prefix], val isCached: Boolean)
   extends Transformable[Triple, Graph]
     with TriplesOps
     with QuadsOps[Graph]

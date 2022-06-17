@@ -1,44 +1,42 @@
 package com.github.propi.rdfrules.data.ops
 
-import java.io.{File, InputStream}
-
+import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.data.{Prefix, Quad, Triple, TripleItem}
-import com.github.propi.rdfrules.utils.PreservedTraversable
-import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension._
+import com.github.propi.rdfrules.utils.ForEach
+
+import java.io.{File, InputStream}
 
 /**
   * Created by Vaclav Zeman on 14. 1. 2020.
   */
 trait PrefixesOps[Coll] extends QuadsOps[Coll] {
 
-  protected def transformPrefixesAndColl(prefixes: Traversable[Prefix], col: Traversable[Quad]): Coll
+  protected def transformPrefixesAndColl(prefixes: ForEach[Prefix], col: QuadTraversableView): Coll
 
-  def userDefinedPrefixes: Traversable[Prefix]
+  def userDefinedPrefixes: ForEach[Prefix]
 
-  def setPrefixes(prefixes: Traversable[Prefix]): Coll = transformPrefixesAndColl(prefixes, new Traversable[Quad] {
-    def foreach[U](f: Quad => U): Unit = {
-      val map = prefixes.view.map(x => x.nameSpace -> x).toMap
+  def setPrefixes(prefixes: ForEach[Prefix]): Coll = transformPrefixesAndColl(prefixes, (f: Quad => Unit) => {
+    val map = prefixes.map(x => x.nameSpace -> x).toMap
 
-      def tryToPrefix(uri: TripleItem.Uri) = uri match {
-        case x: TripleItem.LongUri =>
-          val (nameSpace, localName) = x.explode
-          map.get(nameSpace).map(TripleItem.PrefixedUri(_, localName)).getOrElse(x)
-        case x: TripleItem.PrefixedUri =>
-          map.get(x.prefix.nameSpace).map(prefix => x.copy(prefix = prefix)).getOrElse(x)
-        case x => x
-      }
+    def tryToPrefix(uri: TripleItem.Uri) = uri match {
+      case x: TripleItem.LongUri =>
+        val (nameSpace, localName) = x.explode
+        map.get(nameSpace).map(TripleItem.PrefixedUri(_, localName)).getOrElse(x)
+      case x: TripleItem.PrefixedUri =>
+        map.get(x.prefix.nameSpace).map(prefix => x.copy(prefix = prefix)).getOrElse(x)
+      case x => x
+    }
 
-      for (quad <- quads) {
-        val updatedTriple = Triple(
-          tryToPrefix(quad.triple.subject),
-          tryToPrefix(quad.triple.predicate),
-          quad.triple.`object` match {
-            case x: TripleItem.Uri => tryToPrefix(x)
-            case x => x
-          }
-        )
-        f(Quad(updatedTriple, tryToPrefix(quad.graph)))
-      }
+    for (quad <- quads) {
+      val updatedTriple = Triple(
+        tryToPrefix(quad.triple.subject),
+        tryToPrefix(quad.triple.predicate),
+        quad.triple.`object` match {
+          case x: TripleItem.Uri => tryToPrefix(x)
+          case x => x
+        }
+      )
+      f(Quad(updatedTriple, tryToPrefix(quad.graph)))
     }
   })
 
@@ -49,8 +47,8 @@ trait PrefixesOps[Coll] extends QuadsOps[Coll] {
     * @param addingPrefixes prefixes
     * @return
     */
-  def addPrefixes(addingPrefixes: Traversable[Prefix]): Coll = {
-    setPrefixes((userDefinedPrefixes.view ++ addingPrefixes.view).distinct)
+  def addPrefixes(addingPrefixes: ForEach[Prefix]): Coll = {
+    setPrefixes(userDefinedPrefixes.concat(addingPrefixes).distinct)
   }
 
   def addPrefixes(buildInputStream: => InputStream): Coll = addPrefixes(Prefix(buildInputStream))
@@ -72,7 +70,7 @@ trait PrefixesOps[Coll] extends QuadsOps[Coll] {
       case x => x
     }
 
-    transformPrefixesAndColl(userDefinedPrefixes.view.filter(!removingPrefixes(_)), quads.map { quad =>
+    transformPrefixesAndColl(userDefinedPrefixes.filter(!removingPrefixes(_)), quads.map { quad =>
       val updatedTriple = Triple(
         tryToRemovePrefix(quad.triple.subject),
         tryToRemovePrefix(quad.triple.predicate),
@@ -93,37 +91,35 @@ trait PrefixesOps[Coll] extends QuadsOps[Coll] {
     * @return Coll
     */
   def withPrefixedUris: Coll = {
-    transformQuads(new Traversable[Quad] {
-      def foreach[U](f: Quad => U): Unit = {
-        val prefixes = collection.mutable.Map.empty[String, Prefix]
+    transformQuads((f: Quad => Unit) => {
+      val prefixes = collection.mutable.Map.empty[String, Prefix]
 
-        def uriToPrefixedUri(uri: TripleItem.Uri) = uri match {
-          case uri: TripleItem.LongUri =>
-            val (nameSpace, localName) = uri.explode
-            if (nameSpace.isEmpty) {
-              uri
-            } else {
-              val prefix = prefixes.getOrElseUpdate(nameSpace, Prefix(nameSpace))
-              TripleItem.PrefixedUri(prefix, localName)
-            }
-          case x => x
-        }
+      def uriToPrefixedUri(uri: TripleItem.Uri) = uri match {
+        case uri: TripleItem.LongUri =>
+          val (nameSpace, localName) = uri.explode
+          if (nameSpace.isEmpty) {
+            uri
+          } else {
+            val prefix = prefixes.getOrElseUpdate(nameSpace, Prefix(nameSpace))
+            TripleItem.PrefixedUri(prefix, localName)
+          }
+        case x => x
+      }
 
-        def tripleItemToPrefixedUri(tripleItem: TripleItem) = tripleItem match {
-          case uri: TripleItem.Uri => uriToPrefixedUri(uri)
-          case x => x
-        }
+      def tripleItemToPrefixedUri(tripleItem: TripleItem) = tripleItem match {
+        case uri: TripleItem.Uri => uriToPrefixedUri(uri)
+        case x => x
+      }
 
-        for (quad <- quads) {
-          f(Quad(
-            Triple(
-              uriToPrefixedUri(quad.triple.subject),
-              uriToPrefixedUri(quad.triple.predicate),
-              tripleItemToPrefixedUri(quad.triple.`object`)
-            ),
-            uriToPrefixedUri(quad.graph)
-          ))
-        }
+      for (quad <- quads) {
+        f(Quad(
+          Triple(
+            uriToPrefixedUri(quad.triple.subject),
+            uriToPrefixedUri(quad.triple.predicate),
+            tripleItemToPrefixedUri(quad.triple.`object`)
+          ),
+          uriToPrefixedUri(quad.graph)
+        ))
       }
     })
   }
@@ -134,8 +130,8 @@ trait PrefixesOps[Coll] extends QuadsOps[Coll] {
     *
     * @return prefixes
     */
-  def resolvedPrefixes: Traversable[Prefix] = {
-    PreservedTraversable((userDefinedPrefixes.view ++ quads.prefixes.view).distinct)
+  def resolvedPrefixes: ForEach[Prefix] = {
+    userDefinedPrefixes.concat(quads.prefixes).distinct.cached
   }
 
   /**

@@ -1,7 +1,8 @@
 package com.github.propi.rdfrules.data
 
-import java.io.{File, FileInputStream, InputStream}
+import com.github.propi.rdfrules.utils.ForEach
 
+import java.io.{File, FileInputStream, InputStream}
 import org.apache.jena.graph
 import org.apache.jena.riot.system.StreamRDF
 import org.apache.jena.riot.{Lang, RDFDataMgr}
@@ -35,33 +36,31 @@ object Prefix {
     def prefix: String = ""
   }
 
-  def apply(buildInputStream: => InputStream): Traversable[Prefix] = new Traversable[Prefix] {
-    def foreach[U](f: Prefix => U): Unit = {
-      val is = buildInputStream
-      try {
-        RDFDataMgr.parse(
-          new StreamRDF {
-            def prefix(prefix: String, iri: String): Unit = f(Prefix(prefix, iri))
+  def apply(buildInputStream: => InputStream): ForEach[Prefix] = (f: Prefix => Unit) => {
+    val is = buildInputStream
+    try {
+      RDFDataMgr.parse(
+        new StreamRDF {
+          def prefix(prefix: String, iri: String): Unit = f(Prefix(prefix, iri))
 
-            def start(): Unit = {}
+          def start(): Unit = {}
 
-            def quad(quad: core.Quad): Unit = {}
+          def quad(quad: core.Quad): Unit = {}
 
-            def triple(triple: graph.Triple): Unit = {}
+          def triple(triple: graph.Triple): Unit = {}
 
-            def finish(): Unit = {}
+          def finish(): Unit = {}
 
-            def base(base: String): Unit = {}
-          },
-          is,
-          Lang.TTL
-        )
-      } finally {
-        is.close()
-      }
+          def base(base: String): Unit = {}
+        },
+        is,
+        Lang.TTL
+      )
+    } finally {
+      is.close()
     }
   }
 
-  def apply(file: File): Traversable[Prefix] = apply(new FileInputStream(file))
+  def apply(file: File): ForEach[Prefix] = apply(new FileInputStream(file))
 
 }

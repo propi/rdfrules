@@ -6,7 +6,7 @@ import com.github.propi.rdfrules.index.{Index, IndexItem, TripleIndex}
 import com.github.propi.rdfrules.model.Model.PredictionType
 import com.github.propi.rdfrules.rule.{Atom, Rule}
 import com.github.propi.rdfrules.utils.TypedKeyMap
-import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension._
+import com.github.propi.rdfrules.utils.extensions.IterableOnceExtension._
 
 /**
   * Created by Vaclav Zeman on 14. 4. 2020.

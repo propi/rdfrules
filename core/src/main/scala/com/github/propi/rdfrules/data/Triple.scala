@@ -1,9 +1,8 @@
 package com.github.propi.rdfrules.data
 
+import com.github.propi.rdfrules.utils.{ForEach, Stringifier}
 import org.apache.jena.graph
-import com.github.propi.rdfrules.utils.Stringifier
 
-import scala.collection.TraversableView
 import scala.language.implicitConversions
 
 /**
@@ -25,7 +24,7 @@ object Triple {
 
   def apply(subject: TripleItem.Uri, predicate: TripleItem.Uri, `object`: TripleItem): Triple = new Triple(subject, predicate, `object`)
 
-  type TripleTraversableView = TraversableView[Triple, Traversable[_]]
+  type TripleTraversableView = ForEach[Triple]
 
   implicit def tripleToJenaTriple(triple: Triple): graph.Triple = new graph.Triple(triple.subject, triple.predicate, triple.`object`)
 

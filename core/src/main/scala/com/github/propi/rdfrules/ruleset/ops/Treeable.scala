@@ -4,7 +4,7 @@ import com.github.propi.rdfrules.rule.{Atom, ExtendedRule, Measure, Rule}
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.ruleset.ops.Treeable._
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
-import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension._
+import com.github.propi.rdfrules.utils.extensions.IterableOnceExtension._
 
 /**
   * Created by Vaclav Zeman on 27. 4. 2020.

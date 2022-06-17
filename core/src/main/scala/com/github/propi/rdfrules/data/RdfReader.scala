@@ -1,13 +1,11 @@
 package com.github.propi.rdfrules.data
 
-import java.io.{File, FileInputStream}
-import java.nio.channels.Channels
-
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.utils.InputStreamBuilder
 
-import scala.util.Try
+import java.io.{File, FileInputStream}
 import scala.language.implicitConversions
+import scala.util.Try
 
 /**
   * Created by Vaclav Zeman on 27. 6. 2017.

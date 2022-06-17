@@ -1,5 +1,5 @@
 logLevel := Level.Warn
 
-addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.32")
+addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.10.0")
 
-addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.12")
+addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.14")

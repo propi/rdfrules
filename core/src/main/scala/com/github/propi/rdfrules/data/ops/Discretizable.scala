@@ -1,8 +1,8 @@
 package com.github.propi.rdfrules.data.ops
 
 import java.io.File
-
 import com.github.propi.rdfrules.data.{DiscretizationTask, Quad, TripleItem}
+import com.github.propi.rdfrules.utils.ForEach
 import eu.easyminer.discretization.algorithm.Discretization
 import eu.easyminer.discretization.impl.Interval
 import eu.easyminer.discretization.impl.sorting.{ReversableSortedTraversable, SortedInMemoryNumericTraversable, SortedPersistentNumericTraversable}
@@ -22,7 +22,7 @@ trait Discretizable[Coll] extends QuadsOps[Coll] {
     * @return intervals
     */
   def discretizeAndGetIntervals(task: DiscretizationTask)(f: Quad => Boolean): IndexedSeq[Interval] = {
-    def makeSortedTraversable(col: Traversable[Double], mode: DiscretizationTask.Mode)(f: ReversableSortedTraversable[Double] => IndexedSeq[Interval]): IndexedSeq[Interval] = mode match {
+    def makeSortedTraversable(col: ForEach[Double], mode: DiscretizationTask.Mode)(f: ReversableSortedTraversable[Double] => IndexedSeq[Interval]): IndexedSeq[Interval] = mode match {
       case DiscretizationTask.Mode.InMemory => f(SortedInMemoryNumericTraversable(col, task.getBufferSize))
       case DiscretizationTask.Mode.External => SortedPersistentNumericTraversable(col, Discretizable.tempDirectory, task.getBufferSize)(f)
     }

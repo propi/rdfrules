@@ -1,10 +1,9 @@
 package com.github.propi.rdfrules.data.formats
 
 import java.io.{BufferedInputStream, BufferedOutputStream, PrintWriter}
-
 import com.github.propi.rdfrules.data._
 import com.github.propi.rdfrules.data.ops.PrefixesOps
-import com.github.propi.rdfrules.utils.{BasicFunctions, InputStreamBuilder, OutputStreamBuilder}
+import com.github.propi.rdfrules.utils.{BasicFunctions, ForEach, InputStreamBuilder, OutputStreamBuilder}
 
 import scala.annotation.tailrec
 import scala.io.Source
@@ -78,8 +77,8 @@ trait Tsv {
     }
   }.view*/
 
-  implicit def tsvReader(rdfSource: RdfSource.Tsv.type): RdfReader = (inputStreamBuilder: InputStreamBuilder) => new Traversable[Quad] {
-    def foreach[U](f: Quad => U): Unit = {
+  implicit def tsvReader(rdfSource: RdfSource.Tsv.type): RdfReader = (inputStreamBuilder: InputStreamBuilder) => new ForEach[Quad] {
+    def foreach(f: Quad => Unit): Unit = {
       val is = new BufferedInputStream(inputStreamBuilder.build)
       val source = Source.fromInputStream(is, "UTF-8")
       try {
@@ -166,7 +165,7 @@ trait Tsv {
         is.close()
       }
     }
-  }.view
+  }
 
   implicit def tsvWriter(rdfSource: RdfSource.Tsv.type): RdfWriter = (col: PrefixesOps[_], outputStreamBuilder: OutputStreamBuilder) => {
     val writer = new PrintWriter(new BufferedOutputStream(outputStreamBuilder.build))

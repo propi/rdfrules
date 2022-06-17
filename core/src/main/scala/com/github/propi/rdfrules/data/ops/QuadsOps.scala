@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.data.ops
 
 import com.github.propi.rdfrules.data.Quad
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
+import com.github.propi.rdfrules.utils.ForEach
 
 /**
   * Created by Vaclav Zeman on 14. 1. 2020.
@@ -17,6 +18,6 @@ trait QuadsOps[Coll] {
     */
   def intern: Coll = transformQuads(quads.map(_.intern))
 
-  protected def transformQuads(col: Traversable[Quad]): Coll
+  protected def transformQuads(col: ForEach[Quad]): Coll
 
 }

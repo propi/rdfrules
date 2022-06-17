@@ -4,7 +4,7 @@ organization := "com.github.propi.rdfrules"
 
 version := "1.0.0"
 
-scalaVersion := "2.12.3"
+scalaVersion := "2.13.8"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-encoding", "utf8")
 //scalacOptions += "-Xlog-implicits"
@@ -23,12 +23,12 @@ val jenaV = "3.4.0"
 
 libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
 libraryDependencies += "org.apache.jena" % "jena-arq" % jenaV
-libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.7.1"
+libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5"
 libraryDependencies += "com.github.KIZI" % "easyminer-discretization" % "2268a219de"
-libraryDependencies += "io.spray" %% "spray-json" % "1.3.4"
-libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.6" % "test"
-libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.7.7" % "test"
-libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
+libraryDependencies += "io.spray" %% "spray-json" % "1.3.6"
+//libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.6" % "test"
+libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.7.36" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.12" % "test"
 libraryDependencies += "com.github.shihyuho" % "memory-measurer" % "e0d995b618" % "test"
 libraryDependencies += "it.unimi.dsi" % "fastutil" % "8.2.2"
 libraryDependencies += "org.apache.commons" % "commons-compress" % "1.18"

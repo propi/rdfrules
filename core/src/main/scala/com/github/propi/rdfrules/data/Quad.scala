@@ -1,12 +1,10 @@
 package com.github.propi.rdfrules.data
 
 import com.github.propi.rdfrules.index.{IndexItem, TripleItemIndex}
-import com.github.propi.rdfrules.utils.Stringifier
-import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension._
+import com.github.propi.rdfrules.utils.{ForEach, Stringifier}
 import org.apache.jena.graph.Node
 import org.apache.jena.sparql.core
 
-import scala.collection.TraversableView
 import scala.language.implicitConversions
 
 /**
@@ -22,7 +20,7 @@ case class Quad private(triple: Triple, graph: TripleItem.Uri) {
 
 object Quad {
 
-  type QuadTraversableView = TraversableView[Quad, Traversable[_]]
+  type QuadTraversableView = ForEach[Quad]
 
   def apply(triple: Triple, graph: TripleItem.Uri): Quad = new Quad(triple, graph)
 
@@ -34,7 +32,7 @@ object Quad {
   }
 
   implicit class PimpedQuads(val col: QuadTraversableView) extends AnyVal {
-    def prefixes: Traversable[Prefix] = col.flatMap(x => Iterator(x.graph, x.triple.subject, x.triple.predicate, x.triple.`object`)).collect {
+    def prefixes: ForEach[Prefix] = col.flatMap(x => ForEach(x.graph, x.triple.subject, x.triple.predicate, x.triple.`object`)).collect {
       case x: TripleItem.PrefixedUri => x.prefix
     }.distinct
   }

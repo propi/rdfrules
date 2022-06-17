@@ -11,7 +11,7 @@ import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.serialization.QuadSerialization._
 import com.github.propi.rdfrules.utils.Debugger
-import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension._
+import com.github.propi.rdfrules.utils.extensions.IterableOnceExtension._
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 
 /**

@@ -13,7 +13,7 @@ import com.github.propi.rdfrules.rule.{Measure, PatternMatcher, Rule, RulePatter
 import com.github.propi.rdfrules.ruleset.ops.{Sortable, Treeable}
 import com.github.propi.rdfrules.serialization.RuleSerialization._
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
-import com.github.propi.rdfrules.utils.extensions.TraversableOnceExtension.PimpedTraversableOnce
+import com.github.propi.rdfrules.utils.extensions.IterableOnceExtension.PimpedIterableOnce
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 import com.github.propi.rdfrules.utils.workers.Workers._
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
