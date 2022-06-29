@@ -1,7 +1,5 @@
 package com.github.propi.rdfrules.data.formats
 
-import java.io.{BufferedInputStream, BufferedOutputStream}
-
 import com.github.propi.rdfrules
 import com.github.propi.rdfrules.data._
 import com.github.propi.rdfrules.data.ops.PrefixesOps
@@ -13,8 +11,8 @@ import org.apache.jena.riot.system.{StreamRDF, StreamRDFWriter}
 import org.apache.jena.riot.{Lang, RDFFormat, RDFLanguages, RDFParser}
 import org.apache.jena.sparql.core.Quad
 
+import java.io.{BufferedInputStream, BufferedOutputStream}
 import scala.language.implicitConversions
-import scala.util.Try
 
 /**
   * Created by Vaclav Zeman on 14. 1. 2018.
@@ -89,22 +87,20 @@ trait JenaLang {
     def base(base: String): Unit = prefixes += (base -> Prefix(base))
   }
 
-  implicit def jenaLangToRdfReader(jenaLang: Lang): RdfReader = (inputStreamBuilder: InputStreamBuilder) => new Traversable[rdfrules.data.Quad] {
-    def foreach[U](f: rdfrules.data.Quad => U): Unit = {
-      val is = new BufferedInputStream(inputStreamBuilder.build)
-      try {
-        RDFParser.create()
-          .source(is)
-          .base(null)
-          .lang(jenaLang)
-          .context(null)
-          .checking(false)
-          .parse(new StreamRdfImpl(f))
-      } finally {
-        is.close()
-      }
+  implicit def jenaLangToRdfReader(jenaLang: Lang): RdfReader = (inputStreamBuilder: InputStreamBuilder) => (f: rdfrules.data.Quad => Unit) => {
+    val is = new BufferedInputStream(inputStreamBuilder.build)
+    try {
+      RDFParser.create()
+        .source(is)
+        .base(null)
+        .lang(jenaLang)
+        .context(null)
+        .checking(false)
+        .parse(new StreamRdfImpl(f))
+    } finally {
+      is.close()
     }
-  }.view
+  }
 
   implicit def jenaFormatToRdfWriter(rdfFormat: RDFFormat): RdfWriter = (col: PrefixesOps[_], outputStreamBuilder: OutputStreamBuilder) => {
     val os = new BufferedOutputStream(outputStreamBuilder.build)

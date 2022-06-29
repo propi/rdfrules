@@ -28,6 +28,6 @@ object Triple {
 
   implicit def tripleToJenaTriple(triple: Triple): graph.Triple = new graph.Triple(triple.subject, triple.predicate, triple.`object`)
 
-  implicit val tripleStringifier: Stringifier[Triple] = (v: Triple) => v.subject + "  " + v.predicate + "  " + v.`object`
+  implicit val tripleStringifier: Stringifier[Triple] = (v: Triple) => s"${v.subject}  ${v.predicate}  ${v.`object`}"
 
 }

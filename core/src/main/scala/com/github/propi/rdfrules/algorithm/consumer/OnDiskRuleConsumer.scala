@@ -13,7 +13,7 @@ import scala.language.postfixOps
 
 class OnDiskRuleConsumer private(file: File, prettyPrintedFile: Option[(File, File => PrettyPrintedWriter)]) extends RuleConsumer.NoEventRuleConsumer {
 
-  private val _result = Promise[RuleConsumer.Result]
+  private val _result = Promise[RuleConsumer.Result]()
 
   private class BufferedOutputStream(stream: OutputStream) extends OutputStream {
     private val buffer = new Array[Byte](8192)
@@ -82,13 +82,11 @@ class OnDiskRuleConsumer private(file: File, prettyPrintedFile: Option[(File, Fi
           bos.close()
           prettyPrintedWriter.foreach(_.close())
         }
-        _result.success(RuleConsumer.Result(new Traversable[Rule.Simple] {
-          def foreach[U](f: Rule.Simple => U): Unit = {
-            Deserializer.deserializeFromInputStream[Rule.Simple, Unit](new FileInputStream(file)) { reader =>
-              Iterator.continually(reader.read()).takeWhile(_.isDefined).map(_.get).foreach(f)
-            }
+        _result.success(RuleConsumer.Result((f: Rule.Simple => Unit) => {
+          Deserializer.deserializeFromInputStream[Rule.Simple, Unit](new FileInputStream(file)) { reader =>
+            Iterator.continually(reader.read()).takeWhile(_.isDefined).map(_.get).foreach(f)
           }
-        }, false))
+        }))
       } catch {
         case th: Throwable => _result.failure(th)
       }

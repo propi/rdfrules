@@ -1,7 +1,6 @@
 package com.github.propi.rdfrules.model
 
 import java.io._
-
 import com.github.propi.rdfrules.algorithm.amie.AtomCounting
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
 import com.github.propi.rdfrules.data.{Dataset, Graph, TriplePosition}
@@ -11,17 +10,18 @@ import com.github.propi.rdfrules.rule.{Atom, Measure, PatternMatcher, RulePatter
 import com.github.propi.rdfrules.ruleset.ops.Sortable
 import com.github.propi.rdfrules.ruleset.{ResolvedRule, Ruleset, RulesetReader, RulesetWriter}
 import com.github.propi.rdfrules.serialization.RuleSerialization._
-import com.github.propi.rdfrules.utils.Debugger
+import com.github.propi.rdfrules.utils.{Debugger, ForEach}
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
 
+import scala.math.Ordering.Implicits.seqOrdering
 import scala.util.Try
 
 /**
   * Created by Vaclav Zeman on 14. 10. 2019.
   */
-class Model private(val rules: Traversable[ResolvedRule], val parallelism: Int, val isCached: Boolean)
+class Model private(val rules: ForEach[ResolvedRule], val parallelism: Int)
   extends Transformable[ResolvedRule, Model]
     with Cacheable[ResolvedRule, Model]
     with Sortable[ResolvedRule, Model]
@@ -33,11 +33,11 @@ class Model private(val rules: Traversable[ResolvedRule], val parallelism: Int, 
   protected val ordering: Ordering[ResolvedRule] = implicitly[Ordering[ResolvedRule]]
   protected val dataLoadingText: String = "Model loading"
 
-  protected def cachedTransform(col: Traversable[ResolvedRule]): Model = new Model(col, parallelism, true)
+  protected def cachedTransform(col: ForEach[ResolvedRule]): Model = new Model(col, parallelism)
 
-  protected def coll: Traversable[ResolvedRule] = rules
+  protected def coll: ForEach[ResolvedRule] = rules
 
-  protected def transform(col: Traversable[ResolvedRule]): Model = new Model(col, parallelism, isCached)
+  protected def transform(col: ForEach[ResolvedRule]): Model = new Model(col, parallelism)
 
   /**
     * TODO in parallel prediction
@@ -53,7 +53,7 @@ class Model private(val rules: Traversable[ResolvedRule], val parallelism: Int, 
     } else {
       parallelism
     }
-    new Model(rules, normParallelism, isCached)
+    new Model(rules, normParallelism)
   }
 
   def filter(pattern: RulePattern, patterns: RulePattern*): Model = {
@@ -63,28 +63,27 @@ class Model private(val rules: Traversable[ResolvedRule], val parallelism: Int, 
   }
 
   def sortBy(measure: Key[Measure], measures: Key[Measure]*): Model = sortBy { rule =>
-    (rule.measures(measure) +: measures.map(rule.measures(_))).asInstanceOf[Iterable[Measure]]
+    rule.measures(measure) +: measures.map(rule.measures(_))
   }
 
   def sortByRuleLength(measures: Key[Measure]*): Model = sortBy { rule =>
-    (rule.ruleLength, measures.map(rule.measures(_)).asInstanceOf[Iterable[Measure]])
+    (rule.ruleLength, measures.map(rule.measures(_)))
   }
 
   def foreach(f: ResolvedRule => Unit): Unit = rules.foreach(f)
 
-  def export(os: => OutputStream)(implicit writer: RulesetWriter): Unit = writer.writeToOutputStream(rules, os)
+  def `export`(os: => OutputStream)(implicit writer: RulesetWriter): Unit = writer.writeToOutputStream(rules, os)
 
-  def export(file: File)(implicit writer: RulesetWriter): Unit = {
+  def `export`(file: File)(implicit writer: RulesetWriter): Unit = {
     val newWriter = if (writer == RulesetWriter.NoWriter) RulesetWriter(file) else writer
-    export(new FileOutputStream(file))(newWriter)
+    `export`(new FileOutputStream(file))(newWriter)
   }
 
-  def export(file: String)(implicit writer: RulesetWriter): Unit = export(new File(file))
+  def `export`(file: String)(implicit writer: RulesetWriter): Unit = export(new File(file))
 
   def toRuleset(index: Index): Ruleset = {
-    index.tripleItemMap { implicit mapper =>
-      Ruleset(index, rules.view.map(ResolvedRule.simple(_)).filter(_._2.isEmpty).map(_._1).toVector, isCached)
-    }
+    implicit val mapper: TripleItemIndex = index.tripleItemMap
+    Ruleset(index, rules.map(ResolvedRule.simple(_)).filter(_._2.isEmpty).map(_._1).cached)
   }
 
   def predictForGraph(graph: Graph, predictionType: PredictionType)(implicit debugger: Debugger = Debugger.EmptyDebugger): PredictionResult = predictForIndex(graph.index(), predictionType)
@@ -92,58 +91,54 @@ class Model private(val rules: Traversable[ResolvedRule], val parallelism: Int, 
   def predictForDataset(dataset: Dataset, predictionType: PredictionType)(implicit debugger: Debugger = Debugger.EmptyDebugger): PredictionResult = predictForIndex(dataset.index(), predictionType)
 
   def predictForIndex(index: Index, predictionType: PredictionType): PredictionResult = PredictionResult(
-    new Traversable[PredictedTriple] {
-      def foreach[U](f: PredictedTriple => U): Unit = {
-        index.tripleItemMap { mapper =>
-          index.tripleMap { implicit thi =>
-            val atomCounting = new AtomCounting {
-              implicit val tripleIndex: TripleIndex[Int] = thi
-            }
+    (f: PredictedTriple => Unit) => {
+      val mapper = index.tripleItemMap
+      implicit val thi: TripleIndex[Int] = index.tripleMap
+      val atomCounting = new AtomCounting {
+        implicit val tripleIndex: TripleIndex[Int] = thi
+      }
 
-            def isCompletelyMissing(predictedTriple: PredictedTriple): Boolean = {
-              val predicateIndex = thi.predicates(mapper.getIndex(predictedTriple.triple.predicate))
-              predicateIndex.mostFunctionalVariable match {
-                case TriplePosition.Subject => !predicateIndex.subjects.contains(mapper.getIndex(predictedTriple.triple.subject))
-                case TriplePosition.Object => !predicateIndex.objects.contains(mapper.getIndex(predictedTriple.triple.`object`))
-              }
-            }
+      def isCompletelyMissing(predictedTriple: PredictedTriple): Boolean = {
+        val predicateIndex = thi.predicates(mapper.getIndex(predictedTriple.triple.predicate))
+        predicateIndex.mostFunctionalVariable match {
+          case TriplePosition.Subject => !predicateIndex.subjects.contains(mapper.getIndex(predictedTriple.triple.subject))
+          case TriplePosition.Object => !predicateIndex.objects.contains(mapper.getIndex(predictedTriple.triple.`object`))
+        }
+      }
 
-            val filterPredictedTriple: PredictedTriple => Boolean = predictionType match {
-              case PredictionType.All => _ => true
-              case PredictionType.Existing => _.existing
-              case PredictionType.Missing => !_.existing
-              case PredictionType.Complementary => predictedTriple =>
-                !predictedTriple.existing && isCompletelyMissing(predictedTriple)
-            }
-            rules.view.map(ResolvedRule.simple(_)(mapper)).foreach { case (rule, ruleMapper) =>
-              implicit val mapper2: TripleItemIndex = mapper.extendWith(ruleMapper)
-              val ruleBody = rule.body.toSet
-              val headVars = List(rule.head.subject, rule.head.`object`).collect {
-                case x: Atom.Variable => x
-              }
-              val constantsToQuad: Seq[Atom.Constant] => IndexItem.IntQuad = (rule.head.subject, rule.head.`object`) match {
-                case (_: Atom.Variable, _: Atom.Variable) => constants => IndexItem.Quad(constants.head.value, rule.head.predicate, constants.last.value, 0)
-                case (_: Atom.Variable, Atom.Constant(o)) => constants => IndexItem.Quad(constants.head.value, rule.head.predicate, o, 0)
-                case (Atom.Constant(s), _: Atom.Variable) => constants => IndexItem.Quad(s, rule.head.predicate, constants.head.value, 0)
-                case (Atom.Constant(s), Atom.Constant(o)) => _ => IndexItem.Quad(s, rule.head.predicate, o, 0)
-              }
-              if (predictionType == PredictionType.Existing) {
-                atomCounting.specifyVariableMap(rule.head, new atomCounting.VariableMap(false))
-                  .filter(atomCounting.exists(ruleBody, _))
-                  .map(variableMap => constantsToQuad(headVars.map(variableMap(_))))
-                  .map(x => PredictedTriple(x.toTriple)(rule, true))
-                  .foreach(f)
-              } else {
-                Try(atomCounting
-                  .selectDistinctPairs(ruleBody, headVars, new atomCounting.VariableMap(false))
-                  .map(constantsToQuad)
-                  .map(x => thi.predicates.get(x.p).flatMap(_.subjects.get(x.s)).exists(_.contains(x.o)) -> x.toTriple)
-                  .map(x => PredictedTriple(x._2)(rule, x._1))
-                  .filter(filterPredictedTriple)
-                  .foreach(f))
-              }
-            }
-          }
+      val filterPredictedTriple: PredictedTriple => Boolean = predictionType match {
+        case PredictionType.All => _ => true
+        case PredictionType.Existing => _.existing
+        case PredictionType.Missing => !_.existing
+        case PredictionType.Complementary => predictedTriple =>
+          !predictedTriple.existing && isCompletelyMissing(predictedTriple)
+      }
+      rules.map(ResolvedRule.simple(_)(mapper)).foreach { case (rule, ruleMapper) =>
+        implicit val mapper2: TripleItemIndex = mapper.extendWith(ruleMapper)
+        val ruleBody = rule.body.toSet
+        val headVars = List(rule.head.subject, rule.head.`object`).collect {
+          case x: Atom.Variable => x
+        }
+        val constantsToQuad: Seq[Atom.Constant] => IndexItem.IntQuad = (rule.head.subject, rule.head.`object`) match {
+          case (_: Atom.Variable, _: Atom.Variable) => constants => IndexItem.Quad(constants.head.value, rule.head.predicate, constants.last.value, 0)
+          case (_: Atom.Variable, Atom.Constant(o)) => constants => IndexItem.Quad(constants.head.value, rule.head.predicate, o, 0)
+          case (Atom.Constant(s), _: Atom.Variable) => constants => IndexItem.Quad(s, rule.head.predicate, constants.head.value, 0)
+          case (Atom.Constant(s), Atom.Constant(o)) => _ => IndexItem.Quad(s, rule.head.predicate, o, 0)
+        }
+        if (predictionType == PredictionType.Existing) {
+          atomCounting.specifyVariableMap(rule.head, new atomCounting.VariableMap(false))
+            .filter(atomCounting.exists(ruleBody, _))
+            .map(variableMap => constantsToQuad(headVars.map(variableMap(_))))
+            .map(x => PredictedTriple(x.toTriple)(rule, true))
+            .foreach(f)
+        } else {
+          Try(atomCounting
+            .selectDistinctPairs(ruleBody, headVars, new atomCounting.VariableMap(false))
+            .map(constantsToQuad)
+            .map(x => thi.predicates.get(x.p).flatMap(_.subjects.get(x.s)).exists(_.contains(x.o)) -> x.toTriple)
+            .map(x => PredictedTriple(x._2)(rule, x._1))
+            .filter(filterPredictedTriple)
+            .foreach(f))
         }
       }
     },
@@ -168,22 +163,22 @@ object Model {
 
   }
 
-  def apply(rules: Traversable[ResolvedRule], isCached: Boolean): Model = new Model(rules, Runtime.getRuntime.availableProcessors(), isCached)
+  def apply(rules: ForEach[ResolvedRule]): Model = new Model(rules, Runtime.getRuntime.availableProcessors())
 
   def apply(file: File)(implicit reader: RulesetReader): Model = {
     val newReader = if (reader == RulesetReader.NoReader) RulesetReader(file) else reader
-    apply(newReader.fromFile(file), false)
+    apply(newReader.fromFile(file))
   }
 
   def apply(file: String)(implicit reader: RulesetReader): Model = apply(new File(file))
 
-  def apply(is: => InputStream)(implicit reader: RulesetReader): Model = apply(reader.fromInputStream(is), false)
+  def apply(is: => InputStream)(implicit reader: RulesetReader): Model = apply(reader.fromInputStream(is))
 
-  def fromCache(is: => InputStream): Model = apply(new Traversable[ResolvedRule] {
-    def foreach[U](f: ResolvedRule => U): Unit = Deserializer.deserializeFromInputStream[ResolvedRule, Unit](is) { reader =>
-      Stream.continually(reader.read()).takeWhile(_.isDefined).map(_.get).foreach(f)
+  def fromCache(is: => InputStream): Model = apply(new ForEach[ResolvedRule] {
+    def foreach(f: ResolvedRule => Unit): Unit = Deserializer.deserializeFromInputStream[ResolvedRule, Unit](is) { reader =>
+      Iterator.continually(reader.read()).takeWhile(_.isDefined).map(_.get).foreach(f)
     }
-  }, false)
+  })
 
   def fromCache(file: File): Model = fromCache(new FileInputStream(file))
 

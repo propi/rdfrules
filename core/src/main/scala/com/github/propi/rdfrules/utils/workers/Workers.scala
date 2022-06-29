@@ -97,7 +97,7 @@ object Workers {
         def finish(): Unit = {
           workerError match {
             case Some(th) => promisedResult.failure(th)
-            case None => promisedResult.success(Unit)
+            case None => promisedResult.success(())
           }
         }
 
@@ -110,11 +110,11 @@ object Workers {
         new SeqWorkerActor[I, Unit](id, resultConsumer) {
           protected def doWork(x: Seq[I]): Future[Unit] = {
             //an obtained work is saved into the mutable queue
-            workQueue.enqueue(x: _*)
+            workQueue.enqueueAll(x)
             Future {
               //continually we dequeue the work collection and we apply a function to process the piece of work
               //we process the collection while the queue is not empty and there is no error during the computation
-              Stream.continually {
+              Iterator.continually {
                 //take out some piece of work from collection
                 //it must be synchronized because the work can be splitted concurrently by another worker
                 val work = workQueue.synchronized {
@@ -155,7 +155,7 @@ object Workers {
         val y = f(x)
         resultBuffer.synchronized(resultBuffer += y)
       }
-      resultBuffer
+      resultBuffer.toIndexedSeq
     }
 
     /**
@@ -178,7 +178,7 @@ object Workers {
       val normK = if (k <= 0) 1 else k
       //the shared threshold variable which is updating once the topK queue is full and the head is changed
       @volatile var threshold: T = initThreshold
-      var longTail = collection.mutable.ListBuffer.empty[O]
+      val longTail = collection.mutable.ListBuffer.empty[O]
       //priority queue
       val queue = collection.mutable.PriorityQueue.empty[O]
       parForeach(parallelism) { x =>
@@ -218,7 +218,7 @@ object Workers {
         queue.enqueue(x)
       }
       longTail.clear()
-      queue.dequeueAll
+      queue.dequeueAll.asInstanceOf[IndexedSeq[O]]
     }
 
   }

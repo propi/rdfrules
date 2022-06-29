@@ -1,13 +1,12 @@
 package com.github.propi.rdfrules.ruleset.formats
 
 import java.io.{File, FileOutputStream, OutputStreamWriter, PrintWriter}
-
 import com.github.propi.rdfrules.algorithm.consumer.PrettyPrintedWriter
 import com.github.propi.rdfrules.data.{Prefix, TripleItem}
 import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.rule.Rule
 import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetSource, RulesetWriter}
-import com.github.propi.rdfrules.utils.{OutputStreamBuilder, Stringifier}
+import com.github.propi.rdfrules.utils.{ForEach, OutputStreamBuilder, Stringifier}
 
 import scala.language.implicitConversions
 
@@ -16,7 +15,7 @@ import scala.language.implicitConversions
   */
 object Text {
 
-  implicit def textRulesetWriter(source: RulesetSource.Text.type)(implicit stringifier: Stringifier[ResolvedRule]): RulesetWriter = (rules: Traversable[ResolvedRule], outputStreamBuilder: OutputStreamBuilder) => {
+  implicit def textRulesetWriter(source: RulesetSource.Text.type)(implicit stringifier: Stringifier[ResolvedRule]): RulesetWriter = (rules: ForEach[ResolvedRule], outputStreamBuilder: OutputStreamBuilder) => {
     val writer = new PrintWriter(new OutputStreamWriter(outputStreamBuilder.build, "UTF-8"))
     try {
       val prefixes = collection.mutable.Set.empty[Prefix]

@@ -1,14 +1,14 @@
 package com.github.propi.rdfrules.index.ops
 
-import java.io.{BufferedInputStream, BufferedOutputStream, InputStream, OutputStream}
-
 import com.github.propi.rdfrules.data.{Prefix, TripleItem}
 import com.github.propi.rdfrules.index.IndexItem.IntQuad
-import com.github.propi.rdfrules.index.ops.Cacheable.SerItem
 import com.github.propi.rdfrules.index._
+import com.github.propi.rdfrules.index.ops.Cacheable.SerItem
 import com.github.propi.rdfrules.serialization.IndexItemSerialization._
 import com.github.propi.rdfrules.serialization.TripleItemSerialization._
 import com.github.propi.rdfrules.utils.serialization.Deserializer
+
+import java.io.{BufferedInputStream, BufferedOutputStream, InputStream, OutputStream}
 
 
 /**
@@ -24,31 +24,27 @@ trait FromCacheBuildable extends Buildable {
     useInputStream { is =>
       Deserializer.deserializeFromInputStream(is) { reader: Deserializer.Reader[SerItem] =>
         val (it1, it2) = Iterator.continually(reader.read()).takeWhile(_.isDefined).map(_.get).span(_.isLeft)
-        f(it1.map(_.left.get), it2.map(_.right.get))
+        f(it1.map(_.left.toOption.get), it2.map(_.toOption.get))
       }
     }
   }
 
-  private def _buildTripleIndex(it: Iterator[IndexItem.IntQuad]): TripleHashIndex[Int] = TripleHashIndex(new Traversable[IndexItem.IntQuad] {
-    def foreach[U](f: IntQuad => U): Unit = it.foreach(f)
-  })
+  private def _buildTripleIndex(it: Iterator[IndexItem.IntQuad]): TripleHashIndex[Int] = TripleHashIndex((f: IntQuad => Unit) => it.foreach(f))
 
   protected def buildTripleIndex: TripleIndex[Int] = cachedItems { (it1, it2) =>
-    it1.foreach(_ => Unit)
+    it1.foreach(_ => ())
     _buildTripleIndex(it2)
   }
 
-  private def _buildTripleItemIndex(it: Iterator[(Int, TripleItem)]): TripleItemIndex = TripleItemHashIndex.fromIndexedItem(new Traversable[(Int, TripleItem)] {
-    def foreach[U](f: ((Int, TripleItem)) => U): Unit = {
-      val prefixes = collection.mutable.Map.empty[String, Prefix]
-      for ((num, tripleItem) <- it) {
-        f(num -> (tripleItem match {
-          case TripleItem.PrefixedUri(prefix, localName) =>
-            val loadedPrefix = prefixes.getOrElseUpdate(prefix.nameSpace, prefix)
-            if (loadedPrefix eq prefix) tripleItem else TripleItem.PrefixedUri(loadedPrefix, localName)
-          case x => x
-        }))
-      }
+  private def _buildTripleItemIndex(it: Iterator[(Int, TripleItem)]): TripleItemIndex = TripleItemHashIndex.fromIndexedItem((f: ((Int, TripleItem)) => Unit) => {
+    val prefixes = collection.mutable.Map.empty[String, Prefix]
+    for ((num, tripleItem) <- it) {
+      f(num -> (tripleItem match {
+        case TripleItem.PrefixedUri(prefix, localName) =>
+          val loadedPrefix = prefixes.getOrElseUpdate(prefix.nameSpace, prefix)
+          if (loadedPrefix eq prefix) tripleItem else TripleItem.PrefixedUri(loadedPrefix, localName)
+        case x => x
+      }))
     }
   })
 
@@ -69,7 +65,7 @@ trait FromCacheBuildable extends Buildable {
         val _is = new BufferedInputStream(is)
         try {
           debugger.debug("Index caching") { ad =>
-            Stream.continually(is.read()).takeWhile(_ != -1).foreach { x =>
+            Iterator.continually(is.read()).takeWhile(_ != -1).foreach { x =>
               _os.write(x)
               ad.done()
             }

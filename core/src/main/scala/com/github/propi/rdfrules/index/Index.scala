@@ -16,9 +16,9 @@ trait Index {
 
   implicit val debugger: Debugger
 
-  def tripleMap[T](f: TripleIndex[Int] => T): T
+  def tripleMap: TripleIndex[Int]
 
-  def tripleItemMap[T](f: TripleItemIndex => T): T
+  def tripleItemMap: TripleItemIndex
 
   def toDataset: Dataset
 
@@ -33,23 +33,24 @@ trait Index {
   def withEvaluatedLazyVals: Index = new IndexDecorator(this) {
     @volatile private var thiEvaluated = false
 
-    override def tripleMap[T](f: TripleIndex[Int] => T): T = super.tripleMap { thi =>
+    override def tripleMap: TripleIndex[Int] = {
+      val thi = super.tripleMap
       if (!thiEvaluated) {
         thi.evaluateAllLazyVals()
         thiEvaluated = true
       }
-      f(thi)
+      thi
     }
 
     override def withEvaluatedLazyVals: Index = this
   }
 
-  final def mine(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer(_))): Ruleset = tripleItemMap { implicit mapper =>
-    tripleMap { implicit thi =>
-      ruleConsumer.invoke { ruleConsumer =>
-        val result = miner.mine(ruleConsumer)
-        Ruleset(this, result.rules, result.isCached)
-      }
+  final def mine(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer(_))): Ruleset = {
+    implicit val thi: TripleIndex[Int] = tripleMap
+    implicit val mapper: TripleItemIndex = tripleItemMap
+    ruleConsumer.invoke { ruleConsumer =>
+      val result = miner.mine(ruleConsumer)
+      Ruleset(this, result.rules)
     }
   }
 

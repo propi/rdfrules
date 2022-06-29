@@ -1,23 +1,22 @@
 package com.github.propi.rdfrules.data
 
-import java.io._
-
-import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.algorithm.consumer.InMemoryRuleConsumer
+import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.data.Triple.TripleTraversableView
 import com.github.propi.rdfrules.data.ops._
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.serialization.QuadSerialization._
-import com.github.propi.rdfrules.utils.Debugger
-import com.github.propi.rdfrules.utils.extensions.IterableOnceExtension._
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
+import com.github.propi.rdfrules.utils.{Debugger, ForEach}
+
+import java.io._
 
 /**
   * Created by Vaclav Zeman on 3. 10. 2017.
   */
-class Dataset private(val quads: QuadTraversableView, val userDefinedPrefixes: Traversable[Prefix], val isCached: Boolean)
+class Dataset private(val quads: QuadTraversableView, val userDefinedPrefixes: ForEach[Prefix])
   extends Transformable[Quad, Dataset]
     with TriplesOps
     with QuadsOps[Dataset]
@@ -31,34 +30,34 @@ class Dataset private(val quads: QuadTraversableView, val userDefinedPrefixes: T
   protected val serializationSize: SerializationSize[Quad] = implicitly[SerializationSize[Quad]]
   protected val dataLoadingText: String = "Dataset loading"
 
-  protected def coll: Traversable[Quad] = quads
+  protected def coll: QuadTraversableView = quads
 
-  protected def cachedTransform(col: Traversable[Quad]): Dataset = new Dataset(col.view, userDefinedPrefixes, true)
+  protected def cachedTransform(col: QuadTraversableView): Dataset = new Dataset(col, userDefinedPrefixes)
 
-  protected def transform(col: Traversable[Quad]): Dataset = new Dataset(col.view, userDefinedPrefixes, isCached)
+  protected def transform(col: QuadTraversableView): Dataset = new Dataset(col, userDefinedPrefixes)
 
-  protected def transformQuads(col: Traversable[Quad]): Dataset = transform(col)
+  protected def transformQuads(col: QuadTraversableView): Dataset = transform(col)
 
-  protected def transformPrefixesAndColl(prefixes: Traversable[Prefix], col: Traversable[Quad]): Dataset = new Dataset(col.view, prefixes.view, isCached)
+  protected def transformPrefixesAndColl(prefixes: ForEach[Prefix], col: QuadTraversableView): Dataset = new Dataset(col, prefixes)
 
-  def +(graph: Graph): Dataset = new Dataset(quads ++ graph.quads, userDefinedPrefixes, isCached && graph.isCached).addPrefixes(graph.userDefinedPrefixes)
+  def +(graph: Graph): Dataset = new Dataset(quads.concat(graph.quads), userDefinedPrefixes).addPrefixes(graph.userDefinedPrefixes)
 
-  def +(dataset: Dataset): Dataset = new Dataset(quads ++ dataset.quads, userDefinedPrefixes, isCached && dataset.isCached).addPrefixes(dataset.userDefinedPrefixes)
+  def +(dataset: Dataset): Dataset = new Dataset(quads.concat(dataset.quads), userDefinedPrefixes).addPrefixes(dataset.userDefinedPrefixes)
 
   def triples: TripleTraversableView = quads.map(_.triple)
 
-  def toGraphs: Traversable[Graph] = quads.map(_.graph).distinct.view.map(x => Graph(x, quads.filter(_.graph == x).map(_.triple), isCached).setPrefixes(userDefinedPrefixes))
+  def toGraphs: ForEach[Graph] = quads.map(_.graph).distinct.map(x => Graph(x, quads.filter(_.graph == x).map(_.triple)).setPrefixes(userDefinedPrefixes))
 
   def foreach(f: Quad => Unit): Unit = quads.foreach(f)
 
-  def export(os: => OutputStream)(implicit writer: RdfWriter): Unit = writer.writeToOutputStream(this, os)
+  def `export`(os: => OutputStream)(implicit writer: RdfWriter): Unit = writer.writeToOutputStream(this, os)
 
-  def export(file: File)(implicit writer: RdfWriter): Unit = {
+  def `export`(file: File)(implicit writer: RdfWriter): Unit = {
     val newWriter = if (writer == RdfWriter.NoWriter) RdfWriter(file) else writer
-    export(new FileOutputStream(file))(newWriter)
+    `export`(new FileOutputStream(file))(newWriter)
   }
 
-  def export(file: String)(implicit writer: RdfWriter): Unit = export(new File(file))
+  def `export`(file: String)(implicit writer: RdfWriter): Unit = `export`(new File(file))
 
   def mine(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer(_)))(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = Index(this, false).mine(miner, ruleConsumer)
 
@@ -68,31 +67,28 @@ class Dataset private(val quads: QuadTraversableView, val userDefinedPrefixes: T
 
 object Dataset {
 
-  def apply(graph: Graph): Dataset = new Dataset(graph.quads, graph.userDefinedPrefixes, graph.isCached)
+  def apply(graph: Graph): Dataset = new Dataset(graph.quads, graph.userDefinedPrefixes)
 
-  def apply(): Dataset = new Dataset(Traversable.empty[Quad].view, Set.empty, true)
+  def apply(): Dataset = new Dataset(ForEach.empty, ForEach.empty)
 
-  def apply(is: => InputStream)(implicit reader: RdfReader): Dataset = new Dataset(reader.fromInputStream(is), Set.empty, false)
+  def apply(is: => InputStream)(implicit reader: RdfReader): Dataset = new Dataset(reader.fromInputStream(is), ForEach.empty)
 
   def apply(file: File)(implicit reader: RdfReader): Dataset = {
     val newReader = if (reader == RdfReader.NoReader) RdfReader(file) else reader
-    new Dataset(newReader.fromFile(file), Set.empty, false)
+    new Dataset(newReader.fromFile(file), ForEach.empty)
   }
 
   def apply(file: String)(implicit reader: RdfReader): Dataset = apply(new File(file))
 
-  def apply(quads: Traversable[Quad], isCached: Boolean): Dataset = new Dataset(quads.view, Set.empty, isCached)
+  def apply(quads: QuadTraversableView): Dataset = new Dataset(quads, ForEach.empty)
 
   def fromCache(is: => InputStream): Dataset = new Dataset(
-    new Traversable[Quad] {
-      def foreach[U](f: Quad => U): Unit = {
-        Deserializer.deserializeFromInputStream[Quad, Unit](is) { reader =>
-          Stream.continually(reader.read()).takeWhile(_.isDefined).foreach(x => f(x.get))
-        }
+    (f: Quad => Unit) => {
+      Deserializer.deserializeFromInputStream[Quad, Unit](is) { reader =>
+        Iterator.continually(reader.read()).takeWhile(_.isDefined).foreach(x => f(x.get))
       }
-    }.view,
-    Set.empty,
-    false
+    },
+    ForEach.empty
   )
 
   def fromCache(file: File): Dataset = fromCache(new FileInputStream(file))

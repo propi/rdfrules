@@ -2,7 +2,6 @@ package com.github.propi.rdfrules.data
 
 import com.github.propi.rdfrules.data.Histogram.Key
 import com.github.propi.rdfrules.utils.ForEach
-import com.github.propi.rdfrules.utils.extensions.IterableOnceExtension._
 
 /**
   * Created by Vaclav Zeman on 2. 2. 2018.

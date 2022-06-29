@@ -11,16 +11,16 @@ import scala.language.implicitConversions
   */
 trait Buildable {
 
-  implicit private def intToScalaIterator(iterator: IntIterator): Iterator[Int] = new Iterator[Int] {
-    def hasNext: Boolean = iterator.hasNext
+  implicit private def intToScalaIterator(it: IntIterator): Iterator[Int] = new Iterator[Int] {
+    def hasNext: Boolean = it.hasNext
 
-    def next(): Int = iterator.nextInt()
+    def next(): Int = it.nextInt()
   }
 
-  implicit private def objectToScalaIterator[T](iterator: ObjectIterator[T]): Iterator[T] = new Iterator[T] {
-    def hasNext: Boolean = iterator.hasNext
+  implicit private def objectToScalaIterator[T](it: ObjectIterator[T]): Iterator[T] = new Iterator[T] {
+    def hasNext: Boolean = it.hasNext
 
-    def next(): T = iterator.next()
+    def next(): T = it.next()
   }
 
   protected implicit val indexCollectionBuilder: TripleHashIndex.CollectionsBuilder[Int] = new TripleHashIndex.CollectionsBuilder[Int] {

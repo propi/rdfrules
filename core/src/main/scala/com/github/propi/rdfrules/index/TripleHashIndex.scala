@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.index
 import com.github.propi.rdfrules.index.TripleHashIndex._
 import com.github.propi.rdfrules.index.TripleIndex.{HashMap, HashSet}
 import com.github.propi.rdfrules.rule.TripleItemPosition
-import com.github.propi.rdfrules.utils.Debugger
+import com.github.propi.rdfrules.utils.{Debugger, ForEach}
 
 import scala.language.implicitConversions
 
@@ -338,7 +338,7 @@ object TripleHashIndex {
     def emptyHashMap[V]: MutableHashMap[T, V]
   }
 
-  def addQuads[T](quads: Traversable[IndexItem[T]])(implicit thi: TripleHashIndex[T], debugger: Debugger): Unit = {
+  def addQuads[T](quads: ForEach[IndexItem[T]])(implicit thi: TripleHashIndex[T], debugger: Debugger): Unit = {
     try {
       quads.foreach {
         case quad: IndexItem.Quad[T] =>
@@ -353,10 +353,10 @@ object TripleHashIndex {
     }
   }
 
-  def apply[T](quads: Traversable[IndexItem[T]])(implicit debugger: Debugger, collectionsBuilder: CollectionsBuilder[T]): TripleHashIndex[T] = {
+  def apply[T](quads: ForEach[IndexItem[T]])(implicit debugger: Debugger, collectionsBuilder: CollectionsBuilder[T]): TripleHashIndex[T] = {
     val index = new TripleHashIndex[T]
     debugger.debug("Dataset indexing") { ad =>
-      for (quad <- quads.view.takeWhile(_ => !debugger.isInterrupted)) {
+      for (quad <- quads.takeWhile(_ => !debugger.isInterrupted)) {
         quad match {
           case quad: IndexItem.Quad[T] => index.addQuad(quad)
           case sameAs: IndexItem.SameAs[T] => index.addSameAs(sameAs)

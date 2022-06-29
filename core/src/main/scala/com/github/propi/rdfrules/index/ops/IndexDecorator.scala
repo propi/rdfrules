@@ -13,9 +13,9 @@ class IndexDecorator(index: Index) extends Index {
 
   implicit val debugger: Debugger = index.debugger
 
-  def tripleMap[T](f: TripleIndex[Int] => T): T = index.tripleMap(f)
+  def tripleMap: TripleIndex[Int] = index.tripleMap
 
-  def tripleItemMap[T](f: TripleItemIndex => T): T = index.tripleItemMap(f)
+  def tripleItemMap: TripleItemIndex = index.tripleItemMap
 
   def toDataset: Dataset = index.toDataset
 

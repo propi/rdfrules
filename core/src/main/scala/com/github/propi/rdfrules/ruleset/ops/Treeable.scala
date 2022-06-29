@@ -3,32 +3,30 @@ package com.github.propi.rdfrules.ruleset.ops
 import com.github.propi.rdfrules.rule.{Atom, ExtendedRule, Measure, Rule}
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.ruleset.ops.Treeable._
+import com.github.propi.rdfrules.utils.ForEach
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
-import com.github.propi.rdfrules.utils.extensions.IterableOnceExtension._
 
 /**
   * Created by Vaclav Zeman on 27. 4. 2020.
   */
 trait Treeable extends Sortable[Rule.Simple, Ruleset] {
 
-  private def tree: Traversable[TreeItem] = new Traversable[TreeItem] {
-    def foreach[U](f: TreeItem => U): Unit = {
-      val orphans = collection.mutable.Set.empty[TreeItem]
-      for (rule <- sortBy(_.ruleLength)(implicitly[Ordering[Int]].reverse).rules) {
-        val children = orphans
-          .iterator
-          .filter(orphan => rule.ruleLength < orphan.rule.ruleLength && ExtendedRule.checkParenthood(rule.body, orphan.ruleBody, rule.head, orphan.rule.head))
-          .toList
-        val treeItem = if (children.isEmpty) {
-          Leaf(rule)
-        } else {
-          children.foreach(orphans -= _)
-          Node(rule, children)
-        }
-        orphans += treeItem
+  private def tree: ForEach[TreeItem] = (f: TreeItem => Unit) => {
+    val orphans = collection.mutable.Set.empty[TreeItem]
+    for (rule <- sortBy(_.ruleLength)(implicitly[Ordering[Int]].reverse).rules) {
+      val children = orphans
+        .iterator
+        .filter(orphan => rule.ruleLength < orphan.rule.ruleLength && ExtendedRule.checkParenthood(rule.body, orphan.ruleBody, rule.head, orphan.rule.head))
+        .toList
+      val treeItem = if (children.isEmpty) {
+        Leaf(rule)
+      } else {
+        children.foreach(orphans -= _)
+        Node(rule, ForEach.from(children))
       }
-      orphans.foreach(f)
+      orphans += treeItem
     }
+    orphans.foreach(f)
   }
 
   /**
@@ -39,7 +37,7 @@ trait Treeable extends Sortable[Rule.Simple, Ruleset] {
     */
   def onlyBetterDescendant(measure: Key[Measure]): Ruleset = {
     val ordering = implicitly[Ordering[Measure]]
-    transform(tree.dfs.view.filter(x => x.ancestors.forall(y => ordering.gt(x.rule.measures(measure), y.rule.measures(measure)))).map(_.rule))
+    transform(tree.dfs.filter(x => x.ancestors.forall(y => ordering.gt(x.rule.measures(measure), y.rule.measures(measure)))).map(_.rule))
   }
 
   /**
@@ -48,7 +46,7 @@ trait Treeable extends Sortable[Rule.Simple, Ruleset] {
     * @return
     */
   def maximal: Ruleset = {
-    transform(tree.dfs.view.collect {
+    transform(tree.dfs.collect {
       case TreeItemWithParent(Leaf(rule), _) => rule
     })
   }
@@ -61,7 +59,7 @@ trait Treeable extends Sortable[Rule.Simple, Ruleset] {
     */
   def closed(measure: Key[Measure]): Ruleset = {
     val ordering = implicitly[Ordering[Measure]]
-    transform(tree.dfs.view.filter(x => x.parent.forall(y => !ordering.equiv(x.rule.measures(measure), y.rule.measures(measure)))).map(_.rule))
+    transform(tree.dfs.filter(x => x.parent.forall(y => !ordering.equiv(x.rule.measures(measure), y.rule.measures(measure)))).map(_.rule))
   }
 
 }
@@ -73,7 +71,7 @@ object Treeable {
     lazy val ruleBody: Set[Atom] = rule.body.toSet
   }
 
-  private case class Node(rule: Rule.Simple, children: Seq[TreeItem]) extends TreeItem
+  private case class Node(rule: Rule.Simple, children: ForEach[TreeItem]) extends TreeItem
 
   private case class Leaf(rule: Rule.Simple) extends TreeItem
 
@@ -86,16 +84,16 @@ object Treeable {
     }
   }
 
-  private def _dfs(children: Traversable[TreeItem], parent: Option[TreeItemWithParent]): Traversable[TreeItemWithParent] = children.view.flatMap {
+  private def _dfs(children: ForEach[TreeItem], parent: Option[TreeItemWithParent]): ForEach[TreeItemWithParent] = children.flatMap {
     case treeItem@Node(_, children) =>
       val newParent = TreeItemWithParent(treeItem, parent)
-      List(newParent).concat(_dfs(children, Some(newParent)))
+      ForEach(newParent).concat(_dfs(children, Some(newParent)))
     case treeItem@Leaf(_) =>
-      List(TreeItemWithParent(treeItem, parent))
+      ForEach(TreeItemWithParent(treeItem, parent))
   }
 
-  private implicit class PimpedTree(val tree: Traversable[TreeItem]) extends AnyVal {
-    def dfs: Traversable[TreeItemWithParent] = _dfs(tree, None)
+  private implicit class PimpedTree(val tree: ForEach[TreeItem]) extends AnyVal {
+    def dfs: ForEach[TreeItemWithParent] = _dfs(tree, None)
   }
 
 }

@@ -29,8 +29,8 @@ trait PartiallyPreservedInMemory extends Buildable {
 
   protected def optTripleItemMap: Option[TripleItemIndex] = defaultTripleItemMap.orElse(if (_isTihiEvaluated) Some(tihi) else None)
 
-  def tripleMap[T](f: TripleIndex[Int] => T): T = f(thi)
+  def tripleMap: TripleIndex[Int] = thi
 
-  def tripleItemMap[T](f: TripleItemIndex => T): T = f(tihi)
+  def tripleItemMap: TripleItemIndex = tihi
 
 }

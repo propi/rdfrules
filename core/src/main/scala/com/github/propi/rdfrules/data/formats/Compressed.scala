@@ -1,13 +1,12 @@
 package com.github.propi.rdfrules.data.formats
 
 import java.io.{BufferedInputStream, BufferedOutputStream}
-
 import com.github.propi.rdfrules.data.RdfSource.{CompressedRdfSource, PimpedRdfFormat}
 import com.github.propi.rdfrules.data.ops.PrefixesOps
 import com.github.propi.rdfrules.data.{Compression, RdfReader, RdfSource, RdfWriter, jenaFormatToRdfWriter}
 import com.github.propi.rdfrules.ruleset.RulesetSource.CompressedRulesetSource
 import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetReader, RulesetWriter}
-import com.github.propi.rdfrules.utils.{InputStreamBuilder, OutputStreamBuilder}
+import com.github.propi.rdfrules.utils.{ForEach, InputStreamBuilder, OutputStreamBuilder}
 import org.apache.commons.compress.compressors.bzip2.{BZip2CompressorInputStream, BZip2CompressorOutputStream}
 import org.apache.commons.compress.compressors.gzip.{GzipCompressorInputStream, GzipCompressorOutputStream}
 
@@ -23,7 +22,7 @@ trait Compressed {
     case CompressedRulesetSource(rulesetSource, Compression.GZ) => rulesetSource.fromInputStream(new GzipCompressorInputStream(new BufferedInputStream(inputStreamBuilder.build)))
   }
 
-  implicit def compressedToRulesetWriter(compressedRulesetSource: CompressedRulesetSource): RulesetWriter = (rules: Traversable[ResolvedRule], outputStreamBuilder: OutputStreamBuilder) => {
+  implicit def compressedToRulesetWriter(compressedRulesetSource: CompressedRulesetSource): RulesetWriter = (rules: ForEach[ResolvedRule], outputStreamBuilder: OutputStreamBuilder) => {
     compressedRulesetSource.rulesetSource.writeToOutputStream(rules, compressedOutputStreamBuilder(outputStreamBuilder, compressedRulesetSource.compression))
   }
 

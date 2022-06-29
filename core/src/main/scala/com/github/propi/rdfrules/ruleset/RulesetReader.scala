@@ -1,10 +1,9 @@
 package com.github.propi.rdfrules.ruleset
 
 import java.io.{File, FileInputStream}
-
 import com.github.propi.rdfrules.data.Compression
 import com.github.propi.rdfrules.data.formats.Compressed
-import com.github.propi.rdfrules.utils.InputStreamBuilder
+import com.github.propi.rdfrules.utils.{ForEach, InputStreamBuilder}
 
 import scala.language.implicitConversions
 import scala.util.Try
@@ -13,15 +12,15 @@ import scala.util.Try
   * Created by Vaclav Zeman on 27. 6. 2017.
   */
 trait RulesetReader {
-  def fromInputStream(inputStreamBuilder: InputStreamBuilder): Traversable[ResolvedRule]
+  def fromInputStream(inputStreamBuilder: InputStreamBuilder): ForEach[ResolvedRule]
 
-  def fromFile(file: File): Traversable[ResolvedRule] = fromInputStream(new FileInputStream(file))
+  def fromFile(file: File): ForEach[ResolvedRule] = fromInputStream(new FileInputStream(file))
 }
 
 object RulesetReader extends Compressed {
 
   implicit object NoReader extends RulesetReader {
-    def fromInputStream(inputStreamBuilder: InputStreamBuilder): Traversable[ResolvedRule] = throw new IllegalStateException("No specified RulesetReader.")
+    def fromInputStream(inputStreamBuilder: InputStreamBuilder): ForEach[ResolvedRule] = throw new IllegalStateException("No specified RulesetReader.")
   }
 
   def apply(file: File): RulesetReader = {

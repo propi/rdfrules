@@ -1,13 +1,12 @@
 package com.github.propi.rdfrules.ruleset.formats
 
 import java.io._
-
 import com.github.propi.rdfrules.algorithm.consumer.PrettyPrintedWriter
 import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.rule.Rule
 import com.github.propi.rdfrules.ruleset.formats.Json._
 import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetReader, RulesetSource, RulesetWriter}
-import com.github.propi.rdfrules.utils.{InputStreamBuilder, OutputStreamBuilder}
+import com.github.propi.rdfrules.utils.{ForEach, InputStreamBuilder, OutputStreamBuilder}
 import spray.json._
 
 import scala.io.Source
@@ -18,25 +17,23 @@ import scala.language.{implicitConversions, reflectiveCalls}
   */
 object NDJson {
 
-  implicit def ndjsonRulesetWriter(source: RulesetSource.NDJson.type): RulesetWriter = (rules: Traversable[ResolvedRule], outputStreamBuilder: OutputStreamBuilder) => {
+  implicit def ndjsonRulesetWriter(source: RulesetSource.NDJson.type): RulesetWriter = (rules: ForEach[ResolvedRule], outputStreamBuilder: OutputStreamBuilder) => {
     val writer = new PrintWriter(new OutputStreamWriter(outputStreamBuilder.build, "UTF-8"))
     try {
-      rules.view.map(rule => rule.toJson.compactPrint).foreach(writer.println)
+      rules.map(rule => rule.toJson.compactPrint).foreach(writer.println)
     } finally {
       writer.close()
     }
   }
 
-  implicit def ndjsonRulesetReader(source: RulesetSource.NDJson.type): RulesetReader = (inputStreamBuilder: InputStreamBuilder) => new Traversable[ResolvedRule] {
-    def foreach[U](f: ResolvedRule => U): Unit = {
-      val is = new BufferedInputStream(inputStreamBuilder.build)
-      val source = Source.fromInputStream(is, "UTF-8")
-      try {
-        source.getLines().map(_.parseJson.convertTo[ResolvedRule]).foreach(f)
-      } finally {
-        source.close()
-        is.close()
-      }
+  implicit def ndjsonRulesetReader(source: RulesetSource.NDJson.type): RulesetReader = (inputStreamBuilder: InputStreamBuilder) => (f: ResolvedRule => Unit) => {
+    val is = new BufferedInputStream(inputStreamBuilder.build)
+    val source = Source.fromInputStream(is, "UTF-8")
+    try {
+      source.getLines().map(_.parseJson.convertTo[ResolvedRule]).foreach(f)
+    } finally {
+      source.close()
+      is.close()
     }
   }
 

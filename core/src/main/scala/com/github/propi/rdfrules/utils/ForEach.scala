@@ -2,10 +2,11 @@ package com.github.propi.rdfrules.utils
 
 import com.github.propi.rdfrules.utils.ForEach.KnownSizeForEach
 
+import scala.collection.immutable.ArraySeq
 import scala.collection.{Factory, MapView}
 import scala.reflect.ClassTag
 
-trait ForEach[T] {
+trait ForEach[+T] {
   self =>
 
   def foreach(f: T => Unit): Unit
@@ -20,12 +21,18 @@ trait ForEach[T] {
     i
   }
 
-  def cached: ForEach[T] = {
-    lazy val col = self.to(collection.mutable.ArrayBuffer)
-    new ForEach[T] {
+  def cached[A >: T](implicit tag: ClassTag[A]): ForEach[A] = {
+    lazy val col = self.to(Array)
+    new ForEach[A] {
       override def knownSize: Int = col.knownSize
 
-      def foreach(f: T => Unit): Unit = col.foreach(f)
+      def foreach(f: A => Unit): Unit = col.foreach(f)
+
+      override def toIndexedSeq[B >: A]: IndexedSeq[B] = ArraySeq.unsafeWrapArray(col)
+
+      override def toSeq[B >: A]: Seq[B] = toIndexedSeq
+
+      override def toArray[B >: A](implicit tag: ClassTag[B]): Array[B] = col.asInstanceOf[Array[B]]
     }
   }
 
@@ -53,6 +60,18 @@ trait ForEach[T] {
       if (!set(y)) {
         set += y
         g(x)
+      }
+    }
+  }
+
+  def takeWhile(p: T => Boolean): ForEach[T] = new ForEach[T] {
+    def foreach(f: T => Unit): Unit = {
+      for (x <- self) {
+        if (p(x)) {
+          f(x)
+        } else {
+          return
+        }
       }
     }
   }
@@ -110,9 +129,9 @@ trait ForEach[T] {
     hmap.view.mapValues(_.result()).toMap
   }
 
-  def concat[A <: T](that: ForEach[A]): ForEach[T] = {
-    val col = new ForEach[T] {
-      def foreach(f: T => Unit): Unit = {
+  def concat[A >: T](that: ForEach[A]): ForEach[A] = {
+    val col = new ForEach[A] {
+      def foreach(f: A => Unit): Unit = {
         this.foreach(f)
         that.foreach(f)
       }
@@ -154,20 +173,22 @@ trait ForEach[T] {
 
   def collect[A](g: PartialFunction[T, A]): ForEach[A] = (f: A => Unit) => self.foreach(x => if (g.isDefinedAt(x)) f(g(x)))
 
-  def to[C](factory: Factory[T, C]): C = {
+  def to[A >: T, C](factory: Factory[A, C]): C = {
     val x = factory.newBuilder
     this.foreach(y => x.addOne(y))
     x.result()
   }
 
-  def toSeq: Seq[T] = to(Seq)
+  def toIndexedSeq[A >: T]: IndexedSeq[A] = to(IndexedSeq)
 
-  def toSet: Set[T] = to(Set)
+  def toSeq[A >: T]: Seq[A] = to(Seq)
 
-  def toArray(implicit tag: ClassTag[T]): Array[T] = to(Array)
+  def toSet[A >: T]: Set[A] = to(Set)
 
-  def histogram: MapView[T, Int] = {
-    val map = collection.mutable.HashMap.empty[T, IncrementalInt]
+  def toArray[A >: T](implicit tag: ClassTag[A]): Array[A] = to(Array)
+
+  def histogram[A >: T]: MapView[A, Int] = {
+    val map = collection.mutable.HashMap.empty[A, IncrementalInt]
     self.foreach(map.getOrElseUpdate(_, IncrementalInt()).++)
     map.view.mapValues(_.getValue)
   }
@@ -189,11 +210,11 @@ object ForEach {
     def foreach(f: T => Unit): Unit = col.foreach(f)
   }
 
-  def empty[T]: ForEach[T] = apply(Nil)
+  def empty[T]: ForEach[T] = from(Nil)
 
-  def apply[T](fe: (T => Unit) => Unit): ForEach[T] = (f: T => Unit) => fe(f)
+  //def apply[T](fe: (T => Unit) => Unit): ForEach[T] = (f: T => Unit) => fe(f)
 
-  def apply[T](x: IterableOnce[T]): ForEach[T] = {
+  def from[T](x: IterableOnce[T]): ForEach[T] = {
     val col = new ForEach[T] {
       def foreach(f: T => Unit): Unit = x.iterator.foreach(f)
     }

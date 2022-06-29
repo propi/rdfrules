@@ -81,7 +81,7 @@ object RuleFilter {
       }
     }
 
-    private def permutations[A, B](col1: Iterable[A], col2: Iterable[B]): Iterator[Seq[(A, B)]] = {
+    private def permutations[A, B](col1: Iterable[A], col2: Iterable[B]): Iterator[Iterable[(A, B)]] = {
       if (col1.size >= col2.size) {
         lowHighPermutations(col1.toSet, col2)
       } else {
@@ -170,7 +170,10 @@ object RuleFilter {
     private class GradualExactAtomMatcher(pattern: RulePattern.Mapped) extends GradualPartialAtomMatcher(pattern) {
       override def isDefined: Boolean = nextAtomPattern.flatten.isDefined
 
-      override def matchAtom(atom: Either[Atom, FreshAtom]): Boolean = _matchAtom(atom, nextAtomPattern.toIterable.flatten)
+      override def matchAtom(atom: Either[Atom, FreshAtom]): Boolean = {
+        val _nextAtomPattern = nextAtomPattern.flatten
+        _matchAtom(atom, _nextAtomPattern)
+      }
     }
 
     /**
@@ -214,7 +217,7 @@ object RuleFilter {
       }
 
       @tailrec
-      private def collectNonMatchedPatterns(it: Iterator[Seq[(AtomPattern.Mapped, Atom)]], res: Set[AtomPattern.Mapped]): Option[Set[AtomPattern.Mapped]] = {
+      private def collectNonMatchedPatterns(it: Iterator[Iterable[(AtomPattern.Mapped, Atom)]], res: Set[AtomPattern.Mapped]): Option[Set[AtomPattern.Mapped]] = {
         if (it.hasNext) {
           //get a permutation, e.g. (p1:a1, p2:a2)
           val perm = it.next()

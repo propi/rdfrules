@@ -56,9 +56,9 @@ object Deserializer {
     }
   }
 
-  implicit def traversableDeserializer[T](implicit deserializer: Deserializer[T], serializationSize: SerializationSize[T]): Deserializer[Traversable[T]] = (v: Array[Byte]) => {
+  implicit def iterableDeserializer[T](implicit deserializer: Deserializer[T], serializationSize: SerializationSize[T]): Deserializer[Iterable[T]] = (v: Array[Byte]) => {
     val bais = new ByteArrayInputStream(v)
-    Stream.continually(deserializeOpt[T](bais)).takeWhile(_.nonEmpty).map(_.get).toIndexedSeq
+    Iterator.continually(deserializeOpt[T](bais)).takeWhile(_.nonEmpty).map(_.get).toIndexedSeq
   }
 
   implicit val stringDeserializer: Deserializer[String] = (v: Array[Byte]) => new String(v, "UTF-8")

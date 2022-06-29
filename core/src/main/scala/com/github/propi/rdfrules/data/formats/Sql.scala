@@ -1,8 +1,5 @@
 package com.github.propi.rdfrules.data.formats
 
-import java.io.BufferedInputStream
-import java.net.URLEncoder
-
 import com.github.propi.rdfrules.data.TripleItem.Uri
 import com.github.propi.rdfrules.data.formats.Sql.{Name, Row, Table}
 import com.github.propi.rdfrules.data.{Quad, RdfReader, RdfSource, RdfWriter, Triple, TripleItem}
@@ -14,7 +11,9 @@ import net.sf.jsqlparser.statement.create.table
 import net.sf.jsqlparser.statement.create.table.{ColDataType, ColumnDefinition, CreateTable, ForeignKeyIndex}
 import net.sf.jsqlparser.statement.insert.Insert
 
-import scala.collection.JavaConverters._
+import java.io.BufferedInputStream
+import java.net.URLEncoder
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable
 import scala.language.implicitConversions
 
@@ -23,33 +22,31 @@ import scala.language.implicitConversions
   */
 trait Sql {
 
-  implicit def sqlReader(rdfSource: RdfSource.Sql.type): RdfReader = (inputStreamBuilder: InputStreamBuilder) => new Traversable[Quad] {
-    def foreach[U](f: Quad => U): Unit = {
-      val is = new BufferedInputStream(inputStreamBuilder.build)
-      try {
-        val parser = new CCJSqlParser(new StreamProvider(is, "UTF-8"))
-        parser.setErrorRecovery(true)
-        val stream = Stream.continually {
-          val stmt = parser.SingleStatement()
-          if (parser.getToken(1).kind == CCJSqlParserConstants.ST_SEMICOLON) parser.getNextToken
-          stmt
-        }.takeWhile(_ => parser.getToken(1).kind != CCJSqlParserConstants.EOF).filter(_ != null)
-        stream.foldLeft(Map.empty[Name, Table]) { (metadata, stmt) =>
-          stmt match {
-            case createTable: CreateTable =>
-              val table = Table(createTable)
-              metadata + (table.name -> table)
-            case insert: Insert =>
-              Row(insert, metadata).flatMap(_.toTriples(metadata)).foreach(x => f(x.toQuad))
-              metadata
-            case _ => metadata
-          }
+  implicit def sqlReader(rdfSource: RdfSource.Sql.type): RdfReader = (inputStreamBuilder: InputStreamBuilder) => (f: Quad => Unit) => {
+    val is = new BufferedInputStream(inputStreamBuilder.build)
+    try {
+      val parser = new CCJSqlParser(new StreamProvider(is, "UTF-8"))
+      parser.setErrorRecovery(true)
+      val stream = Iterator.continually {
+        val stmt = parser.SingleStatement()
+        if (parser.getToken(1).kind == CCJSqlParserConstants.ST_SEMICOLON) parser.getNextToken
+        stmt
+      }.takeWhile(_ => parser.getToken(1).kind != CCJSqlParserConstants.EOF).filter(_ != null)
+      stream.foldLeft(Map.empty[Name, Table]) { (metadata, stmt) =>
+        stmt match {
+          case createTable: CreateTable =>
+            val table = Table(createTable)
+            metadata + (table.name -> table)
+          case insert: Insert =>
+            Row(insert, metadata).flatMap(_.toTriples(metadata)).foreach(x => f(x.toQuad))
+            metadata
+          case _ => metadata
         }
-      } finally {
-        is.close()
       }
+    } finally {
+      is.close()
     }
-  }.view
+  }
 
   implicit def sqlWriter(rdfSource: RdfSource.Sql.type): RdfWriter = ???
 
@@ -94,7 +91,7 @@ object Sql {
     case class ForeignKey(table: Name, col: Name) extends Index
 
     def apply(index: table.Index): Option[Index] = index match {
-      case index: ForeignKeyIndex => Option(index.getReferencedColumnNames).toIterable.flatMap(_.asScala).headOption.map { col =>
+      case index: ForeignKeyIndex => Option(index.getReferencedColumnNames).map(_.asScala).getOrElse(Nil).headOption.map { col =>
         ForeignKey(index.getTable.getName, col)
       }
       case index if index.getType.toUpperCase == "PRIMARY KEY" => Some(PrimaryKey)
@@ -128,7 +125,7 @@ object Sql {
 
   object Table {
     def apply(createTable: CreateTable): Table = {
-      val indexes = Option(createTable.getIndexes).iterator.flatMap(_.iterator().asScala).flatMap(x => Option(x.getColumnsNames).toIterable.flatMap(_.asScala).headOption.flatMap(colName => Index(x).map((colName: Name) -> _))).toMap
+      val indexes = Option(createTable.getIndexes).iterator.flatMap(_.iterator().asScala).flatMap(x => Option(x.getColumnsNames).map(_.asScala).getOrElse(Nil).headOption.flatMap(colName => Index(x).map((colName: Name) -> _))).toMap
       val cols = mutable.LinkedHashMap(createTable.getColumnDefinitions.iterator().asScala.map(Col.apply).map(x => x.name -> (if (x.index.isEmpty && indexes.contains(x.name)) x.copy(index = indexes.get(x.name)) else x)).toList: _*)
       Table(createTable.getTable.getName, cols)
     }

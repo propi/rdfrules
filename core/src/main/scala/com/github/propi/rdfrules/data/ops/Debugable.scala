@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.data.ops
 
-import com.github.propi.rdfrules.utils.Debugger
+import com.github.propi.rdfrules.utils.{Debugger, ForEach}
 
 /**
   * Created by Vaclav Zeman on 27. 2. 2018.
@@ -17,10 +17,10 @@ trait Debugable[T, Coll] extends Transformable[T, Coll] {
     *
     * @return in memory cached entity
     */
-  def withDebugger(implicit debugger: Debugger): Coll = transform(new Traversable[T] {
-    def foreach[U](f: T => U): Unit = {
+  def withDebugger(implicit debugger: Debugger): Coll = transform(new ForEach[T] {
+    def foreach(f: T => Unit): Unit = {
       debugger.debug(dataLoadingText) { ad =>
-        for (x <- coll.view.takeWhile(_ => !debugger.isInterrupted)) {
+        for (x <- coll.takeWhile(_ => !debugger.isInterrupted)) {
           f(x)
           ad.done()
         }
@@ -29,6 +29,8 @@ trait Debugable[T, Coll] extends Transformable[T, Coll] {
         }
       }
     }
+
+    override def knownSize: Int = coll.knownSize
   })
 
 }

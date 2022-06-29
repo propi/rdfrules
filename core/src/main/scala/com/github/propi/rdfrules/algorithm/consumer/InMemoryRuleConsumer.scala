@@ -1,12 +1,12 @@
 package com.github.propi.rdfrules.algorithm.consumer
 
-import java.io.File
-import java.util.concurrent.{ConcurrentLinkedQueue, LinkedBlockingQueue, TimeUnit}
-
 import com.github.propi.rdfrules.algorithm.RuleConsumer
 import com.github.propi.rdfrules.rule.Rule
+import com.github.propi.rdfrules.utils.ForEach
 
-import scala.collection.JavaConverters._
+import java.io.File
+import java.util.concurrent.{ConcurrentLinkedQueue, LinkedBlockingQueue, TimeUnit}
+import scala.jdk.CollectionConverters._
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
@@ -61,9 +61,11 @@ class InMemoryRuleConsumer private(prettyPrintedFile: Option[(File, File => Pret
     if (isSavingToDisk) {
       messages.put(None)
     }
-    RuleConsumer.Result(new Traversable[Rule.Simple] {
-      def foreach[U](f: Rule.Simple => U): Unit = rules.iterator().asScala.foreach(f)
-    }, true)
+    RuleConsumer.Result(new ForEach[Rule.Simple] {
+      override lazy val knownSize: Int = rules.size()
+
+      def foreach(f: Rule.Simple => Unit): Unit = rules.iterator().asScala.foreach(f)
+    })
   }
 
 }

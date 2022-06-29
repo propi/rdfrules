@@ -1,7 +1,8 @@
 package com.github.propi.rdfrules.index.ops
 
 import com.github.propi.rdfrules.data.{Dataset, Quad}
-import com.github.propi.rdfrules.index.{Index, IndexItem}
+import com.github.propi.rdfrules.index.{Index, IndexItem, TripleItemIndex}
+import com.github.propi.rdfrules.utils.ForEach
 
 /**
   * Created by Vaclav Zeman on 12. 3. 2018.
@@ -10,21 +11,15 @@ trait QuadsIndex {
 
   self: Index =>
 
-  protected def compressedQuads: Traversable[IndexItem.IntQuad] = new Traversable[IndexItem.IntQuad] {
-    def foreach[U](f: IndexItem.IntQuad => U): Unit = self.tripleMap { thi =>
-      thi.quads.foreach(f)
-    }
+  protected def compressedQuads: ForEach[IndexItem.IntQuad] = new ForEach[IndexItem.IntQuad] {
+    def foreach(f: IndexItem.IntQuad => Unit): Unit = self.tripleMap.quads.foreach(f)
+
+    override lazy val knownSize: Int = self.tripleMap.size
   }
 
-  def toDataset: Dataset = Dataset(
-    new Traversable[Quad] {
-      def foreach[U](f: Quad => U): Unit = {
-        self.tripleItemMap { implicit mapper =>
-          compressedQuads.foreach(x => f(x.toQuad))
-        }
-      }
-    }.view,
-    true
-  )
+  def toDataset: Dataset = {
+    implicit val mapper: TripleItemIndex = tripleItemMap
+    Dataset(compressedQuads.map(_.toQuad))
+  }
 
 }

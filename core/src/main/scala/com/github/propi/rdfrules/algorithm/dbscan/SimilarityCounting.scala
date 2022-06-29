@@ -102,7 +102,7 @@ object SimilarityCounting {
   }
 
   object SupportSimilarityCounting extends MeasuresSimilarityCounting {
-    def apply(rule1: Rule, rule2: Rule): Double = relativeNumbersSimilarity(rule1.measures[Measure.HeadCoverage].value, rule2.measures[Measure.HeadCoverage].value)
+    def apply(rule1: Rule, rule2: Rule): Double = relativeNumbersSimilarity(rule1.measures.apply[Measure.HeadCoverage].value, rule2.measures.apply[Measure.HeadCoverage].value)
   }
 
   object ConfidenceSimilarityCounting extends MeasuresSimilarityCounting {

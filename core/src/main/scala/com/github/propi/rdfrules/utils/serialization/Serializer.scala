@@ -18,7 +18,7 @@ object Serializer {
   class SerializationException(msg: String) extends Exception(msg)
 
   trait Writer[T] {
-    def write(v: T)
+    def write(v: T): Unit
   }
 
   def serialize[T](v: T)(implicit serializer: Serializer[T], serializationSize: SerializationSize[T]): Array[Byte] = {
@@ -44,7 +44,7 @@ object Serializer {
     }
   }
 
-  implicit def traversableSerializer[T](implicit serializer: Serializer[T], serializationSize: SerializationSize[T]): Serializer[Traversable[T]] = (v: Traversable[T]) => {
+  implicit def iteratorSerializer[T](implicit serializer: Serializer[T], serializationSize: SerializationSize[T]): Serializer[Iterator[T]] = (v: Iterator[T]) => {
     val baos = new ByteArrayOutputStream()
     v.foreach(x => baos.write(serialize(x)))
     baos.toByteArray

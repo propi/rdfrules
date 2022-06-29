@@ -3,6 +3,7 @@ package com.github.propi.rdfrules.algorithm
 import com.github.propi.rdfrules.algorithm.RuleConsumer.{Event, Result}
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.Rule
+import com.github.propi.rdfrules.utils.ForEach
 
 import scala.language.implicitConversions
 
@@ -50,6 +51,6 @@ object RuleConsumer {
     def invoke(f: RuleConsumer => T)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): T = g(mapper)(f)
   }
 
-  case class Result(rules: Traversable[Rule.Simple], isCached: Boolean)
+  case class Result(rules: ForEach[Rule.Simple])
 
 }

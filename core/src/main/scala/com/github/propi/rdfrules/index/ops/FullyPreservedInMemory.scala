@@ -20,8 +20,8 @@ trait FullyPreservedInMemory extends Buildable {
 
   protected def optIndex: Option[(TripleItemIndex, TripleIndex[Int])] = defaultIndex.orElse(if (_isEvaluated) Some(tihi -> thi) else None)
 
-  def tripleMap[T](f: TripleIndex[Int] => T): T = f(thi)
+  def tripleMap: TripleIndex[Int] = thi
 
-  def tripleItemMap[T](f: TripleItemIndex => T): T = f(tihi)
+  def tripleItemMap: TripleItemIndex = tihi
 
 }

@@ -1,11 +1,11 @@
 package com.github.propi.rdfrules.index
 
 import com.github.propi.rdfrules.data.{Prefix, Quad, Triple, TripleItem}
-import com.github.propi.rdfrules.utils.Debugger
+import com.github.propi.rdfrules.utils.{Debugger, ForEach}
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.objects.{Object2IntOpenHashMap, Object2ObjectOpenHashMap}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /**
   * Created by Vaclav Zeman on 12. 3. 2018.
@@ -24,7 +24,7 @@ abstract class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleIt
     * @param x triple item
     * @return
     */
-  private def getId(x: TripleItem): (Int, Boolean) = Stream
+  private def getId(x: TripleItem): (Int, Boolean) = Iterator
     .iterate(x.hashCode())(_ + 1)
     .map(i => i -> Option[TripleItem](hmap.get(i)))
     .find(_._2.forall(_ == x))
@@ -52,7 +52,7 @@ abstract class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleIt
       //remove existed sameAs object
       hmap.remove(idObject)
       //if there are some holes after removing, we move all next related items by one step above
-      Stream.iterate(idObject + 1)(_ + 1).takeWhile(x => Option[TripleItem](hmap.get(x)).exists(_.hashCode() != x)).foreach { oldId =>
+      Iterator.iterate(idObject + 1)(_ + 1).takeWhile(x => Option[TripleItem](hmap.get(x)).exists(_.hashCode() != x)).foreach { oldId =>
         val item = hmap.get(oldId)
         hmap.remove(oldId)
         hmap.put(oldId - 1, item)
@@ -87,7 +87,7 @@ abstract class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleIt
   def getIndexOpt(x: TripleItem): Option[Int] = {
     val resolved = resolvedTripleItem(x)
     Option(sameAs.get(resolved)).map(_.intValue()).orElse(
-      Stream.iterate(resolved.hashCode())(_ + 1)
+      Iterator.iterate(resolved.hashCode())(_ + 1)
         .map(i => i -> Option(hmap.get(i)))
         .find(_._2.forall(_ == resolved))
         .flatMap(x => x._2.map(_ => x._1))
@@ -128,7 +128,7 @@ object TripleItemHashIndex {
     hmap -> pmap
   }
 
-  def fromIndexedItem(col: Traversable[(Int, TripleItem)])(implicit debugger: Debugger): TripleItemHashIndex = {
+  def fromIndexedItem(col: ForEach[(Int, TripleItem)])(implicit debugger: Debugger): TripleItemHashIndex = {
     val (hmap, pmap) = buildBasicMaps
     val tihi = new TripleItemHashIndex(hmap, new java.util.HashMap(), pmap) {
       def trim(): Unit = {
@@ -147,7 +147,7 @@ object TripleItemHashIndex {
     tihi
   }
 
-  def mapQuads[T](col: Traversable[Quad])(f: Traversable[IndexItem[Int]] => T): (TripleItemHashIndex, T) = {
+  def mapQuads[T](col: ForEach[Quad])(f: ForEach[IndexItem[Int]] => T): (TripleItemHashIndex, T) = {
     val sameAs = new Object2IntOpenHashMap[TripleItem]()
     val (hmap, pmap) = buildBasicMaps
     val tihi = new TripleItemHashIndex(hmap, sameAs, pmap) {
@@ -157,8 +157,8 @@ object TripleItemHashIndex {
         pmap.trim()
       }
     }
-    tihi -> f(new Traversable[IndexItem[Int]] {
-      def foreach[U](f: IndexItem[Int] => U): Unit = {
+    tihi -> f(new ForEach[IndexItem[Int]] {
+      def foreach(f: IndexItem[Int] => Unit): Unit = {
         try {
           for (quad <- col) {
             f(tihi.addQuad(quad))
@@ -168,12 +168,14 @@ object TripleItemHashIndex {
           tihi.trim()
         }
       }
+
+      override def knownSize: Int = col.knownSize
     })
   }
 
-  def addQuads(col: Traversable[Quad])(implicit tihi: TripleItemHashIndex): Traversable[IndexItem[Int]] = {
-    new Traversable[IndexItem[Int]] {
-      def foreach[U](f: IndexItem[Int] => U): Unit = {
+  def addQuads(col: ForEach[Quad])(implicit tihi: TripleItemHashIndex): ForEach[IndexItem[Int]] = {
+    new ForEach[IndexItem[Int]] {
+      def foreach(f: IndexItem[Int] => Unit): Unit = {
         try {
           for (quad <- col) {
             f(tihi.addQuad(quad))
@@ -182,12 +184,14 @@ object TripleItemHashIndex {
           tihi.removeSameResources()
         }
       }
+
+      override def knownSize: Int = col.knownSize
     }
   }
 
-  def apply(col: Traversable[Quad])(implicit debugger: Debugger): TripleItemHashIndex = {
+  def apply(col: ForEach[Quad])(implicit debugger: Debugger): TripleItemHashIndex = {
     debugger.debug("Triple items indexing") { ad =>
-      val (tihi, _) = mapQuads(col.view.takeWhile(_ => !debugger.isInterrupted)) { col =>
+      val (tihi, _) = mapQuads(col.takeWhile(_ => !debugger.isInterrupted)) { col =>
         col.foreach(_ => ad.done())
       }
       if (debugger.isInterrupted) {

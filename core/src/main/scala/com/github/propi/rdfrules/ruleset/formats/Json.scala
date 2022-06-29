@@ -1,12 +1,11 @@
 package com.github.propi.rdfrules.ruleset.formats
 
 import java.io.{BufferedInputStream, OutputStreamWriter, PrintWriter}
-
 import com.github.propi.rdfrules.data.{Prefix, TripleItem}
 import com.github.propi.rdfrules.rule.Measure
 import com.github.propi.rdfrules.ruleset.ResolvedRule.Atom
 import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetReader, RulesetSource, RulesetWriter}
-import com.github.propi.rdfrules.utils.{InputStreamBuilder, OutputStreamBuilder, TypedKeyMap}
+import com.github.propi.rdfrules.utils.{ForEach, InputStreamBuilder, OutputStreamBuilder, TypedKeyMap}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
@@ -151,11 +150,11 @@ object Json {
 
   }
 
-  implicit def jsonRulesetWriter(source: RulesetSource.Json.type): RulesetWriter = (rules: Traversable[ResolvedRule], outputStreamBuilder: OutputStreamBuilder) => {
+  implicit def jsonRulesetWriter(source: RulesetSource.Json.type): RulesetWriter = (rules: ForEach[ResolvedRule], outputStreamBuilder: OutputStreamBuilder) => {
     val writer = new PrintWriter(new OutputStreamWriter(outputStreamBuilder.build, "UTF-8"))
     try {
       writer.println('[')
-      rules.view.map(rule => rule.toJson.prettyPrint).foldLeft("") { (sep, rule) =>
+      rules.map(rule => rule.toJson.prettyPrint).foldLeft("") { (sep, rule) =>
         writer.println(sep + rule)
         ","
       }
@@ -169,7 +168,7 @@ object Json {
     val is = new BufferedInputStream(inputStreamBuilder.build)
     val source = Source.fromInputStream(is, "UTF-8")
     try {
-      source.mkString.parseJson.convertTo[IndexedSeq[ResolvedRule]]
+      ForEach.from(source.mkString.parseJson.convertTo[IndexedSeq[ResolvedRule]])
     } finally {
       source.close()
       is.close()

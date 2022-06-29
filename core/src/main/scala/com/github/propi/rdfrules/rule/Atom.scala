@@ -74,7 +74,7 @@ object Atom {
       "?" + Iterator.iterate(math.floor(doubleVal / 26) -> (doubleVal % 26))(x => math.floor(x._1 / 26) -> ((x._1 % 26) - 1))
         .takeWhile(_._2 >= 0)
         .map(x => (97 + x._2).toChar)
-        .foldLeft("")((x, y) => y + x)
+        .foldLeft("")((x, y) => s"$y$x")
     }
 
     def ++ : Variable = Variable(index + 1)

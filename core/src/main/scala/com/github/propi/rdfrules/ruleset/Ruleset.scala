@@ -1,30 +1,29 @@
 package com.github.propi.rdfrules.ruleset
 
-import java.io._
-
 import com.github.propi.rdfrules.algorithm.Clustering
 import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
-import com.github.propi.rdfrules.index.{Index, TripleIndex}
+import com.github.propi.rdfrules.index.{Index, TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.model.Model.PredictionType
 import com.github.propi.rdfrules.model.{Model, PredictionResult}
+import com.github.propi.rdfrules.rule.RulePatternMatcher._
 import com.github.propi.rdfrules.rule.{Measure, PatternMatcher, Rule, RulePattern}
 import com.github.propi.rdfrules.ruleset.ops.{Sortable, Treeable}
 import com.github.propi.rdfrules.serialization.RuleSerialization._
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
-import com.github.propi.rdfrules.utils.extensions.IterableOnceExtension.PimpedIterableOnce
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 import com.github.propi.rdfrules.utils.workers.Workers._
-import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
-import com.github.propi.rdfrules.rule.RulePatternMatcher._
+import com.github.propi.rdfrules.utils.{Debugger, ForEach, TypedKeyMap}
 
+import java.io._
 import scala.collection.mutable
+import scala.math.Ordering.Implicits.seqOrdering
 
 /**
   * Created by Vaclav Zeman on 6. 10. 2017.
   */
-class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val parallelism: Int, val isCached: Boolean)
+class Ruleset private(val rules: ForEach[Rule.Simple], val index: Index, val parallelism: Int)
   extends Transformable[Rule.Simple, Ruleset]
     with Cacheable[Rule.Simple, Ruleset]
     with Sortable[Rule.Simple, Ruleset]
@@ -33,11 +32,11 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
 
   self =>
 
-  protected def coll: Traversable[Rule.Simple] = rules
+  protected def coll: ForEach[Rule.Simple] = rules
 
-  protected def transform(col: Traversable[Rule.Simple]): Ruleset = new Ruleset(col, index, parallelism, isCached)
+  protected def transform(col: ForEach[Rule.Simple]): Ruleset = new Ruleset(col, index, parallelism)
 
-  protected def cachedTransform(col: Traversable[Rule.Simple]): Ruleset = new Ruleset(col, index, parallelism, true)
+  protected def cachedTransform(col: ForEach[Rule.Simple]): Ruleset = new Ruleset(col, index, parallelism)
 
   protected val ordering: Ordering[Rule.Simple] = implicitly[Ordering[Rule.Simple]]
   protected val serializer: Serializer[Rule.Simple] = implicitly[Serializer[Rule.Simple]]
@@ -45,45 +44,46 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
   protected val serializationSize: SerializationSize[Rule.Simple] = implicitly[SerializationSize[Rule.Simple]]
   protected val dataLoadingText: String = "Ruleset loading"
 
-  def withIndex(index: Index): Ruleset = new Ruleset(rules, index, parallelism, isCached)
+  def withIndex(index: Index): Ruleset = new Ruleset(rules, index, parallelism)
 
-  def filter(pattern: RulePattern, patterns: RulePattern*): Ruleset = transform(new Traversable[Rule.Simple] {
-    def foreach[U](f: Rule.Simple => U): Unit = index.tripleItemMap { implicit mapper =>
-      index.tripleMap { implicit thi =>
-        val rulePatternMatcher = implicitly[PatternMatcher[Rule, RulePattern.Mapped]]
-        val mappedPatterns = (pattern +: patterns).map(_.withOrderless().mapped)
-        rules.view.filter(rule => mappedPatterns.exists(rulePattern => rulePatternMatcher.matchPattern(rule, rulePattern))).foreach(f)
-      }
-    }
+  def filter(pattern: RulePattern, patterns: RulePattern*): Ruleset = transform((f: Rule.Simple => Unit) => {
+    implicit val mapper: TripleItemIndex = index.tripleItemMap
+    implicit val thi: TripleIndex[Int] = index.tripleMap
+    val rulePatternMatcher = implicitly[PatternMatcher[Rule, RulePattern.Mapped]]
+    val mappedPatterns = (pattern +: patterns).map(_.withOrderless().mapped)
+    rules.filter(rule => mappedPatterns.exists(rulePattern => rulePatternMatcher.matchPattern(rule, rulePattern))).foreach(f)
   })
 
-  def filterResolved(f: ResolvedRule => Boolean): Ruleset = transform(new Traversable[Rule.Simple] {
-    def foreach[U](f2: Rule.Simple => U): Unit = index.tripleItemMap { implicit mapper =>
-      rules.view.filter(x => f(x)).foreach(f2)
-    }
+  def filterResolved(f: ResolvedRule => Boolean): Ruleset = transform((f2: Rule.Simple => Unit) => {
+    implicit val mapper: TripleItemIndex = index.tripleItemMap
+    rules.filter(x => f(x)).foreach(f2)
   })
 
   def sortBy(measure: Key[Measure], measures: Key[Measure]*): Ruleset = sortBy { rule =>
-    (rule.measures(measure) +: measures.map(rule.measures(_))).asInstanceOf[Iterable[Measure]]
+    rule.measures(measure) +: measures.map(rule.measures(_))
   }
 
-  def sortByResolved[A](f: ResolvedRule => A)(implicit ord: Ordering[A]): Ruleset = index.tripleItemMap { implicit mapper =>
+  def sortByResolved[A](f: ResolvedRule => A)(implicit ord: Ordering[A]): Ruleset = {
+    implicit val mapper: TripleItemIndex = index.tripleItemMap
     sortBy(x => f(x))
   }
 
   def sortByRuleLength(measures: Key[Measure]*): Ruleset = sortBy { rule =>
-    (rule.ruleLength, measures.map(rule.measures(_)).asInstanceOf[Iterable[Measure]])
+    (rule.ruleLength, measures.map(rule.measures(_)))
   }
 
-  def resolvedRules: Traversable[ResolvedRule] = new Traversable[ResolvedRule] {
-    def foreach[U](f: ResolvedRule => U): Unit = index.tripleItemMap { implicit mapper =>
+  def resolvedRules: ForEach[ResolvedRule] = new ForEach[ResolvedRule] {
+    def foreach(f: ResolvedRule => Unit): Unit = {
+      implicit val mapper: TripleItemIndex = index.tripleItemMap
       rules.foreach(x => f(x))
     }
+
+    override def knownSize: Int = rules.knownSize
   }
 
   def foreach(f: ResolvedRule => Unit): Unit = resolvedRules.foreach(f)
 
-  def instantiate(part: CoveredPaths.Part = CoveredPaths.Part.Whole, allowDuplicateAtoms: Boolean = true): Traversable[CoveredPaths] = rules.view.map(CoveredPaths(_, part, index, allowDuplicateAtoms))
+  def instantiate(part: CoveredPaths.Part = CoveredPaths.Part.Whole, allowDuplicateAtoms: Boolean = true): ForEach[CoveredPaths] = rules.map(CoveredPaths(_, part, index, allowDuplicateAtoms))
 
   def +(ruleset: Ruleset): Ruleset = transform(rules.concat(ruleset.rules))
 
@@ -93,7 +93,7 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
 
   def findResolved(f: ResolvedRule => Boolean): Option[ResolvedRule] = resolvedRules.find(f)
 
-  def model: Model = Model(resolvedRules.toVector, true).setParallelism(parallelism)
+  def model: Model = Model(resolvedRules.cached).setParallelism(parallelism)
 
   /**
     * Prune rules with CBA strategy
@@ -110,51 +110,53 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
     * @return pruned ruleset
     */
   def pruned(onlyExistingTriples: Boolean, onlyFunctionalProperties: Boolean): Ruleset = {
-    transform(new Traversable[Rule.Simple] {
-      def foreach[U](f: Rule.Simple => U): Unit = {
-        index.tripleItemMap { implicit mapper =>
-          val predictionType = if (onlyExistingTriples) PredictionType.Existing else PredictionType.All
-          val predictionResult = if (onlyFunctionalProperties) predictedTriples(predictionType).onlyFunctionalProperties else predictedTriples(predictionType).distinct
-          val hashSet = collection.mutable.LinkedHashSet.empty[Rule.Simple]
-          for (rule <- predictionResult.predictedTriples.map(_.rule).map(ResolvedRule.simple(_)).filter(_._2.isEmpty).map(_._1)) {
-            hashSet += rule
-          }
-          hashSet.foreach(f)
-        }
+    transform((f: Rule.Simple => Unit) => {
+      implicit val mapper: TripleItemIndex = index.tripleItemMap
+      val predictionType = if (onlyExistingTriples) PredictionType.Existing else PredictionType.All
+      val predictionResult = if (onlyFunctionalProperties) predictedTriples(predictionType).onlyFunctionalProperties else predictedTriples(predictionType).distinct
+      val hashSet = collection.mutable.LinkedHashSet.empty[Rule.Simple]
+      for (rule <- predictionResult.predictedTriples.map(_.rule).map(ResolvedRule.simple(_)).filter(_._2.isEmpty).map(_._1)) {
+        hashSet += rule
       }
+      hashSet.foreach(f)
     })
   }
 
-  private def mapRuleset(f: TripleIndex[Int] => Rule.Simple => Rule.Simple)(implicit debugger: Int => (Debugger.ActionDebugger => Unit) => Unit): Ruleset = transform(new Traversable[Rule.Simple] {
-    def foreach[U](f2: Rule.Simple => U): Unit = index.tripleMap { thi =>
-      val cached = self.cache
+  private def mapRuleset(f: TripleIndex[Int] => Rule.Simple => Rule.Simple)(implicit debugger: Int => (Debugger.ActionDebugger => Unit) => Unit): Ruleset = transform(new ForEach[Rule.Simple] {
+    def foreach(f2: Rule.Simple => Unit): Unit = {
+      val thi = index.tripleMap
+      val cached = coll.toIndexedSeq
       debugger(cached.size) { ad =>
         //here we use parallel mapping
-        cached.rules.toIndexedSeq.parMap(parallelism) { rule =>
+        cached.parMap(parallelism) { rule =>
           ad.result()(f(thi)(rule))
         }.foreach(x => f2(x))
       }
     }
+
+    override def knownSize: Int = coll.knownSize
   })
 
-  private def shrinkRuleset[T](topK: Int, initThreshold: T, updateThreshold: Rule.Simple => T)(f: TripleIndex[Int] => (Rule.Simple, T) => Rule.Simple)(implicit ord: Ordering[Rule.Simple], debugger: Int => (Debugger.ActionDebugger => Unit) => Unit): Ruleset = transform(new Traversable[Rule.Simple] {
-    def foreach[U](f2: Rule.Simple => U): Unit = index.tripleMap { thi =>
-      val cached = self.cache
-      debugger(cached.size) { ad =>
-        //here we use topK parallel enumeration with some initThreshold and with a function which updates threshold once the queue head is changed
-        cached.rules.toIndexedSeq.topK(topK, initThreshold, updateThreshold, parallelism) { (rule, threshold) =>
-          Iterator(ad.result()(f(thi)(rule, threshold)))
-        }.foreach(x => f2(x))
-      }
+  private def shrinkRuleset[T](topK: Int, initThreshold: T, updateThreshold: Rule.Simple => T)(f: TripleIndex[Int] => (Rule.Simple, T) => Rule.Simple)(implicit ord: Ordering[Rule.Simple], debugger: Int => (Debugger.ActionDebugger => Unit) => Unit): Ruleset = transform((f2: Rule.Simple => Unit) => {
+    val thi = index.tripleMap
+    val cached = coll.toIndexedSeq
+    debugger(cached.size) { ad =>
+      //here we use topK parallel enumeration with some initThreshold and with a function which updates threshold once the queue head is changed
+      cached.topK(topK, initThreshold, updateThreshold, parallelism) { (rule, threshold) =>
+        Iterator(ad.result()(f(thi)(rule, threshold)))
+      }.foreach(x => f2(x))
     }
   })
 
   def graphBasedRules: Ruleset = {
     implicit val ad: Int => (Debugger.ActionDebugger => Unit) => Unit = size => f => Debugger.EmptyDebugger.debug("", size)(f)
-    transform(new Traversable[Rule.Simple] {
-      def foreach[U](f: Rule.Simple => U): Unit = index.tripleMap { implicit tripleMap =>
-        rules.view.map(rule => Rule.Simple(rule.head.toGraphBasedAtom, rule.body.map(_.toGraphBasedAtom))(rule.measures)).foreach(f)
+    transform(new ForEach[Rule.Simple] {
+      def foreach(f: Rule.Simple => Unit): Unit = {
+        implicit val tripleMap: TripleIndex[Int] = index.tripleMap
+        rules.map(rule => Rule.Simple(rule.head.toGraphBasedAtom, rule.body.map(_.toGraphBasedAtom))(rule.measures)).foreach(f)
       }
+
+      override def knownSize: Int = rules.knownSize
     })
   }
 
@@ -220,46 +222,41 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
     */
   def predictedTriples(predictionType: PredictionType): PredictionResult = model.predictForIndex(index, predictionType)
 
-  def makeClusters(clustering: Clustering[Rule.Simple]): Ruleset = transform(new Traversable[Rule.Simple] {
-    def foreach[U](f: Rule.Simple => U): Unit = clustering.clusters(rules.toIndexedSeq).view.zipWithIndex.flatMap { case (cluster, index) =>
-      cluster.map(x => x.copy()(TypedKeyMap(Measure.Cluster(index)) ++= x.measures))
-    }.foreach(f)
-  })
+  def makeClusters(clustering: Clustering[Rule.Simple]): Ruleset = transform((f: Rule.Simple => Unit) => clustering.clusters(rules.toIndexedSeq).view.zipWithIndex.flatMap { case (cluster, index) =>
+    cluster.map(x => x.copy()(TypedKeyMap(Measure.Cluster(index)) ++= x.measures))
+  }.foreach(f))
 
   def findSimilar(rule: ResolvedRule, k: Int, dissimilar: Boolean = false)(implicit simf: SimilarityCounting[Rule.Simple]): Ruleset = if (k < 1) {
     findSimilar(rule, 1, dissimilar)
   } else {
-    transform(new Traversable[Rule.Simple] {
-      def foreach[U](f: Rule.Simple => U): Unit = {
-        val ruleSimple = index.tripleItemMap { implicit mapper =>
-          ResolvedRule.simple(rule)._1
+    transform((f: Rule.Simple => Unit) => {
+      implicit val mapper: TripleItemIndex = index.tripleItemMap
+      val ruleSimple = ResolvedRule.simple(rule)._1
+      val ordering = Ordering.by[(Double, Rule.Simple), Double](_._1)
+      val queue = mutable.PriorityQueue.empty(if (dissimilar) ordering else ordering.reverse)
+      for (rule2 <- rules if rule2 != ruleSimple) {
+        val sim = simf(ruleSimple, rule2)
+        if (queue.size < k) {
+          queue.enqueue(sim -> rule2)
+        } else if ((!dissimilar && sim > queue.head._1) || (dissimilar && sim < queue.head._1)) {
+          queue.dequeue()
+          queue.enqueue(sim -> rule2)
         }
-        val ordering = Ordering.by[(Double, Rule.Simple), Double](_._1)
-        val queue = mutable.PriorityQueue.empty(if (dissimilar) ordering else ordering.reverse)
-        for (rule2 <- rules if rule2 != ruleSimple) {
-          val sim = simf(ruleSimple, rule2)
-          if (queue.size < k) {
-            queue.enqueue(sim -> rule2)
-          } else if ((!dissimilar && sim > queue.head._1) || (dissimilar && sim < queue.head._1)) {
-            queue.dequeue()
-            queue.enqueue(sim -> rule2)
-          }
-        }
-        queue.dequeueAll.reverseIterator.map(_._2).foreach(f)
       }
+      queue.dequeueAll[(Double, Rule.Simple)].reverseIterator.map(_._2).foreach(f)
     })
   }
 
   def findDissimilar(rule: ResolvedRule, k: Int)(implicit simf: SimilarityCounting[Rule.Simple]): Ruleset = findSimilar(rule, k, true)
 
-  def export(os: => OutputStream)(implicit writer: RulesetWriter): Unit = writer.writeToOutputStream(this, os)
+  def `export`(os: => OutputStream)(implicit writer: RulesetWriter): Unit = writer.writeToOutputStream(this, os)
 
-  def export(file: File)(implicit writer: RulesetWriter): Unit = {
+  def `export`(file: File)(implicit writer: RulesetWriter): Unit = {
     val newWriter = if (writer == RulesetWriter.NoWriter) RulesetWriter(file) else writer
-    export(new FileOutputStream(file))(newWriter)
+    `export`(new FileOutputStream(file))(newWriter)
   }
 
-  def export(file: String)(implicit writer: RulesetWriter): Unit = export(new File(file))
+  def `export`(file: String)(implicit writer: RulesetWriter): Unit = `export`(new File(file))
 
   /**
     * Set number of workers for parallel tasks (confidences computing)
@@ -274,14 +271,14 @@ class Ruleset private(val rules: Traversable[Rule.Simple], val index: Index, val
     } else {
       parallelism
     }
-    new Ruleset(rules, index, normParallelism, isCached)
+    new Ruleset(rules, index, normParallelism)
   }
 
 }
 
 object Ruleset {
 
-  def apply(index: Index, rules: Traversable[Rule.Simple], isCached: Boolean): Ruleset = new Ruleset(rules, index, Runtime.getRuntime.availableProcessors(), isCached)
+  def apply(index: Index, rules: ForEach[Rule.Simple]): Ruleset = new Ruleset(rules, index, Runtime.getRuntime.availableProcessors())
 
   def apply(index: Index, file: File)(implicit reader: RulesetReader): Ruleset = Model(file).toRuleset(index)
 
@@ -290,14 +287,11 @@ object Ruleset {
   def apply(index: Index, is: => InputStream)(implicit reader: RulesetReader): Ruleset = Model(is).toRuleset(index)
 
   def fromCache(index: Index, is: => InputStream): Ruleset = new Ruleset(
-    new Traversable[Rule.Simple] {
-      def foreach[U](f: Rule.Simple => U): Unit = Deserializer.deserializeFromInputStream[Rule.Simple, Unit](is) { reader =>
-        Stream.continually(reader.read()).takeWhile(_.isDefined).map(_.get).foreach(f)
-      }
+    (f: Rule.Simple => Unit) => Deserializer.deserializeFromInputStream[Rule.Simple, Unit](is) { reader =>
+      Iterator.continually(reader.read()).takeWhile(_.isDefined).map(_.get).foreach(f)
     },
     index,
-    Runtime.getRuntime.availableProcessors(),
-    false
+    Runtime.getRuntime.availableProcessors()
   )
 
   def fromCache(index: Index, file: File): Ruleset = fromCache(index, new FileInputStream(file))

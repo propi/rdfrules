@@ -1,18 +1,16 @@
 package com.github.propi.rdfrules.algorithm.amie
 
-import java.io.File
-import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.concurrent.atomic.AtomicInteger
-
 import com.github.propi.rdfrules.algorithm.amie.RuleRefinement.{PimpedRule, Settings}
 import com.github.propi.rdfrules.algorithm.consumer.TopKRuleConsumer
 import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.ExtendedRule.ClosedRule
+import com.github.propi.rdfrules.rule.RulePatternMatcher._
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap, UniqueQueue}
-import RulePatternMatcher._
 
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicInteger
 import scala.annotation.tailrec
 import scala.language.postfixOps
 
@@ -247,7 +245,5 @@ object Amie {
     * @return
     */
   def apply()(implicit debugger: Debugger): RulesMining = new Amie()
-
-  def apply(file: File)(implicit debugger: Debugger): RulesMining = new Amie()
 
 }

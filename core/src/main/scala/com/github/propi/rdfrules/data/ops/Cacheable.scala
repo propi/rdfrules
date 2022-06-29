@@ -1,8 +1,11 @@
 package com.github.propi.rdfrules.data.ops
 
-import java.io._
+import com.github.propi.rdfrules.utils.ForEach
 
+import java.io._
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
+
+import scala.reflect.ClassTag
 
 /**
   * Created by Vaclav Zeman on 27. 2. 2018.
@@ -15,7 +18,7 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
   protected implicit val deserializer: Deserializer[T]
   protected implicit val serializationSize: SerializationSize[T]
 
-  protected def cachedTransform(col: Traversable[T]): Coll
+  protected def cachedTransform(col: ForEach[T]): Coll
 
   /**
     * Cache the entity into the memory and return cached entity (IndexedSeq abstraction is used)
@@ -23,8 +26,8 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
     *
     * @return in memory cached entity
     */
-  def cache: Coll = {
-    cachedTransform(coll.toIndexedSeq)
+  def cache(implicit tag: ClassTag[T]): Coll = {
+    cachedTransform(coll.cached)
   }
 
   /**
@@ -37,12 +40,14 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
     */
   def cache(os: => OutputStream, is: => InputStream): Coll = {
     cache(os)
-    transform(new Traversable[T] {
-      def foreach[U](f: T => U): Unit = {
+    transform(new ForEach[T] {
+      def foreach(f: T => Unit): Unit = {
         Deserializer.deserializeFromInputStream[T, Unit](is) { reader =>
-          Stream.continually(reader.read()).takeWhile(_.isDefined).foreach(x => f(x.get))
+          Iterator.continually(reader.read()).takeWhile(_.isDefined).foreach(x => f(x.get))
         }
       }
+
+      override val knownSize: Int = coll.knownSize
     })
   }
 

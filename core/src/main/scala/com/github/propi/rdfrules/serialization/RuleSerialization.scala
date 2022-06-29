@@ -13,7 +13,7 @@ import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 import com.github.propi.rdfrules.utils.serialization.Serializer._
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 import scala.language.implicitConversions
 
@@ -55,12 +55,12 @@ object RuleSerialization {
   }
 
   implicit val atomGraphBasedSerializer: Serializer[Atom.GraphBased] = (v: Atom.GraphBased) => {
-    Serializer.serialize(Atom.Basic(v.subject, v.predicate, v.`object`) -> v.graphsIterator.toTraversable)
+    Serializer.serialize(Atom.Basic(v.subject, v.predicate, v.`object`) -> v.graphsIterator)
   }
 
   implicit val atomGraphBasedDeserializer: Deserializer[Atom.GraphBased] = (v: Array[Byte]) => {
     val bais = new ByteArrayInputStream(v)
-    val (atom, graphs) = Deserializer.deserialize[(Atom.Basic, Traversable[Int])](bais)
+    val (atom, graphs) = Deserializer.deserialize[(Atom.Basic, Iterable[Int])](bais)
     val graphsSet: MutableHashSet[Int] = new MutableHashSet[Int] {
       private val hset = new IntOpenHashSet()
 
@@ -129,12 +129,12 @@ object RuleSerialization {
   }
 
   implicit val resolvedAtomGraphBasedSerializer: Serializer[ResolvedRule.Atom.GraphBased] = (v: ResolvedRule.Atom.GraphBased) => {
-    Serializer.serialize(ResolvedRule.Atom.Basic(v.subject, v.predicate, v.`object`) -> (v.graphs: Traversable[TripleItem.Uri]))
+    Serializer.serialize(ResolvedRule.Atom.Basic(v.subject, v.predicate, v.`object`) -> v.graphs.iterator)
   }
 
   implicit val resolvedAtomGraphBasedDeserializer: Deserializer[ResolvedRule.Atom.GraphBased] = (v: Array[Byte]) => {
     val bais = new ByteArrayInputStream(v)
-    val (atom, graphs) = Deserializer.deserialize[(ResolvedRule.Atom.Basic, Traversable[TripleItem.Uri])](bais)
+    val (atom, graphs) = Deserializer.deserialize[(ResolvedRule.Atom.Basic, Iterable[TripleItem.Uri])](bais)
     ResolvedRule.Atom.GraphBased(atom.subject, atom.predicate, atom.`object`)(graphs.toSet)
   }
 
@@ -208,15 +208,15 @@ object RuleSerialization {
   }
 
   implicit val ruleSerializer: Serializer[Rule] = (v: Rule) => {
-    val measuresBytes = Serializer.serialize(v.measures.iterator.toTraversable)
-    val atomsBytes = Serializer.serialize((v.head +: v.body).asInstanceOf[Traversable[Atom]])
+    val measuresBytes = Serializer.serialize(v.measures.iterator)
+    val atomsBytes = Serializer.serialize((v.head +: v.body).iterator)
     measuresBytes ++ atomsBytes
   }
 
   implicit val ruleDeserializer: Deserializer[Rule] = (v: Array[Byte]) => {
     val bais = new ByteArrayInputStream(v)
-    val measures = TypedKeyMap(Deserializer.deserialize[Traversable[Measure]](bais).map(x => x: (Key[Measure], Measure)).toSeq: _*)
-    val atoms = Deserializer.deserialize[Traversable[Atom]](bais)
+    val measures = TypedKeyMap(Deserializer.deserialize[Iterable[Measure]](bais).map(x => x: (Key[Measure], Measure)).toSeq: _*)
+    val atoms = Deserializer.deserialize[Iterable[Atom]](bais)
     Rule.Simple(atoms.head, atoms.tail.toIndexedSeq)(measures)
   }
 
@@ -225,15 +225,15 @@ object RuleSerialization {
   implicit val ruleSimpleDeserializer: Deserializer[Rule.Simple] = (v: Array[Byte]) => ruleDeserializer.deserialize(v).asInstanceOf[Rule.Simple]
 
   implicit val resolvedRuleSerializer: Serializer[ResolvedRule] = (v: ResolvedRule) => {
-    val measuresBytes = Serializer.serialize(v.measures.iterator.toTraversable)
-    val atomsBytes = Serializer.serialize((v.head +: v.body).asInstanceOf[Traversable[ResolvedRule.Atom]])
+    val measuresBytes = Serializer.serialize(v.measures.iterator)
+    val atomsBytes = Serializer.serialize((v.head +: v.body).iterator)
     measuresBytes ++ atomsBytes
   }
 
   implicit val resolvedRuleDeserializer: Deserializer[ResolvedRule] = (v: Array[Byte]) => {
     val bais = new ByteArrayInputStream(v)
-    val measures = TypedKeyMap(Deserializer.deserialize[Traversable[Measure]](bais).map(x => x: (Key[Measure], Measure)).toSeq: _*)
-    val atoms = Deserializer.deserialize[Traversable[ResolvedRule.Atom]](bais)
+    val measures = TypedKeyMap(Deserializer.deserialize[Iterable[Measure]](bais).map(x => x: (Key[Measure], Measure)).toSeq: _*)
+    val atoms = Deserializer.deserialize[Iterable[ResolvedRule.Atom]](bais)
     ResolvedRule(atoms.tail.toIndexedSeq, atoms.head)(measures)
   }
 

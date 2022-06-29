@@ -1,13 +1,13 @@
 package com.github.propi.rdfrules.index.ops
 
-import java.io.{File, FileOutputStream, OutputStream}
-
 import com.github.propi.rdfrules.data.TripleItem
 import com.github.propi.rdfrules.index.ops.Cacheable.SerItem
 import com.github.propi.rdfrules.index.{Index, IndexItem}
 import com.github.propi.rdfrules.serialization.IndexItemSerialization._
 import com.github.propi.rdfrules.serialization.TripleItemSerialization._
 import com.github.propi.rdfrules.utils.serialization.Serializer
+
+import java.io.{File, FileOutputStream, OutputStream}
 
 /**
   * Created by Vaclav Zeman on 12. 3. 2018.
@@ -18,10 +18,8 @@ trait Cacheable extends QuadsIndex {
 
   def cache(os: => OutputStream): Unit = Serializer.serializeToOutputStream[SerItem](os) { writer =>
     debugger.debug("Triple items caching") { ad =>
-      self.tripleItemMap { tim =>
-        tim.iterator.foreach(x => writer.write(Left(x)))
-        ad.done()
-      }
+      self.tripleItemMap.iterator.foreach(x => writer.write(Left(x)))
+      ad.done()
     }
     debugger.debug("Triples caching") { ad =>
       compressedQuads.foreach { x =>

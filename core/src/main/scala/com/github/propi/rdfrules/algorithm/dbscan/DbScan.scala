@@ -1,11 +1,11 @@
 package com.github.propi.rdfrules.algorithm.dbscan
 
 import java.util.concurrent.ForkJoinPool
-
 import com.github.propi.rdfrules.algorithm.Clustering
 import com.github.propi.rdfrules.utils.Debugger
 import com.github.propi.rdfrules.utils.Debugger.ActionDebugger
 
+import scala.collection.parallel.CollectionConverters.ImmutableSeqIsParallelizable
 import scala.collection.parallel.ForkJoinTaskSupport
 
 /**

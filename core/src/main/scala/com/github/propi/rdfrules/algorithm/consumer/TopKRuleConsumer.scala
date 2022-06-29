@@ -2,11 +2,10 @@ package com.github.propi.rdfrules.algorithm.consumer
 
 import java.io.File
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
-
 import com.github.propi.rdfrules.algorithm.RuleConsumer
 import com.github.propi.rdfrules.algorithm.consumer.TopKRuleConsumer.MinHeadCoverageUpdatedEvent
 import com.github.propi.rdfrules.rule.Rule
-import com.github.propi.rdfrules.utils.TopKQueue
+import com.github.propi.rdfrules.utils.{ForEach, TopKQueue}
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Promise}
@@ -23,7 +22,7 @@ class TopKRuleConsumer private(k: Int, allowOverflowIfSameHeadCoverage: Boolean,
     this
   }
 
-  private val _result = Promise[RuleConsumer.Result]
+  private val _result = Promise[RuleConsumer.Result]()
 
   private lazy val messages = {
     val messages = new LinkedBlockingQueue[Option[Rule]]
@@ -57,7 +56,7 @@ class TopKRuleConsumer private(k: Int, allowOverflowIfSameHeadCoverage: Boolean,
         } finally {
           prettyPrintedWriter.foreach(_.close())
         }
-        _result.success(RuleConsumer.Result(queue.dequeueAll.toSeq, true))
+        _result.success(RuleConsumer.Result(ForEach.from(queue.dequeueAll.toIndexedSeq)))
       } catch {
         case th: Throwable => _result.failure(th)
       }

@@ -16,7 +16,7 @@ abstract class WorkerActor[I, O](val id: Int, resultConsumer: ResultConsumer[O])
   //private val logger = Logger(s"Worker $id")
   private val messages = new LinkedBlockingQueue[Message[I, O]]
 
-  private def randomItem[T](x: IndexedSeq[T]): Option[T] = if (x.isEmpty) None else Some(x(Random.nextInt(x.length)))
+  private def randomItem[T](x: collection.IndexedSeq[T]): Option[T] = if (x.isEmpty) None else Some(x(Random.nextInt(x.length)))
 
   final def run(): Unit = {
     //collection for all registered workers
@@ -120,7 +120,7 @@ abstract class WorkerActor[I, O](val id: Int, resultConsumer: ResultConsumer[O])
     //if this worker is not in the stoped phase then send my stopping token to some worker
     if (!stopped) {
       randomItem(registeredWorkers) match {
-        case Some(worker) => worker ! Message.StoppingToken(id, (registeredWorkers - worker).toList)
+        case Some(worker) => worker ! Message.StoppingToken(id, (registeredWorkers -= worker).toList)
         case None => this ! Message.StoppingToken(id - 1, Nil)
       }
     }
