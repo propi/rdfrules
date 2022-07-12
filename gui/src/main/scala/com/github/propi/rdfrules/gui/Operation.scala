@@ -1,8 +1,8 @@
 package com.github.propi.rdfrules.gui
 
-import com.github.propi.rdfrules.gui.properties.Hidden
+import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.{Constants, Var}
-import com.thoughtworks.binding.{Binding, dom}
+import org.lrng.binding.html
 import org.scalajs.dom.html.{Anchor, Div}
 import org.scalajs.dom.{Event, MouseEvent}
 
@@ -84,7 +84,7 @@ trait Operation {
   }
 
   protected def propertiesToJson: js.Dictionary[js.Any] = {
-    js.Dictionary(properties.value.map(x => x.name -> x.toJson).filter(x => !js.isUndefined(x._2)): _*)
+    js.Dictionary(properties.value.iterator.map(x => x.name -> x.toJson).filter(x => !js.isUndefined(x._2)).toList: _*)
   }
 
   def toJson(list: List[js.Any]): List[js.Any] = {
@@ -122,7 +122,7 @@ trait Operation {
       }
     }
 
-    @dom
+    @html
     def view: Binding[Anchor] = {
       <a class="launch" onclick={e: Event =>
         if (launchAction()) {
@@ -136,7 +136,7 @@ trait Operation {
     }
   }
 
-  @dom
+  @html
   def view: Binding[Div] = {
     <div class={val _nextOperation = nextOperation.bind
     val _previousOperation = previousOperation.bind
@@ -175,18 +175,17 @@ trait Operation {
     </div>
   }
 
-  @dom
-  private def viewActionProgress: Binding[Div] = {
-    actionProgress.bind match {
-      case Some(ap) =>
-        <div>
-          {ap.view.bind}
-        </div>
+  @html
+  private def viewActionProgress: Binding[Div] = <div>
+    {actionProgress.bind match {
+      case Some(ap) => <div>
+        {ap.view.bind}
+      </div>
       case None => <div class="action-progress">No action!</div>
-    }
-  }
+    }}
+  </div>
 
-  @dom
+  @html
   private def viewProperties: Binding[Div] = {
     <div class="properties">
       <table>
@@ -197,9 +196,9 @@ trait Operation {
     </div>
   }
 
-  @dom
+  @html
   private def viewOperationInfo(operationInfo: OperationInfo): Binding[Div] = {
-    <div class={operationInfo.`type` + " operation-info"} onclick={_: Event =>
+    <div class={s"${operationInfo.`type`} operation-info"} onclick={_: Event =>
       Main.canvas.addOperation(appendOperation(operationInfo))
       Main.canvas.closeModal()}>
       <i class="material-icons help" onmousemove={e: MouseEvent => Main.canvas.openHint(operationInfo.description, e)} onmouseout={_: MouseEvent =>
@@ -209,16 +208,16 @@ trait Operation {
     </div>
   }
 
-  @dom
+  @html
   private def viewFollowingOperations: Binding[Div] = {
     <div class="following-operations">
       <h3>Transformations</h3>
       <div class="transformations">
-        {for (operationInfo <- Constants(info.followingOperations.value.filter(x => x.`type` == Operation.Type.Transformation && nextOperation.value.forall(y => x.followingOperations.value.contains(y.info))): _*)) yield viewOperationInfo(operationInfo).bind}
+        {for (operationInfo <- Constants(info.followingOperations.value.filter(x => x.`type` == Operation.Type.Transformation && nextOperation.value.forall(y => x.followingOperations.value.contains(y.info))).toList: _*)) yield viewOperationInfo(operationInfo).bind}
       </div>
       <h3 class={if (info.followingOperations.value.exists(_.`type` == Operation.Type.Action)) "" else "hidden"}>Actions</h3>
       <div class="actions">
-        {for (operationInfo <- Constants(info.followingOperations.value.filter(x => x.`type` == Operation.Type.Action && nextOperation.value.forall(y => x.followingOperations.value.contains(y.info))): _*)) yield viewOperationInfo(operationInfo).bind}
+        {for (operationInfo <- Constants(info.followingOperations.value.filter(x => x.`type` == Operation.Type.Action && nextOperation.value.forall(y => x.followingOperations.value.contains(y.info))).toList: _*)) yield viewOperationInfo(operationInfo).bind}
       </div>
     </div>
   }

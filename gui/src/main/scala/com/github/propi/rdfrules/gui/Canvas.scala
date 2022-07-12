@@ -1,11 +1,12 @@
 package com.github.propi.rdfrules.gui
 
 import com.github.propi.rdfrules.gui.operations.Root
-import com.thoughtworks.binding.Binding.{Var, Vars}
-import com.thoughtworks.binding.{Binding, dom}
+import com.thoughtworks.binding.Binding
+import com.thoughtworks.binding.Binding.{Constant, Var, Vars}
+import org.lrng.binding.html
 import org.scalajs.dom.html.Div
 import org.scalajs.dom.raw.{FileReader, HTMLElement, HTMLInputElement}
-import org.scalajs.dom.{Event, MouseEvent, UIEvent, console, document}
+import org.scalajs.dom.{Event, MouseEvent, UIEvent, document}
 
 import scala.scalajs.js
 import scala.scalajs.js.JSON
@@ -20,70 +21,68 @@ class Canvas {
   private val hint: Var[Option[(String, Double, Double)]] = Var(None)
   private val operations: Vars[Operation] = Vars(new Root)
 
-  @dom
-  private def view: Binding[Div] = {
-    <div class="canvas">
-      <div class="memory-info">
-        {Endpoint.memoryCacheInfoView.bind}
+  @html
+  private def view: Binding[Div] = <div class="canvas">
+    <div class="memory-info">
+      {Endpoint.memoryCacheInfoView.bind}
+    </div>
+    <div class={"whint" + (if (hint.bind.isEmpty) " hidden" else "")} style={val _hint = hint.bind
+    val _fixedHint = fixedHint.bind
+    (_hint, _fixedHint) match {
+      case (Some((_, x, y)), None) => s"left: ${x}px; top: ${y}px;"
+      case (_, Some((x, y))) => s"left: ${x}px; top: ${y}px; position: absolute;"
+      case _ => ""
+    }}>
+      <i class={"material-icons close" + (if (fixedHint.bind.isEmpty) " hidden" else "")} onclick={_: Event => unfixHint()}>close</i>{hint.bind.map(_._1).getOrElse("")}
+    </div>
+    <div class={"modal" + (if (modal.bind.isEmpty) " closed" else " open")}>
+      <a class="close" onclick={_: Event => closeModal()}>
+        <i class="material-icons">close</i>
+      </a>{modal.bind match {
+      case Some(x) => x.bind
+      case None => Constant(<div></div>).asInstanceOf[Binding[Div]].bind
+    }}<div class="ok">
+      <span onclick={_: Event => closeModal()}>Ok</span>
+    </div>
+    </div>
+    <div class="content">
+      <div class="tools">
+        <input type="file" accept="application/json" id="importfile" onchange={e: Event =>
+        val files = e.target.asInstanceOf[HTMLInputElement].files
+        if (files.length > 0) {
+          val reader = new FileReader
+          reader.onload = (_: UIEvent) => {
+            loadTask(reader.result.asInstanceOf[String])
+          }
+          reader.readAsText(files(0))
+        }}/>
+        <i class="material-icons" title="Save this pipeline to a local file." onclick={_: Event =>
+          val op = operations.value.last
+          if (op.validateAll()) {
+            Downloader.download("task.json", js.Array(op.toJson(Nil): _*))
+          }}>save</i>
+        <i class="material-icons" title="Load a pipeline from a local file." onclick={_: Event =>
+          val file = document.getElementById("importfile").asInstanceOf[HTMLInputElement]
+          file.value = ""
+          file.click()}>folder_open</i>
       </div>
-      <div class={"whint" + (if (hint.bind.isEmpty) " hidden" else "")} style={val _hint = hint.bind
-      val _fixedHint = fixedHint.bind
-      (_hint, _fixedHint) match {
-        case (Some((_, x, y)), None) => s"left: ${x}px; top: ${y}px;"
-        case (_, Some((x, y))) => s"left: ${x}px; top: ${y}px; position: absolute;"
-        case _ => ""
-      }}>
-        <i class={"material-icons close" + (if (fixedHint.bind.isEmpty) " hidden" else "")} onclick={_: Event => unfixHint()}>close</i>{hint.bind.map(_._1).getOrElse("")}
-      </div>
-      <div class={"modal" + (if (modal.bind.isEmpty) " closed" else " open")}>
-        <a class="close" onclick={_: Event => closeModal()}>
-          <i class="material-icons">close</i>
-        </a>{modal.bind match {
-        case Some(x) => x.bind
-        case None => <div></div>
-      }}<div class="ok">
-        <span onclick={_: Event => closeModal()}>Ok</span>
-      </div>
-      </div>
-      <div class="content">
-        <div class="tools">
-          <input type="file" accept="application/json" id="importfile" onchange={e: Event =>
-          val files = e.target.asInstanceOf[HTMLInputElement].files
-          if (files.length > 0) {
-            val reader = new FileReader
-            reader.onload = (_: UIEvent) => {
-              loadTask(reader.result.asInstanceOf[String])
-            }
-            reader.readAsText(files(0))
-          }}/>
-          <i class="material-icons" title="Save this pipeline to a local file." onclick={_: Event =>
-            val op = operations.value.last
-            if (op.validateAll()) {
-              Downloader.download("task.json", js.Array(op.toJson(Nil): _*))
-            }}>save</i>
-          <i class="material-icons" title="Load a pipeline from a local file." onclick={_: Event =>
-            val file = document.getElementById("importfile").asInstanceOf[HTMLInputElement]
-            file.value = ""
-            file.click()}>folder_open</i>
-        </div>
-        <div class="operations">
-          {for (operation <- operations) yield {
-          operation.view.bind
-        }}
-        </div>
+      <div class="operations">
+        {for (operation <- operations) yield {
+        operation.view.bind
+      }}
       </div>
     </div>
-  }
+  </div>
 
-  def getOperations: Seq[Operation] = operations.value
+  def getOperations: collection.Seq[Operation] = operations.value
 
   def addOperation(operation: Operation): Unit = {
     if (operation.getNextOperation.isEmpty) {
       operations.value += operation
     } else {
       operations.value.clear()
-      val firstOps = Stream.iterate(operation.previousOperation.value)(_.flatMap(_.previousOperation.value)).takeWhile(_.nonEmpty).flatten.last
-      operations.value ++= Stream.iterate(Option(firstOps))(_.flatMap(_.getNextOperation)).takeWhile(_.nonEmpty).flatten
+      val firstOps = LazyList.iterate(operation.previousOperation.value)(_.flatMap(_.previousOperation.value)).takeWhile(_.nonEmpty).flatten.last
+      operations.value ++= Iterator.iterate(Option(firstOps))(_.flatMap(_.getNextOperation)).takeWhile(_.nonEmpty).flatten
     }
   }
 
@@ -141,6 +140,6 @@ class Canvas {
     operations.value ++= newOperations
   }
 
-  def render(): Unit = dom.render(document.getElementById("rdfrules"), view)
+  def render(): Unit = html.render(document.getElementById("rdfrules"), view)
 
 }

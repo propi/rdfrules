@@ -1,13 +1,13 @@
 package com.github.propi.rdfrules.gui
 
-import com.thoughtworks.binding
-import com.thoughtworks.binding.Binding
+import com.github.propi.rdfrules.gui.utils.StringConverters._
 import com.thoughtworks.binding.Binding.Var
+import org.lrng.binding.html
+import org.lrng.binding.html.NodeBinding
 import org.scalajs.dom
-import org.scalajs.dom.{Event, console}
+import org.scalajs.dom.Event
 import org.scalajs.dom.html.Div
 import org.scalajs.dom.raw.ProgressEvent
-import com.github.propi.rdfrules.gui.utils.StringConverters._
 
 import scala.scalajs.js
 import scala.scalajs.js.JSON
@@ -33,8 +33,8 @@ object Endpoint {
     def to[A](f: T => A): Response[A] = Response(status, headers, f(data))
   }
 
-  @binding.dom
-  def memoryCacheInfoView: Binding[Div] = {
+  @html
+  def memoryCacheInfoView: NodeBinding[Div] = {
     <div>
       {memoryInfo.bind match {
       case Some(memoryInfo) => <div class="list">
@@ -53,7 +53,7 @@ object Endpoint {
           <span class="items">
             {memoryInfo.itemsInCache.toString}
           </span>
-          <span class="clear" onclick={_: Event => get[String]("/cache/clear")(_ => Unit)}>(clear)</span>
+          <span class="clear" onclick={_: Event => get[String]("/cache/clear")(_ => ())}>(clear)</span>
         </div>
       </div>
       case None => <div></div>
@@ -61,7 +61,7 @@ object Endpoint {
     </div>
   }
 
-  def request(url: String, method: String, data: Option[js.Any], contentType: Option[String] = Some("application/json"), uploadProgress: UploadProgress => Unit = _ => Unit)(callback: Response[String] => Unit): Unit = {
+  def request(url: String, method: String, data: Option[js.Any], contentType: Option[String] = Some("application/json"), uploadProgress: UploadProgress => Unit = _ => ())(callback: Response[String] => Unit): Unit = {
     var last_index = 0
     val buffer = new StringBuffer()
     val xhr = new dom.XMLHttpRequest()
@@ -125,10 +125,10 @@ object Endpoint {
 
   def get[T](url: String)(callback: Response[T] => Unit)(implicit f: String => T): Unit = request(url, "GET", None)(data => callback(data.to(f)))
 
-  def post[T](url: String, data: js.Any, uploadProgress: UploadProgress => Unit = _ => Unit)(callback: Response[T] => Unit = (_: Response[T]) => {})(implicit f: String => T): Unit = request(url, "POST", Some(data), uploadProgress = uploadProgress)(data => callback(data.to(f)))
+  def post[T](url: String, data: js.Any, uploadProgress: UploadProgress => Unit = _ => ())(callback: Response[T] => Unit = (_: Response[T]) => {})(implicit f: String => T): Unit = request(url, "POST", Some(data), uploadProgress = uploadProgress)(data => callback(data.to(f)))
 
-  def postWithContentType[T](url: String, data: js.Any, contentType: String, uploadProgress: UploadProgress => Unit = _ => Unit)(callback: Response[T] => Unit = (_: Response[T]) => {})(implicit f: String => T): Unit = request(url, "POST", Some(data), Some(contentType), uploadProgress)(data => callback(data.to(f)))
+  def postWithContentType[T](url: String, data: js.Any, contentType: String, uploadProgress: UploadProgress => Unit = _ => ())(callback: Response[T] => Unit = (_: Response[T]) => {})(implicit f: String => T): Unit = request(url, "POST", Some(data), Some(contentType), uploadProgress)(data => callback(data.to(f)))
 
-  def postWithAutoContentType[T](url: String, data: js.Any, uploadProgress: UploadProgress => Unit = _ => Unit)(callback: Response[T] => Unit = (_: Response[T]) => {})(implicit f: String => T): Unit = request(url, "POST", Some(data), None, uploadProgress)(data => callback(data.to(f)))
+  def postWithAutoContentType[T](url: String, data: js.Any, uploadProgress: UploadProgress => Unit = _ => ())(callback: Response[T] => Unit = (_: Response[T]) => {})(implicit f: String => T): Unit = request(url, "POST", Some(data), None, uploadProgress)(data => callback(data.to(f)))
 
 }

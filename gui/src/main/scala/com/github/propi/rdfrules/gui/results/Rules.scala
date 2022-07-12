@@ -4,7 +4,8 @@ import com.github.propi.rdfrules.gui.results.Rules._
 import com.github.propi.rdfrules.gui.utils.StringConverters._
 import com.github.propi.rdfrules.gui._
 import com.thoughtworks.binding.Binding.{Constants, Var}
-import com.thoughtworks.binding.{Binding, dom}
+import com.thoughtworks.binding.Binding
+import org.lrng.binding.html
 import org.scalajs.dom.html.Div
 import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
 import org.scalajs.dom.{Event, window}
@@ -70,7 +71,7 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
     Downloader.download("rules.txt", textRules)
   }
 
-  private def filteredRules(rules: Seq[js.Dynamic], fulltext: String, cluster: Option[Int]): IndexedSeq[js.Dynamic] = {
+  private def filteredRules(rules: Iterable[js.Dynamic], fulltext: String, cluster: Option[Int]): IndexedSeq[js.Dynamic] = {
     if (fulltext != lastFulltext || cluster != lastCluster) lastResult = None
     lastResult match {
       case Some(x) => x
@@ -83,22 +84,23 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
     }
   }
 
-  private def getClusters(rules: Seq[js.Dynamic]): Seq[(Int, Int)] = {
+  private def getClusters(rules: Iterable[js.Dynamic]): Seq[(Int, Int)] = {
     rules.view
       .map(_.asInstanceOf[Rule])
       .flatMap(_.measures.find(_.name == "Cluster").map(_.value.toInt))
       .groupBy(x => x)
+      .view
       .mapValues(_.size)
       .toList
       .sortBy(_._1)
   }
 
-  private def getRulesByCluster(rules: Seq[js.Dynamic], cluster: Option[Int]): Seq[js.Dynamic] = cluster match {
+  private def getRulesByCluster(rules: Iterable[js.Dynamic], cluster: Option[Int]): Iterable[js.Dynamic] = cluster match {
     case Some(cluster) => rules.view.filter(_.asInstanceOf[Rule].measures.exists(x => x.name == "Cluster" && x.value == cluster))
     case None => rules
   }
 
-  private def getRulesByFulltext(rules: Seq[js.Dynamic], text: String): Seq[js.Dynamic] = if (text.isEmpty) {
+  private def getRulesByFulltext(rules: Iterable[js.Dynamic], text: String): Iterable[js.Dynamic] = if (text.isEmpty) {
     rules
   } else {
     val normFulltext = Globals.stripText(text).toLowerCase
@@ -111,7 +113,7 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
     }
   }
 
-  @dom
+  @html
   def viewRecord(record: (Rule, Int)): Binding[Div] = <div class="rule">
     <div class="text">
       <span>
@@ -148,7 +150,7 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
     </div>
   </div>
 
-  @dom
+  @html
   def viewResult(result: Constants[js.Dynamic]): Binding[Div] = <div class="rules">
     <div class="rules-amount">
       <span class="text">Number of rules:</span>

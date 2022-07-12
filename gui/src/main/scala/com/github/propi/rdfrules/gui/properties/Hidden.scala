@@ -1,8 +1,9 @@
 package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Property
-import com.thoughtworks.binding.{Binding, dom}
 import com.thoughtworks.binding.Binding.Var
+import org.lrng.binding.html
+import org.lrng.binding.html.NodeBinding
 import org.scalajs.dom.html.Div
 
 import scala.scalajs.js
@@ -19,8 +20,8 @@ class Hidden[T](val name: String, value: String)(implicit f: String => T, g: T =
 
   isHidden.value = true
 
-  @dom
-  def valueView: Binding[Div] = {
+  @html
+  def valueView: NodeBinding[Div] = {
     <div>
       <input type="hidden" name={name} value={_value}/>
     </div>

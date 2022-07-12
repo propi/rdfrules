@@ -15,7 +15,7 @@ object ReactiveBinding {
   }
 
   trait SeqListener[T] {
-    def changed(newCol: Seq[T]): Unit = {}
+    def changed(newCol: collection.Seq[T]): Unit = {}
 
     def updated(oldValue: T, newValue: T, position: Int): Unit = {}
 
@@ -75,7 +75,13 @@ object ReactiveBinding {
 
       def length: Int = buffer.length
 
-      def +=(elem: T): Proxy.this.type = {
+      def insert(idx: Int, elem: T): Unit = insertAll(idx, Iterator(elem))
+
+      def remove(idx: Int, count: Int): Unit = (0 until count).foreach(_ => remove(idx))
+
+      def patchInPlace(from: Int, patch: IterableOnce[T], replaced: Int): Proxy.this.type = ???
+
+      def addOne(elem: T): Proxy.this.type = {
         buffer += elem
         for (listener <- listeners) {
           listener.added(elem, true, length)
@@ -92,7 +98,7 @@ object ReactiveBinding {
         }
       }
 
-      def +=:(elem: T): Proxy.this.type = {
+      def prepend(elem: T): Proxy.this.type = {
         elem +=: buffer
         for (listener <- listeners) {
           listener.added(elem, false, length)
@@ -101,7 +107,7 @@ object ReactiveBinding {
         this
       }
 
-      override def ++=(elements: TraversableOnce[T]): Proxy.this.type = {
+      /*override def ++=(elements: IterableOnce[T]): Proxy.this.type = {
         val oldLength = length
         buffer ++= elements
         for {
@@ -114,10 +120,10 @@ object ReactiveBinding {
           listener.changed(this)
         }
         this
-      }
+      }*/
 
-      def insertAll(n: Int, elems: Traversable[T]): Unit = {
-        val elemsArray = elems.toVector
+      def insertAll(n: Int, elems: IterableOnce[T]): Unit = {
+        val elemsArray = elems.iterator.toVector
         val oldArray = (for (i <- n until (n + elemsArray.length)) yield apply(i)).toVector
         buffer.insertAll(n, elemsArray)
         for {

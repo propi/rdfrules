@@ -2,7 +2,9 @@ package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Property
 import com.thoughtworks.binding.Binding.{Constants, Var}
-import com.thoughtworks.binding.{Binding, dom}
+import com.thoughtworks.binding.Binding
+import org.lrng.binding.html
+import org.lrng.binding.html.NodeBinding
 import org.scalajs.dom.Event
 import org.scalajs.dom.html.Div
 import org.scalajs.dom.raw.HTMLSelectElement
@@ -18,7 +20,7 @@ class Select(val name: String, val title: String, items: Constants[(String, Stri
 
   private var selectedItem: Option[String] = default
   private val preparedItems: Constants[(String, String)] = if (default.isEmpty) {
-    Constants(("" -> "") +: items.value: _*)
+    Constants((("" -> "") +: items.value).toList: _*)
   } else {
     items
   }
@@ -36,8 +38,8 @@ class Select(val name: String, val title: String, items: Constants[(String, Stri
     case None => js.undefined
   }
 
-  @dom
-  final def valueView: Binding[Div] = {
+  @html
+  final def valueView: NodeBinding[Div] = {
     <div>
       <select onchange={e: Event =>
         val x = e.target.asInstanceOf[HTMLSelectElement].value

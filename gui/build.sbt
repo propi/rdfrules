@@ -16,7 +16,10 @@ scalaJSUseMainModuleInitializer := true
 //scalaJSLinkerConfig ~= { _.withOptimizer(false) }
 
 //libraryDependencies += "org.scala-js" %% "scalajs-env-jsdom-nodejs" % "1.1.0"
-libraryDependencies += "com.thoughtworks.binding" %%% "binding" % "12.1.0"
+//libraryDependencies += "com.thoughtworks.binding" %%% "binding" % "12.1.0"
+//libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "1.1.0"
+libraryDependencies += "org.lrng.binding" %%% "html" % "latest.release"
+libraryDependencies += "org.scala-js" %%% "scalajs-java-securerandom" % "1.0.0"
 
 scalacOptions ++= {
   import Ordering.Implicits._

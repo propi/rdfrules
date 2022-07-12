@@ -18,6 +18,10 @@ class Properties private(col: TripleTraversableView) {
 
     def sum(tripleItemType: TripleItemType): Int = hmap.get(tripleItemType).map(_.getValue).getOrElse(0)
 
+    lazy val sum: Int = if (hmap.isEmpty) 0 else hmap.valuesIterator.map(_.getValue).sum
+
+    def iterator: Iterator[(TripleItemType, Int)] = hmap.view.mapValues(_.getValue).iterator
+
     override def toString: String = hmap.iterator.map(x => s"${x._1}: ${x._2.getValue}").mkString(", ")
   }
 
@@ -38,6 +42,10 @@ object Properties {
 
   sealed trait PropertyStats {
     def sum(tripleItemType: TripleItemType): Int
+
+    def sum: Int
+
+    def iterator: Iterator[(TripleItemType, Int)]
   }
 
   def apply(col: TripleTraversableView): Properties = new Properties(col)

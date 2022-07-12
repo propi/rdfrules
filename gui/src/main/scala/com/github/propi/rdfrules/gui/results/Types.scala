@@ -3,7 +3,8 @@ package com.github.propi.rdfrules.gui.results
 import com.github.propi.rdfrules.gui.ActionProgress
 import com.github.propi.rdfrules.gui.results.Types.Predicate
 import com.thoughtworks.binding.Binding.Constants
-import com.thoughtworks.binding.{Binding, dom}
+import com.thoughtworks.binding.Binding
+import org.lrng.binding.html
 import org.scalajs.dom.html.Div
 
 import scala.concurrent.Future
@@ -14,7 +15,7 @@ import scala.scalajs.js
   */
 class Types(val title: String, val id: Future[String]) extends ActionProgress with Pagination[Predicate] {
 
-  @dom
+  @html
   def viewRecord(record: Predicate): Binding[Div] = <div class="type">
     <div class="predicate">
       {Rules.viewAtomItem(record.predicate)}
@@ -24,7 +25,7 @@ class Types(val title: String, val id: Future[String]) extends ActionProgress wi
     </div>
   </div>
 
-  @dom
+  @html
   def viewResult(result: Constants[js.Dynamic]): Binding[Div] = <div class="types">
     <div class="types-amount">
       <span class="text">Number of predicates:</span>
@@ -45,7 +46,7 @@ class Types(val title: String, val id: Future[String]) extends ActionProgress wi
 object Types {
 
   implicit class PredicateOps(predicate: Predicate) {
-    def getTypes: Constants[Type] = Constants(predicate.types: _*)
+    def getTypes: Constants[Type] = Constants(predicate.types.toList: _*)
   }
 
   trait Predicate extends js.Object {

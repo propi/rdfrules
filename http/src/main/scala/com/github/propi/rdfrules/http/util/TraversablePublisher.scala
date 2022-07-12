@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.http.util
 
 import com.github.propi.rdfrules.http.util.TraversablePublisher.ForeachThread
 import com.github.propi.rdfrules.http.util.TraversablePublisher.Message.{Running, Stopping}
+import com.github.propi.rdfrules.utils.ForEach
 import com.typesafe.scalalogging.Logger
 import org.reactivestreams.{Publisher, Subscriber, Subscription}
 
@@ -10,7 +11,7 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 14. 8. 2018.
   */
-class TraversablePublisher[T] private(col: Traversable[T]) extends Publisher[T] {
+class TraversablePublisher[T] private(col: ForEach[T]) extends Publisher[T] {
 
   def subscribe(s: Subscriber[_ >: T]): Unit = {
     val foreachThread = new ForeachThread[T](col, s)
@@ -47,7 +48,7 @@ object TraversablePublisher {
 
   }
 
-  class ForeachThread[T] private[TraversablePublisher](col: Traversable[T], s: Subscriber[_ >: T]) extends Runnable {
+  class ForeachThread[T] private[TraversablePublisher](col: ForEach[T], s: Subscriber[_ >: T]) extends Runnable {
 
     private object Locker
 
@@ -98,6 +99,8 @@ object TraversablePublisher {
 
   }
 
-  implicit def apply[T](col: Traversable[T]): Publisher[T] = new TraversablePublisher(col)
+  implicit def apply[T](col: ForEach[T]): Publisher[T] = new TraversablePublisher(col)
+
+  implicit def apply[T](col: IterableOnce[T]): Publisher[T] = new TraversablePublisher(col)
 
 }

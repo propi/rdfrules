@@ -19,7 +19,7 @@ class Instantiate(rule: Option[ResolvedRule], part: CoveredPaths.Part, allowDupl
         }
       case None => input
     }
-    filteredRuleset.instantiate(part, allowDuplicateAtoms).view.map(_.paths).reduceOption(_ + _).getOrElse(Ruleset(input.index, Nil, true))
+    filteredRuleset.instantiate(part, allowDuplicateAtoms).map(_.paths).reduceOption(_ + _).getOrElse(Ruleset(input.index, Nil))
   }
 }
 

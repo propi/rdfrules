@@ -2,13 +2,17 @@ package com.github.propi.rdfrules.http.task
 
 import akka.NotUsed
 import akka.stream.scaladsl.Source
-import com.github.propi.rdfrules.data.{Histogram, Prefix, Quad, TripleItem, TripleItemType}
+import com.github.propi.rdfrules.data.Properties.PropertyStats
+import com.github.propi.rdfrules.data.Quad.QuadTraversableView
+import com.github.propi.rdfrules.data.{Histogram, Prefix, TripleItem}
 import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.formats.CommonDataJsonWriters._
 import com.github.propi.rdfrules.http.util.TraversablePublisher._
 import com.github.propi.rdfrules.model.EvaluationResult
 import com.github.propi.rdfrules.ruleset.ResolvedRule
 import com.github.propi.rdfrules.ruleset.formats.Json._
+import com.github.propi.rdfrules.utils.ForEach
+import spray.json.DefaultJsonProtocol._
 import spray.json._
 
 /**
@@ -37,12 +41,12 @@ object ToJsonTask extends TaskDefinition {
     def execute(input: EvaluationResult): Source[JsValue, NotUsed] = Source.single(input.toJson)
   }
 
-  object FromQuads extends ToJsonTask[Traversable[Quad]] {
-    def execute(input: Traversable[Quad]): Source[JsValue, NotUsed] = Source.fromPublisher(input.view.map(_.toJson))
+  object FromQuads extends ToJsonTask[QuadTraversableView] {
+    def execute(input: QuadTraversableView): Source[JsValue, NotUsed] = Source.fromPublisher(input.map(_.toJson))
   }
 
-  object FromPrefixes extends ToJsonTask[Traversable[Prefix]] {
-    def execute(input: Traversable[Prefix]): Source[JsValue, NotUsed] = Source.fromPublisher(input.view.map(_.toJson))
+  object FromPrefixes extends ToJsonTask[ForEach[Prefix]] {
+    def execute(input: ForEach[Prefix]): Source[JsValue, NotUsed] = Source.fromPublisher(input.map(_.toJson))
   }
 
   /*
@@ -61,8 +65,8 @@ object ToJsonTask extends TaskDefinition {
     def execute(input: Seq[ResolvedRule]): Source[JsValue, NotUsed] = Source.fromPublisher(input.view.map(_.toJson))
   }
 
-  object FromTypes extends ToJsonTask[Seq[(TripleItem.Uri, collection.Map[TripleItemType, Int])]] {
-    def execute(input: Seq[(TripleItem.Uri, collection.Map[TripleItemType, Int])]): Source[JsValue, NotUsed] = Source.fromIterator(() => input.iterator.map(_.toJson))
+  object FromTypes extends ToJsonTask[Seq[(TripleItem.Uri, PropertyStats)]] {
+    def execute(input: Seq[(TripleItem.Uri, PropertyStats)]): Source[JsValue, NotUsed] = Source.fromIterator(() => input.iterator.map(x => x._1.toJson -> x._2.toJson).map(_.toJson))
   }
 
   object FromHistogram extends ToJsonTask[Seq[(Histogram.Key, Int)]] {

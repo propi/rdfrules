@@ -30,8 +30,8 @@ object Downloader {
     download(filename, data, "text/plain;charset=utf-8")
   }
 
-  def download(filename: String, data: Seq[String]): Unit = {
-    download(filename, data.mkString("\n"), "text/plain;charset=utf-8")
+  def download(filename: String, data: IterableOnce[String]): Unit = {
+    download(filename, data.iterator.mkString("\n"), "text/plain;charset=utf-8")
   }
 
 }

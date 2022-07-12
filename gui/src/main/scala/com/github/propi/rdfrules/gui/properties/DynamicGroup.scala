@@ -2,7 +2,9 @@ package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Property
 import com.thoughtworks.binding.Binding.{Constants, Var, Vars}
-import com.thoughtworks.binding.{Binding, dom}
+import com.thoughtworks.binding.Binding
+import org.lrng.binding.html
+import org.lrng.binding.html.NodeBinding
 import org.scalajs.dom.Event
 import org.scalajs.dom.html.Div
 
@@ -17,7 +19,7 @@ class DynamicGroup(val name: String, val title: String, properties: () => Consta
 
   val descriptionVar: Binding.Var[String] = Var(description)
 
-  def getGroups: Seq[Constants[Property]] = groups.value
+  def getGroups: Iterable[Constants[Property]] = groups.value
 
   def validate(): Option[String] = groups.value.iterator.flatMap(_.value.iterator).map(_.validate()).find(_.nonEmpty).flatten.map(x => s"There is an error within '$title' properties: $x")
 
@@ -33,10 +35,10 @@ class DynamicGroup(val name: String, val title: String, properties: () => Consta
     }
   }
 
-  def toJson: js.Any = js.Array(groups.value.map(properties => js.Dictionary(properties.value.map(x => x.name -> x.toJson).filter(x => !js.isUndefined(x._2)): _*)): _*)
+  def toJson: js.Any = js.Array(groups.value.map(properties => js.Dictionary(properties.value.map(x => x.name -> x.toJson).filter(x => !js.isUndefined(x._2)).toList: _*)).toList: _*)
 
-  @dom
-  def valueView: Binding[Div] = {
+  @html
+  def valueView: NodeBinding[Div] = {
     <div class="dynamic-group">
       {for (group <- groups) yield
       <table>

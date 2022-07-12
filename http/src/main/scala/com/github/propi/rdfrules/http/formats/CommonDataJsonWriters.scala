@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.http.formats
 
+import com.github.propi.rdfrules.data.Properties.PropertyStats
 import com.github.propi.rdfrules.data.{Histogram, Quad, TripleItem, TripleItemType}
 import com.github.propi.rdfrules.http.service.Task.TaskResponse
 import com.github.propi.rdfrules.model.EvaluationResult
@@ -49,6 +50,8 @@ object CommonDataJsonWriters {
     "object" -> obj._1.o.map(_.toJson).getOrElse(JsNull),
     "amount" -> obj._2.toJson
   )
+
+  implicit val propertyStatsWriter: RootJsonWriter[PropertyStats] = (obj: PropertyStats) => obj.iterator.map(x => x._1.toJson -> x._2.toJson).toMap.toJson
 
   implicit val taskResponseInProgressWriter: RootJsonWriter[TaskResponse.InProgress] = (obj: TaskResponse.InProgress) => JsObject(
     "id" -> obj.id.toString.toJson,

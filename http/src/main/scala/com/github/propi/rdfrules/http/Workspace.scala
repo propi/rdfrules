@@ -3,7 +3,6 @@ package com.github.propi.rdfrules.http
 import java.io.File
 import java.time.Instant
 import java.util.Date
-
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import akka.stream.scaladsl.{FileIO, Source}
@@ -14,6 +13,7 @@ import com.github.propi.rdfrules.http.util.Conf
 import com.typesafe.config.ConfigMemorySize
 import com.typesafe.scalalogging.Logger
 
+import scala.collection.immutable.ArraySeq
 import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -60,10 +60,10 @@ object Workspace {
   }
 
   def lifetimeActor: Behavior[Boolean] = Behaviors.setup[Boolean] { context =>
-    if (writableDirs.exists(_.lifetime.isFinite())) {
+    if (writableDirs.exists(_.lifetime.isFinite)) {
       context.self ! true
       Behaviors.receiveMessage { _ =>
-        for (dir <- writableDirs if dir.lifetime.isFinite()) {
+        for (dir <- writableDirs if dir.lifetime.isFinite) {
           deleteExpired(dir.lifetime, getTreeInDirectory(dir.path).asInstanceOf[FileTree.Directory].subfiles)
         }
         context.scheduleOnce(1 minute, context.self, true)
@@ -77,7 +77,7 @@ object Workspace {
   private def getTreeInDirectory(directory: File): FileTree = {
     if (directory.isDirectory) {
       val subfiles = directory.listFiles().map(getTreeInDirectory).sortBy(x => (if (x.isInstanceOf[FileTree.Directory]) 0 else 1) -> x.name)
-      FileTree.Directory(directory.getName, writableDirs.exists(_.path.getCanonicalPath == directory.getCanonicalPath), subfiles)(directory)
+      FileTree.Directory(directory.getName, writableDirs.exists(_.path.getCanonicalPath == directory.getCanonicalPath), ArraySeq.unsafeWrapArray(subfiles))(directory)
     } else {
       FileTree.File(directory.getName)(directory)
     }

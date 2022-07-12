@@ -36,7 +36,7 @@ object CommonDataJsonReaders {
     case JsString(TripleItemMapper.Resource(uri)) => uri
     case JsString(TripleItemMapper.Text(text)) => text
     case JsString(TripleItemMapper.Number(number)) => number
-    case JsNumber(x) => TripleItem.Number(x.doubleValue())
+    case JsNumber(x) => TripleItem.Number(x.doubleValue)
     case JsString(TripleItemMapper.BooleanValue(booleanValue)) => booleanValue
     case JsBoolean(x) => TripleItem.BooleanValue(x)
     case JsString(TripleItemMapper.Interval(interval)) => interval
@@ -232,18 +232,18 @@ object CommonDataJsonReaders {
           case "inMemory" =>
             pfile.map { case (pfile, format) =>
               RuleConsumer.withMapper[Ruleset](implicit mapper => InMemoryRuleConsumer(new File(Workspace.path(pfile)), format))
-            }.headOption.getOrElse(RuleConsumer(InMemoryRuleConsumer(_)))
+            }.getOrElse(RuleConsumer(InMemoryRuleConsumer(_)))
           case "onDisk" =>
             val file = new File(Workspace.path(fields("file").convertTo[String]))
             pfile.map { case (pfile, format) =>
               RuleConsumer.withMapper[Ruleset](implicit mapper => OnDiskRuleConsumer(file, new File(Workspace.path(pfile)), format))
-            }.headOption.getOrElse(RuleConsumer(OnDiskRuleConsumer(file)))
+            }.getOrElse(RuleConsumer(OnDiskRuleConsumer(file)))
           case "topK" =>
             val k = fields("k").convertTo[Int]
             val allowOverflow = fields.get("allowOverflow").exists(_.convertTo[Boolean])
             pfile.map { case (pfile, format) =>
               RuleConsumer.withMapper[Ruleset](implicit mapper => TopKRuleConsumer(k, allowOverflow, new File(Workspace.path(pfile)), format))
-            }.headOption.getOrElse(RuleConsumer(TopKRuleConsumer(k, allowOverflow)))
+            }.getOrElse(RuleConsumer(TopKRuleConsumer(k, allowOverflow)))
           case x => deserializationError(s"Invalid type of rule consumer: $x")
         }
       case None => RuleConsumer(InMemoryRuleConsumer(_))
@@ -333,7 +333,7 @@ object CommonDataJsonReaders {
     ResolvedRule(
       fields("body").convertTo[JsArray].elements.map(_.convertTo[ResolvedRule.Atom]),
       fields("head").convertTo[ResolvedRule.Atom]
-    )(TypedKeyMap(fields.get("measures").toIterable.flatMap(_.convertTo[JsArray].elements).map(_.convertTo[Measure])))
+    )(TypedKeyMap(fields.get("measures").iterator.flatMap(_.convertTo[JsArray].elements).map(_.convertTo[Measure])))
   }
 
   implicit val rulesetSourceReader: RootJsonReader[RulesetSource] = (json: JsValue) => json.convertTo[String] match {

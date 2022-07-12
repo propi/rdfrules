@@ -18,7 +18,7 @@ object Workspace {
   def humanReadableByteSize(fileSize: Long): String = {
     if (fileSize <= 0) return "0 B"
     val units: Array[String] = Array("B", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
-    val digitGroup: Int = (Math.log10(fileSize) / Math.log10(1024)).toInt
+    val digitGroup: Int = (Math.log10(fileSize.toDouble) / Math.log10(1024)).toInt
     f"${fileSize / Math.pow(1024, digitGroup)}%3.2f ${units(digitGroup)}"
   }
 
@@ -41,7 +41,7 @@ object Workspace {
     x.selectDynamic("subfiles").asInstanceOf[js.UndefOr[js.Array[js.Dynamic]]].toOption match {
       case Some(files) =>
         val writable = x.selectDynamic("writable").asInstanceOf[Boolean]
-        FileValue.Directory(if (name.isEmpty) "workspace" else name, path + name, writable, Constants(files.map(anyToFileValue(_, path + name + "/", writable)): _*))
+        FileValue.Directory(if (name.isEmpty) "workspace" else name, path + name, writable, Constants(files.map(anyToFileValue(_, path + name + "/", writable)).toList: _*))
       case None => FileValue.File(name, path + name)(x.selectDynamic("size").toString, writable)
     }
   }

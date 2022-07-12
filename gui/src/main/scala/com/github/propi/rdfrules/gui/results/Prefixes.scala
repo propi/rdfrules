@@ -3,7 +3,8 @@ package com.github.propi.rdfrules.gui.results
 import com.github.propi.rdfrules.gui.ActionProgress
 import com.github.propi.rdfrules.gui.results.Prefixes.Prefix
 import com.thoughtworks.binding.Binding.Constants
-import com.thoughtworks.binding.{Binding, dom}
+import com.thoughtworks.binding.Binding
+import org.lrng.binding.html
 import org.scalajs.dom.html.Div
 
 import scala.concurrent.Future
@@ -14,7 +15,7 @@ import scala.scalajs.js
   */
 class Prefixes(val title: String, val id: Future[String]) extends ActionProgress with Pagination[Prefix] {
 
-  @dom
+  @html
   def viewRecord(record: Prefix): Binding[Div] = <div class="prefix">
     <span class="prefix-name">
       {record.prefix}
@@ -25,7 +26,7 @@ class Prefixes(val title: String, val id: Future[String]) extends ActionProgress
     </span>
   </div>
 
-  @dom
+  @html
   def viewResult(result: Constants[js.Dynamic]): Binding[Div] = <div class="prefixes">
     <div class="prefixes-amount">
       <span class="text">Number of prefixes:</span>

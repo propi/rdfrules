@@ -3,7 +3,8 @@ package com.github.propi.rdfrules.gui.results
 import com.github.propi.rdfrules.gui.ActionProgress
 import com.github.propi.rdfrules.gui.results.Quads.Quad
 import com.thoughtworks.binding.Binding.Constants
-import com.thoughtworks.binding.{Binding, dom}
+import com.thoughtworks.binding.Binding
+import org.lrng.binding.html
 import org.scalajs.dom.html.Div
 
 import scala.concurrent.Future
@@ -14,7 +15,7 @@ import scala.scalajs.js
   */
 class Quads(val title: String, val id: Future[String]) extends ActionProgress with Pagination[Quad] {
 
-  @dom
+  @html
   def viewRecord(record: Quad): Binding[Div] = <div class="quad">
     <div class="subject">
       {Rules.viewAtomItem(record.subject)}
@@ -30,7 +31,7 @@ class Quads(val title: String, val id: Future[String]) extends ActionProgress wi
     </div>
   </div>
 
-  @dom
+  @html
   def viewResult(result: Constants[js.Dynamic]): Binding[Div] = <div class="quads">
     <div class="quads-amount">
       <span class="text">Number of quads:</span>

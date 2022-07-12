@@ -1,10 +1,11 @@
 package com.github.propi.rdfrules.gui
 
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding
+import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.Var
-import com.thoughtworks.binding.{Binding, dom}
-import org.scalajs.dom.{Event, MouseEvent}
+import org.lrng.binding.html
 import org.scalajs.dom.html.{Div, TableRow}
+import org.scalajs.dom.{Event, MouseEvent}
 
 import scala.scalajs.js
 
@@ -27,7 +28,7 @@ trait Property {
 
   def setValue(data: js.Dynamic): Unit
 
-  @dom
+  @html
   def view: Binding[TableRow] = {
     <tr class={if (isHidden.bind) "hidden" else ""}>
       <th>

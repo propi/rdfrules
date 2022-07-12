@@ -12,9 +12,9 @@ import scala.scalajs.js.JSON
 object Task {
 
   implicit class ResultOps(result: Result) {
-    def getLogs: Constants[Log] = Constants(result.logs: _*)
+    def getLogs: Constants[Log] = Constants(result.logs.toList: _*)
 
-    def getResult: Option[Constants[js.Dynamic]] = result.result.toOption.map(x => Constants(x: _*))
+    def getResult: Option[Constants[js.Dynamic]] = result.result.toOption.map(x => Constants(x.toList: _*))
   }
 
   trait Result extends js.Object {
@@ -48,7 +48,7 @@ object Task {
     Endpoint.post[String]("/task", data) { response =>
       response.headers.get("location").map(_.replaceFirst(".*/", "")) match {
         case Some(id) if id.nonEmpty && response.status == 202 => result.success(id)
-        case None => response.status match {
+        case _ => response.status match {
           case 400 | 500 => result.failure(TaskException(response.data))
           case _ => result.failure(unspecifiedTaskError(response.data))
         }

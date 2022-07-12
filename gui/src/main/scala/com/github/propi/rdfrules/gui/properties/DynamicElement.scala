@@ -1,8 +1,9 @@
 package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Property
-import com.thoughtworks.binding.Binding.{Constants, Var}
-import com.thoughtworks.binding.{Binding, dom}
+import com.thoughtworks.binding.Binding
+import com.thoughtworks.binding.Binding.{Constant, Constants, Var}
+import org.lrng.binding.html
 import org.scalajs.dom.html.{Div, TableRow}
 
 import scala.scalajs.js
@@ -36,17 +37,15 @@ class DynamicElement(properties: Constants[Property], description: String = "", 
     }
   }
 
-  @dom
-  def valueView: Binding[Div] = {
-    val activeIndex = active.bind
+  @html
+  def valueView: Binding[Div] = <div>
+    {val activeIndex = active.bind
     if (activeIndex >= 0) {
-      <div>
-        {properties.value(activeIndex).valueView.bind}
-      </div>
+      properties.value(activeIndex).valueView.bind
     } else {
-      <div></div>
-    }
-  }
+      Constant(<div></div>).asInstanceOf[Binding[Div]].bind
+    }}
+  </div>
 
 
   override def view: Binding[TableRow] = super.view

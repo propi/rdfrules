@@ -2,7 +2,9 @@ package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Property
 import com.thoughtworks.binding.Binding.Var
-import com.thoughtworks.binding.{Binding, dom}
+import com.thoughtworks.binding.Binding
+import org.lrng.binding.html
+import org.lrng.binding.html.NodeBinding
 import org.scalajs.dom.Event
 import org.scalajs.dom.html.Div
 import org.scalajs.dom.raw.HTMLInputElement
@@ -29,8 +31,8 @@ class Checkbox(val name: String, val title: String, default: Boolean = false, de
 
   def toJson: js.Any = isChecked
 
-  @dom
-  final def valueView: Binding[Div] = {
+  @html
+  final def valueView: NodeBinding[Div] = {
     <div>
       <input type="checkbox" class="checkbox" checked={_isChecked} onchange={e: Event =>
       _isChecked = e.target.asInstanceOf[HTMLInputElement].checked

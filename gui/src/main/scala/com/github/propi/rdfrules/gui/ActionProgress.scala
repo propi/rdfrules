@@ -1,16 +1,17 @@
 package com.github.propi.rdfrules.gui
 
 import com.github.propi.rdfrules.gui.Task.{Result, TaskException}
-import com.thoughtworks.binding.{Binding, dom}
-import com.thoughtworks.binding.Binding.{Constants, Var, Vars}
+import com.thoughtworks.binding.Binding
+import com.thoughtworks.binding.Binding.{Constant, Constants, Var, Vars}
+import org.lrng.binding.html
 import org.scalajs.dom.html.Div
+import org.scalajs.dom.raw.HTMLUListElement
+import org.scalajs.dom.{Event, document}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
 import scala.scalajs.js.timers._
 import scala.util.{Failure, Success, Try}
-import org.scalajs.dom.{Event, document}
-import org.scalajs.dom.raw.HTMLUListElement
 
 /**
   * Created by Vaclav Zeman on 14. 9. 2018.
@@ -19,7 +20,7 @@ trait ActionProgress {
   val title: String
   val id: Future[String]
 
-  private implicit val ec: ExecutionContext = ExecutionContext.global
+  private implicit val ec: ExecutionContext = scala.scalajs.concurrent.JSExecutionContext.queue
   private val progress: Var[Option[Try[Result]]] = Var(None)
   private val _logs: Vars[Task.Log] = Vars.empty
   private val cancelled: Var[Boolean] = Var(false)
@@ -70,81 +71,83 @@ trait ActionProgress {
 
   protected def viewResult(result: Constants[js.Dynamic]): Binding[Div]
 
-  @dom
-  def view: Binding[Div] = progress.bind match {
-    case Some(Success(result)) =>
-      <div class="action-progress">
-        <h2>
-          {title}
-        </h2>
-        <ul class="meta">
-          <li>Started:
-            {result.started}
-          </li>
-          <li class={"loading" + (if (result.finished.isEmpty) "" else " hidden")}>
-            <img src="images/loading.gif"/>{if (cancelled.bind) {
-            <div class="cancel-sent">the cancel signal was sent</div>
-          } else {
-            <a href="#" class="cancel-send" onclick={e: Event =>
-              e.preventDefault()
-              cancel(result.id)}>cancel</a>
+  @html
+  def view: Binding[Div] = <div>
+    {progress.bind match {
+      case Some(Success(result)) =>
+        <div class="action-progress">
+          <h2>
+            {title}
+          </h2>
+          <ul class="meta">
+            <li>Started:
+              {result.started}
+            </li>
+            <li class={"loading" + (if (result.finished.isEmpty) "" else " hidden")}>
+              <img src="images/loading.gif"/>{if (cancelled.bind) {
+              <div class="cancel-sent">the cancel signal was sent</div>
+            } else {
+              <a href="#" class="cancel-send" onclick={e: Event =>
+                e.preventDefault()
+                cancel(result.id)}>cancel</a>
+            }}
+            </li>
+            <li class={if (result.finished.nonEmpty) "" else " hidden"}>
+              Finished:
+              {result.finished.getOrElse("")}
+            </li>
+            <li class={if (result.finished.nonEmpty) "" else " hidden"}>
+              Duration:
+              {getDuration(result.started, result.finished.getOrElse(result.started))}
+            </li>
+          </ul>
+          <h3>Result</h3>
+          <div class="result">
+            {result.getResult match {
+            case Some(x) => viewResult(x).bind
+            case None => Constant(<div>This task is still in progress. Wait a moment!</div>).asInstanceOf[Binding[Div]].bind
           }}
-          </li>
-          <li class={if (result.finished.nonEmpty) "" else " hidden"}>
-            Finished:
-            {result.finished.getOrElse("")}
-          </li>
-          <li class={if (result.finished.nonEmpty) "" else " hidden"}>
-            Duration:
-            {getDuration(result.started, result.finished.getOrElse(result.started))}
-          </li>
-        </ul>
-        <h3>Result</h3>
-        <div class="result">
-          {result.getResult match {
-          case Some(x) => viewResult(x).bind
-          case None => <div>This task is still in progress. Wait a moment!</div>
-        }}
+          </div>
+          <h3>Logs</h3>
+          <ul class="logs" id="logs">
+            {for (log <- _logs) yield
+            <li>
+              <span class="time">
+                {log.time}
+                :</span> <span class="message">
+              {log.message}
+            </span>
+            </li>}
+          </ul>
         </div>
-        <h3>Logs</h3>
-        <ul class="logs" id="logs">
-          {for (log <- _logs) yield
-          <li>
-            <span class="time">
-              {log.time}
-              :</span> <span class="message">
-            {log.message}
-          </span>
-          </li>}
-        </ul>
-      </div>
-    case Some(Failure(te: TaskException)) =>
-      <div class="action-progress">
-        <h2>
-          {title}
-        </h2>
-        <ul class="error">
-          <li>Name:
-            {te.taskError.code}
-          </li>
-          <li>Message:
-            {te.taskError.message}
-          </li>
-        </ul>
-      </div>
-    case Some(Failure(th)) =>
-      <div class="action-progress">
-        <h2>
-          {title}
-        </h2>
-        <ul class="error">
-          <li>Message:
-            {th.getMessage}
-          </li>
-        </ul>
-      </div>
-    case None =>
-      <div class="action-progress waiting">Waiting for a result...</div>
-  }
+      case Some(Failure(te: TaskException)) =>
+        <div class="action-progress">
+          <h2>
+            {title}
+          </h2>
+          <ul class="error">
+            <li>Name:
+              {te.taskError.code}
+            </li>
+            <li>Message:
+              {te.taskError.message}
+            </li>
+          </ul>
+        </div>
+      case Some(Failure(th)) =>
+        <div class="action-progress">
+          <h2>
+            {title}
+          </h2>
+          <ul class="error">
+            <li>Message:
+              {th.getMessage}
+            </li>
+          </ul>
+        </div>
+      case None =>
+        <div class="action-progress waiting">Waiting for a result...</div>
+    }}
+  </div>
 
 }

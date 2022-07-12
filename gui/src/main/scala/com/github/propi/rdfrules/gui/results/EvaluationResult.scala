@@ -2,7 +2,8 @@ package com.github.propi.rdfrules.gui.results
 
 import com.github.propi.rdfrules.gui.ActionProgress
 import com.thoughtworks.binding.Binding.Constants
-import com.thoughtworks.binding.{Binding, dom}
+import com.thoughtworks.binding.Binding
+import org.lrng.binding.html
 import org.scalajs.dom.html.Div
 
 import scala.concurrent.Future
@@ -15,7 +16,7 @@ class EvaluationResult(val title: String, val id: Future[String]) extends Action
 
   private val rules = new Rules(title, Future.failed(new NoSuchElementException))
 
-  @dom
+  @html
   def viewResult(result: Constants[js.Dynamic]): Binding[Div] = {
     val data = result.value.head.asInstanceOf[EvaluationResult.Data]
     <div>
@@ -40,7 +41,7 @@ class EvaluationResult(val title: String, val id: Future[String]) extends Action
           <td>&nbsp;</td>
         </tr>
       </table>
-      <div class="model">{rules.viewResult(Constants(data.model: _*)).bind}</div>
+      <div class="model">{rules.viewResult(Constants(data.model.toList: _*)).bind}</div>
     </div>
   }
 

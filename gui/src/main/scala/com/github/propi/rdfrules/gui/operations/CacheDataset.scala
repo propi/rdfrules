@@ -1,11 +1,11 @@
 package com.github.propi.rdfrules.gui.operations
 
-import java.util.UUID
-
 import com.github.propi.rdfrules.gui.properties._
 import com.github.propi.rdfrules.gui.utils.CommonValidators.NonEmpty
 import com.github.propi.rdfrules.gui.{Operation, OperationInfo, Property}
 import com.thoughtworks.binding.Binding.{Constants, Var}
+
+import java.util.UUID
 
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.

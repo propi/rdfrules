@@ -1,8 +1,10 @@
 package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Property
-import com.thoughtworks.binding.{Binding, dom}
+import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.{Constants, Var}
+import org.lrng.binding.html
+import org.lrng.binding.html.NodeBinding
 import org.scalajs.dom.html.Div
 
 import scala.scalajs.js
@@ -23,10 +25,10 @@ class Group(val name: String, val title: String, properties: Constants[Property]
     }
   }
 
-  def toJson: js.Any = js.Dictionary(properties.value.map(x => x.name -> x.toJson).filter(x => !js.isUndefined(x._2)): _*)
+  def toJson: js.Any = js.Dictionary(properties.value.map(x => x.name -> x.toJson).filter(x => !js.isUndefined(x._2)).toList: _*)
 
-  @dom
-  def valueView: Binding[Div] = {
+  @html
+  def valueView: NodeBinding[Div] = {
     <div class="properties sub">
       <table>
         {for (property <- properties) yield {

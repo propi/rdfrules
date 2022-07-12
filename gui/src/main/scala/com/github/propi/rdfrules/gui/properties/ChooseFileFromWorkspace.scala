@@ -5,7 +5,9 @@ import com.github.propi.rdfrules.gui.{Property, Workspace}
 import com.github.propi.rdfrules.gui.Workspace.FileValue
 import com.github.propi.rdfrules.gui.utils.Validate.{NoValidator, Validator, _}
 import com.thoughtworks.binding.Binding.Var
-import com.thoughtworks.binding.{Binding, dom}
+import com.thoughtworks.binding.Binding
+import org.lrng.binding.html
+import org.lrng.binding.html.NodeBinding
 import org.scalajs.dom.Event
 import org.scalajs.dom.html.Div
 import org.scalajs.dom.window
@@ -24,7 +26,7 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
                               description: String = "",
                               validator: Validator[String] = NoValidator[String]()) extends Property {
 
-  private implicit val ec: ExecutionContext = ExecutionContext.global
+  private implicit val ec: ExecutionContext = scala.scalajs.concurrent.JSExecutionContext.queue
 
   files.foreach(x => loadedFiles.value = Some(x))
 
@@ -74,8 +76,8 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
     fileElement.click()
   }
 
-  @dom
-  private def bindingFileValue(fileValue: FileValue): Binding[Div] = fileValue match {
+  @html
+  private def bindingFileValue(fileValue: FileValue): NodeBinding[Div] = fileValue match {
     case file: FileValue.File =>
       <div class="file">
         <a onclick={_: Event =>
@@ -122,8 +124,8 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
       </div>
   }
 
-  @dom
-  def valueView: Binding[Div] = {
+  @html
+  def valueView: NodeBinding[Div] = {
     <div class="choose-file">
       {val x = loadedFiles.bind
     x match {

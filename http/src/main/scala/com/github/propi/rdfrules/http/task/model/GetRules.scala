@@ -10,7 +10,7 @@ import com.github.propi.rdfrules.ruleset.ResolvedRule
 class GetRules extends Task[Model, Seq[ResolvedRule]] {
   val companion: TaskDefinition = GetRules
 
-  def execute(input: Model): Seq[ResolvedRule] = input.take(10000).rules.toList
+  def execute(input: Model): Seq[ResolvedRule] = input.take(10000).rules.toSeq
 }
 
 object GetRules extends TaskDefinition {

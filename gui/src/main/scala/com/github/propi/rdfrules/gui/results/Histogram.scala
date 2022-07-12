@@ -3,7 +3,8 @@ package com.github.propi.rdfrules.gui.results
 import com.github.propi.rdfrules.gui.ActionProgress
 import com.github.propi.rdfrules.gui.results.Histogram.HistogramItem
 import com.thoughtworks.binding.Binding.Constants
-import com.thoughtworks.binding.{Binding, dom}
+import com.thoughtworks.binding.Binding
+import org.lrng.binding.html
 import org.scalajs.dom.html.Div
 
 import scala.concurrent.Future
@@ -17,7 +18,7 @@ class Histogram(val title: String, val id: Future[String]) extends ActionProgres
 
   private var max: Double = 1
 
-  @dom
+  @html
   def viewRecord(record: HistogramItem): Binding[Div] = <div class="item">
     <div class="info">
       <div class={"subject" + (if (record.subject == null) " empty" else "")}>
@@ -35,12 +36,12 @@ class Histogram(val title: String, val id: Future[String]) extends ActionProgres
     </div>
     <div class="status">
       <div class="bar" style={"width: " + math.round((record.amount / max) * 100).toString + "%"}>
-        {((record.amount / max) * 100).toFixed(2).toDouble + " %"}
+        {s"${((record.amount / max) * 100).toFixed(2).toDouble} %"}
       </div>
     </div>
   </div>
 
-  @dom
+  @html
   def viewResult(result: Constants[js.Dynamic]): Binding[Div] = {
     max = result.value.iterator.map(_.asInstanceOf[HistogramItem]).map(_.amount).max
     <div class="histogram">

@@ -2,7 +2,9 @@ package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Property
 import com.thoughtworks.binding.Binding.{Var, Vars}
-import com.thoughtworks.binding.{Binding, dom}
+import com.thoughtworks.binding.Binding
+import org.lrng.binding.html
+import org.lrng.binding.html.NodeBinding
 import org.scalajs.dom.Event
 import org.scalajs.dom.html.Div
 
@@ -35,10 +37,10 @@ class ArrayElement(val name: String, val title: String, property: () => Property
   def toJson: js.Any = js.Array(groups.value.flatMap { property =>
     val x = property.toJson
     if (js.isUndefined(x)) None else Some(x)
-  }: _*)
+  }.toList: _*)
 
-  @dom
-  def valueView: Binding[Div] = {
+  @html
+  def valueView: NodeBinding[Div] = {
     <div>
       {for (group <- groups) yield
       <div>
