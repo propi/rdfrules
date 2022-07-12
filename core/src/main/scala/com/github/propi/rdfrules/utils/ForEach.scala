@@ -4,6 +4,7 @@ import com.github.propi.rdfrules.utils.ForEach.KnownSizeForEach
 
 import scala.collection.immutable.ArraySeq
 import scala.collection.{Factory, MapView}
+import scala.language.implicitConversions
 import scala.reflect.ClassTag
 
 trait ForEach[+T] {
@@ -28,15 +29,21 @@ trait ForEach[+T] {
 
       def foreach(f: A => Unit): Unit = col.foreach(f)
 
-      override def toIndexedSeq[B >: A]: IndexedSeq[B] = ArraySeq.unsafeWrapArray(col)
+      override def toIndexedSeq: IndexedSeq[A] = ArraySeq.unsafeWrapArray(col)
 
-      override def toSeq[B >: A]: Seq[B] = toIndexedSeq
+      override def toSeq: Seq[A] = toIndexedSeq
 
       override def toArray[B >: A](implicit tag: ClassTag[B]): Array[B] = col.asInstanceOf[Array[B]]
     }
   }
 
   def isEmpty: Boolean = headOption.isEmpty
+
+  def lastOption: Option[T] = {
+    val lastValue = MutableOption.empty[T]
+    foreach(x => lastValue.set(x))
+    lastValue.toOption
+  }
 
   def headOption: Option[T] = {
     foreach(x => return Some(x))
@@ -121,6 +128,8 @@ trait ForEach[+T] {
 
   def head: T = headOption.get
 
+  def last: T = lastOption.get
+
   def slice(from: Int, until: Int): ForEach[T] = drop(from).take(until - from)
 
   def groupBy[K, C](g: T => K)(factory: Factory[T, C]): Map[K, C] = {
@@ -132,7 +141,7 @@ trait ForEach[+T] {
   def concat[A >: T](that: ForEach[A]): ForEach[A] = {
     val col = new ForEach[A] {
       def foreach(f: A => Unit): Unit = {
-        this.foreach(f)
+        self.foreach(f)
         that.foreach(f)
       }
     }
@@ -169,19 +178,23 @@ trait ForEach[+T] {
     None
   }
 
+  def exists(p: T => Boolean): Boolean = find(p).isDefined
+
+  def forall(p: T => Boolean): Boolean = !exists(x => !p(x))
+
   def withFilter(p: T => Boolean): WithFilter = new WithFilter(p)
 
   def collect[A](g: PartialFunction[T, A]): ForEach[A] = (f: A => Unit) => self.foreach(x => if (g.isDefinedAt(x)) f(g(x)))
 
   def to[A >: T, C](factory: Factory[A, C]): C = {
     val x = factory.newBuilder
-    this.foreach(y => x.addOne(y))
+    foreach(y => x.addOne(y))
     x.result()
   }
 
-  def toIndexedSeq[A >: T]: IndexedSeq[A] = to(IndexedSeq)
+  def toIndexedSeq: IndexedSeq[T] = to(IndexedSeq)
 
-  def toSeq[A >: T]: Seq[A] = to(Seq)
+  def toSeq: Seq[T] = to(Seq)
 
   def toSet[A >: T]: Set[A] = to(Set)
 
@@ -214,7 +227,7 @@ object ForEach {
 
   //def apply[T](fe: (T => Unit) => Unit): ForEach[T] = (f: T => Unit) => fe(f)
 
-  def from[T](x: IterableOnce[T]): ForEach[T] = {
+  implicit def from[T](x: IterableOnce[T]): ForEach[T] = {
     val col = new ForEach[T] {
       def foreach(f: T => Unit): Unit = x.iterator.foreach(f)
     }

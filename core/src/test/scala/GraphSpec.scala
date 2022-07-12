@@ -1,15 +1,17 @@
-import java.io.{File, FileInputStream, FileOutputStream}
-
 import GraphSpec._
 import com.github.propi.rdfrules.data._
 import eu.easyminer.discretization.impl.{Interval, IntervalBound}
 import org.apache.jena.riot.Lang
-import org.scalatest.{CancelAfterFailure, FlatSpec, Inside, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.{CancelAfterFailure, Inside}
+
+import java.io.{File, FileInputStream, FileOutputStream}
 
 /**
   * Created by Vaclav Zeman on 14. 1. 2018.
   */
-class GraphSpec extends FlatSpec with Matchers with Inside with CancelAfterFailure {
+class GraphSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFailure {
 
   private lazy val graph = Graph(dataYago)(RdfSource.Tsv)
   private lazy val graphDbpedia = Graph(dataDbpedia)(Lang.TTL)
@@ -34,29 +36,29 @@ class GraphSpec extends FlatSpec with Matchers with Inside with CancelAfterFailu
     graph.take(10).size shouldBe 10
     graph.take(2).triples.last shouldBe Triple("Azerbaijan", "dealsWith", TripleItem.LongUri("People's_Republic_of_China"))
     graph.drop(1).triples.head shouldBe Triple("Azerbaijan", "dealsWith", TripleItem.LongUri("People's_Republic_of_China"))
-    graph.slice(1, 2).triples.toList shouldBe List(Triple("Azerbaijan", "dealsWith", TripleItem.LongUri("People's_Republic_of_China")))
+    graph.slice(1, 2).triples.toSeq shouldBe List(Triple("Azerbaijan", "dealsWith", TripleItem.LongUri("People's_Republic_of_China")))
   }
 
   it should "have triples ops" in {
-    graph.properties().size shouldBe 33
-    val (uri, ranges) = graph.properties().head
+    graph.properties().iterator.size shouldBe 33
+    val (uri, ranges) = graph.properties().iterator.find(_._1.uri == "hasWonPrize").get
     uri shouldBe TripleItem.LongUri("hasWonPrize")
-    ranges.get(TripleItemType.Uri) shouldBe Some(1110)
-    graphDbpedia.properties().size shouldBe 1717
-    inside(graphDbpedia.properties().find(_._1.hasSameUriAs("http://cs.dbpedia.org/property/rok"))) {
+    ranges.sum(TripleItemType.Uri) shouldBe 1110
+    graphDbpedia.properties().iterator.size shouldBe 1717
+    inside(graphDbpedia.properties().iterator.find(_._1.hasSameUriAs("http://cs.dbpedia.org/property/rok"))) {
       case Some((uri, ranges)) =>
         uri shouldBe TripleItem.LongUri("http://cs.dbpedia.org/property/rok")
-        ranges.get(TripleItemType.Text) shouldBe Some(13)
-        ranges.get(TripleItemType.Number) shouldBe Some(2340)
+        ranges.sum(TripleItemType.Text) shouldBe 13
+        ranges.sum(TripleItemType.Number) shouldBe 2340
     }
     val histogram = graph.histogram(false, true)
-    histogram.size shouldBe 33
+    histogram.iterator.size shouldBe 33
     histogram.get(Histogram.Key().withPredicate("hasGeonamesId")) shouldBe Some(2103)
     val histogram2 = graph.filter(_.predicate.hasSameUriAs("hasOfficialLanguage")).histogram(false, true, true)
-    histogram2.size shouldBe 147
+    histogram2.iterator.size shouldBe 147
     histogram2.get(Histogram.Key().withPredicate("hasOfficialLanguage").withObject(TripleItem.LongUri("Russian_language"))) shouldBe Some(4)
     val histogram3 = graphDbpedia.filter(_.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok")).histogram(false, false, true)
-    histogram3.size shouldBe 178
+    histogram3.iterator.size shouldBe 178
     histogram3.get(Histogram.Key().withObject(TripleItem.Number(1981))) shouldBe Some(12)
   }
 
@@ -88,14 +90,14 @@ class GraphSpec extends FlatSpec with Matchers with Inside with CancelAfterFailu
     intervals2.length shouldBe 5
     intervals2.head shouldBe Interval(IntervalBound.Inclusive(7.0), IntervalBound.Exclusive(1962.5), 453)
     val intervals3 = graphDbpedia.discretizeAndGetIntervals(DiscretizationTask.Equisize(0.2, mode = DiscretizationTask.Mode.InMemory))(quad => quad.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
-    intervals3.length shouldBe 4
+    intervals3.length shouldBe 5
     intervals3.head shouldBe Interval(IntervalBound.Inclusive(7.0), IntervalBound.Exclusive(1975.5), 560)
     val dg = graphDbpedia.discretize(DiscretizationTask.Equifrequency(5))(quad => quad.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
     dg.size shouldBe 50000
-    dg.properties().find(_._1.hasSameUriAs("http://cs.dbpedia.org/property/rok")).get._2.get(TripleItemType.Interval) shouldBe Some(2340)
+    dg.properties().iterator.find(_._1.hasSameUriAs("http://cs.dbpedia.org/property/rok")).get._2.sum(TripleItemType.Interval) shouldBe 2340
     val histogram = dg.filter(_.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok")).histogram(false, false, true)
-    histogram.filter(_._1.o.exists(_.isInstanceOf[TripleItem.Interval])).foreach(x => x._2 shouldBe 450 +- 60)
-    histogram.filter(_._1.o.exists(_.isInstanceOf[TripleItem.Interval])).values.sum shouldBe 2340
+    histogram.iterator.filter(_._1.o.exists(_.isInstanceOf[TripleItem.Interval])).foreach(x => x._2 shouldBe 450 +- 60)
+    histogram.iterator.filter(_._1.o.exists(_.isInstanceOf[TripleItem.Interval])).map(_._2).sum shouldBe 2340
   }
 
   it should "be cacheable" in {

@@ -30,7 +30,7 @@ object Sortable {
       queue.dequeueAll.asInstanceOf[IndexedSeq[T]]
     }
 
-    def foreach(f: T => Unit): Unit = sorted.foreach(f)
+    def foreach(f: T => Unit): Unit = sorted.reverseIterator.foreach(f)
 
     override def knownSize: Int = sorted.knownSize
   }

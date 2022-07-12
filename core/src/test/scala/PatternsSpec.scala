@@ -3,18 +3,20 @@ import com.github.propi.rdfrules.data._
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.Debugger
-import org.scalatest.{CancelAfterFailure, FlatSpec, Inside, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.{CancelAfterFailure, Inside}
 
 /**
   * Created by Vaclav Zeman on 18. 4. 2018.
   */
-class PatternsSpec extends FlatSpec with Matchers with Inside with CancelAfterFailure {
+class PatternsSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFailure {
 
   private lazy val index = {
     Debugger() { implicit debugger =>
       val index = Dataset(Graph("yago", GraphSpec.dataYago)).index
-      index.tripleItemMap(_ => Unit)
-      index.tripleMap(_ => Unit)
+      index.tripleItemMap
+      index.tripleMap
       index
     }
   }
@@ -29,7 +31,7 @@ class PatternsSpec extends FlatSpec with Matchers with Inside with CancelAfterFa
       val ruleset = index.withDebugger.mine(amie.addPattern(AtomPattern(predicate = TripleItem.Uri("dealsWith")) =>: AtomPattern(predicate = TripleItem.Uri("imports"))))
       ruleset.size shouldBe 1638
       ruleset.resolvedRules.forall(x => x.body.exists(_.predicate.hasSameUriAs("dealsWith")) && x.head.predicate.hasSameUriAs("imports")) shouldBe true
-      ruleset.resolvedRules.view.map(_.ruleLength).toSet should contain only(2, 3)
+      ruleset.resolvedRules.map(_.ruleLength).toSet should contain only(2, 3)
     }
   }
 

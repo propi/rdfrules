@@ -1,5 +1,4 @@
 import java.io.{File, FileInputStream, FileOutputStream}
-
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.algorithm.dbscan.DbScan
 import com.github.propi.rdfrules.data._
@@ -8,14 +7,16 @@ import com.github.propi.rdfrules.index._
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.ruleset._
 import org.scalatest.enablers.Sortable
-import org.scalatest.{CancelAfterFailure, FlatSpec, Inside, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.{CancelAfterFailure, Inside}
 
 import scala.io.Source
 
 /**
   * Created by Vaclav Zeman on 18. 4. 2018.
   */
-class RulesetSpec extends FlatSpec with Matchers with Inside with CancelAfterFailure {
+class RulesetSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFailure {
 
   private lazy val dataset1 = Dataset(Graph("yago", GraphSpec.dataYago))
 
@@ -43,27 +44,27 @@ class RulesetSpec extends FlatSpec with Matchers with Inside with CancelAfterFai
 
   "Ruleset" should "count confidence" in {
     val rules = ruleset.computeConfidence(0.9)
-    all(rules.rules.map(_.measures[Measure.Confidence].value)) should be >= 0.9
+    all(rules.rules.map(_.measures[Measure.Confidence].value).toSeq) should be >= 0.9
     rules.size shouldBe 12
     val rules2 = ruleset.computeConfidence(0).rules
-    all(rules2.map(_.measures[Measure.Confidence].value)) should be >= 0.001
+    all(rules2.map(_.measures[Measure.Confidence].value).toSeq) should be >= 0.001
     rules2.size shouldBe 810
   }
 
   it should "count pca confidence" in {
     val rules = ruleset.computePcaConfidence(0.9).rules
-    all(rules.map(_.measures[Measure.PcaConfidence].value)) should be >= 0.9
-    rules.size shouldBe 50
+    all(rules.map(_.measures[Measure.PcaConfidence].value).toSeq) should be >= 0.9
+    rules.size shouldBe 57
   }
 
   it should "count lift" in {
     val rules = ruleset.computeLift().rules
-    all(rules.map(_.measures[Measure.Confidence].value)) should be >= 0.5
+    all(rules.map(_.measures[Measure.Confidence].value).toSeq) should be >= 0.5
     for (rule <- rules) {
       rule.measures.exists[Measure.Lift] shouldBe true
       rule.measures.exists[Measure.HeadConfidence] shouldBe true
     }
-    rules.size shouldBe 103
+    rules.size shouldBe 105
   }
 
   it should "sort by interest measures" in {
@@ -141,12 +142,12 @@ class RulesetSpec extends FlatSpec with Matchers with Inside with CancelAfterFai
       AtomPattern(predicate = TripleItem.Uri("livesIn")) =>: AtomPattern(predicate = TripleItem.Uri("hasCurrency")),
       AtomPattern(predicate = TripleItem.Uri("isCitizenOf"))
     )
-    x.resolvedRules.view.map(_.head.predicate) should contain allOf(TripleItem.Uri("hasCurrency"), TripleItem.Uri("isCitizenOf"))
+    x.resolvedRules.map(_.head.predicate).toSeq should contain allOf(TripleItem.Uri("hasCurrency"), TripleItem.Uri("isCitizenOf"))
     x.size shouldBe 30
   }
 
   it should "work with graph-based rules" in {
-    ruleset.graphBasedRules.resolvedRules.view.flatMap(x => x.body :+ x.head).foreach { x =>
+    ruleset.graphBasedRules.resolvedRules.flatMap(x => x.body :+ x.head).foreach { x =>
       x should matchPattern { case x: ResolvedRule.Atom.GraphBased if x.graphs("yago") => }
     }
     ruleset.filter(AtomPattern(graph = TripleItem.Uri("yago"))).size shouldBe ruleset.size
@@ -157,7 +158,7 @@ class RulesetSpec extends FlatSpec with Matchers with Inside with CancelAfterFai
     ruleset.graphBasedRules.cache("test.cache")
     val d = Ruleset.fromCache(ruleset.index, "test.cache")
     d.size shouldBe ruleset.size
-    d.resolvedRules.view.flatMap(x => x.body :+ x.head).foreach { x =>
+    d.resolvedRules.flatMap(x => x.body :+ x.head).foreach { x =>
       x should matchPattern { case x: ResolvedRule.Atom.GraphBased if x.graphs("yago") => }
     }
     //export
@@ -182,10 +183,10 @@ class RulesetSpec extends FlatSpec with Matchers with Inside with CancelAfterFai
 
   it should "find most similar or dissimilar rules" in {
     val rule = ruleset.sorted.headResolved
-    ruleset.findSimilar(rule, 10).resolvedRules.view.map(x => x.body :+ x.head).map(_.map(_.predicate)).foreach { simRule =>
+    ruleset.findSimilar(rule, 10).resolvedRules.map(x => x.body :+ x.head).map(_.map(_.predicate)).foreach { simRule =>
       simRule should contain atLeastOneOf(TripleItem.Uri("created"), TripleItem.Uri("directed"))
     }
-    ruleset.findDissimilar(rule, 10).resolvedRules.view.map(x => x.body :+ x.head).map(_.map(_.predicate)).foreach { simRule =>
+    ruleset.findDissimilar(rule, 10).resolvedRules.map(x => x.body :+ x.head).map(_.map(_.predicate)).foreach { simRule =>
       simRule should contain noneOf(TripleItem.Uri("created"), TripleItem.Uri("directed"))
     }
   }

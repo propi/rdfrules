@@ -25,6 +25,7 @@ object TripleItem {
 
     def intern: Uri
 
+    def uri: String
     //override def resolved(implicit mapper: TripleItemHashIndex): Uri = this
   }
 
@@ -76,7 +77,9 @@ object TripleItem {
   }
 
   case class PrefixedUri(prefix: Prefix, localName: String) extends Uri {
-    def toLongUri: LongUri = LongUri(prefix.nameSpace + localName)
+    def toLongUri: LongUri = LongUri(uri)
+
+    def uri: String = s"${prefix.nameSpace}$localName"
 
     def hasSameUriAs(uri: Uri): Boolean = toLongUri.hasSameUriAs(uri)
 
@@ -101,14 +104,16 @@ object TripleItem {
         if (prefix.isEmpty) {
           toLongUri.toString
         } else {
-          prefix + ":" + localName
+          s"$prefix:$localName"
         }
       case _: Prefix.Namespace => toLongUri.toString
     }
   }
 
   case class BlankNode(id: String) extends Uri {
-    override def toString: String = "_:" + id
+    override def toString: String = s"_:$id"
+
+    def uri: String = id
 
     def intern: Uri = BlankNode(id.intern())
 

@@ -24,6 +24,7 @@ val jenaV = "3.4.0"
 libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
 libraryDependencies += "org.apache.jena" % "jena-arq" % jenaV
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5"
+//libraryDependencies += "com.github.KIZI" %% "easyminer-discretization" % "1.3.0"
 libraryDependencies += "com.github.KIZI" % "easyminer-discretization" % "822da73931"
 libraryDependencies += "io.spray" %% "spray-json" % "1.3.6"
 //libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.6" % "test"

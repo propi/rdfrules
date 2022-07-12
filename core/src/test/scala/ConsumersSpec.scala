@@ -1,5 +1,4 @@
 import java.io.File
-
 import com.github.propi.rdfrules.algorithm.RuleConsumer
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.algorithm.consumer.{InMemoryRuleConsumer, OnDiskRuleConsumer, TopKRuleConsumer}
@@ -8,20 +7,22 @@ import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.Constan
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.Debugger
-import org.scalatest.{CancelAfterFailure, FlatSpec, Inside, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.{CancelAfterFailure, Inside}
+import org.scalatest.matchers.should.Matchers
 
 import scala.io.Source
 
 /**
   * Created by Vaclav Zeman on 18. 4. 2018.
   */
-class ConsumersSpec extends FlatSpec with Matchers with Inside with CancelAfterFailure {
+class ConsumersSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFailure {
 
   private lazy val index = {
     Debugger() { implicit debugger =>
       val index = Dataset(Graph("yago", GraphSpec.dataYago)).index
-      index.tripleItemMap(_ => Unit)
-      index.tripleMap(_ => Unit)
+      index.tripleItemMap
+      index.tripleMap
       index
     }
   }

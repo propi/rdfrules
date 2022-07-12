@@ -16,7 +16,7 @@ class Histogram private(col: ForEach[Key]) {
 
 object Histogram {
 
-  case class Key(s: Option[TripleItem.Uri], p: Option[TripleItem.Uri], o: Option[TripleItem]) {
+  case class Key(s: Option[TripleItem.Uri] = None, p: Option[TripleItem.Uri] = None, o: Option[TripleItem] = None) {
     def withSubject(uri: TripleItem.Uri): Key = this.copy(s = Some(uri))
 
     def withPredicate(uri: TripleItem.Uri): Key = this.copy(p = Some(uri))

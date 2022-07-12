@@ -1,14 +1,15 @@
 import java.io.{File, FileInputStream, FileOutputStream}
-
 import GraphSpec.dataDbpedia
 import com.github.propi.rdfrules.data._
 import org.apache.jena.riot.Lang
-import org.scalatest.{CancelAfterFailure, FlatSpec, Inside, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.{CancelAfterFailure, Inside}
 
 /**
   * Created by Vaclav Zeman on 12. 3. 2018.
   */
-class DatasetSpec extends FlatSpec with Matchers with Inside with CancelAfterFailure {
+class DatasetSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFailure {
 
   private lazy val dataset = Dataset() + Graph("yago", GraphSpec.dataYago) + Graph("dbpedia", dataDbpedia)(Lang.TTL)
 
@@ -20,7 +21,7 @@ class DatasetSpec extends FlatSpec with Matchers with Inside with CancelAfterFai
     val dbpg = Graph("graph-uri", dataDbpedia)(Lang.TTL)
     d = d + dbpg
     d.toGraphs.size shouldBe 2
-    d.toGraphs.map(_.name) should contain(TripleItem.Uri("graph-uri"))
+    d.toGraphs.map(_.name).toSeq should contain(TripleItem.Uri("graph-uri"))
     d.size shouldBe (46654 + dbpg.size)
   }
 
@@ -28,12 +29,12 @@ class DatasetSpec extends FlatSpec with Matchers with Inside with CancelAfterFai
     dataset.quads.size shouldBe dataset.triples.size
     dataset.userDefinedPrefixes.size shouldBe 0
     dataset.addPrefixes(getClass.getResourceAsStream("/prefixes.ttl")).userDefinedPrefixes.size shouldBe 2
-    dataset.histogram(false, true).size shouldBe 1750
+    dataset.histogram(false, true).iterator.size shouldBe 1750
     val intervals = dataset.discretizeAndGetIntervals(DiscretizationTask.Equifrequency(5))(_.triple.predicate.hasSameUriAs("http://cs.dbpedia.org/property/rok"))
     intervals.length shouldBe 5
     intervals.head.getLeftBoundValue() shouldBe 7.0
     intervals.last.getRightBoundValue() shouldBe 20010.0
-    dataset.properties().size shouldBe 1750
+    dataset.properties().iterator.size shouldBe 1750
     dataset.take(10).size shouldBe 10
     dataset.filter(q => q.graph == TripleItem.Uri("yago")).size shouldBe 46654
   }
@@ -43,7 +44,7 @@ class DatasetSpec extends FlatSpec with Matchers with Inside with CancelAfterFai
     val d = Dataset.fromCache(new FileInputStream("test.cache"))
     d.size shouldBe 96654
     d.toGraphs.size shouldBe 2
-    d.toGraphs.toList.map(_.name) should contain only(TripleItem.Uri("yago"), TripleItem.Uri("dbpedia"))
+    d.toGraphs.toSeq.map(_.name) should contain only(TripleItem.Uri("yago"), TripleItem.Uri("dbpedia"))
     new File("test.cache").delete() shouldBe true
   }
 
@@ -60,7 +61,7 @@ class DatasetSpec extends FlatSpec with Matchers with Inside with CancelAfterFai
     val d = Dataset("test.nq")
     d.size shouldBe 96654
     d.toGraphs.size shouldBe 2
-    d.toGraphs.toList.map(_.name) should contain only(TripleItem.Uri("yago"), TripleItem.Uri("dbpedia"))
+    d.toGraphs.toSeq.map(_.name) should contain only(TripleItem.Uri("yago"), TripleItem.Uri("dbpedia"))
     new File("test.nq").delete() shouldBe true
   }
 

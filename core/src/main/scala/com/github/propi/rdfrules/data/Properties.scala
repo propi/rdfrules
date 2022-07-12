@@ -15,6 +15,10 @@ class Properties private(col: TripleTraversableView) {
       hmap.getOrElseUpdate(tripleItemType, IncrementalInt()).++
       this
     }
+
+    def sum(tripleItemType: TripleItemType): Int = hmap.get(tripleItemType).map(_.getValue).getOrElse(0)
+
+    override def toString: String = hmap.iterator.map(x => s"${x._1}: ${x._2.getValue}").mkString(", ")
   }
 
   private lazy val map = {
@@ -32,7 +36,9 @@ class Properties private(col: TripleTraversableView) {
 
 object Properties {
 
-  sealed trait PropertyStats
+  sealed trait PropertyStats {
+    def sum(tripleItemType: TripleItemType): Int
+  }
 
   def apply(col: TripleTraversableView): Properties = new Properties(col)
 
