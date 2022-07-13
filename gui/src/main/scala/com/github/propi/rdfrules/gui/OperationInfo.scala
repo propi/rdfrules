@@ -12,6 +12,10 @@ sealed trait OperationInfo {
   val name: String
   val title: String
   val `type`: Operation.Type
+
+  //val can not be overrided, therefore, def is here instead of val
+  def groups: Set[OperationGroup]
+
   val description: String
   val followingOperations: Constants[OperationInfo]
 
@@ -53,6 +57,8 @@ object OperationInfo {
       Properties,
       Histogram
     )
+
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Dataset
   }
 
   sealed trait IndexTransformation extends Transformation {
@@ -66,6 +72,8 @@ object OperationInfo {
       EvaluateIndex,
       CacheIndexAction,
     )
+
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Index
   }
 
   sealed trait RulesetTransformation extends Transformation {
@@ -94,6 +102,8 @@ object OperationInfo {
       RulesetSize,
       EvaluateRuleset
     )
+
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Ruleset
   }
 
   sealed trait ModelTransformation extends Transformation {
@@ -110,6 +120,8 @@ object OperationInfo {
       GetRules,
       RulesetSize
     )
+
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Model
   }
 
   object Root extends Transformation {
@@ -122,6 +134,8 @@ object OperationInfo {
       ModelTransformation.LoadModel
     )
     val description: String = ""
+
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Dataset
 
     def buildOperation(from: Operation): Operation = new Root
   }
@@ -357,11 +371,17 @@ object OperationInfo {
     }
 
     object CacheDataset extends OperationInfo.CacheDataset with DatasetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.CacheDataset(from, this)
+      def buildOperation(from: Operation): Operation = buildOperation(from, None)
+
+      def buildOperation(from: Operation, id: Option[String]): Operation = new operations.CacheDataset(from, this, id)
+
+      override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
     }
 
     object Index extends OperationInfo.Index with IndexTransformation {
       def buildOperation(from: Operation): Operation = new operations.Index(from, this)
+
+      override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Transforming
     }
 
   }
@@ -374,26 +394,40 @@ object OperationInfo {
 
     object Mine extends OperationInfo.Mine with RulesetTransformation {
       def buildOperation(from: Operation): Operation = new operations.Mine(from, this)
+
+      override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Transforming
     }
 
     object CompleteDataset extends OperationInfo.CompleteDataset with DatasetTransformation {
       def buildOperation(from: Operation): Operation = new operations.CompleteDataset(from, this, true)
+
+      override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Transforming
     }
 
     object PredictTriples extends OperationInfo.PredictTriples with DatasetTransformation {
       def buildOperation(from: Operation): Operation = new operations.PredictTriples(from, this, true)
+
+      override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Transforming
     }
 
     object CacheIndex extends OperationInfo.CacheIndex with IndexTransformation {
-      def buildOperation(from: Operation): Operation = new operations.CacheIndex(from, this)
+      def buildOperation(from: Operation): Operation = buildOperation(from, None)
+
+      def buildOperation(from: Operation, id: Option[String]): Operation = new operations.CacheIndex(from, this, id)
+
+      override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
     }
 
     object ToDataset extends OperationInfo.ToDataset with DatasetTransformation {
       def buildOperation(from: Operation): Operation = new operations.ToDataset(from, this)
+
+      override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Transforming
     }
 
     object LoadRuleset extends OperationInfo.LoadRuleset with RulesetTransformation {
       def buildOperation(from: Operation): Operation = new operations.LoadRuleset(from, this)
+
+      override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Transforming
     }
 
   }
@@ -425,15 +459,23 @@ object OperationInfo {
     }
 
     object CacheRuleset extends OperationInfo.CacheRuleset with RulesetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.CacheRuleset(from, this)
+      def buildOperation(from: Operation): Operation = buildOperation(from, None)
+
+      def buildOperation(from: Operation, id: Option[String]): Operation = new operations.CacheRuleset(from, this, id)
+
+      override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
     }
 
     object CompleteDataset extends OperationInfo.CompleteDataset with DatasetTransformation {
       def buildOperation(from: Operation): Operation = new operations.CompleteDataset(from, this, false)
+
+      override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Transforming
     }
 
     object PredictTriples extends OperationInfo.PredictTriples with DatasetTransformation {
       def buildOperation(from: Operation): Operation = new operations.PredictTriples(from, this, false)
+
+      override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Transforming
     }
 
     object Prune extends OperationInfo.Prune with RulesetTransformation {
@@ -545,7 +587,9 @@ object OperationInfo {
     }
 
     object CacheRuleset extends OperationInfo.CacheRuleset with ModelTransformation {
-      def buildOperation(from: Operation): Operation = new operations.CacheRuleset(from, this)
+      def buildOperation(from: Operation): Operation = new operations.CacheRuleset(from, this, None)
+
+      override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
     }
 
   }
@@ -555,6 +599,8 @@ object OperationInfo {
     val title: String = "Cache"
     val description: String = "Serialize loaded ruleset into a file in the workspace at the server side for later use."
 
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Ruleset &+ OperationGroup.Caching
+
     def buildOperation(from: Operation): Operation = new actions.CacheRuleset(from)
   }
 
@@ -562,6 +608,8 @@ object OperationInfo {
     val name: String = "ExportRules"
     val title: String = "Export"
     val description: String = "Export the ruleset into a file in the workspace."
+
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Ruleset
 
     def buildOperation(from: Operation): Operation = new actions.ExportRules(from)
   }
@@ -571,6 +619,8 @@ object OperationInfo {
     val title: String = "Get rules"
     val description: String = "Get first 10000 rules from the ruleset."
 
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Ruleset
+
     def buildOperation(from: Operation): Operation = new actions.GetRules(from)
   }
 
@@ -578,6 +628,8 @@ object OperationInfo {
     val name: String = "RulesetSize"
     val title: String = "Size"
     val description: String = "Get number of rules from the ruleset."
+
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Ruleset
 
     def buildOperation(from: Operation): Operation = new actions.RulesetSize(from)
   }
@@ -587,6 +639,8 @@ object OperationInfo {
     val title: String = "Cache"
     val description: String = "Serialize loaded dataset into a file in the workspace at the server side for later use."
 
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Dataset &+ OperationGroup.Caching
+
     def buildOperation(from: Operation): Operation = new actions.CacheDataset(from)
   }
 
@@ -594,6 +648,8 @@ object OperationInfo {
     val name: String = "ExportQuads"
     val title: String = "Export"
     val description: String = "Export the loaded and transformed dataset into a file in the workspace in an RDF format."
+
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Dataset
 
     def buildOperation(from: Operation): Operation = new actions.ExportQuads(from)
   }
@@ -603,6 +659,8 @@ object OperationInfo {
     val title: String = "Get quads"
     val description: String = "Get first 10000 quads from the loaded dataset."
 
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Dataset
+
     def buildOperation(from: Operation): Operation = new actions.GetQuads(from)
   }
 
@@ -610,6 +668,8 @@ object OperationInfo {
     val name: String = "Prefixes"
     val title: String = "Get prefixes"
     val description: String = "Show all prefixes defined in the loaded dataset."
+
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Dataset
 
     def buildOperation(from: Operation): Operation = new actions.Prefixes(from)
   }
@@ -619,6 +679,8 @@ object OperationInfo {
     val title: String = "Size"
     val description: String = "Get number of quads from the loaded dataset."
 
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Dataset
+
     def buildOperation(from: Operation): Operation = new actions.DatasetSize(from)
   }
 
@@ -626,6 +688,8 @@ object OperationInfo {
     val name: String = "Properties"
     val title: String = "Properties"
     val description: String = "Get all properties and their ranges with sizes."
+
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Dataset
 
     def buildOperation(from: Operation): Operation = new actions.Properties(from)
   }
@@ -635,6 +699,8 @@ object OperationInfo {
     val title: String = "Histogram"
     val description: String = "Aggregate triples by their parts and show the histogram."
 
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Dataset
+
     def buildOperation(from: Operation): Operation = new actions.Histogram(from)
   }
 
@@ -642,6 +708,8 @@ object OperationInfo {
     val name: String = "CacheIndex"
     val title: String = "Cache"
     val description: String = "Serialize loaded index into a file in the workspace at the server side for later use."
+
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Index &+ OperationGroup.Caching
 
     def buildOperation(from: Operation): Operation = new actions.CacheIndex(from)
   }
@@ -651,6 +719,8 @@ object OperationInfo {
     val title: String = "Evaluate model"
     val description: String = "Evaluate a rules model based on the loaded dataset as the test set."
 
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Index
+
     def buildOperation(from: Operation): Operation = new actions.Evaluate(from, this, true)
   }
 
@@ -658,6 +728,8 @@ object OperationInfo {
     val name: String = "Evaluate"
     val title: String = "Evaluate model"
     val description: String = "Evaluate a rules model based on the loaded index as the test set."
+
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Ruleset
 
     def buildOperation(from: Operation): Operation = new actions.Evaluate(from, this, false)
   }

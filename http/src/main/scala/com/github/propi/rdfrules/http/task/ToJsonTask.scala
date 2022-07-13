@@ -66,7 +66,7 @@ object ToJsonTask extends TaskDefinition {
   }
 
   object FromTypes extends ToJsonTask[Seq[(TripleItem.Uri, PropertyStats)]] {
-    def execute(input: Seq[(TripleItem.Uri, PropertyStats)]): Source[JsValue, NotUsed] = Source.fromIterator(() => input.iterator.map(x => x._1.toJson -> x._2.toJson).map(_.toJson))
+    def execute(input: Seq[(TripleItem.Uri, PropertyStats)]): Source[JsValue, NotUsed] = Source.fromIterator(() => input.iterator.map(x => JsObject("predicate" -> x._1.toJson, "types" -> x._2.toJson)).map(_.toJson))
   }
 
   object FromHistogram extends ToJsonTask[Seq[(Histogram.Key, Int)]] {

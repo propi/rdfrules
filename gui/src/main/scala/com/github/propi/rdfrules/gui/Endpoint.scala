@@ -9,6 +9,7 @@ import org.scalajs.dom.Event
 import org.scalajs.dom.html.Div
 import org.scalajs.dom.raw.ProgressEvent
 
+import scala.concurrent.{Future, Promise}
 import scala.scalajs.js
 import scala.scalajs.js.JSON
 
@@ -55,10 +56,23 @@ object Endpoint {
           </span>
           <span class="clear" onclick={_: Event => get[String]("/cache/clear")(_ => ())}>(clear)</span>
         </div>
+        <div>
+          <span>Auto-caching:</span>
+          <span class="auto-caching-state">
+            {if (AutoCaching.isOn.bind) "On" else "Off"}
+          </span>
+          <span class="change-auto-caching" onclick={_: Event => AutoCaching.toggle()}>{if (AutoCaching.isOn.bind) "(turn off)" else "(turn on)"}</span>
+        </div>
       </div>
       case None => <div></div>
     }}
     </div>
+  }
+
+  def removeCache(id: String): Future[Boolean] = {
+    val res = Promise[Boolean]()
+    Endpoint.delete[String](s"/cache/$id")(x => res.success(x.data == "removed"))
+    res.future
   }
 
   def request(url: String, method: String, data: Option[js.Any], contentType: Option[String] = Some("application/json"), uploadProgress: UploadProgress => Unit = _ => ())(callback: Response[String] => Unit): Unit = {

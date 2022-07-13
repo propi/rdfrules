@@ -49,7 +49,7 @@ class Server(context: ActorContext[MainMessage], route: Route, serverConf: Serve
     }
     val stoppingEndpoint = {
       val st = stoppingToken.trim
-      if (st.length > 0) {
+      if (st.nonEmpty) {
         Some(
           path(st) {
             context.scheduleOnce(2 seconds, context.self, MainMessage.Stop)
@@ -75,14 +75,12 @@ class Server(context: ActorContext[MainMessage], route: Route, serverConf: Serve
             mapResponseEntity(jsonToUtf8JsonEntity) {
               handleRejections(rejectionHandler) {
                 handleExceptions(exceptionHandler) {
-                  pathPrefix(rootPath) {
-                    val innerRoute = cancelRejections(classOf[MethodRejection]) {
-                      options {
-                        complete("")
-                      }
-                    } ~ route
-                    stoppingEndpoint.map(innerRoute ~ _).getOrElse(innerRoute)
-                  }
+                  val innerRoute = cancelRejections(classOf[MethodRejection]) {
+                    options {
+                      complete("")
+                    }
+                  } ~ route
+                  stoppingEndpoint.map(innerRoute ~ _).getOrElse(innerRoute)
                 }
               }
             }
@@ -103,7 +101,7 @@ class Server(context: ActorContext[MainMessage], route: Route, serverConf: Serve
   def bind(): Future[Http.ServerBinding] = {
     val bindingFuture = Http().newServerAt(host, port).bind(rootRoute)
     bindingFuture.foreach { serverBinding =>
-      println(s"Server online at http://$host:$port/$rootPath")
+      println(s"Server online at http://$host:$port/")
       bindingPromise.success(serverBinding)
     }
     bindingPromise.future

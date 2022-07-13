@@ -697,9 +697,13 @@ main {
   border-bottom: 2px solid black;
   padding: 0.2em;
 }
-.memory-info .clear {
+.memory-info .clear,
+.memory-info .change-auto-caching {
   cursor: pointer;
   color: #548dff;
   text-decoration: underline;
+}
+.memory-info .auto-caching-state {
+  font-weight: bold;
 }
 /*# sourceMappingURL=home.css.map */

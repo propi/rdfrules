@@ -2,6 +2,9 @@ package com.github.propi.rdfrules.gui.utils
 
 import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.BindingSeq
+import org.lrng.binding.html
+import org.scalajs.dom.Node
+import org.scalajs.dom.html.Div
 
 import scala.collection.mutable
 
@@ -9,6 +12,12 @@ import scala.collection.mutable
   * Created by Vaclav Zeman on 29. 1. 2019.
   */
 object ReactiveBinding {
+
+  @html
+  def empty: Binding[Div] = <div></div>
+
+  @html
+  def custom(x: Binding[Div]): Binding[Div] = <div>{x.bind}</div>
 
   trait Listener[T] {
     def changed(oldValue: T, newValue: T): Unit

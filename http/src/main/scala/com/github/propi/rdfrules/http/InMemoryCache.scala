@@ -66,6 +66,8 @@ object InMemoryCache {
     }
   }
 
+  def remove(key: String): Unit = hmap.remove(key)
+
   def get[T](key: String)(implicit tag: ClassTag[T]): Option[T] = hmap.get(key).flatMap { value =>
     value.refresh()
     value.to[T]

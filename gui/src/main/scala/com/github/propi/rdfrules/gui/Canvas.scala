@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.gui
 
 import com.github.propi.rdfrules.gui.operations.Root
+import com.github.propi.rdfrules.gui.utils.ReactiveBinding
 import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.{Constant, Var, Vars}
 import org.lrng.binding.html
@@ -40,7 +41,7 @@ class Canvas {
         <i class="material-icons">close</i>
       </a>{modal.bind match {
       case Some(x) => x.bind
-      case None => Constant(<div></div>).asInstanceOf[Binding[Div]].bind
+      case None => ReactiveBinding.empty.bind
     }}<div class="ok">
       <span onclick={_: Event => closeModal()}>Ok</span>
     </div>

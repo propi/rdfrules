@@ -10,11 +10,11 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class CacheRuleset(fromOperation: Operation, val info: OperationInfo) extends Operation {
+class CacheRuleset(fromOperation: Operation, val info: OperationInfo, id: Option[String]) extends Operation {
   val properties: Constants[Property] = {
     val path = new DynamicElement(Constants(
       new FixedText[String]("path", "Path or Cache ID", description = "A relative path to a file related to the workspace where the serialized ruleset should be saved.", validator = NonEmpty),
-      new FixedText[String]("path", "Path or Cache ID", description = "The cache identifier in the memory.", validator = NonEmpty, default = UUID.randomUUID().toString)
+      new FixedText[String]("path", "Path or Cache ID", description = "The cache identifier in the memory.", validator = NonEmpty, default = id.getOrElse(UUID.randomUUID().toString))
     ))
     path.setElement(1)
     Constants(

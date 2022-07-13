@@ -18,6 +18,12 @@ class Cache {
       InMemoryCache.clear()
       System.gc()
       complete("cleared")
+    } ~ path(Segment) { id =>
+      delete {
+        InMemoryCache.remove(id)
+        System.gc()
+        complete("removed")
+      }
     }
   }
 

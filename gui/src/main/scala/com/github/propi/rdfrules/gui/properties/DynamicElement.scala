@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Property
+import com.github.propi.rdfrules.gui.utils.ReactiveBinding
 import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.{Constant, Constants, Var}
 import org.lrng.binding.html
@@ -43,7 +44,7 @@ class DynamicElement(properties: Constants[Property], description: String = "", 
     if (activeIndex >= 0) {
       properties.value(activeIndex).valueView.bind
     } else {
-      Constant(<div></div>).asInstanceOf[Binding[Div]].bind
+      ReactiveBinding.empty.bind
     }}
   </div>
 

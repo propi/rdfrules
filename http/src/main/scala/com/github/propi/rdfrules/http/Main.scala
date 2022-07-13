@@ -34,14 +34,14 @@ object Main extends ServerConf {
         val memoryInfo = InMemoryCache.getMemoryInfo
         headers ++ List(RawHeader("MemoryCache-Total", memoryInfo.total.toString), RawHeader("MemoryCache-Free", memoryInfo.free.toString), RawHeader("MemoryCache-Items", memoryInfo.itemsInCache.toString))
       } {
-        (new service.Workspace).route ~ (new service.Cache).route ~ new Task(taskService).route ~ webappDir.map { dir =>
-          pathPrefix("webapp") {
-            pathEndOrSingleSlash {
-              extractUri { uri =>
-                redirect(uri.withPath(uri.path ?/ "index.html"), StatusCodes.SeeOther)
-              }
-            } ~ getFromBrowseableDirectory(dir)
-          }
+        pathPrefix("api") {
+          (new service.Workspace).route ~ (new service.Cache).route ~ new Task(taskService).route
+        } ~ webappDir.map { dir =>
+          pathEndOrSingleSlash {
+            extractUri { uri =>
+              redirect(uri.withPath(uri.path ?/ "index.html"), StatusCodes.SeeOther)
+            }
+          } ~ getFromBrowseableDirectory(dir)
         }.getOrElse(reject)
       }
       val server = Server(context, route, this)

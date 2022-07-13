@@ -39,10 +39,10 @@ object CommonDataJsonWriters {
     case TripleItemType.Interval => JsString("Interval")
   }
 
-  implicit val typeWriter: RootJsonWriter[(TripleItem.Uri, collection.Map[TripleItemType, Int])] = (obj: (TripleItem.Uri, collection.Map[TripleItemType, Int])) => JsObject(
+  /*implicit val typeWriter: RootJsonWriter[(TripleItem.Uri, collection.Map[TripleItemType, Int])] = (obj: (TripleItem.Uri, collection.Map[TripleItemType, Int])) => JsObject(
     "predicate" -> obj._1.asInstanceOf[TripleItem].toJson,
     "types" -> JsArray(obj._2.iterator.map(x => JsObject("name" -> x._1.toJson, "amount" -> x._2.toJson)).toVector)
-  )
+  )*/
 
   implicit val histogramWriter: RootJsonWriter[(Histogram.Key, Int)] = (obj: (Histogram.Key, Int)) => JsObject(
     "subject" -> obj._1.s.map(_.asInstanceOf[TripleItem].toJson).getOrElse(JsNull),
@@ -51,7 +51,7 @@ object CommonDataJsonWriters {
     "amount" -> obj._2.toJson
   )
 
-  implicit val propertyStatsWriter: RootJsonWriter[PropertyStats] = (obj: PropertyStats) => obj.iterator.map(x => x._1.toJson -> x._2.toJson).toMap.toJson
+  implicit val propertyStatsWriter: RootJsonWriter[PropertyStats] = (obj: PropertyStats) => obj.iterator.map(x => JsObject("name" -> x._1.toJson, "amount" -> x._2.toJson)).toSeq.toJson
 
   implicit val taskResponseInProgressWriter: RootJsonWriter[TaskResponse.InProgress] = (obj: TaskResponse.InProgress) => JsObject(
     "id" -> obj.id.toString.toJson,

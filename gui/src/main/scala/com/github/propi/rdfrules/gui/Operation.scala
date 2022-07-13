@@ -1,13 +1,16 @@
 package com.github.propi.rdfrules.gui
 
+import com.github.propi.rdfrules.gui.AutoCaching.AutoCachingSession
 import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.{Constants, Var}
 import org.lrng.binding.html
 import org.scalajs.dom.html.{Anchor, Div}
 import org.scalajs.dom.{Event, MouseEvent}
 
+import scala.annotation.tailrec
 import scala.concurrent.Future
 import scala.scalajs.js
+import scala.scalajs.concurrent.JSExecutionContext.Implicits._
 
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
@@ -87,10 +90,16 @@ trait Operation {
     js.Dictionary(properties.value.iterator.map(x => x.name -> x.toJson).filter(x => !js.isUndefined(x._2)).toList: _*)
   }
 
-  def toJson(list: List[js.Any]): List[js.Any] = {
-    val json = js.Dynamic.literal(name = info.name, parameters = propertiesToJson)
+  @tailrec
+  final def toJson(list: List[js.Any])(implicit autoCaching: AutoCachingSession = AutoCaching.Noop): List[js.Any] = {
     previousOperation.value match {
-      case Some(op) => op.toJson(json :: list)
+      case Some(op) =>
+        val json = js.Dynamic.literal(name = info.name, parameters = propertiesToJson)
+        val jsonCache = autoCaching.tryCache(this).map(cache => js.Dynamic.literal(name = cache.info.name, parameters = cache.propertiesToJson))
+        op.toJson(Function.chain[List[js.Any]](List(
+          list => jsonCache.map(_ :: list).getOrElse(list),
+          json :: _,
+        ))(list))
       case None => list
     }
   }
@@ -98,7 +107,10 @@ trait Operation {
   private def launchAction(): Boolean = {
     val isValid = validateAll()
     if (isValid) {
-      buildActionProgress(Task.sendTask(js.Array(toJson(Nil): _*))).foreach(x => actionProgress.value = Some(x))
+      val jsonTask = AutoCaching { implicit autoCaching =>
+        toJson(Nil)
+      }
+      buildActionProgress(jsonTask.flatMap(jsonTask => Task.sendTask(js.Array(jsonTask: _*)))).foreach(x => actionProgress.value = Some(x))
     }
     isValid
   }
