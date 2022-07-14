@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.algorithm.consumer
 
 import com.github.propi.rdfrules.algorithm.RuleConsumer
 import com.github.propi.rdfrules.rule.Rule
+import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.utils.ForEach
 
 import java.io.File
@@ -12,11 +13,11 @@ import scala.language.postfixOps
 
 class InMemoryRuleConsumer private(prettyPrintedFile: Option[(File, File => PrettyPrintedWriter)]) extends RuleConsumer.NoEventRuleConsumer {
 
-  private val rules = new ConcurrentLinkedQueue[Rule.Simple]
+  private val rules = new ConcurrentLinkedQueue[FinalRule]
   private val isSavingToDisk = prettyPrintedFile.isDefined
 
   private lazy val messages = {
-    val messages = new LinkedBlockingQueue[Option[Rule.Simple]]
+    val messages = new LinkedBlockingQueue[Option[FinalRule]]
     val job = new Runnable {
       def run(): Unit = {
         val prettyPrintedWriter = prettyPrintedFile.map(x => x._2(x._1)).get
@@ -50,7 +51,7 @@ class InMemoryRuleConsumer private(prettyPrintedFile: Option[(File, File => Pret
   }
 
   def send(rule: Rule): Unit = {
-    val ruleSimple = Rule.Simple(rule)
+    val ruleSimple = Rule(rule)
     rules.add(ruleSimple)
     if (isSavingToDisk) {
       messages.put(Some(ruleSimple))
@@ -61,10 +62,10 @@ class InMemoryRuleConsumer private(prettyPrintedFile: Option[(File, File => Pret
     if (isSavingToDisk) {
       messages.put(None)
     }
-    RuleConsumer.Result(new ForEach[Rule.Simple] {
+    RuleConsumer.Result(new ForEach[FinalRule] {
       override lazy val knownSize: Int = rules.size()
 
-      def foreach(f: Rule.Simple => Unit): Unit = rules.iterator().asScala.foreach(f)
+      def foreach(f: FinalRule => Unit): Unit = rules.iterator().asScala.foreach(f)
     })
   }
 

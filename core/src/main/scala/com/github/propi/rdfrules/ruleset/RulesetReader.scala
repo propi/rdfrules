@@ -3,6 +3,7 @@ package com.github.propi.rdfrules.ruleset
 import java.io.{File, FileInputStream}
 import com.github.propi.rdfrules.data.Compression
 import com.github.propi.rdfrules.data.formats.Compressed
+import com.github.propi.rdfrules.rule.ResolvedRule
 import com.github.propi.rdfrules.utils.{ForEach, InputStreamBuilder}
 
 import scala.language.implicitConversions

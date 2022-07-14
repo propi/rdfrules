@@ -3,7 +3,6 @@ package com.github.propi.rdfrules.rule
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting._
 import com.github.propi.rdfrules.index.TripleItemHashIndex
-import com.github.propi.rdfrules.ruleset.ResolvedRule
 import com.github.propi.rdfrules.utils.{Stringifier, TypedKeyMap}
 
 import scala.language.implicitConversions
@@ -47,25 +46,47 @@ trait Rule {
 
 object Rule {
 
-  case class Simple(head: Atom, body: IndexedSeq[Atom])(val measures: TypedKeyMap.Immutable[Measure]) extends Rule {
+  sealed trait FinalRule extends Rule {
+    def withMeasures(measure: TypedKeyMap.Immutable[Measure]): FinalRule
+  }
+
+  private case class Simple(head: Atom, body: IndexedSeq[Atom])(val measures: TypedKeyMap.Immutable[Measure]) extends FinalRule {
     def support: Int = measures[Measure.Support].value
 
     def headSize: Int = measures[Measure.HeadSize].value
 
     def headCoverage: Double = measures[Measure.HeadCoverage].value
+
+    def withMeasures(measure: TypedKeyMap.Immutable[Measure]): FinalRule = copy()(measure)
   }
 
-  object Simple {
-    implicit def apply(rule: Rule): Simple = new Simple(rule.head, rule.body)(TypedKeyMap(
-      Measure.Support(rule.support),
-      Measure.HeadSize(rule.headSize),
-      Measure.HeadCoverage(rule.headCoverage)
-    ))
+  def apply(head: Atom, body: IndexedSeq[Atom])(measures: TypedKeyMap.Immutable[Measure]): FinalRule = {
+    val measuresMap = Function.chain[TypedKeyMap.Immutable[Measure]](List(
+      m => if (m.exists[Measure.Support]) m else m + Measure.Support(0),
+      m => if (m.exists[Measure.HeadSize]) m else m + Measure.HeadSize(0),
+      m => if (m.exists[Measure.HeadCoverage]) m else m + Measure.HeadCoverage(0.0)
+    ))(measures)
+    Simple(head, body)(measuresMap)
   }
+
+  def apply(head: Atom, body: IndexedSeq[Atom], measures: Measure*): FinalRule = {
+    val measuresMap = Function.chain[TypedKeyMap[Measure]](List(
+      m => if (m.exists[Measure.Support]) m else m += Measure.Support(0),
+      m => if (m.exists[Measure.HeadSize]) m else m += Measure.HeadSize(0),
+      m => if (m.exists[Measure.HeadCoverage]) m else m += Measure.HeadCoverage(0.0)
+    ))(TypedKeyMap(measures))
+    Simple(head, body)(measuresMap)
+  }
+
+  implicit def apply(rule: Rule): FinalRule = Simple(rule.head, rule.body)(TypedKeyMap(
+    Measure.Support(rule.support),
+    Measure.HeadSize(rule.headSize),
+    Measure.HeadCoverage(rule.headCoverage)
+  ))
 
   implicit val ruleOrdering: Ordering[Rule] = Ordering.by[Rule, TypedKeyMap.Immutable[Measure]](_.measures)
 
-  implicit val ruleSimpleOrdering: Ordering[Rule.Simple] = Ordering.by[Rule.Simple, Rule](_.asInstanceOf[Rule])
+  implicit val ruleSimpleOrdering: Ordering[FinalRule] = Ordering.by[FinalRule, Rule](_.asInstanceOf[Rule])
 
   implicit val ruleSimilarityCounting: SimilarityCounting[Rule] = (0.5 * AtomsSimilarityCounting) ~
     (0.1 * LengthSimilarityCounting) ~
@@ -74,11 +95,11 @@ object Rule {
     (0.15 * PcaConfidenceSimilarityCounting) ~
     (0.05 * LiftSimilarityCounting)
 
-  implicit def ruleStringifier(implicit ruleSimpleStringifier: Stringifier[Rule.Simple]): Stringifier[Rule] = (v: Rule) => ruleSimpleStringifier.toStringValue(v match {
+  implicit def ruleStringifier(implicit ruleSimpleStringifier: Stringifier[FinalRule]): Stringifier[Rule] = (v: Rule) => ruleSimpleStringifier.toStringValue(v match {
     case x: Simple => x
     case x => Simple(x.head, x.body)(x.measures)
   })
 
-  implicit def ruleSimpleStringifier(implicit resolvedRuleStringifier: Stringifier[ResolvedRule], mapper: TripleItemHashIndex): Stringifier[Rule.Simple] = (v: Rule.Simple) => resolvedRuleStringifier.toStringValue(v)
+  implicit def ruleSimpleStringifier(implicit resolvedRuleStringifier: Stringifier[ResolvedRule], mapper: TripleItemHashIndex): Stringifier[FinalRule] = (v: FinalRule) => resolvedRuleStringifier.toStringValue(v)
 
 }

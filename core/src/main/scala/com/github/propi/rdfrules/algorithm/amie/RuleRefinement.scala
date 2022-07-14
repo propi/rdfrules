@@ -5,10 +5,9 @@ import com.github.propi.rdfrules.algorithm.amie.RuleFilter.{MinSupportRuleFilter
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
-import com.github.propi.rdfrules.rule.ExtendedRule.{ClosedRule, DanglingRule}
+import com.github.propi.rdfrules.rule.ExpandingRule.{ClosedRule, DanglingRule}
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule._
-import com.github.propi.rdfrules.ruleset.ResolvedRule
 import com.github.propi.rdfrules.utils.{Debugger, IncrementalInt, TypedKeyMap}
 
 import scala.collection.mutable
@@ -19,7 +18,7 @@ import scala.language.implicitConversions
   */
 trait RuleRefinement extends AtomCounting with RuleExpansion {
 
-  val rule: ExtendedRule
+  val rule: ExpandingRule
   val settings: RuleRefinement.Settings
   protected val debugger: Debugger
 
@@ -139,7 +138,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
     *
     * @return all extended rules with new atom
     */
-  def refine: Iterator[ExtendedRule] = {
+  def refine: Iterator[ExpandingRule] = {
     val patternFilter = new RulePatternFilter(rule, patterns, maxRuleLength)
     if (patterns.nonEmpty && !patternFilter.isDefined) {
       //if all paterns must be exact and are completely matched then we will not expand this rule
@@ -159,7 +158,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       //this function creates variable map with specified head variables
       val specifyHeadVariableMapWithAtom: (Int, Int) => VariableMap = {
         val specifyVariableMapWithAtom = specifyVariableMapForAtom(rule.head)
-        (s, o) => specifyVariableMapWithAtom(rule.head.transform(subject = Atom.Constant(s), `object` = Atom.Constant(o)), new VariableMap(false))
+        (s, o) => specifyVariableMapWithAtom(rule.head.transform(subject = Atom.Constant(s), `object` = Atom.Constant(o)), VariableMap(true))
       }
       //debugger.debug("Rule expansion: " + rule, rule.headSize + 1) { ad =>
       //if (logger.underlying.isTraceEnabled) logger.trace("Rule expansion - " + rule + "\n" + "countable: " + countableFreshAtoms + "\n" + "possible: " + possibleFreshAtoms)
@@ -171,7 +170,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       //}
       //ad.done()
       val headSize = rule.headSize
-      lazy val resolvedRule = ResolvedRule(rule.body.map(ResolvedRule.Atom(_)), rule.head)(TypedKeyMap(Measure.HeadSize(rule.headSize), Measure.Support(rule.support), Measure.HeadCoverage(rule.headCoverage)))
+      lazy val resolvedRule = ResolvedRule(rule.body.map(ResolvedAtom(_)), rule.head)(TypedKeyMap(Measure.HeadSize(rule.headSize), Measure.Support(rule.support), Measure.HeadCoverage(rule.headCoverage)))
       var lastDumpDuration = currentDuration
       //howLong("Rule expansion - count projections", true) {
       rule.headTriples.zipWithIndex.takeWhile { x =>
@@ -254,7 +253,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       (danglings ++ closed).flatten
     case rule: DanglingRule =>
       rule.variables match {
-        case ExtendedRule.OneDangling(dangling1, others) =>
+        case ExpandingRule.OneDangling(dangling1, others) =>
           //if the rule has one dangling item then we create fresh atoms with this item and with a new dangling item
           // - result is one dangling rule again
           //or we create fresh atoms with existing dangling item with combination of other items
@@ -275,7 +274,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
           }
           val closed = others.iterator.flatMap(x => Iterator(FreshAtom(dangling1, x), FreshAtom(x, dangling1)))
           danglings ++ closed
-        case ExtendedRule.TwoDanglings(dangling1, dangling2, _) =>
+        case ExpandingRule.TwoDanglings(dangling1, dangling2, _) =>
           //if the rule has two dangling items then we create fresh atoms with these items and with a new dangling item
           // - result is two danglings rule again
           //or we create fresh atoms only with these dangling items
@@ -345,7 +344,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
     */
   private def instantiatedPosition(predicate: Int): Option[ConceptPosition] = constantsPosition.map {
     case ConstantsPosition.Object => TriplePosition.Object
-    case ConstantsPosition.LeastFunctionalVariable => tripleIndex.predicates(predicate).leastFunctionalVariable
+    case ConstantsPosition.LeastFunctionalVariable => tripleIndex.predicates(predicate).lowerCardinalitySide
     case ConstantsPosition.Subject => TriplePosition.Subject
     case _ => TriplePosition.Object
   }
@@ -541,7 +540,7 @@ object RuleRefinement {
 
     def minHeadCoverage: Double = _minHeadCoverage
 
-    def minComputedSupport(rule: ExtendedRule): Double = math.max(rule.headSize * minHeadCoverage, minSupport)
+    def minComputedSupport(rule: ExpandingRule): Double = math.max(rule.headSize * minHeadCoverage, minSupport)
 
     def setMinHeadCoverage(value: Double): Unit = _minHeadCoverage = value
 
@@ -560,11 +559,11 @@ object RuleRefinement {
       s"WithoutPredicates=$withoutPredicates"
   }
 
-  implicit class PimpedRule(extendedRule: ExtendedRule)(implicit tripleHashIndex: TripleIndex[Int], settings: Settings, _debugger: Debugger) {
-    def refine: Iterator[ExtendedRule] = {
+  implicit class PimpedRule(extendedRule: ExpandingRule)(implicit tripleHashIndex: TripleIndex[Int], settings: Settings, _debugger: Debugger) {
+    def refine: Iterator[ExpandingRule] = {
       val _settings = settings
       new RuleRefinement {
-        val rule: ExtendedRule = extendedRule
+        val rule: ExpandingRule = extendedRule
         val settings: Settings = _settings
         val tripleIndex: TripleIndex[Int] = implicitly[TripleIndex[Int]]
         protected val debugger: Debugger = _debugger

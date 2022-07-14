@@ -6,7 +6,7 @@ import com.github.propi.rdfrules.utils.TypedKeyMap
 /**
   * Created by Vaclav Zeman on 31. 7. 2017.
   */
-sealed trait ExtendedRule extends Rule {
+sealed trait ExpandingRule extends Rule {
   //val headTriples: IndexedSeq[(Int, Int)]
   val maxVariable: Atom.Variable
 
@@ -25,7 +25,7 @@ sealed trait ExtendedRule extends Rule {
   }
 }
 
-object ExtendedRule {
+object ExpandingRule {
 
   sealed trait DanglingVariables {
     def others: List[Atom.Variable]
@@ -133,7 +133,7 @@ object ExtendedRule {
                        (val support: Int,
                         val headSize: Int,
                         val variables: List[Atom.Variable],
-                        val maxVariable: Atom.Variable) extends ExtendedRule {
+                        val maxVariable: Atom.Variable) extends ExpandingRule {
 
     override def equals(obj: scala.Any): Boolean = obj match {
       case rule: ClosedRule => checkRuleContentsEquality(body, rule.body.toSet, head, rule.head)
@@ -146,7 +146,7 @@ object ExtendedRule {
                          (val support: Int,
                           val headSize: Int,
                           val variables: DanglingVariables,
-                          val maxVariable: Atom.Variable) extends ExtendedRule {
+                          val maxVariable: Atom.Variable) extends ExpandingRule {
 
     override def equals(obj: scala.Any): Boolean = obj match {
       case rule: DanglingRule if ruleLength == rule.ruleLength &&

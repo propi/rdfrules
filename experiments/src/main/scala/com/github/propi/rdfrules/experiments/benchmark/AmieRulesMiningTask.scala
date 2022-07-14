@@ -5,7 +5,7 @@ import java.util
 import amie.mining.AMIE
 import amie.rules.Rule
 import com.github.propi.rdfrules.experiments.AmieRuleOps._
-import com.github.propi.rdfrules.ruleset.ResolvedRule
+import com.github.propi.rdfrules.rule.ResolvedRule
 import com.github.propi.rdfrules.utils.HowLong
 
 import scala.collection.JavaConverters._

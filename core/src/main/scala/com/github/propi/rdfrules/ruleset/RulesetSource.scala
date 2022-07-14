@@ -1,10 +1,10 @@
 package com.github.propi.rdfrules.ruleset
 
 import java.io.File
-
 import com.github.propi.rdfrules.algorithm.consumer.PrettyPrintedWriter
 import com.github.propi.rdfrules.data.Compression
 import com.github.propi.rdfrules.index.TripleItemIndex
+import com.github.propi.rdfrules.rule.ResolvedRule
 import com.github.propi.rdfrules.utils.Stringifier
 import spray.json.DeserializationException
 import com.github.propi.rdfrules.ruleset.formats.Json._

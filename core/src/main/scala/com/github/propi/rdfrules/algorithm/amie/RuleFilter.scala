@@ -31,7 +31,7 @@ trait RuleFilter {
 
 object RuleFilter {
 
-  type FilterResult = (Boolean, Option[ExtendedRule => ExtendedRule])
+  type FilterResult = (Boolean, Option[ExpandingRule => ExpandingRule])
 
   private implicit def booleanToFilterResult(bool: Boolean): FilterResult = bool -> None
 
@@ -67,7 +67,7 @@ object RuleFilter {
     *
     * @param rule original rule (without refinement)
     */
-  class RulePatternFilter(rule: ExtendedRule, patterns: List[RulePattern.Mapped], maxRuleLength: Int)(implicit atomMatcher: MappedAtomPatternMatcher[Atom], freshAtomMatcher: MappedAtomPatternMatcher[FreshAtom]) extends RuleFilter {
+  class RulePatternFilter(rule: ExpandingRule, patterns: List[RulePattern.Mapped], maxRuleLength: Int)(implicit atomMatcher: MappedAtomPatternMatcher[Atom], freshAtomMatcher: MappedAtomPatternMatcher[FreshAtom]) extends RuleFilter {
 
     private def _matchAtom(atom: Either[Atom, FreshAtom], patterns: Iterable[AtomPattern.Mapped]): Boolean = atom.fold(atom => patterns.exists(atomMatcher.matchPattern(atom, _)), freshAtom => patterns.exists(freshAtomMatcher.matchPattern(freshAtom, _)))
 

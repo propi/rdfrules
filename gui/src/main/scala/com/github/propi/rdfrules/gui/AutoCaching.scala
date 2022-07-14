@@ -48,28 +48,36 @@ object AutoCaching {
         hasIndex = operation.info.groups(OperationGroup.Structure.Index)
       }
       if (
-        operation.info.groups(OperationGroup.Caching) ||
-          operation.info.groups(OperationGroup.Structure.Model) ||
-          operation.info.`type` == Operation.Type.Action ||
-          operation.getNextOperation.exists(_.info.groups(OperationGroup.Caching))
+        operation.info.groups(OperationGroup.Caching) || //if operation is Cache => No cache
+          operation.info.groups(OperationGroup.Structure.Model) || //if operation is Model struct => No cache
+          operation.info.`type` == Operation.Type.Action || //if operation is Action => No cache
+          operation.getNextOperation.exists(_.info.groups(OperationGroup.Caching)) //if next operation is Cache => No cache again
       ) {
         None
       } else {
         val pipelineContent = stringifyOperation(operation)
         val res = lastCaches.get(pipelineContent) match {
           case Some(id) =>
+            //if the previous pipeline has been cached in past we use the cache again
             if (operation.info.groups(OperationGroup.Structure.Dataset) && hasIndex) {
+              //if dataset is indexed we removed all dataset caches, they are no more needed
               None
             } else {
+              //any other saved cache is reused
               lastCaches.remove(pipelineContent)
               cacheOperation(operation, id).map(_ -> id)
             }
           case None =>
             if (
+            //index is always cached
               operation.info == OperationInfo.IndexTransformation.LoadIndex ||
+                //index is always cached
                 operation.info == OperationInfo.DatasetTransformation.Index ||
+                //after mining it is cached
                 operation.info == OperationInfo.IndexTransformation.Mine ||
+                //last ruleset operation is cached (before action or transformation to other structure)
                 (operation.info.groups(OperationGroup.Structure.Ruleset) && operation.getNextOperation.exists(x => x.info.`type` == Operation.Type.Action || x.info.groups(OperationGroup.Transforming))) ||
+                //last dataset operation is cached (before action)
                 (operation.info.groups(OperationGroup.Structure.Dataset) && operation.getNextOperation.exists(x => x.info.`type` == Operation.Type.Action))
             ) {
               val id = UUID.randomUUID().toString

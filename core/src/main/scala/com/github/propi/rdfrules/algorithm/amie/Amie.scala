@@ -4,7 +4,7 @@ import com.github.propi.rdfrules.algorithm.amie.RuleRefinement.{PimpedRule, Sett
 import com.github.propi.rdfrules.algorithm.consumer.TopKRuleConsumer
 import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
-import com.github.propi.rdfrules.rule.ExtendedRule.ClosedRule
+import com.github.propi.rdfrules.rule.ExpandingRule.ClosedRule
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap, UniqueQueue}
@@ -170,11 +170,11 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
       * @param rule a rule to be refinable
       * @return true = is refinable, false = do not refine it!
       */
-    private def isRefinable(rule: ExtendedRule): Boolean = !topKActivated || rule.support >= settings.minComputedSupport(rule)
+    private def isRefinable(rule: ExpandingRule): Boolean = !topKActivated || rule.support >= settings.minComputedSupport(rule)
 
     @tailrec
-    private def executeStage(stage: Int, queue: UniqueQueue[ExtendedRule]): Unit = {
-      val nextQueue = new UniqueQueue.ThreadSafeUniqueSet[ExtendedRule]
+    private def executeStage(stage: Int, queue: UniqueQueue[ExpandingRule]): Unit = {
+      val nextQueue = new UniqueQueue.ThreadSafeUniqueSet[ExpandingRule]
       debugger.debug(s"Amie rules mining, stage $stage of ${settings.maxRuleLength - 1}", queue.size) { ad =>
         val activeThreads = new AtomicInteger(parallelism)
         //starts P jobs in parallel where P is number of processors
@@ -223,7 +223,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
       //queue for mined rules which can be also expanded
       //in this queue there can not be any duplicit rules (it speed up computation)
       //add all possible head to the queue
-      val queue = new ConcurrentLinkedQueue[ExtendedRule]()
+      val queue = new ConcurrentLinkedQueue[ExpandingRule]()
       getHeads.foreach(queue.add)
       //first we refine all rules with length 1 (stage 1)
       //once all rules with length 1 are refined we go to the stage 2 (refine rules with length 2), etc.

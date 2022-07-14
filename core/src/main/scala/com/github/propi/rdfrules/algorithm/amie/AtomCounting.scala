@@ -9,142 +9,9 @@ import com.typesafe.scalalogging.Logger
   */
 trait AtomCounting {
 
-  //type VariableMap = Map[Atom.Variable, Atom.Constant]
-  //TODO check it. These lines are solution for this situation: (?a dbo:officialLanguage ?b) ^ (?a dbo:officialLanguage dbr:English_language) -> (?a dbo:language ?b)
-  //There can exist two identical mapped atoms - 2x (A dbo:officialLanguage English)
-  //For this variant it should be banned - so no mapped atom should be returned if the same atom was mapped in the previous rule refinement (it should reduce support and body size)
-  //We need to check it whether it is a good premision, because some ?a can have more official languages inluding English
-  //For this variant it should be useful: ( ?c <direction> "east" ) ^ ( ?b <train_id> ?c ) ^ ( ?b <train_id> ?a ) ⇒ ( ?a <direction> "east" )
-  //ABOVE It is isomorphic group and should be filteren after projections counting
-  //We partialy solved that by the switch allowDuplicitAtoms. It is true for bodySize counting, but false for projectionBounding and support counzing. Check it whether it is right!
-  class VariableMap private(hmap: Array[Int], atoms: Set[Atom], allowDuplicateMapping: Boolean) {
-    def this(allowDuplicateAtoms: Boolean) = this(Array.empty, Set.empty, allowDuplicateAtoms)
-
-    def getOrElse[T >: Atom.Constant](key: Atom.Variable, default: => T): T = {
-      if (contains(key)) {
-        Atom.Constant(hmap(key.index))
-      } else {
-        default
-      }
-    }
-
-    def contains(key: Atom.Variable): Boolean = key.index < hmap.length && hmap(key.index) != 0
-
-    def containsAtom(atom: Atom): Boolean = atoms(atom)
-
-    def containsConstant(x: Int): Boolean = !allowDuplicateMapping && hmap.contains(x)
-
-    def specifyAtom(atom: Atom): Atom = Atom(specifyItem(atom.subject, this), atom.predicate, specifyItem(atom.`object`, this))
-
-    def apply(key: Atom.Variable): Atom.Constant = Atom.Constant(hmap(key.index))
-
-    def get(key: Atom.Variable): Option[Atom.Constant] = if (contains(key)) Some(apply(key)) else None
-
-    private def addConstant(v: Atom.Variable, c: Atom.Constant): Array[Int] = {
-      if (v.index >= hmap.length) {
-        val newArray = new Array[Int](v.index + 1)
-        Array.copy(hmap, 0, newArray, 0, hmap.length)
-        newArray(v.index) = c.value
-        newArray
-      } else {
-        val newArray = hmap.clone()
-        newArray(v.index) = c.value
-        newArray
-      }
-    }
-
-    private def addConstant(v: Atom.Variable, c: Atom.Constant, v2: Atom.Variable, c2: Atom.Constant): Array[Int] = {
-      val maxIndex = math.max(v.index, v2.index)
-      if (maxIndex >= hmap.length) {
-        val newArray = new Array[Int](maxIndex + 1)
-        Array.copy(hmap, 0, newArray, 0, hmap.length)
-        newArray(v.index) = c.value
-        newArray(v2.index) = c2.value
-        newArray
-      } else {
-        val newArray = hmap.clone()
-        newArray(v.index) = c.value
-        newArray(v2.index) = c2.value
-        newArray
-      }
-    }
-
-    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = if (allowDuplicateMapping) {
-      new VariableMap(addConstant(s._1, s._2, o._1, o._2), atoms, allowDuplicateMapping)
-    } else {
-      new VariableMap(addConstant(s._1, s._2, o._1, o._2), atoms + Atom(s._2, p, o._2), allowDuplicateMapping)
-    }
-
-    def +(s: Atom.Constant, p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = if (allowDuplicateMapping) {
-      new VariableMap(addConstant(o._1, o._2), atoms, allowDuplicateMapping)
-    } else {
-      new VariableMap(addConstant(o._1, o._2), atoms + Atom(s, p, o._2), allowDuplicateMapping)
-    }
-
-    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: Atom.Constant): VariableMap = if (allowDuplicateMapping) {
-      new VariableMap(addConstant(s._1, s._2), atoms, allowDuplicateMapping)
-    } else {
-      new VariableMap(addConstant(s._1, s._2), atoms + Atom(s._2, p, o), allowDuplicateMapping)
-    }
-
-    def +(s: Atom.Constant, p: Int, o: Atom.Constant): VariableMap = if (allowDuplicateMapping) {
-      this
-    } else {
-      new VariableMap(hmap, atoms + Atom(s, p, o), allowDuplicateMapping)
-    }
-
-    def isEmpty: Boolean = hmap.isEmpty
-  }
-
-  /*class VariableMap private(hmap: Map[Atom.Variable, Atom.Constant], atoms: Set[Atom], allowDuplicitAtoms: Boolean) {
-    def this(allowDuplicitAtoms: Boolean) = this(Map.empty, Set.empty, allowDuplicitAtoms)
-
-    def getOrElse[T >: Atom.Constant](key: Atom.Variable, default: => T): T = hmap.getOrElse(key, default)
-
-    def contains(key: Atom.Variable): Boolean = hmap.contains(key)
-
-    def containsAtom(atom: Atom): Boolean = atoms(atom)
-
-    def specifyAtom(atom: Atom): Atom = Atom(specifyItem(atom.subject, this), atom.predicate, specifyItem(atom.`object`, this))
-
-    def apply(key: Atom.Variable): Atom.Constant = hmap(key)
-
-    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = if (allowDuplicitAtoms) {
-      new VariableMap(hmap + (s, o), atoms, allowDuplicitAtoms)
-    } else {
-      new VariableMap(hmap + (s, o), atoms + Atom(s._2, p, o._2), allowDuplicitAtoms)
-    }
-
-    def +(s: Atom.Constant, p: Int, o: (Atom.Variable, Atom.Constant)): VariableMap = if (allowDuplicitAtoms) {
-      new VariableMap(hmap + o, atoms, allowDuplicitAtoms)
-    } else {
-      new VariableMap(hmap + o, atoms + Atom(s, p, o._2), allowDuplicitAtoms)
-    }
-
-    def +(s: (Atom.Variable, Atom.Constant), p: Int, o: Atom.Constant): VariableMap = if (allowDuplicitAtoms) {
-      new VariableMap(hmap + s, atoms, allowDuplicitAtoms)
-    } else {
-      new VariableMap(hmap + s, atoms + Atom(s._2, p, o), allowDuplicitAtoms)
-    }
-
-    def isEmpty: Boolean = hmap.isEmpty
-  }*/
-
   val logger: Logger = Logger[AtomCounting]
-  implicit val tripleIndex: TripleIndex[Int]
 
-  /**
-    * Specify item from variableMap.
-    * If the item is not included in variableMap it returns original item otherwise returns constant
-    *
-    * @param item        item to be specified
-    * @param variableMap variable map
-    * @return specified item or original item if it is not included in the variable map
-    */
-  def specifyItem(item: Atom.Item, variableMap: VariableMap): Atom.Item = item match {
-    case x: Atom.Variable => variableMap.getOrElse(x, x)
-    case x => x
-  }
+  implicit val tripleIndex: TripleIndex[Int]
 
   /**
     * Score atom. Lower value is better score.
@@ -157,7 +24,7 @@ trait AtomCounting {
     */
   def scoreAtom(atom: Atom, variableMap: VariableMap): Int = {
     val tm = tripleIndex.predicates(atom.predicate)
-    (specifyItem(atom.subject, variableMap), specifyItem(atom.`object`, variableMap)) match {
+    (variableMap.specifyItem(atom.subject), variableMap.specifyItem(atom.`object`)) match {
       case (_: Atom.Variable, _: Atom.Variable) => tm.size
       case (_: Atom.Variable, Atom.Constant(oc)) => tm.objects.get(oc).map(_.size).getOrElse(0)
       case (Atom.Constant(sc), _: Atom.Variable) => tm.subjects.get(sc).map(_.size).getOrElse(0)
@@ -323,7 +190,7 @@ trait AtomCounting {
     * @return number of distinct pairs for variables which have covered all atoms
     */
   def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double, pairFilter: Seq[Atom.Constant] => Boolean = _ => true): Int = {
-    countDistinctPairs(atoms, head, maxCount, new VariableMap(false), pairFilter)
+    countDistinctPairs(atoms, head, maxCount, VariableMap(true), pairFilter)
   }
 
   /**
@@ -378,7 +245,7 @@ trait AtomCounting {
     * @param atom atom
     * @return number between 0 and 1
     */
-  def functionality(atom: Atom): Double = tripleIndex.predicates(atom.predicate).functionality
+  def functionality(atom: Atom): Double = tripleIndex.predicates(atom.predicate).subjectRelativeCardinality
 
   /**
     * Inverse of the functionality
@@ -386,7 +253,7 @@ trait AtomCounting {
     * @param atom atom
     * @return number between 0 and 1
     */
-  def inverseFunctionality(atom: Atom): Double = tripleIndex.predicates(atom.predicate).inverseFunctionality
+  def inverseFunctionality(atom: Atom): Double = tripleIndex.predicates(atom.predicate).objectRelativeCardinality
 
   /**
     * Create function for unspecified atom which specifies variable map by specified atom
@@ -429,11 +296,11 @@ trait AtomCounting {
     */
   def specifyAtom(atom: Atom, variableMap: VariableMap): Iterator[Atom] = {
     val tm = tripleIndex.predicates(atom.predicate)
-    (specifyItem(atom.subject, variableMap), specifyItem(atom.`object`, variableMap)) match {
+    (variableMap.specifyItem(atom.subject), variableMap.specifyItem(atom.`object`)) match {
       case (_: Atom.Variable, _: Atom.Variable) =>
         tm.subjects.pairIterator.flatMap(x => x._2.iterator.flatMap { y =>
           val mappedAtom = Atom(Atom.Constant(x._1), atom.predicate, Atom.Constant(y))
-          if (variableMap.containsConstant(x._1) || variableMap.containsConstant(y) || variableMap.containsAtom(mappedAtom)) {
+          if (variableMap.injectiveMapping && (variableMap.containsConstant(x._1) || variableMap.containsConstant(y) || variableMap.containsAtom(mappedAtom))) {
             None
           } else {
             Some(mappedAtom)
@@ -442,7 +309,7 @@ trait AtomCounting {
       case (_: Atom.Variable, ov@Atom.Constant(oc)) =>
         tm.objects.get(oc).iterator.flatMap(_.iterator).flatMap { subject =>
           val mappedAtom = Atom(Atom.Constant(subject), atom.predicate, ov)
-          if (variableMap.containsConstant(subject) || variableMap.containsAtom(mappedAtom)) {
+          if (variableMap.injectiveMapping && (variableMap.containsConstant(subject) || variableMap.containsAtom(mappedAtom))) {
             None
           } else {
             Some(mappedAtom)
@@ -451,7 +318,7 @@ trait AtomCounting {
       case (sv@Atom.Constant(sc), _: Atom.Variable) =>
         tm.subjects.get(sc).iterator.flatMap(_.iterator).flatMap { `object` =>
           val mappedAtom = Atom(sv, atom.predicate, Atom.Constant(`object`))
-          if (variableMap.containsConstant(`object`) || variableMap.containsAtom(mappedAtom)) {
+          if (variableMap.injectiveMapping && (variableMap.containsConstant(`object`) || variableMap.containsAtom(mappedAtom))) {
             None
           } else {
             Some(mappedAtom)
@@ -490,7 +357,15 @@ trait AtomCounting {
     * @param atom atom to be specified
     * @return iterator of all triples for this atom
     */
-  def getAtomTriples(atom: Atom): Iterator[(Int, Int)] = specifyAtom(atom, new VariableMap(true))
+  def getAtomTriples(atom: Atom): Iterator[(Int, Int)] = specifyAtom(atom, VariableMap(false))
     .map(x => x.subject.asInstanceOf[Atom.Constant].value -> x.`object`.asInstanceOf[Atom.Constant].value)
+
+}
+
+object AtomCounting {
+
+  def apply()(implicit ti: TripleIndex[Int]): AtomCounting = new AtomCounting {
+    implicit val tripleIndex: TripleIndex[Int] = ti
+  }
 
 }

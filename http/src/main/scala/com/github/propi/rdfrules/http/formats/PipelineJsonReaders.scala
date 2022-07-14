@@ -14,8 +14,8 @@ import com.github.propi.rdfrules.http.task._
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.model.Model
 import com.github.propi.rdfrules.model.Model.PredictionType
-import com.github.propi.rdfrules.rule.{Measure, Rule, RulePattern}
-import com.github.propi.rdfrules.ruleset.{CoveredPaths, ResolvedRule, Ruleset, RulesetSource}
+import com.github.propi.rdfrules.rule.{Measure, ResolvedRule, Rule, RulePattern}
+import com.github.propi.rdfrules.ruleset.{Instantiation, Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
 import org.apache.jena.riot.RDFFormat
 import spray.json.DefaultJsonProtocol._
@@ -370,7 +370,7 @@ object PipelineJsonReaders {
     val fields = json.asJsObject.fields
     new ruleset.Instantiate(
       fields.get("rule").map(_.convertTo[ResolvedRule]),
-      fields("part").convertTo[CoveredPaths.Part],
+      fields("part").convertTo[Instantiation.Part],
       fields("allowDuplicateAtoms").convertTo[Boolean]
     )
   }

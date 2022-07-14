@@ -1,14 +1,15 @@
 package com.github.propi.rdfrules.ruleset.formats
 
-import java.io._
 import com.github.propi.rdfrules.algorithm.consumer.PrettyPrintedWriter
 import com.github.propi.rdfrules.index.TripleItemIndex
-import com.github.propi.rdfrules.rule.Rule
+import com.github.propi.rdfrules.rule.ResolvedRule
+import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.ruleset.formats.Json._
-import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetReader, RulesetSource, RulesetWriter}
+import com.github.propi.rdfrules.ruleset.{RulesetReader, RulesetSource, RulesetWriter}
 import com.github.propi.rdfrules.utils.{ForEach, InputStreamBuilder, OutputStreamBuilder}
 import spray.json._
 
+import java.io._
 import scala.io.Source
 import scala.language.{implicitConversions, reflectiveCalls}
 
@@ -41,7 +42,7 @@ object NDJson {
     private val fos = new FileOutputStream(file)
     private val writer = new PrintWriter(new OutputStreamWriter(fos, "UTF-8"))
 
-    def write(rule: Rule.Simple): Unit = writer.println(ResolvedRule(rule).toJson.compactPrint)
+    def write(rule: FinalRule): Unit = writer.println(ResolvedRule(rule).toJson.compactPrint)
 
     def flush(): Unit = {
       writer.flush()

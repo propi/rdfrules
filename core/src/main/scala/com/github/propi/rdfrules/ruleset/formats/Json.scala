@@ -2,9 +2,10 @@ package com.github.propi.rdfrules.ruleset.formats
 
 import java.io.{BufferedInputStream, OutputStreamWriter, PrintWriter}
 import com.github.propi.rdfrules.data.{Prefix, TripleItem}
-import com.github.propi.rdfrules.rule.Measure
-import com.github.propi.rdfrules.ruleset.ResolvedRule.Atom
-import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetReader, RulesetSource, RulesetWriter}
+import com.github.propi.rdfrules.rule.{Measure, ResolvedRule}
+import com.github.propi.rdfrules.rule.ResolvedAtom
+import com.github.propi.rdfrules.rule.ResolvedAtom.ResolvedItem
+import com.github.propi.rdfrules.ruleset.{RulesetReader, RulesetSource, RulesetWriter}
 import com.github.propi.rdfrules.utils.{ForEach, InputStreamBuilder, OutputStreamBuilder, TypedKeyMap}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
@@ -62,44 +63,44 @@ object Json {
     }
   }
 
-  private implicit val mappedAtomItemJsonFormat: RootJsonFormat[Atom.Item] = new RootJsonFormat[Atom.Item] {
-    def write(obj: Atom.Item): JsValue = obj match {
-      case Atom.Item.Variable(x) => JsObject("type" -> JsString("variable"), "value" -> JsString(x))
-      case Atom.Item.Constant(x) => JsObject("type" -> JsString("constant"), "value" -> x.toJson)
+  private implicit val mappedAtomItemJsonFormat: RootJsonFormat[ResolvedItem] = new RootJsonFormat[ResolvedItem] {
+    def write(obj: ResolvedItem): JsValue = obj match {
+      case ResolvedItem.Variable(x) => JsObject("type" -> JsString("variable"), "value" -> JsString(x))
+      case ResolvedItem.Constant(x) => JsObject("type" -> JsString("constant"), "value" -> x.toJson)
     }
 
-    def read(json: JsValue): Atom.Item = {
+    def read(json: JsValue): ResolvedItem = {
       val fields = json.asJsObject.fields
       val value = fields("value")
       fields("type").convertTo[String] match {
-        case "variable" => Atom.Item.Variable(value.convertTo[String])
-        case "constant" => Atom.Item.Constant(value.convertTo[TripleItem])
+        case "variable" => ResolvedItem.Variable(value.convertTo[String])
+        case "constant" => ResolvedItem.Constant(value.convertTo[TripleItem])
         case x => deserializationError(s"Invalid triple item type: $x")
       }
     }
   }
 
-  private implicit val mappedAtomJsonFormat: RootJsonFormat[Atom] = new RootJsonFormat[Atom] {
-    def write(obj: Atom): JsValue = obj match {
-      case ResolvedRule.Atom.Basic(s, p, o) => JsObject(
-        "subject" -> s.toJson,
-        "predicate" -> p.toJson,
-        "object" -> o.toJson
-      )
-      case v@ResolvedRule.Atom.GraphBased(s, p, o) => JsObject(
-        "subject" -> s.toJson,
-        "predicate" -> p.toJson,
-        "object" -> o.toJson,
+  private implicit val mappedAtomJsonFormat: RootJsonFormat[ResolvedAtom] = new RootJsonFormat[ResolvedAtom] {
+    def write(obj: ResolvedAtom): JsValue = obj match {
+      case v: ResolvedAtom.GraphAware => JsObject(
+        "subject" -> v.subject.toJson,
+        "predicate" -> v.predicate.toJson,
+        "object" -> v.`object`.toJson,
         "graphs" -> v.graphs.map(_.toJson).toJson
+      )
+      case _ => JsObject(
+        "subject" -> obj.subject.toJson,
+        "predicate" -> obj.predicate.toJson,
+        "object" -> obj.`object`.toJson
       )
     }
 
-    def read(json: JsValue): Atom = {
+    def read(json: JsValue): ResolvedAtom = {
       val fields = json.asJsObject.fields
-      val s = fields("subject").convertTo[Atom.Item]
+      val s = fields("subject").convertTo[ResolvedItem]
       val p = fields("predicate").convertTo[TripleItem.Uri]
-      val o = fields("object").convertTo[Atom.Item]
-      fields.get("graphs").map(_.convertTo[Set[TripleItem.Uri]]).map(Atom.GraphBased(s, p, o)(_)).getOrElse(Atom.Basic(s, p, o))
+      val o = fields("object").convertTo[ResolvedItem]
+      fields.get("graphs").map(_.convertTo[Set[TripleItem.Uri]]).map(ResolvedAtom(s, p, o, _)).getOrElse(ResolvedAtom(s, p, o))
     }
   }
 
@@ -145,7 +146,7 @@ object Json {
 
     def read(json: JsValue): ResolvedRule = {
       val fields = json.asJsObject.fields
-      ResolvedRule(fields("body").convertTo[IndexedSeq[ResolvedRule.Atom]], fields("head").convertTo[ResolvedRule.Atom])(TypedKeyMap(fields("measures").convertTo[Seq[Measure]]))
+      ResolvedRule(fields("body").convertTo[IndexedSeq[ResolvedAtom]], fields("head").convertTo[ResolvedAtom])(TypedKeyMap(fields("measures").convertTo[Seq[Measure]]))
     }
 
   }

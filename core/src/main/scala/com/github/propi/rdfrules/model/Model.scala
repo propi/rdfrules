@@ -1,14 +1,14 @@
 package com.github.propi.rdfrules.model
 
 import java.io._
-import com.github.propi.rdfrules.algorithm.amie.AtomCounting
+import com.github.propi.rdfrules.algorithm.amie.{AtomCounting, VariableMap}
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
 import com.github.propi.rdfrules.data.{Dataset, Graph, TriplePosition}
 import com.github.propi.rdfrules.index.{Index, IndexItem, TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.model.Model.PredictionType
-import com.github.propi.rdfrules.rule.{Atom, Measure, PatternMatcher, RulePattern}
+import com.github.propi.rdfrules.rule.{Atom, Measure, PatternMatcher, ResolvedRule, RulePattern}
 import com.github.propi.rdfrules.ruleset.ops.Sortable
-import com.github.propi.rdfrules.ruleset.{ResolvedRule, Ruleset, RulesetReader, RulesetWriter}
+import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetReader, RulesetWriter}
 import com.github.propi.rdfrules.serialization.RuleSerialization._
 import com.github.propi.rdfrules.utils.{Debugger, ForEach}
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
@@ -100,7 +100,7 @@ class Model private(val rules: ForEach[ResolvedRule], val parallelism: Int)
 
       def isCompletelyMissing(predictedTriple: PredictedTriple): Boolean = {
         val predicateIndex = thi.predicates(mapper.getIndex(predictedTriple.triple.predicate))
-        predicateIndex.mostFunctionalVariable match {
+        predicateIndex.higherCardinalitySide match {
           case TriplePosition.Subject => !predicateIndex.subjects.contains(mapper.getIndex(predictedTriple.triple.subject))
           case TriplePosition.Object => !predicateIndex.objects.contains(mapper.getIndex(predictedTriple.triple.`object`))
         }
@@ -126,14 +126,14 @@ class Model private(val rules: ForEach[ResolvedRule], val parallelism: Int)
           case (Atom.Constant(s), Atom.Constant(o)) => _ => IndexItem.Quad(s, rule.head.predicate, o, 0)
         }
         if (predictionType == PredictionType.Existing) {
-          atomCounting.specifyVariableMap(rule.head, new atomCounting.VariableMap(false))
+          atomCounting.specifyVariableMap(rule.head, VariableMap(true))
             .filter(atomCounting.exists(ruleBody, _))
             .map(variableMap => constantsToQuad(headVars.map(variableMap(_))))
             .map(x => PredictedTriple(x.toTriple)(rule, true))
             .foreach(f)
         } else {
           Try(atomCounting
-            .selectDistinctPairs(ruleBody, headVars, new atomCounting.VariableMap(false))
+            .selectDistinctPairs(ruleBody, headVars, VariableMap(true))
             .map(constantsToQuad)
             .map(x => thi.predicates.get(x.p).flatMap(_.subjects.get(x.s)).exists(_.contains(x.o)) -> x.toTriple)
             .map(x => PredictedTriple(x._2)(rule, x._1))

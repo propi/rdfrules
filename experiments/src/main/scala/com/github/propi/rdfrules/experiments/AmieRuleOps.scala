@@ -2,8 +2,7 @@ package com.github.propi.rdfrules.experiments
 
 import amie.rules.Rule
 import com.github.propi.rdfrules.data.TripleItem
-import com.github.propi.rdfrules.rule.Measure
-import com.github.propi.rdfrules.ruleset.ResolvedRule
+import com.github.propi.rdfrules.rule.{Measure, ResolvedRule}
 
 import scala.collection.JavaConverters._
 import scala.language.implicitConversions

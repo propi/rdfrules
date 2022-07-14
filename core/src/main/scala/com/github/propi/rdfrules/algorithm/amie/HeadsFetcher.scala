@@ -2,9 +2,9 @@ package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.index.TripleIndex
-import com.github.propi.rdfrules.rule.ExtendedRule.DanglingRule
+import com.github.propi.rdfrules.rule.ExpandingRule.DanglingRule
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
-import com.github.propi.rdfrules.rule.{Atom, ExtendedRule, MappedAtomPatternMatcher}
+import com.github.propi.rdfrules.rule.{Atom, ExpandingRule, MappedAtomPatternMatcher}
 import com.github.propi.rdfrules.utils.Debugger.ActionDebugger
 import com.github.propi.rdfrules.utils.{Debugger, ForEach}
 
@@ -28,7 +28,7 @@ trait HeadsFetcher extends AtomCounting {
       //result is original variable atom + instantied atoms with constants in subject + instantied atoms with constants in object
       //we do not instantient subject variable if onlyObjectInstances is true
       val it = settings.constantsPosition match {
-        case Some(ConstantsPosition.LeastFunctionalVariable) => tripleIndex.predicates(logicalHead.predicate).leastFunctionalVariable match {
+        case Some(ConstantsPosition.LeastFunctionalVariable) => tripleIndex.predicates(logicalHead.predicate).lowerCardinalitySide match {
           case TriplePosition.Subject => specifySubject(logicalHead).map(_.transform(`object` = Atom.Variable(0)))
           case TriplePosition.Object => specifyObject(logicalHead)
         }
@@ -48,9 +48,9 @@ trait HeadsFetcher extends AtomCounting {
       val tm = tripleIndex.predicates(atom.predicate)
       actionDebugger.done()
       val danglingRule = Some(atom.subject, atom.`object`).collect {
-        case (v1: Atom.Variable, v2: Atom.Variable) => (ExtendedRule.TwoDanglings(v1, v2, Nil), tm.size, tm.size)
-        case (Atom.Constant(c), v1: Atom.Variable) => (ExtendedRule.OneDangling(v1, Nil), tm.size, tm.subjects.get(c).map(_.size).getOrElse(0))
-        case (v1: Atom.Variable, Atom.Constant(c)) => (ExtendedRule.OneDangling(v1, Nil), tm.size, tm.objects.get(c).map(_.size).getOrElse(0))
+        case (v1: Atom.Variable, v2: Atom.Variable) => (ExpandingRule.TwoDanglings(v1, v2, Nil), tm.size, tm.size)
+        case (Atom.Constant(c), v1: Atom.Variable) => (ExpandingRule.OneDangling(v1, Nil), tm.size, tm.subjects.get(c).map(_.size).getOrElse(0))
+        case (v1: Atom.Variable, Atom.Constant(c)) => (ExpandingRule.OneDangling(v1, Nil), tm.size, tm.objects.get(c).map(_.size).getOrElse(0))
       }.filter(x => x._2 >= settings.minHeadSize && x._3 >= math.max(settings.minSupport, settings.minHeadCoverage * x._2)).map(x =>
         DanglingRule(Vector.empty, atom)(
           x._3,
@@ -69,10 +69,10 @@ trait HeadsFetcher extends AtomCounting {
     *
     * @return atoms in dangling rule form - DanglingRule(no body, one head, one or two variables in head)
     */
-  def getHeads(implicit debugger: Debugger): ForEach[ExtendedRule] = {
+  def getHeads(implicit debugger: Debugger): ForEach[ExpandingRule] = {
     //enumerate all possible head atoms with variables and instances
     //all unsatisfied predicates are filtered by constraints
-    (f: ExtendedRule => Unit) => {
+    (f: ExpandingRule => Unit) => {
       val logicalHeads = tripleIndex.predicates.iterator.filter(settings.isValidPredicate).map(Atom(Atom.Variable(0), _, Atom.Variable(1))).filter(settings.test).toVector.par
       logicalHeads.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(settings.parallelism))
       debugger.debug("Heads mining") { implicit ad =>

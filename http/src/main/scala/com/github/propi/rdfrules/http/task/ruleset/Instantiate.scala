@@ -1,12 +1,13 @@
 package com.github.propi.rdfrules.http.task.ruleset
 
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
-import com.github.propi.rdfrules.ruleset.{CoveredPaths, ResolvedRule, Ruleset}
+import com.github.propi.rdfrules.rule.ResolvedRule
+import com.github.propi.rdfrules.ruleset.{Instantiation, Ruleset}
 
 /**
   * Created by Vaclav Zeman on 10. 8. 2018.
   */
-class Instantiate(rule: Option[ResolvedRule], part: CoveredPaths.Part, allowDuplicateAtoms: Boolean) extends Task[Ruleset, Ruleset] {
+class Instantiate(rule: Option[ResolvedRule], part: Instantiation.Part, allowDuplicateAtoms: Boolean) extends Task[Ruleset, Ruleset] {
   val companion: TaskDefinition = Instantiate
 
   def execute(input: Ruleset): Ruleset = {

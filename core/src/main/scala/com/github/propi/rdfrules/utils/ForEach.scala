@@ -1,16 +1,21 @@
 package com.github.propi.rdfrules.utils
 
-import com.github.propi.rdfrules.utils.ForEach.KnownSizeForEach
+import com.github.propi.rdfrules.utils.ForEach.{KnownSizeForEach, ParallelForEach}
 
 import scala.collection.immutable.ArraySeq
 import scala.collection.{Factory, MapView}
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
+import scala.util.DynamicVariable
 
 trait ForEach[+T] {
   self =>
 
   def foreach(f: T => Unit): Unit
+
+  def par(parallelism: Int = Runtime.getRuntime.availableProcessors(), maxWaitingTasks: Int = 1024): ForEach[T] = new ParallelForEach[T](this, parallelism, maxWaitingTasks)
 
   def knownSize: Int = -1
 
@@ -222,6 +227,47 @@ trait ForEach[+T] {
 }
 
 object ForEach {
+
+  private val singleParallelTraversingChecker = new DynamicVariable[Boolean](false)
+
+  private class ParallelForEach[T](col: ForEach[T], parallelism: Int, maxWaitingTasks: Int) extends ForEach[T] {
+    require(maxWaitingTasks >= 2)
+
+    override def knownSize: Int = col.knownSize
+
+    def foreach(f: T => Unit): Unit = {
+      if (singleParallelTraversingChecker.value) {
+        col.foreach(f)
+      } else {
+        singleParallelTraversingChecker.withValue(true) {
+          implicit val ec: ExecutionContext = ExecutionContext.fromExecutor(new java.util.concurrent.ForkJoinPool(parallelism))
+          val halfMaxWaitingTasks = maxWaitingTasks / 2
+          var i = 0
+          val (stage1, stage2) = col.foldLeft(Future.successful(()) -> Future.successful(())) { case ((stage1, stage2), x) =>
+            def doWork(stage: Future[Unit]) = {
+              val work = Future(f(x))
+              stage.flatMap(_ => work)
+            }
+
+            val accumulated = if (i > halfMaxWaitingTasks) {
+              stage1 -> doWork(stage2)
+            } else {
+              doWork(stage1) -> stage2
+            }
+            i += 1
+            if (i % maxWaitingTasks == 0) {
+              i = 0
+              Await.result(accumulated._1, Duration.Inf)
+              accumulated._2 -> Future.successful(())
+            } else {
+              accumulated
+            }
+          }
+          Await.result(stage1.flatMap(_ => stage2), Duration.Inf)
+        }
+      }
+    }
+  }
 
   private class KnownSizeForEach[T](override val knownSize: Int, col: ForEach[T]) extends ForEach[T] {
     def foreach(f: T => Unit): Unit = col.foreach(f)

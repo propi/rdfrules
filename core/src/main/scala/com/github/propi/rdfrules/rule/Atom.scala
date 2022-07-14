@@ -10,9 +10,9 @@ import scala.language.implicitConversions
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
 sealed trait Atom {
-  val subject: Atom.Item
-  val predicate: Int
-  val `object`: Atom.Item
+  def subject: Atom.Item
+  def predicate: Int
+  def `object`: Atom.Item
 
   def subjectPosition: TripleItemPosition.Subject[Atom.Item] = TripleItemPosition.Subject(subject)
 
@@ -20,33 +20,37 @@ sealed trait Atom {
 
   def transform(subject: Atom.Item = subject, predicate: Int = predicate, `object`: Atom.Item = `object`): Atom
 
-  def toGraphBasedAtom(implicit thi: TripleIndex[Int]): Atom.GraphBased = this match {
-    case x: Atom.GraphBased => x
-    case _: Atom.Basic =>
+  def toGraphAwareAtom(implicit thi: TripleIndex[Int]): Atom.GraphAware = this match {
+    case x: Atom.GraphAware => x
+    case _ =>
       val graphs = (subject, `object`) match {
         case (_: Atom.Variable, _: Atom.Variable) => thi.getGraphs(predicate)
         case (Atom.Constant(x), _: Atom.Variable) => thi.getGraphs(predicate, TripleItemPosition.Subject(x))
         case (_: Atom.Variable, Atom.Constant(x)) => thi.getGraphs(predicate, TripleItemPosition.Object(x))
         case (Atom.Constant(s), Atom.Constant(o)) => thi.getGraphs(s, predicate, o)
       }
-      Atom.GraphBased(subject, predicate, `object`)(graphs)
+      Atom.GraphAwareBasic(subject, predicate, `object`)(graphs)
   }
 }
 
 object Atom {
 
-  case class Basic private(subject: Atom.Item, predicate: Int, `object`: Atom.Item) extends Atom {
+  sealed trait GraphAware extends Atom {
+    def graphs: HashSet[Int]
+
+    final def containsGraph(x: Int): Boolean = graphs.contains(x)
+
+    final def graphsIterator: Iterator[Int] = graphs.iterator
+  }
+
+  private case class Basic private(subject: Atom.Item, predicate: Int, `object`: Atom.Item) extends Atom {
     override def toString: String = s"<$subject $predicate ${`object`}>"
 
     def transform(subject: Item = subject, predicate: Int = predicate, `object`: Item = `object`): Basic = Basic(subject, predicate, `object`)
   }
 
-  case class GraphBased private(subject: Atom.Item, predicate: Int, `object`: Atom.Item)(graphs: HashSet[Int]) extends Atom {
-    def containsGraph(x: Int): Boolean = graphs.contains(x)
-
-    def graphsIterator: Iterator[Int] = graphs.iterator
-
-    def transform(subject: Item = subject, predicate: Int = predicate, `object`: Item = `object`): GraphBased = GraphBased(subject, predicate, `object`)(graphs)
+  private case class GraphAwareBasic private(subject: Atom.Item, predicate: Int, `object`: Atom.Item)(val graphs: HashSet[Int]) extends GraphAware {
+    def transform(subject: Item = subject, predicate: Int = predicate, `object`: Item = `object`): GraphAware = GraphAwareBasic(subject, predicate, `object`)(graphs)
 
     override def toString: String = {
       def bracketGraphs(strGraphs: String): String = if (graphs.size == 1) strGraphs else s"[$strGraphs]"
@@ -56,6 +60,8 @@ object Atom {
   }
 
   def apply(subject: Atom.Item, predicate: Int, `object`: Atom.Item): Atom = Basic(subject, predicate, `object`)
+
+  def apply(subject: Atom.Item, predicate: Int, `object`: Atom.Item, graphs: HashSet[Int]): GraphAware = GraphAwareBasic(subject, predicate, `object`)(graphs)
 
   sealed trait Item
 

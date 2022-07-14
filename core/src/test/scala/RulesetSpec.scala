@@ -44,22 +44,22 @@ class RulesetSpec extends AnyFlatSpec with Matchers with Inside with CancelAfter
 
   "Ruleset" should "count confidence" in {
     val rules = ruleset.computeConfidence(0.9)
-    all(rules.rules.map(_.measures[Measure.Confidence].value).toSeq) should be >= 0.9
+    all(rules.rules.map(_.measures.apply[Measure.Confidence].value).toSeq) should be >= 0.9
     rules.size shouldBe 12
     val rules2 = ruleset.computeConfidence(0).rules
-    all(rules2.map(_.measures[Measure.Confidence].value).toSeq) should be >= 0.001
+    all(rules2.map(_.measures.apply[Measure.Confidence].value).toSeq) should be >= 0.001
     rules2.size shouldBe 810
   }
 
   it should "count pca confidence" in {
     val rules = ruleset.computePcaConfidence(0.9).rules
-    all(rules.map(_.measures[Measure.PcaConfidence].value).toSeq) should be >= 0.9
+    all(rules.map(_.measures.apply[Measure.PcaConfidence].value).toSeq) should be >= 0.9
     rules.size shouldBe 57
   }
 
   it should "count lift" in {
     val rules = ruleset.computeLift().rules
-    all(rules.map(_.measures[Measure.Confidence].value).toSeq) should be >= 0.5
+    all(rules.map(_.measures.apply[Measure.Confidence].value).toSeq) should be >= 0.5
     for (rule <- rules) {
       rule.measures.exists[Measure.Lift] shouldBe true
       rule.measures.exists[Measure.HeadConfidence] shouldBe true
@@ -68,16 +68,16 @@ class RulesetSpec extends AnyFlatSpec with Matchers with Inside with CancelAfter
   }
 
   it should "sort by interest measures" in {
-    ruleset.sorted.rules.toSeq.map(_.measures[Measure.HeadCoverage].value).reverse shouldBe sorted
-    ruleset.sortBy(_.measures[Measure.HeadSize].value).rules.toSeq.map(_.measures[Measure.HeadSize].value) shouldBe sorted
-    ruleset.sortByResolved(_.measures[Measure.HeadSize].value).rules.toSeq.map(_.measures[Measure.HeadSize].value) shouldBe sorted
+    ruleset.sorted.rules.toSeq.map(_.measures.apply[Measure.HeadCoverage].value).reverse shouldBe sorted
+    ruleset.sortBy(_.measures.apply[Measure.HeadSize].value).rules.toSeq.map(_.measures.apply[Measure.HeadSize].value) shouldBe sorted
+    ruleset.sortByResolved(_.measures[Measure.HeadSize].value).rules.toSeq.map(_.measures.apply[Measure.HeadSize].value) shouldBe sorted
     ruleset.sortBy(Measure.HeadSize, Measure.Support).rules
       .toSeq
-      .map(x => x.measures[Measure.HeadSize].value -> x.measures[Measure.Support].value)
+      .map(x => x.measures.apply[Measure.HeadSize].value -> x.measures.apply[Measure.Support].value)
       .reverse shouldBe sorted
     ruleset.sortByRuleLength(Measure.Support).rules
       .toSeq
-      .map(x => x.ruleLength -> x.measures[Measure.Support].value)
+      .map(x => x.ruleLength -> x.measures.apply[Measure.Support].value)
       .shouldBe(sorted)(Sortable.sortableNatureOfSeq(Ordering.Tuple2(Ordering[Int], Ordering[Int].reverse)))
   }
 
@@ -86,14 +86,14 @@ class RulesetSpec extends AnyFlatSpec with Matchers with Inside with CancelAfter
     for (rule <- rules) {
       rule.measures.exists[Measure.Cluster] shouldBe true
     }
-    rules.rules.map(_.measures[Measure.Cluster].number).toSet.size should be > 30
+    rules.rules.map(_.measures.apply[Measure.Cluster].number).toSet.size should be > 30
     rules.size shouldBe 500
   }
 
   it should "do transform operations" in {
-    ruleset.filter(_.measures[Measure.Support].value > 100).size shouldBe 2
+    ruleset.filter(_.measures.apply[Measure.Support].value > 100).size shouldBe 2
     ruleset.filterResolved(_.measures[Measure.Support].value > 100).size shouldBe 2
-    val emptyBodies = ruleset.map(x => x.copy(body = Vector())(x.measures)).rules.map(_.body)
+    val emptyBodies = ruleset.map(x => Rule(x.head, Vector())(x.measures)).rules.map(_.body)
     emptyBodies.size shouldBe ruleset.size
     for (body <- emptyBodies) {
       body shouldBe empty
@@ -147,19 +147,19 @@ class RulesetSpec extends AnyFlatSpec with Matchers with Inside with CancelAfter
   }
 
   it should "work with graph-based rules" in {
-    ruleset.graphBasedRules.resolvedRules.flatMap(x => x.body :+ x.head).foreach { x =>
-      x should matchPattern { case x: ResolvedRule.Atom.GraphBased if x.graphs("yago") => }
+    ruleset.graphAwareRules.resolvedRules.flatMap(x => x.body :+ x.head).foreach { x =>
+      x should matchPattern { case x: ResolvedAtom.GraphAware if x.graphs("yago") => }
     }
     ruleset.filter(AtomPattern(graph = TripleItem.Uri("yago"))).size shouldBe ruleset.size
   }
 
   it should "cache and export graph-based rules" in {
     //cache
-    ruleset.graphBasedRules.cache("test.cache")
+    ruleset.graphAwareRules.cache("test.cache")
     val d = Ruleset.fromCache(ruleset.index, "test.cache")
     d.size shouldBe ruleset.size
     d.resolvedRules.flatMap(x => x.body :+ x.head).foreach { x =>
-      x should matchPattern { case x: ResolvedRule.Atom.GraphBased if x.graphs("yago") => }
+      x should matchPattern { case x: ResolvedAtom.GraphAware if x.graphs("yago") => }
     }
     //export
     d.export("output.txt")

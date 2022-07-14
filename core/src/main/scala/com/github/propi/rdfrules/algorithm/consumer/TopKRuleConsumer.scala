@@ -5,6 +5,7 @@ import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 import com.github.propi.rdfrules.algorithm.RuleConsumer
 import com.github.propi.rdfrules.algorithm.consumer.TopKRuleConsumer.MinHeadCoverageUpdatedEvent
 import com.github.propi.rdfrules.rule.Rule
+import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.utils.{ForEach, TopKQueue}
 
 import scala.concurrent.duration.DurationInt
@@ -28,7 +29,7 @@ class TopKRuleConsumer private(k: Int, allowOverflowIfSameHeadCoverage: Boolean,
     val messages = new LinkedBlockingQueue[Option[Rule]]
     val job = new Runnable {
       def run(): Unit = try {
-        val queue = new TopKQueue[Rule.Simple](k, allowOverflowIfSameHeadCoverage)(Ordering.by[Rule.Simple, Double](_.headCoverage).reverse)
+        val queue = new TopKQueue[FinalRule](k, allowOverflowIfSameHeadCoverage)(Ordering.by[FinalRule, Double](_.headCoverage).reverse)
         val prettyPrintedWriter = prettyPrintedFile.map(x => x._2(x._1))
         try {
           val syncDuration = 10 seconds
@@ -39,7 +40,7 @@ class TopKRuleConsumer private(k: Int, allowOverflowIfSameHeadCoverage: Boolean,
             messages.poll(syncDuration.toSeconds, TimeUnit.SECONDS) match {
               case null =>
               case Some(rule) =>
-                val ruleSimple = Rule.Simple(rule)
+                val ruleSimple = Rule(rule)
                 if (queue.enqueue(ruleSimple)) {
                   if (queue.isFull) queue.head.map(_.headCoverage).map(MinHeadCoverageUpdatedEvent).foreach(invokeEvent)
                   prettyPrintedWriter.foreach(_.write(ruleSimple))

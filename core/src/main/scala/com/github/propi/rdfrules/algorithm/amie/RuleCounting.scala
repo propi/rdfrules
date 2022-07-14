@@ -2,7 +2,8 @@ package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.index.TripleIndex
-import com.github.propi.rdfrules.rule.{Atom, Measure, Rule}
+import com.github.propi.rdfrules.rule.Rule.FinalRule
+import com.github.propi.rdfrules.rule.{Atom, Measure}
 import com.github.propi.rdfrules.utils.TypedKeyMap
 
 /**
@@ -10,7 +11,7 @@ import com.github.propi.rdfrules.utils.TypedKeyMap
   */
 trait RuleCounting extends AtomCounting {
 
-  val rule: Rule.Simple
+  val rule: FinalRule
 
   /**
     * Count confidence for the rule
@@ -19,7 +20,7 @@ trait RuleCounting extends AtomCounting {
     *                      rule with confidence lower than minConfidence will have confidence = minConfidence - 1
     * @return New rule with counted confidence
     */
-  def withConfidence(minConfidence: Double, allPaths: Boolean = false): Rule.Simple = {
+  def withConfidence(minConfidence: Double, allPaths: Boolean = false): FinalRule = {
     /*TODO: Check confidence counting - it may be wrong, e.g.: p(c, b) & p(c, a) => p(a, b)
     A -> C1 -> B
     A -> C2 -> B
@@ -36,14 +37,14 @@ trait RuleCounting extends AtomCounting {
       //first we count body size threshold: support / minConfidence
       //it counts wanted body site. If the body size is greater than wanted body size then confidence will be always lower than our defined threshold (min confidence)
       val bodySize = if (allPaths) {
-        count(rule.body.toSet, (support / minConfidence) + 1, new VariableMap(false))
+        count(rule.body.toSet, (support / minConfidence) + 1, VariableMap(true))
       } else {
         countDistinctPairs(rule.body.toSet, rule.head, (support / minConfidence) + 1)
       }
       //confidence is number of head triples which are connected to other atoms in the rule DIVIDED number of all possible paths from body
       val confidence = support.toDouble / bodySize
       if (confidence >= minConfidence) {
-        rule.copy()(TypedKeyMap(Measure.BodySize(bodySize), Measure.Confidence(confidence)) ++= rule.measures)
+        rule.withMeasures(TypedKeyMap(Measure.BodySize(bodySize), Measure.Confidence(confidence)) ++= rule.measures)
       } else {
         rule
       }
@@ -56,7 +57,7 @@ trait RuleCounting extends AtomCounting {
     *
     * @return New rule with counted head confidence
     */
-  def withHeadConfidence: Rule.Simple = {
+  def withHeadConfidence: FinalRule = {
     logger.debug(s"Head confidence counting for rule: " + rule)
     val average = (rule.head.subject, rule.head.`object`) match {
       //TODO add functionality and inverseFunctionaly to choose which part of atom should take into account
@@ -74,7 +75,7 @@ trait RuleCounting extends AtomCounting {
       case (Atom.Constant(a), _: Atom.Variable) => tripleIndex.predicates(rule.head.predicate).subjects.get(a).map(_.size).getOrElse(0).toDouble / tripleIndex.predicates(rule.head.predicate).objects.size
       case _ => 0
     }
-    rule.copy()(TypedKeyMap(Measure.HeadConfidence(average)) ++= rule.measures)
+    rule.withMeasures(TypedKeyMap(Measure.HeadConfidence(average)) ++= rule.measures)
   }
 
   /**
@@ -83,13 +84,13 @@ trait RuleCounting extends AtomCounting {
     *
     * @return New rule with counted lift
     */
-  def withLift: Rule.Simple = {
+  def withLift: FinalRule = {
     logger.debug(s"Lift counting for rule: " + rule)
     val confidence = rule.measures.get[Measure.Confidence]
     val average = rule.measures.get[Measure.HeadConfidence]
     (confidence, average) match {
       //lift is confidence DIVIDED average confidence for the head atom
-      case (Some(confidence), Some(average)) => rule.copy()(TypedKeyMap(Measure.Lift(confidence.value / average.value)) ++= rule.measures)
+      case (Some(confidence), Some(average)) => rule.withMeasures(TypedKeyMap(Measure.Lift(confidence.value / average.value)) ++= rule.measures)
       case _ => rule
     }
   }
@@ -106,7 +107,7 @@ trait RuleCounting extends AtomCounting {
     *                         rule with pca confidence lower than minPcaConfidence will have confidence = minPcaConfidence - 1
     * @return New rule with counted pca confidence
     */
-  def withPcaConfidence(minPcaConfidence: Double, allPaths: Boolean = false): Rule.Simple = {
+  def withPcaConfidence(minPcaConfidence: Double, allPaths: Boolean = false): FinalRule = {
     //minimal allowed confidence is 0.1%
     if (minPcaConfidence < 0.001) {
       withPcaConfidence(0.001, allPaths)
@@ -145,7 +146,7 @@ trait RuleCounting extends AtomCounting {
       }*/
       val isPCA: Seq[Atom.Constant] => Boolean = {
         val pindex = tripleIndex.predicates(rule.head.predicate)
-        pindex.mostFunctionalVariable match {
+        pindex.higherCardinalitySide match {
           case TriplePosition.Subject =>
             if (rule.head.subject.isInstanceOf[Atom.Constant]) {
               _ => true
@@ -180,7 +181,7 @@ trait RuleCounting extends AtomCounting {
       }*/
       val pcaConfidence = support.toDouble / pcaBodySize
       if (pcaConfidence >= minPcaConfidence) {
-        rule.copy()(TypedKeyMap(Measure.PcaBodySize(pcaBodySize), Measure.PcaConfidence(pcaConfidence)) ++= rule.measures)
+        rule.withMeasures(TypedKeyMap(Measure.PcaBodySize(pcaBodySize), Measure.PcaConfidence(pcaConfidence)) ++= rule.measures)
       } else {
         rule
       }
@@ -191,6 +192,6 @@ trait RuleCounting extends AtomCounting {
 
 object RuleCounting {
 
-  implicit class PimpedClosedRule(val rule: Rule.Simple)(implicit val tripleIndex: TripleIndex[Int]) extends RuleCounting
+  implicit class PimpedClosedRule(val rule: FinalRule)(implicit val tripleIndex: TripleIndex[Int]) extends RuleCounting
 
 }

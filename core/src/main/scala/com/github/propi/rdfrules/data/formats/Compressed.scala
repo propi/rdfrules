@@ -4,8 +4,9 @@ import java.io.{BufferedInputStream, BufferedOutputStream}
 import com.github.propi.rdfrules.data.RdfSource.{CompressedRdfSource, PimpedRdfFormat}
 import com.github.propi.rdfrules.data.ops.PrefixesOps
 import com.github.propi.rdfrules.data.{Compression, RdfReader, RdfSource, RdfWriter, jenaFormatToRdfWriter}
+import com.github.propi.rdfrules.rule.ResolvedRule
 import com.github.propi.rdfrules.ruleset.RulesetSource.CompressedRulesetSource
-import com.github.propi.rdfrules.ruleset.{ResolvedRule, RulesetReader, RulesetWriter}
+import com.github.propi.rdfrules.ruleset.{RulesetReader, RulesetWriter}
 import com.github.propi.rdfrules.utils.{ForEach, InputStreamBuilder, OutputStreamBuilder}
 import org.apache.commons.compress.compressors.bzip2.{BZip2CompressorInputStream, BZip2CompressorOutputStream}
 import org.apache.commons.compress.compressors.gzip.{GzipCompressorInputStream, GzipCompressorOutputStream}

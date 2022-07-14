@@ -2,8 +2,7 @@ package com.github.propi.rdfrules.http.task.model
 
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 import com.github.propi.rdfrules.model.Model
-import com.github.propi.rdfrules.rule.Measure
-import com.github.propi.rdfrules.ruleset.ResolvedRule
+import com.github.propi.rdfrules.rule.{Measure, ResolvedRule}
 import com.github.propi.rdfrules.utils.TypedKeyMap
 
 import scala.math.Ordering.Implicits.seqOrdering

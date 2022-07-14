@@ -14,8 +14,8 @@ import com.github.propi.rdfrules.http.task.{QuadMapper, QuadMatcher, TripleItemM
 import com.github.propi.rdfrules.http.util.Conf
 import com.github.propi.rdfrules.model.Model.PredictionType
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
-import com.github.propi.rdfrules.rule.{AtomPattern, Measure, Rule, RuleConstraint, RulePattern, Threshold}
-import com.github.propi.rdfrules.ruleset.{CoveredPaths, ResolvedRule, Ruleset, RulesetSource}
+import com.github.propi.rdfrules.rule.{AtomPattern, Measure, ResolvedRule, Rule, RuleConstraint, RulePattern, Threshold}
+import com.github.propi.rdfrules.ruleset.{Instantiation, Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
 import org.apache.jena.riot.RDFFormat
 import spray.json.DefaultJsonProtocol._
@@ -129,15 +129,15 @@ object CommonDataJsonReaders {
     }
   }
 
-  implicit val coveredPathsPartReader: RootJsonReader[CoveredPaths.Part] = (json: JsValue) => json.convertTo[String] match {
-    case "Head" => CoveredPaths.Part.Head
-    case "HeadExisting" => CoveredPaths.Part.HeadExisting
-    case "HeadMissing" => CoveredPaths.Part.HeadMissing
-    case "BodyAll" => CoveredPaths.Part.Body(PredictionType.All)
-    case "BodyMissing" => CoveredPaths.Part.Body(PredictionType.Missing)
-    case "BodyExisting" => CoveredPaths.Part.Body(PredictionType.Existing)
-    case "BodyComplementary" => CoveredPaths.Part.Body(PredictionType.Complementary)
-    case "Whole" => CoveredPaths.Part.Whole
+  implicit val coveredPathsPartReader: RootJsonReader[Instantiation.Part] = (json: JsValue) => json.convertTo[String] match {
+    case "Head" => Instantiation.Part.Head
+    case "HeadExisting" => Instantiation.Part.HeadExisting
+    case "HeadMissing" => Instantiation.Part.HeadMissing
+    case "BodyAll" => Instantiation.Part.Body(PredictionType.All)
+    case "BodyMissing" => Instantiation.Part.Body(PredictionType.Missing)
+    case "BodyExisting" => Instantiation.Part.Body(PredictionType.Existing)
+    case "BodyComplementary" => Instantiation.Part.Body(PredictionType.Complementary)
+    case "Whole" => Instantiation.Part.Whole
     case x => deserializationError(s"Invalid covered paths part name: $x")
   }
 

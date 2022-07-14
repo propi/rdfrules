@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.experiments.benchmark
 import com.github.propi.rdfrules.data.TripleItem
 import com.github.propi.rdfrules.experiments.benchmark.Metric.Simple
 import com.github.propi.rdfrules.index.Index
-import com.github.propi.rdfrules.ruleset.ResolvedRule
+import com.github.propi.rdfrules.rule.ResolvedRule
 import com.github.propi.rdfrules.utils.BasicFunctions.round
 import com.github.propi.rdfrules.utils.PrettyDuration._
 import com.github.propi.rdfrules.utils.Stringifier

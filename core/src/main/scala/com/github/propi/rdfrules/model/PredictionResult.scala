@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.model
 
 import com.github.propi.rdfrules.data.{Dataset, Graph, Triple}
 import com.github.propi.rdfrules.index.Index
-import com.github.propi.rdfrules.ruleset.ResolvedRule
+import com.github.propi.rdfrules.rule.ResolvedRule
 import com.github.propi.rdfrules.utils.ForEach
 
 /**

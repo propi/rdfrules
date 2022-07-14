@@ -1,7 +1,5 @@
 package com.github.propi.rdfrules.rule
 
-import com.github.propi.rdfrules.ruleset.ResolvedRule
-
 object RulePatternMatcher {
 
   private def matchAntecedentOrderless[A, AP](body: Set[A], pattern: Seq[AP])(implicit atomMatcher: PatternMatcher[A, AP]): Boolean = {
@@ -24,7 +22,7 @@ object RulePatternMatcher {
       (if (pattern.orderless) matchAntecedentOrderless(x.body.toSet, pattern.body) else matchAntecedentGradually(x.body, pattern.body))
   }
 
-  implicit def resolvedRulePatternMatcher(implicit atomMatcher: ResolvedAtomPatternMatcher[ResolvedRule.Atom]): PatternMatcher[ResolvedRule, RulePattern] = (x: ResolvedRule, pattern: RulePattern) => {
+  implicit def resolvedRulePatternMatcher(implicit atomMatcher: ResolvedAtomPatternMatcher[ResolvedAtom]): PatternMatcher[ResolvedRule, RulePattern] = (x: ResolvedRule, pattern: RulePattern) => {
     pattern.head.forall(atomMatcher.matchPattern(x.head, _)) &&
       (pattern.exact && pattern.body.size == x.body.size || !pattern.exact && pattern.body.size <= x.body.size) &&
       (if (pattern.orderless) matchAntecedentOrderless(x.body.toSet, pattern.body) else matchAntecedentGradually(x.body, pattern.body))

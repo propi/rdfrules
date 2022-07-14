@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.algorithm.dbscan
 
+import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.{Atom, Measure, Rule}
 
 import scala.language.implicitConversions
@@ -121,6 +122,6 @@ object SimilarityCounting {
     def apply(rule1: Rule, rule2: Rule): Double = absoluteNumbersSimilarity(rule1.ruleLength, rule2.ruleLength)
   }
 
-  implicit def ruleSimpleSimilarityCounting(implicit sc: SimilarityCounting[Rule]): SimilarityCounting[Rule.Simple] = sc
+  implicit def ruleSimpleSimilarityCounting(implicit sc: SimilarityCounting[Rule]): SimilarityCounting[FinalRule] = sc
 
 }

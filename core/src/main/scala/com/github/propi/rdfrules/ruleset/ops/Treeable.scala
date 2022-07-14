@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.ruleset.ops
 
-import com.github.propi.rdfrules.rule.{Atom, ExtendedRule, Measure, Rule}
+import com.github.propi.rdfrules.rule.Rule.FinalRule
+import com.github.propi.rdfrules.rule.{Atom, ExpandingRule, Measure}
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.ruleset.ops.Treeable._
 import com.github.propi.rdfrules.utils.ForEach
@@ -9,14 +10,14 @@ import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 /**
   * Created by Vaclav Zeman on 27. 4. 2020.
   */
-trait Treeable extends Sortable[Rule.Simple, Ruleset] {
+trait Treeable extends Sortable[FinalRule, Ruleset] {
 
   private def tree: ForEach[TreeItem] = (f: TreeItem => Unit) => {
     val orphans = collection.mutable.Set.empty[TreeItem]
     for (rule <- sortBy(_.ruleLength)(implicitly[Ordering[Int]].reverse).rules) {
       val children = orphans
         .iterator
-        .filter(orphan => rule.ruleLength < orphan.rule.ruleLength && ExtendedRule.checkParenthood(rule.body, orphan.ruleBody, rule.head, orphan.rule.head))
+        .filter(orphan => rule.ruleLength < orphan.rule.ruleLength && ExpandingRule.checkParenthood(rule.body, orphan.ruleBody, rule.head, orphan.rule.head))
         .toList
       val treeItem = if (children.isEmpty) {
         Leaf(rule)
@@ -67,16 +68,16 @@ trait Treeable extends Sortable[Rule.Simple, Ruleset] {
 object Treeable {
 
   private trait TreeItem {
-    val rule: Rule.Simple
+    val rule: FinalRule
     lazy val ruleBody: Set[Atom] = rule.body.toSet
   }
 
-  private case class Node(rule: Rule.Simple, children: ForEach[TreeItem]) extends TreeItem
+  private case class Node(rule: FinalRule, children: ForEach[TreeItem]) extends TreeItem
 
-  private case class Leaf(rule: Rule.Simple) extends TreeItem
+  private case class Leaf(rule: FinalRule) extends TreeItem
 
   private case class TreeItemWithParent(treeItem: TreeItem, parent: Option[TreeItemWithParent]) {
-    def rule: Rule.Simple = treeItem.rule
+    def rule: FinalRule = treeItem.rule
 
     def ancestors: Iterator[TreeItemWithParent] = parent match {
       case Some(x) => Iterator(x) ++ x.ancestors

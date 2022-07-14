@@ -4,8 +4,8 @@ import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
-import com.github.propi.rdfrules.rule.{RuleConstraint, Threshold}
-import com.github.propi.rdfrules.ruleset.{ResolvedRule, Ruleset}
+import com.github.propi.rdfrules.rule.{ResolvedRule, RuleConstraint, Threshold}
+import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.Debugger
 
 /**

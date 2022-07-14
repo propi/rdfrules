@@ -9,7 +9,7 @@ import com.github.propi.rdfrules.ruleset.Ruleset
 class GraphBasedRules extends Task[Ruleset, Ruleset] {
   val companion: TaskDefinition = GraphBasedRules
 
-  def execute(input: Ruleset): Ruleset = input.graphBasedRules
+  def execute(input: Ruleset): Ruleset = input.graphAwareRules
 }
 
 object GraphBasedRules extends TaskDefinition {

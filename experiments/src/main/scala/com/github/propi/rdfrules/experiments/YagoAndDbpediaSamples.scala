@@ -88,7 +88,7 @@ object YagoAndDbpediaSamples {
         .addPattern(AtomPattern(graph = TripleItem.Uri("dbpedia")) =>: AtomPattern(graph = TripleItem.Uri("yago")))
         .addPattern(AtomPattern(graph = TripleItem.Uri("yago")) =>: AtomPattern(graph = TripleItem.Uri("dbpedia"))))
         .sorted
-        .graphBasedRules
+        .graphAwareRules
         .cache(Example.resultDir + "rules-example5.cache")
       Ruleset.fromCache(dataset.index(), Example.resultDir + "rules-example5.cache")
     }

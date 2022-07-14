@@ -13,8 +13,7 @@ import com.github.propi.rdfrules.experiments.benchmark.{ClusterDistancesTaskPost
 import com.github.propi.rdfrules.experiments.benchmark.tasks._
 import com.github.propi.rdfrules.index.TripleHashIndex
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
-import com.github.propi.rdfrules.rule.{AtomPattern, RuleConstraint, Threshold}
-import com.github.propi.rdfrules.ruleset.ResolvedRule
+import com.github.propi.rdfrules.rule.{AtomPattern, ResolvedRule, RuleConstraint, Threshold}
 import com.github.propi.rdfrules.utils.{Debugger, HowLong}
 import org.apache.commons.cli.{Options, PosixParser}
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream

@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.algorithm.consumer
 
 import com.github.propi.rdfrules.algorithm.RuleConsumer
 import com.github.propi.rdfrules.rule.Rule
+import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.serialization.RuleSerialization._
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, Serializer}
 
@@ -21,7 +22,7 @@ class OnDiskRuleConsumer private(file: File, prettyPrintedFile: Option[(File, Fi
 
     def write(i: Int): Unit = throw new UnsupportedOperationException()
 
-    def write(rule: Rule.Simple): Unit = {
+    def write(rule: FinalRule): Unit = {
       val bytes = Serializer.serialize(rule)
       if (bytes.length > buffer.length) {
         stream.write(bytes)
@@ -64,7 +65,7 @@ class OnDiskRuleConsumer private(file: File, prettyPrintedFile: Option[(File, Fi
             messages.poll(syncDuration.toSeconds, TimeUnit.SECONDS) match {
               case null =>
               case Some(rule) =>
-                val ruleSimple = Rule.Simple(rule)
+                val ruleSimple = Rule(rule)
                 bos.write(ruleSimple)
                 isAdded = true
                 prettyPrintedWriter.foreach(_.write(ruleSimple))
@@ -82,8 +83,8 @@ class OnDiskRuleConsumer private(file: File, prettyPrintedFile: Option[(File, Fi
           bos.close()
           prettyPrintedWriter.foreach(_.close())
         }
-        _result.success(RuleConsumer.Result((f: Rule.Simple => Unit) => {
-          Deserializer.deserializeFromInputStream[Rule.Simple, Unit](new FileInputStream(file)) { reader =>
+        _result.success(RuleConsumer.Result((f: FinalRule => Unit) => {
+          Deserializer.deserializeFromInputStream[FinalRule, Unit](new FileInputStream(file)) { reader =>
             Iterator.continually(reader.read()).takeWhile(_.isDefined).map(_.get).foreach(f)
           }
         }))

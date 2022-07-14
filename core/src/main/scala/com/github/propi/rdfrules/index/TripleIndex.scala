@@ -41,7 +41,7 @@ trait TripleIndex[T] {
       * (C hasCitizen ?a), or (?a isCitizenOf C)
       * For this example C is the least functional variable
       */
-    final def leastFunctionalVariable: ConceptPosition = if (functionality >= inverseFunctionality) {
+    final def lowerCardinalitySide: ConceptPosition = if (subjectRelativeCardinality >= objectRelativeCardinality) {
       TriplePosition.Object
     } else {
       TriplePosition.Subject
@@ -51,19 +51,19 @@ trait TripleIndex[T] {
       * (?a hasCitizen C), or (C isCitizenOf ?a)
       * For this example C is the most functional variable
       */
-    def mostFunctionalVariable: ConceptPosition = if (leastFunctionalVariable == TriplePosition.Subject) {
+    def higherCardinalitySide: ConceptPosition = if (lowerCardinalitySide == TriplePosition.Subject) {
       TriplePosition.Object
     } else {
       TriplePosition.Subject
     }
 
-    final def functionality: Double = subjects.size.toDouble / size
+    final def subjectRelativeCardinality: Double = subjects.size.toDouble / size
 
-    final def isFunction: Boolean = functionality == 1.0
+    final def isFunction: Boolean = subjectRelativeCardinality == 1.0
 
-    final def isInverseFunction: Boolean = inverseFunctionality == 1.0
+    final def isInverseFunction: Boolean = objectRelativeCardinality == 1.0
 
-    final def inverseFunctionality: Double = objects.size.toDouble / size
+    final def objectRelativeCardinality: Double = objects.size.toDouble / size
   }
 
   trait SubjectIndex {
