@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.http.formats
 import com.github.propi.rdfrules.data.Properties.PropertyStats
 import com.github.propi.rdfrules.data.{Histogram, Quad, TripleItem, TripleItemType}
 import com.github.propi.rdfrules.http.service.Task.TaskResponse
-import com.github.propi.rdfrules.model.EvaluationResult
+import com.github.propi.rdfrules.prediction.EvaluationResult
 import com.github.propi.rdfrules.ruleset.formats.Json._
 import spray.json.DefaultJsonProtocol._
 import spray.json._

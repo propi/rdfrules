@@ -1,21 +1,32 @@
 package com.github.propi.rdfrules.utils
 
-import com.github.propi.rdfrules.utils.ForEach.{KnownSizeForEach, ParallelForEach}
+import com.github.propi.rdfrules.utils.ForEach.{KnownSizeForEach, ParallelForEach2}
 
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.{ConcurrentLinkedQueue, LinkedBlockingQueue, TimeUnit}
 import scala.collection.immutable.ArraySeq
 import scala.collection.{Factory, MapView}
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
-import scala.util.DynamicVariable
+import scala.util.{Failure, Success, Try}
 
 trait ForEach[+T] {
   self =>
 
   def foreach(f: T => Unit): Unit
 
-  def par(parallelism: Int = Runtime.getRuntime.availableProcessors(), maxWaitingTasks: Int = 1024): ForEach[T] = new ParallelForEach[T](this, parallelism, maxWaitingTasks)
+  def parMap[A](parallelism: Int = Runtime.getRuntime.availableProcessors(), maxWaitingTasks: Int = 1024)(f: T => A): ForEach[A] = new ParallelForEach2[T, A](self, parallelism, maxWaitingTasks)(f)
+
+  /**
+    *
+    * @param parallelism     num of threads (default: availableProcessors)
+    * @param maxWaitingTasks max waiting tasks in the buffer to be processed (default: 1024)
+    * @param exclusive       if true, deactive all previous parallel tasks (default: true), ie: x.par().map().par().foreach (x.par() will not be performed in parallel)
+    * @return
+    */
+  //def par(parallelism: Int = Runtime.getRuntime.availableProcessors(), maxWaitingTasks: Int = 1024, exclusive: Boolean = true): ForEach[T] = new ParallelForEach[T](this, parallelism, maxWaitingTasks, exclusive)
 
   def knownSize: Int = -1
 
@@ -228,18 +239,114 @@ trait ForEach[+T] {
 
 object ForEach {
 
-  private val singleParallelTraversingChecker = new DynamicVariable[Boolean](false)
+  private class ParallelForEach2[T, A](col: ForEach[T], parallelism: Int, maxWaitingTasks: Int)(f: T => A) extends ForEach[A] {
 
-  private class ParallelForEach[T](col: ForEach[T], parallelism: Int, maxWaitingTasks: Int) extends ForEach[T] {
     require(maxWaitingTasks >= 2)
 
     override def knownSize: Int = col.knownSize
 
-    def foreach(f: T => Unit): Unit = {
+    def foreach(g: A => Unit): Unit = {
+      val executor = new java.util.concurrent.ForkJoinPool(parallelism)
+      implicit val ec: ExecutionContext = ExecutionContext.fromExecutor(executor)
+      val queue = new LinkedBlockingQueue[Option[A]](maxWaitingTasks)
+      val isInterrupted = new AtomicBoolean(false)
+      try {
+        var i = 0
+        val chain = col.foldLeft(Future.successful(Option.empty[A])) { (chain, x) =>
+          val work = Future(Option(f(x)))
+          val chained = chain.transformWith {
+            case Success(res) =>
+              res.foreach { x =>
+                while (!queue.offer(Some(x), 100, TimeUnit.MILLISECONDS) && !isInterrupted.get()) ()
+              }
+              work
+            case Failure(th) =>
+              th.printStackTrace()
+              queue.put(None)
+              work
+          }
+          i += 1
+          Option(queue.poll()).foreach { x =>
+            x.foreach(g)
+            i -= 1
+          }
+          if (i >= maxWaitingTasks) {
+            queue.take().foreach(g)
+            i -= 1
+          }
+          chained
+        }
+        while (i > 1) {
+          queue.take().foreach(g)
+          i -= 1
+        }
+        Try(Await.result(chain, Duration.Inf)).foreach(_.foreach(g))
+      } finally {
+        isInterrupted.set(true)
+        executor.shutdown()
+      }
+    }
+  }
+
+  private class ParallelForEach[T, A](col: ForEach[T], parallelism: Int, maxWaitingTasks: Int)(f: T => A) extends ForEach[A] {
+    self =>
+
+    require(maxWaitingTasks >= 2)
+
+    override def knownSize: Int = col.knownSize
+
+
+    def foreach(g: A => Unit): Unit = {
+      implicit val ec: ExecutionContext = ExecutionContext.fromExecutor(new java.util.concurrent.ForkJoinPool(parallelism))
+      val halfMaxWaitingTasks = maxWaitingTasks / 2
+      var i = 0
+
+      val queue = new ConcurrentLinkedQueue[A]()
+
+      val (stage1, stage2) = col.foldLeft(Future.successful(Option.empty[A]) -> Future.successful(Option.empty[A])) { case ((stage1, stage2), x) =>
+        def enqueueWork(stage: Future[Option[A]], work: Future[Option[A]]) = {
+          stage.flatMap { res =>
+            res.foreach(queue.add)
+            self.notify()
+            work
+          }
+        }
+
+        val work = Future(Option(f(x)))
+
+        val accumulated = if (i == halfMaxWaitingTasks) {
+          val nextStage1 = enqueueWork(stage1, Future.successful(None))
+          val nextStage2 = enqueueWork(nextStage1.flatMap(_ => stage2), work)
+          nextStage1 -> nextStage2
+        } else if (i > halfMaxWaitingTasks) {
+          stage1 -> enqueueWork(stage2, work)
+        } else {
+          enqueueWork(stage1, work) -> stage2
+        }
+        Option(queue.poll()).foreach(g(_))
+        i += 1
+        if (i % maxWaitingTasks == 0) {
+          i = halfMaxWaitingTasks
+          while (!accumulated._1.isCompleted) {
+            Option(queue.poll()).foreach(g(_))
+            self.wait(100)
+          }
+          accumulated._2 -> Future.successful(Option.empty[A])
+        } else {
+          accumulated
+        }
+      }
+      val (res1, res2) = Await.result(stage1.zip(stage2), Duration.Inf)
+      Iterator.continually(queue.poll()).takeWhile(_ != null).foreach(g(_))
+      res1.foreach(g(_))
+      res2.foreach(g(_))
+    }
+
+    /*def foreach(f: T => Unit): Unit = {
       if (singleParallelTraversingChecker.value) {
         col.foreach(f)
       } else {
-        singleParallelTraversingChecker.withValue(true) {
+        singleParallelTraversingChecker.withValue(exclusive) {
           implicit val ec: ExecutionContext = ExecutionContext.fromExecutor(new java.util.concurrent.ForkJoinPool(parallelism))
           val halfMaxWaitingTasks = maxWaitingTasks / 2
           var i = 0
@@ -249,14 +356,14 @@ object ForEach {
               stage.flatMap(_ => work)
             }
 
-            val accumulated = if (i > halfMaxWaitingTasks) {
+            val accumulated = if (i >= halfMaxWaitingTasks) {
               stage1 -> doWork(stage2)
             } else {
               doWork(stage1) -> stage2
             }
             i += 1
             if (i % maxWaitingTasks == 0) {
-              i = 0
+              i = halfMaxWaitingTasks
               Await.result(accumulated._1, Duration.Inf)
               accumulated._2 -> Future.successful(())
             } else {
@@ -265,8 +372,8 @@ object ForEach {
           }
           Await.result(stage1.flatMap(_ => stage2), Duration.Inf)
         }
-      }
-    }
+      }*/
+    //}
   }
 
   private class KnownSizeForEach[T](override val knownSize: Int, col: ForEach[T]) extends ForEach[T] {

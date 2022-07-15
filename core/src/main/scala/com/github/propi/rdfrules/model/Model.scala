@@ -1,22 +1,19 @@
 package com.github.propi.rdfrules.model
 
-import java.io._
-import com.github.propi.rdfrules.algorithm.amie.{AtomCounting, VariableMap}
+import com.github.propi.rdfrules.data.{Dataset, Graph}
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
-import com.github.propi.rdfrules.data.{Dataset, Graph, TriplePosition}
-import com.github.propi.rdfrules.index.{Index, IndexItem, TripleIndex, TripleItemIndex}
-import com.github.propi.rdfrules.model.Model.PredictionType
-import com.github.propi.rdfrules.rule.{Atom, Measure, PatternMatcher, ResolvedRule, RulePattern}
+import com.github.propi.rdfrules.index.{Index, TripleItemIndex}
+import com.github.propi.rdfrules.rule.RulePatternMatcher._
+import com.github.propi.rdfrules.rule.{Measure, PatternMatcher, ResolvedRule, RulePattern}
 import com.github.propi.rdfrules.ruleset.ops.Sortable
 import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetReader, RulesetWriter}
 import com.github.propi.rdfrules.serialization.RuleSerialization._
 import com.github.propi.rdfrules.utils.{Debugger, ForEach}
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
-import com.github.propi.rdfrules.rule.RulePatternMatcher._
 
+import java.io._
 import scala.math.Ordering.Implicits.seqOrdering
-import scala.util.Try
 
 /**
   * Created by Vaclav Zeman on 14. 10. 2019.
@@ -81,69 +78,18 @@ class Model private(val rules: ForEach[ResolvedRule], val parallelism: Int)
 
   def `export`(file: String)(implicit writer: RulesetWriter): Unit = export(new File(file))
 
+  def toRuleset(graph: Graph): Ruleset = toRuleset(graph.index)
+
+  def toRuleset(graph: Graph)(implicit debugger: Debugger): Ruleset = toRuleset(graph.index)
+
+  def toRuleset(dataset: Dataset): Ruleset = toRuleset(dataset.index)
+
+  def toRuleset(dataset: Dataset)(implicit debugger: Debugger): Ruleset = toRuleset(dataset.index)
+
   def toRuleset(index: Index): Ruleset = {
     implicit val mapper: TripleItemIndex = index.tripleItemMap
     Ruleset(index, rules.map(ResolvedRule.simple(_)).filter(_._2.isEmpty).map(_._1).cached)
   }
-
-  def predictForGraph(graph: Graph, predictionType: PredictionType)(implicit debugger: Debugger = Debugger.EmptyDebugger): PredictionResult = predictForIndex(graph.index(), predictionType)
-
-  def predictForDataset(dataset: Dataset, predictionType: PredictionType)(implicit debugger: Debugger = Debugger.EmptyDebugger): PredictionResult = predictForIndex(dataset.index(), predictionType)
-
-  def predictForIndex(index: Index, predictionType: PredictionType): PredictionResult = PredictionResult(
-    (f: PredictedTriple => Unit) => {
-      val mapper = index.tripleItemMap
-      implicit val thi: TripleIndex[Int] = index.tripleMap
-      val atomCounting = new AtomCounting {
-        implicit val tripleIndex: TripleIndex[Int] = thi
-      }
-
-      def isCompletelyMissing(predictedTriple: PredictedTriple): Boolean = {
-        val predicateIndex = thi.predicates(mapper.getIndex(predictedTriple.triple.predicate))
-        predicateIndex.higherCardinalitySide match {
-          case TriplePosition.Subject => !predicateIndex.subjects.contains(mapper.getIndex(predictedTriple.triple.subject))
-          case TriplePosition.Object => !predicateIndex.objects.contains(mapper.getIndex(predictedTriple.triple.`object`))
-        }
-      }
-
-      val filterPredictedTriple: PredictedTriple => Boolean = predictionType match {
-        case PredictionType.All => _ => true
-        case PredictionType.Existing => _.existing
-        case PredictionType.Missing => !_.existing
-        case PredictionType.Complementary => predictedTriple =>
-          !predictedTriple.existing && isCompletelyMissing(predictedTriple)
-      }
-      rules.map(ResolvedRule.simple(_)(mapper)).foreach { case (rule, ruleMapper) =>
-        implicit val mapper2: TripleItemIndex = mapper.extendWith(ruleMapper)
-        val ruleBody = rule.body.toSet
-        val headVars = List(rule.head.subject, rule.head.`object`).collect {
-          case x: Atom.Variable => x
-        }
-        val constantsToQuad: Seq[Atom.Constant] => IndexItem.IntQuad = (rule.head.subject, rule.head.`object`) match {
-          case (_: Atom.Variable, _: Atom.Variable) => constants => IndexItem.Quad(constants.head.value, rule.head.predicate, constants.last.value, 0)
-          case (_: Atom.Variable, Atom.Constant(o)) => constants => IndexItem.Quad(constants.head.value, rule.head.predicate, o, 0)
-          case (Atom.Constant(s), _: Atom.Variable) => constants => IndexItem.Quad(s, rule.head.predicate, constants.head.value, 0)
-          case (Atom.Constant(s), Atom.Constant(o)) => _ => IndexItem.Quad(s, rule.head.predicate, o, 0)
-        }
-        if (predictionType == PredictionType.Existing) {
-          atomCounting.specifyVariableMap(rule.head, VariableMap(true))
-            .filter(atomCounting.exists(ruleBody, _))
-            .map(variableMap => constantsToQuad(headVars.map(variableMap(_))))
-            .map(x => PredictedTriple(x.toTriple)(rule, true))
-            .foreach(f)
-        } else {
-          Try(atomCounting
-            .selectDistinctPairs(ruleBody, headVars, VariableMap(true))
-            .map(constantsToQuad)
-            .map(x => thi.predicates.get(x.p).flatMap(_.subjects.get(x.s)).exists(_.contains(x.o)) -> x.toTriple)
-            .map(x => PredictedTriple(x._2)(rule, x._1))
-            .filter(filterPredictedTriple)
-            .foreach(f))
-        }
-      }
-    },
-    index
-  )
 
 }
 

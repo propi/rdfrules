@@ -14,8 +14,9 @@ import com.github.propi.rdfrules.http.task._
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.model.Model
 import com.github.propi.rdfrules.model.Model.PredictionType
+import com.github.propi.rdfrules.prediction.Instantiation
 import com.github.propi.rdfrules.rule.{Measure, ResolvedRule, Rule, RulePattern}
-import com.github.propi.rdfrules.ruleset.{Instantiation, Ruleset, RulesetSource}
+import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
 import org.apache.jena.riot.RDFFormat
 import spray.json.DefaultJsonProtocol._

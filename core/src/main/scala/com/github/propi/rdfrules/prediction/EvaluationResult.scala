@@ -1,4 +1,4 @@
-package com.github.propi.rdfrules.model
+package com.github.propi.rdfrules.prediction
 
 import com.github.propi.rdfrules.rule.ResolvedRule
 

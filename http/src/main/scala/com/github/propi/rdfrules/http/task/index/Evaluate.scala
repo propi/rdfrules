@@ -3,8 +3,8 @@ package com.github.propi.rdfrules.http.task.index
 import com.github.propi.rdfrules.http.task.model.LoadModel
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 import com.github.propi.rdfrules.index.Index
-import com.github.propi.rdfrules.model.EvaluationResult
 import com.github.propi.rdfrules.model.Model.PredictionType
+import com.github.propi.rdfrules.prediction.EvaluationResult
 import com.github.propi.rdfrules.ruleset.RulesetSource
 import com.github.propi.rdfrules.utils.Debugger
 

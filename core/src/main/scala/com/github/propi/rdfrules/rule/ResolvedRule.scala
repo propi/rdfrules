@@ -20,6 +20,12 @@ case class ResolvedRule private(body: IndexedSeq[ResolvedAtom], head: ResolvedAt
 
 object ResolvedRule {
 
+  /**
+    *
+    * @param resolvedRule rule without mapping to index
+    * @param mapper       mapper
+    * @return mapped rule to index -> new mapping of triple items which can not be mapped to index (no records in index)
+    */
   def simple(resolvedRule: ResolvedRule)(implicit mapper: TripleItemIndex): (FinalRule, collection.Map[Int, TripleItem]) = {
     var i = 0
     val map = collection.mutable.Map.empty[TripleItem, Int]

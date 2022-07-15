@@ -1,4 +1,4 @@
-package com.github.propi.rdfrules.ruleset
+package com.github.propi.rdfrules.prediction
 
 import com.github.propi.rdfrules.algorithm.amie.{AtomCounting, VariableMap}
 import com.github.propi.rdfrules.data.TriplePosition
@@ -35,7 +35,7 @@ import com.github.propi.rdfrules.utils.ForEach
 
 object Instantiation {
 
-  private def getPredictionResult(head: InstantiatedAtom)(implicit thi: TripleIndex[Int]): PredictedResult = {
+  def resolvePredictionResult(head: InstantiatedAtom)(implicit thi: TripleIndex[Int]): PredictedResult = {
     val predicateIndex = thi.predicates.get(head.predicate)
     val isPositive = predicateIndex.exists(_.subjects.get(head.subject).exists(_.contains(head.`object`)))
     if (isPositive) {
@@ -61,17 +61,17 @@ object Instantiation {
       variableMap <- ac.paths(bodySet, VariableMap(injectiveMapping))
       instantiatedHead <- variableMap.specifyAtom(rule.head).toInstantiatedAtom
       instantiatedBody <- rule.body.foldLeft(Option(Vector.empty[InstantiatedAtom]))((atoms, atom) => atoms.flatMap(atoms => variableMap.specifyAtom(atom).toInstantiatedAtom.map(atoms :+ _)))
-      predictionResult = getPredictionResult(instantiatedHead)(ac.tripleIndex)
+      predictionResult = resolvePredictionResult(instantiatedHead)(ac.tripleIndex)
     } yield {
       InstantiatedRule(instantiatedHead, instantiatedBody, predictionResult, rule)
     }
   }
 
-  def apply(rules: ForEach[FinalRule], index: Index, predictionResults: Set[PredictedResult] = Set.empty, injectiveMapping: Boolean = true, parallelism: Int = Runtime.getRuntime.availableProcessors()): ForEach[InstantiatedRule] = (f: InstantiatedRule => Unit) => {
+  def apply(rules: ForEach[FinalRule], index: Index, predictionResults: Set[PredictedResult], injectiveMapping: Boolean): ForEach[InstantiatedRule] = (f: InstantiatedRule => Unit) => {
     implicit val thi: TripleIndex[Int] = index.tripleMap
     implicit val atomCounting: AtomCounting = AtomCounting()
     for {
-      rule <- rules.par(parallelism)
+      rule <- rules
       iRule <- instantiateRule(rule, injectiveMapping)
       if predictionResults.isEmpty || predictionResults(iRule.predictionResult)
     } {

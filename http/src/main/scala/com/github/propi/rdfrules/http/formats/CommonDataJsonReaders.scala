@@ -13,9 +13,10 @@ import com.github.propi.rdfrules.http.{Main, Workspace}
 import com.github.propi.rdfrules.http.task.{QuadMapper, QuadMatcher, TripleItemMapper}
 import com.github.propi.rdfrules.http.util.Conf
 import com.github.propi.rdfrules.model.Model.PredictionType
+import com.github.propi.rdfrules.prediction.Instantiation
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule.{AtomPattern, Measure, ResolvedRule, Rule, RuleConstraint, RulePattern, Threshold}
-import com.github.propi.rdfrules.ruleset.{Instantiation, Ruleset, RulesetSource}
+import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
 import org.apache.jena.riot.RDFFormat
 import spray.json.DefaultJsonProtocol._

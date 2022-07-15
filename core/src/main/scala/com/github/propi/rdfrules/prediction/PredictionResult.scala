@@ -1,14 +1,9 @@
-package com.github.propi.rdfrules.model
-
-import com.github.propi.rdfrules.data.{Dataset, Graph, Triple}
-import com.github.propi.rdfrules.index.Index
-import com.github.propi.rdfrules.rule.ResolvedRule
-import com.github.propi.rdfrules.utils.ForEach
+package com.github.propi.rdfrules.prediction
 
 /**
   * Created by Vaclav Zeman on 15. 10. 2019.
   */
-class PredictionResult private(val predictedTriples: ForEach[PredictedTriple], val index: Index, _distinct: Boolean = false) {
+/*class PredictionResult private(val predictedTriples: ForEach[PredictedTriple], val index: Index, _distinct: Boolean = false) {
 
   def distinct: PredictionResult = new PredictionResult(predictedTriples.distinct, index, true)
 
@@ -49,10 +44,10 @@ class PredictionResult private(val predictedTriples: ForEach[PredictedTriple], v
     if (withModel) evaluationResult.copy(model = modelSet.toVector) else evaluationResult
   }
 
-}
+}*/
 
 object PredictionResult {
 
-  def apply(triples: ForEach[PredictedTriple], index: Index): PredictionResult = new PredictionResult(triples, index)
+  //def apply(triples: ForEach[PredictedTriple], index: Index): PredictionResult = new PredictionResult(triples, index)
 
 }

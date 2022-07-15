@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.gui
 
 import com.github.propi.rdfrules.gui.Task.{Result, TaskException}
+import com.github.propi.rdfrules.gui.utils.ReactiveBinding
 import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.{Constant, Constants, Var, Vars}
 import org.lrng.binding.html
@@ -105,7 +106,7 @@ trait ActionProgress {
           <div class="result">
             {result.getResult match {
             case Some(x) => viewResult(x).bind
-            case None => Constant(<div>This task is still in progress. Wait a moment!</div>).asInstanceOf[Binding[Div]].bind
+            case None => ReactiveBinding.custom(<div>This task is still in progress. Wait a moment!</div>).bind
           }}
           </div>
           <h3>Logs</h3>

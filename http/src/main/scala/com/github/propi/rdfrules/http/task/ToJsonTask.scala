@@ -8,7 +8,7 @@ import com.github.propi.rdfrules.data.{Histogram, Prefix, TripleItem}
 import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.formats.CommonDataJsonWriters._
 import com.github.propi.rdfrules.http.util.TraversablePublisher._
-import com.github.propi.rdfrules.model.EvaluationResult
+import com.github.propi.rdfrules.prediction.EvaluationResult
 import com.github.propi.rdfrules.rule.ResolvedRule
 import com.github.propi.rdfrules.ruleset.formats.Json._
 import com.github.propi.rdfrules.utils.ForEach

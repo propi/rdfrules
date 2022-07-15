@@ -5,8 +5,8 @@ import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
 import com.github.propi.rdfrules.index.{Index, TripleIndex, TripleItemIndex}
-import com.github.propi.rdfrules.model.Model.PredictionType
-import com.github.propi.rdfrules.model.{Model, PredictionResult}
+import com.github.propi.rdfrules.model.Model
+import com.github.propi.rdfrules.prediction.{InstantiatedRuleset, Instantiation, PredictedTriples, Prediction}
 import com.github.propi.rdfrules.rule.InstantiatedRule.PredictedResult
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
@@ -85,10 +85,6 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
 
   def foreach(f: ResolvedRule => Unit): Unit = resolvedRules.foreach(f)
 
-  def instantiate(predictionResults: Set[PredictedResult] = Set.empty, injectiveMapping: Boolean = true): InstantiatedRuleset = {
-    InstantiatedRuleset(index, Instantiation(rules, index, predictionResults, injectiveMapping, parallelism))
-  }
-
   def +(ruleset: Ruleset): Ruleset = transform(rules.concat(ruleset.rules))
 
   def headResolved: ResolvedRule = resolvedRules.head
@@ -113,13 +109,13 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     *                                 this parameter to false.
     * @return pruned ruleset
     */
-  def pruned(onlyExistingTriples: Boolean, onlyFunctionalProperties: Boolean): Ruleset = {
+  def pruned(onlyExistingTriples: Boolean = true, onlyFunctionalProperties: Boolean = true, injectiveMapping: Boolean = true): Ruleset = {
     transform((f: FinalRule => Unit) => {
       implicit val mapper: TripleItemIndex = index.tripleItemMap
-      val predictionType = if (onlyExistingTriples) PredictionType.Existing else PredictionType.All
-      val predictionResult = if (onlyFunctionalProperties) predictedTriples(predictionType).onlyFunctionalProperties else predictedTriples(predictionType).distinct
+      val predictedResults: Set[PredictedResult] = if (onlyExistingTriples) Set(PredictedResult.Positive) else Set.empty
+      val predictionResult = if (onlyFunctionalProperties) predict(predictedResults, injectiveMapping).onlyFunctionalProperties else predict(predictedResults, injectiveMapping).distinct
       val hashSet = collection.mutable.LinkedHashSet.empty[FinalRule]
-      for (rule <- predictionResult.predictedTriples.map(_.rule).map(ResolvedRule.simple(_)).filter(_._2.isEmpty).map(_._1)) {
+      for (rule <- predictionResult.triples.flatMap(_.rules)) {
         hashSet += rule
       }
       hashSet.foreach(f)
@@ -213,18 +209,13 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     }.filter(_.measures.exists[Measure.Lift])
   }
 
-  /**
-    * Get all predicted triples by rules. Predicted rules have two types - Existing and Missing. If a generated triple has Existing
-    * type, the triple also exists in the input dataset. If Missing, the triple is not contained in the input dataset. We can choose
-    * which type of predicted rules is desired.
-    *
-    * @param predictionType Existing = all predicted triples are contained in the input datasets
-    *                       Missing = all predicted triples are not contained in the input datasets
-    *                       All = predicted triples can be Existing or Missing
-    *                       Complementary = predicted triple is Missing and the subject did not contain any information related with the predicted predicate (it is new valuable knowledge)
-    * @return predicted triples
-    */
-  def predictedTriples(predictionType: PredictionType): PredictionResult = model.predictForIndex(index, predictionType)
+  def instantiate(predictionResults: Set[PredictedResult] = Set.empty, injectiveMapping: Boolean = true): InstantiatedRuleset = {
+    InstantiatedRuleset(index, Instantiation(rules, index, predictionResults, injectiveMapping))
+  }
+
+  def predict(predictedResults: Set[PredictedResult] = Set.empty, injectiveMapping: Boolean = true): PredictedTriples = {
+    PredictedTriples(index, Prediction(rules, index, predictedResults, injectiveMapping))
+  }
 
   def makeClusters(clustering: Clustering[FinalRule]): Ruleset = transform((f: FinalRule => Unit) => clustering.clusters(rules.toIndexedSeq).view.zipWithIndex.flatMap { case (cluster, index) =>
     cluster.map(x => x.withMeasures(TypedKeyMap(Measure.Cluster(index)) ++= x.measures))

@@ -1,12 +1,12 @@
-package com.github.propi.rdfrules.ruleset
+package com.github.propi.rdfrules.prediction
 
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
 import com.github.propi.rdfrules.index.{Index, TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
 import com.github.propi.rdfrules.rule.{InstantiatedRule, PatternMatcher, ResolvedInstantiatedRule, Rule, RulePattern}
+import com.github.propi.rdfrules.serialization.RuleSerialization._
 import com.github.propi.rdfrules.utils.ForEach
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
-import com.github.propi.rdfrules.serialization.RuleSerialization._
 
 /**
   * Created by Vaclav Zeman on 6. 10. 2017.
