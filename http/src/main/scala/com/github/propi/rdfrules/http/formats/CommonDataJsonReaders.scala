@@ -1,27 +1,32 @@
 package com.github.propi.rdfrules.http.formats
 
-import java.io.File
-import java.net.URL
-
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.algorithm.consumer.{InMemoryRuleConsumer, OnDiskRuleConsumer, TopKRuleConsumer}
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting.{Comb, WeightedSimilarityCounting}
 import com.github.propi.rdfrules.algorithm.dbscan.{DbScan, SimilarityCounting}
 import com.github.propi.rdfrules.algorithm.{Clustering, RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.data.{DiscretizationTask, Prefix, RdfSource, TripleItem}
-import com.github.propi.rdfrules.http.{Main, Workspace}
-import com.github.propi.rdfrules.http.task.{QuadMapper, QuadMatcher, TripleItemMapper}
+import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
+import com.github.propi.rdfrules.http.task.data.Shrink.ShrinkSetup
+import com.github.propi.rdfrules.http.task.ruleset.ComputeConfidence.ConfidenceType
+import com.github.propi.rdfrules.http.task.ruleset.Prune.PruningStrategy
+import com.github.propi.rdfrules.http.task.{QuadMapper, QuadMatcher, TripleItemMapper, data}
 import com.github.propi.rdfrules.http.util.Conf
-import com.github.propi.rdfrules.model.Model.PredictionType
-import com.github.propi.rdfrules.prediction.Instantiation
+import com.github.propi.rdfrules.http.util.JsonSelector.PimpedJsValue
+import com.github.propi.rdfrules.http.{Main, Workspace}
+import com.github.propi.rdfrules.rule.InstantiatedRule.PredictedResult
+import com.github.propi.rdfrules.rule.ResolvedAtom.ResolvedItem
+import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
-import com.github.propi.rdfrules.rule.{AtomPattern, Measure, ResolvedRule, Rule, RuleConstraint, RulePattern, Threshold}
+import com.github.propi.rdfrules.rule.{AtomPattern, Measure, ResolvedAtom, ResolvedRule, Rule, RuleConstraint, RulePattern, Threshold}
 import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
 import org.apache.jena.riot.RDFFormat
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
+import java.io.File
+import java.net.URL
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.Try
@@ -130,24 +135,11 @@ object CommonDataJsonReaders {
     }
   }
 
-  implicit val coveredPathsPartReader: RootJsonReader[Instantiation.Part] = (json: JsValue) => json.convertTo[String] match {
-    case "Head" => Instantiation.Part.Head
-    case "HeadExisting" => Instantiation.Part.HeadExisting
-    case "HeadMissing" => Instantiation.Part.HeadMissing
-    case "BodyAll" => Instantiation.Part.Body(PredictionType.All)
-    case "BodyMissing" => Instantiation.Part.Body(PredictionType.Missing)
-    case "BodyExisting" => Instantiation.Part.Body(PredictionType.Existing)
-    case "BodyComplementary" => Instantiation.Part.Body(PredictionType.Complementary)
-    case "Whole" => Instantiation.Part.Whole
-    case x => deserializationError(s"Invalid covered paths part name: $x")
-  }
-
-  implicit val predictionTypeReader: RootJsonReader[PredictionType] = (json: JsValue) => json.convertTo[String] match {
-    case "All" => PredictionType.All
-    case "Missing" => PredictionType.Missing
-    case "Existing" => PredictionType.Existing
-    case "Complementary" => PredictionType.Complementary
-    case x => deserializationError(s"Invalid prediction type name: $x")
+  implicit val predictedResultReader: RootJsonReader[PredictedResult] = (json: JsValue) => json.convertTo[String] match {
+    case "Positive" => PredictedResult.Positive
+    case "Negative" => PredictedResult.Negative
+    case "PcaPositive" => PredictedResult.PcaPositive
+    case x => deserializationError(s"Invalid predicted result name: $x")
   }
 
   implicit val atomItemPatternReader: RootJsonReader[AtomPattern.AtomItemPattern] = (json: JsValue) => {
@@ -286,7 +278,7 @@ object CommonDataJsonReaders {
       case (Some(x), y) => Some(x ~ y)
     }.getOrElse(implicitly[SimilarityCounting[Rule]])
 
-  implicit def clusteringReader(implicit debugger: Debugger): RootJsonReader[Clustering[Rule.Simple]] = (json: JsValue) => {
+  implicit def clusteringReader(implicit debugger: Debugger): RootJsonReader[Clustering[FinalRule]] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     DbScan(
       fields.get("minNeighbours").map(_.convertTo[Int]).getOrElse(5),
@@ -294,21 +286,21 @@ object CommonDataJsonReaders {
     )(fields.get("features").map(_.convertTo[SimilarityCounting[Rule]]).getOrElse(implicitly[SimilarityCounting[Rule]]), debugger)
   }
 
-  implicit val resolvedRuleAtomItemReader: RootJsonReader[ResolvedRule.Atom.Item] = {
+  implicit val resolvedRuleAtomItemReader: RootJsonReader[ResolvedItem] = {
     case JsObject(fields) => fields("type").convertTo[String] match {
-      case "variable" => ResolvedRule.Atom.Item(fields("value").convertTo[String])
-      case "constant" => ResolvedRule.Atom.Item(fields("value").convertTo[TripleItem])
+      case "variable" => ResolvedItem(fields("value").convertTo[String])
+      case "constant" => ResolvedItem(fields("value").convertTo[TripleItem])
     }
-    case JsString(x) if x.startsWith("?") => ResolvedRule.Atom.Item(x)
-    case x: JsValue => ResolvedRule.Atom.Item(x.convertTo[TripleItem])
+    case JsString(x) if x.startsWith("?") => ResolvedItem(x)
+    case x: JsValue => ResolvedItem(x.convertTo[TripleItem])
   }
 
-  implicit val resolvedRuleAtomReader: RootJsonReader[ResolvedRule.Atom] = (json: JsValue) => {
+  implicit val resolvedRuleAtomReader: RootJsonReader[ResolvedAtom] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    ResolvedRule.Atom(
-      fields("subject").convertTo[ResolvedRule.Atom.Item],
+    ResolvedAtom(
+      fields("subject").convertTo[ResolvedItem],
       fields("predicate").convertTo[TripleItem.Uri],
-      fields("object").convertTo[ResolvedRule.Atom.Item]
+      fields("object").convertTo[ResolvedItem]
     )
   }
 
@@ -332,8 +324,8 @@ object CommonDataJsonReaders {
   implicit val resolvedRuleReader: RootJsonReader[ResolvedRule] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     ResolvedRule(
-      fields("body").convertTo[JsArray].elements.map(_.convertTo[ResolvedRule.Atom]),
-      fields("head").convertTo[ResolvedRule.Atom]
+      fields("body").convertTo[JsArray].elements.map(_.convertTo[ResolvedAtom]),
+      fields("head").convertTo[ResolvedAtom]
     )(TypedKeyMap(fields.get("measures").iterator.flatMap(_.convertTo[JsArray].elements).map(_.convertTo[Measure])))
   }
 
@@ -342,6 +334,36 @@ object CommonDataJsonReaders {
     case "json" => RulesetSource.Json
     case "ndjson" => RulesetSource.NDJson
     case x => deserializationError(s"Invalid ruleset format name: $x")
+  }
+
+  implicit val shrinkSetupReader: RootJsonReader[ShrinkSetup] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    fields.get("take").map(x => data.Shrink.ShrinkSetup.Take(x.convertTo[Int]))
+      .orElse(fields.get("drop").map(x => data.Shrink.ShrinkSetup.Drop(x.convertTo[Int])))
+      .getOrElse(data.Shrink.ShrinkSetup.Slice(fields("start").convertTo[Int], fields("end").convertTo[Int]))
+  }
+
+  implicit val pruningStrategyReader: RootJsonReader[PruningStrategy] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    val selector = json.toSelector
+    selector("name").to[String] match {
+      case "DataCoveragePruning" => json.convertTo[PruningStrategy.DataCoveragePruning]
+      case "Maximal" => PruningStrategy.Maximal
+      case "Closed" => PruningStrategy.Closed(fields("measure").convertTo[TypedKeyMap.Key[Measure]])
+      case "OnlyBetterDescendant" => PruningStrategy.OnlyBetterDescendant(fields("measure").convertTo[TypedKeyMap.Key[Measure]])
+      case x => deserializationError(s"Invalid name of pruning strategy: $x")
+    }
+  }
+
+  implicit val confidenceTypeReader: RootJsonReader[ConfidenceType] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    val selector = json.toSelector
+    selector("name").to[String] match {
+      case "StandardConfidence" => ConfidenceType.StandardConfidence(fields("min").convertTo[Double], fields("topk").convertTo[Int])
+      case "PcaConfidence" => ConfidenceType.PcaConfidence(fields("min").convertTo[Double], fields("topk").convertTo[Int])
+      case "Lift" => ConfidenceType.Lift(fields("min").convertTo[Double])
+      case x => deserializationError(s"Invalid name of confidence type: $x")
+    }
   }
 
 }

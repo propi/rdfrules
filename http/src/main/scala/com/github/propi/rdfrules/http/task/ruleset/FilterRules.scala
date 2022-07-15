@@ -10,12 +10,14 @@ import com.github.propi.rdfrules.utils.TypedKeyMap
   * Created by Vaclav Zeman on 7. 8. 2018.
   */
 class FilterRules(measures: Seq[(Option[TypedKeyMap.Key[Measure]], TripleItemMatcher.Number)],
-                  patterns: Seq[RulePattern]) extends Task[Ruleset, Ruleset] {
+                  patterns: Seq[RulePattern],
+                  indices: Set[Int]) extends Task[Ruleset, Ruleset] {
   val companion: TaskDefinition = FilterRules
 
-  def execute(input: Ruleset): Ruleset = {
-    val rulesetFiltered = if (measures.nonEmpty) {
-      input.filter(rule => measures.forall { case (measure, matcher) =>
+  def execute(input: Ruleset): Ruleset = Function.chain[Ruleset](List(
+    ruleset => if (indices.isEmpty) ruleset else ruleset.filterIndices(indices),
+    ruleset => if (measures.nonEmpty) {
+      ruleset.filter(rule => measures.forall { case (measure, matcher) =>
         measure match {
           case Some(measure) => rule.measures.get(measure).collect {
             case Measure(x) => TripleItem.Number(x)
@@ -24,13 +26,13 @@ class FilterRules(measures: Seq[(Option[TypedKeyMap.Key[Measure]], TripleItemMat
         }
       })
     } else {
-      input
+      ruleset
+    },
+    ruleset => patterns match {
+      case Seq(head, tail@_*) => ruleset.filter(head, tail: _*)
+      case _ => ruleset
     }
-    patterns match {
-      case Seq(head, tail@_*) => rulesetFiltered.filter(head, tail: _*)
-      case _ => rulesetFiltered
-    }
-  }
+  ))(input)
 }
 
 object FilterRules extends TaskDefinition {

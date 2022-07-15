@@ -95,20 +95,6 @@ class Model private(val rules: ForEach[ResolvedRule], val parallelism: Int)
 
 object Model {
 
-  sealed trait PredictionType
-
-  object PredictionType {
-
-    case object Missing extends PredictionType
-
-    case object Existing extends PredictionType
-
-    case object Complementary extends PredictionType
-
-    case object All extends PredictionType
-
-  }
-
   def apply(rules: ForEach[ResolvedRule]): Model = new Model(rules, Runtime.getRuntime.availableProcessors())
 
   def apply(file: File)(implicit reader: RulesetReader): Model = {

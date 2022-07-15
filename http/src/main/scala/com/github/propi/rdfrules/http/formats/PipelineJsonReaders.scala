@@ -1,7 +1,6 @@
 package com.github.propi.rdfrules.http.formats
 
 import java.net.URL
-
 import akka.NotUsed
 import akka.stream.scaladsl.Source
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
@@ -11,10 +10,12 @@ import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.formats.CommonDataJsonReaders._
 import com.github.propi.rdfrules.http.task.Task.MergeDatasets
 import com.github.propi.rdfrules.http.task._
+import com.github.propi.rdfrules.http.util.JsonSelector.PimpedJsValue
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.model.Model
 import com.github.propi.rdfrules.model.Model.PredictionType
 import com.github.propi.rdfrules.prediction.Instantiation
+import com.github.propi.rdfrules.rule.InstantiatedRule.PredictedResult
 import com.github.propi.rdfrules.rule.{Measure, ResolvedRule, Rule, RulePattern}
 import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
@@ -72,19 +73,8 @@ object PipelineJsonReaders {
     )
   }
 
-  implicit val takeQuadsReader: RootJsonReader[data.Take] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new data.Take(fields("value").convertTo[Int])
-  }
-
-  implicit val dropQuadsReader: RootJsonReader[data.Drop] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new data.Drop(fields("value").convertTo[Int])
-  }
-
-  implicit val sliceQuadsReader: RootJsonReader[data.Slice] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new data.Slice(fields("start").convertTo[Int], fields("end").convertTo[Int])
+  implicit val shrinkQuadsReader: RootJsonReader[data.Shrink] = (json: JsValue) => {
+    new data.Shrink(json.convertTo[data.Shrink.ShrinkSetup])
   }
 
   implicit val addPrefixesReader: RootJsonReader[data.AddPrefixes] = (json: JsValue) => {
@@ -192,42 +182,14 @@ object PipelineJsonReaders {
     new model.LoadModel(path, format)
   }
 
-  implicit def completeDatasetReader(implicit debugger: Debugger): RootJsonReader[index.CompleteDataset] = (json: JsValue) => {
-    val (path, format) = getModelPathFormat(json)
-    val fields = json.asJsObject.fields
-    new index.CompleteDataset(path, format, fields.get("onlyNewPredicates").forall(_.convertTo[Boolean]), fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
-  }
-
-  implicit val rulesetCompleteDatasetReader: RootJsonReader[ruleset.CompleteDataset] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new ruleset.CompleteDataset(fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]), fields.get("onlyNewPredicates").forall(_.convertTo[Boolean]))
-  }
-
-  implicit def predictTriplesReader(implicit debugger: Debugger): RootJsonReader[index.PredictTriples] = (json: JsValue) => {
-    val (path, format) = getModelPathFormat(json)
-    val fields = json.asJsObject.fields
-    new index.PredictTriples(path, format, fields("predictionType").convertTo[PredictionType], fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
-  }
-
-  implicit val rulesetPredictTriplesReader: RootJsonReader[ruleset.PredictTriples] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new ruleset.PredictTriples(fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]), fields("predictionType").convertTo[PredictionType])
+  implicit val predictReader: RootJsonReader[ruleset.Predict] = (json: JsValue) => {
+    val selector = json.toSelector
+    new ruleset.Predict(selector("predictedResults").toTypedIterable[PredictedResult].toSet, selector("injectiveMapping").to[Boolean].get)
   }
 
   implicit val pruneReader: RootJsonReader[ruleset.Prune] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new ruleset.Prune(fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]), fields.get("onlyExistingTriples").forall(_.convertTo[Boolean]))
-  }
-
-  implicit def evaluateReader(implicit debugger: Debugger): RootJsonReader[index.Evaluate] = (json: JsValue) => {
-    val (path, format) = getModelPathFormat(json)
-    val fields = json.asJsObject.fields
-    new index.Evaluate(path, format, fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
-  }
-
-  implicit val rulesetEvaluateReader: RootJsonReader[ruleset.Evaluate] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new ruleset.Evaluate(fields.get("onlyFunctionalProperties").forall(_.convertTo[Boolean]))
+    new ruleset.Prune(fields("strategy").convertTo[ruleset.Prune.PruningStrategy])
   }
 
   implicit val filterRulesReader: RootJsonReader[ruleset.FilterRules] = (json: JsValue) => {
@@ -240,7 +202,8 @@ object PipelineJsonReaders {
         case (JsString("RuleLength"), TripleItemMatcher.Number(x)) => None -> x
         case (measure, TripleItemMatcher.Number(x)) => Some(measure.convertTo[TypedKeyMap.Key[Measure]]) -> x
       }.toSeq,
-      fields.get("patterns").map(_.convertTo[JsArray].elements.map(_.convertTo[RulePattern])).getOrElse(Nil)
+      fields.get("patterns").map(_.convertTo[JsArray].elements.map(_.convertTo[RulePattern])).getOrElse(Nil),
+      fields.get("indices").map(_.convertTo[JsArray].elements.map(_.convertTo[Int]).toSet).getOrElse(Set.empty)
     )
   }
 
@@ -254,46 +217,17 @@ object PipelineJsonReaders {
         case (JsString("RuleLength"), TripleItemMatcher.Number(x)) => None -> x
         case (measure, TripleItemMatcher.Number(x)) => Some(measure.convertTo[TypedKeyMap.Key[Measure]]) -> x
       }.toSeq,
-      fields.get("patterns").map(_.convertTo[JsArray].elements.map(_.convertTo[RulePattern])).getOrElse(Nil)
+      fields.get("patterns").map(_.convertTo[JsArray].elements.map(_.convertTo[RulePattern])).getOrElse(Nil),
+      fields.get("indices").map(_.convertTo[JsArray].elements.map(_.convertTo[Int]).toSet).getOrElse(Set.empty)
     )
   }
 
-  implicit val takeRulesReader: RootJsonReader[ruleset.Take] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new ruleset.Take(fields("value").convertTo[Int])
+  implicit val rulesetShrinkReader: RootJsonReader[ruleset.Shrink] = (json: JsValue) => {
+    new ruleset.Shrink(json.convertTo[data.Shrink.ShrinkSetup])
   }
 
-  implicit val modelTakeRulesReader: RootJsonReader[model.Take] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new model.Take(fields("value").convertTo[Int])
-  }
-
-  implicit val dropRulesReader: RootJsonReader[ruleset.Drop] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new ruleset.Drop(fields("value").convertTo[Int])
-  }
-
-  implicit val modelDropRulesReader: RootJsonReader[model.Drop] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new model.Drop(fields("value").convertTo[Int])
-  }
-
-  implicit val sliceRulesReader: RootJsonReader[ruleset.Slice] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new ruleset.Slice(fields("start").convertTo[Int], fields("end").convertTo[Int])
-  }
-
-  implicit val modelSliceRulesReader: RootJsonReader[model.Slice] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new model.Slice(fields("start").convertTo[Int], fields("end").convertTo[Int])
-  }
-
-  implicit val sortedReader: RootJsonReader[ruleset.Sorted] = (_: JsValue) => {
-    new ruleset.Sorted()
-  }
-
-  implicit val modelSortedReader: RootJsonReader[model.Sorted] = (_: JsValue) => {
-    new model.Sorted()
+  implicit val modelShrinkReader: RootJsonReader[model.Shrink] = (json: JsValue) => {
+    new model.Shrink(json.convertTo[data.Shrink.ShrinkSetup])
   }
 
   implicit val sortReader: RootJsonReader[ruleset.Sort] = (json: JsValue) => {
@@ -390,8 +324,8 @@ object PipelineJsonReaders {
     new ruleset.OnlyBetterDescendant(fields("measure").convertTo[TypedKeyMap.Key[Measure]])
   }
 
-  implicit val graphBasedRulesReader: RootJsonReader[ruleset.GraphBasedRules] = (_: JsValue) => {
-    new ruleset.GraphBasedRules()
+  implicit val graphBasedRulesReader: RootJsonReader[ruleset.GraphAwareRules] = (_: JsValue) => {
+    new ruleset.GraphAwareRules()
   }
 
   implicit val exportRulesReader: RootJsonReader[ruleset.ExportRules] = (json: JsValue) => {
@@ -458,7 +392,7 @@ object PipelineJsonReaders {
           case data.MapQuads.name => addTaskFromDataset(pipeline ~> params.convertTo[data.MapQuads], tail)
           case data.Prefixes.name => pipeline ~> params.convertTo[data.Prefixes] ~> ToJsonTask.FromPrefixes
           case data.Size.name => pipeline ~> params.convertTo[data.Size] ~> ToJsonTask.FromInt
-          case data.Slice.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Slice], tail)
+          case data.Shrink.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Shrink], tail)
           case data.Take.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Take], tail)
           case data.Properties.name => pipeline ~> params.convertTo[data.Properties] ~> ToJsonTask.FromTypes
           case data.Index.name => addTaskFromIndex(pipeline ~> params.convertTo[data.Index], tail)
@@ -480,7 +414,7 @@ object PipelineJsonReaders {
           case model.FilterRules.name => addTaskFromModel(pipeline ~> params.convertTo[model.FilterRules], tail)
           case model.GetRules.name => pipeline ~> params.convertTo[model.GetRules] ~> ToJsonTask.FromRules
           case model.Size.name => pipeline ~> params.convertTo[model.Size] ~> ToJsonTask.FromInt
-          case model.Slice.name => addTaskFromModel(pipeline ~> params.convertTo[model.Slice], tail)
+          case model.Shrink.name => addTaskFromModel(pipeline ~> params.convertTo[model.Shrink], tail)
           case model.Sort.name => addTaskFromModel(pipeline ~> params.convertTo[model.Sort], tail)
           case model.Sorted.name => addTaskFromModel(pipeline ~> params.convertTo[model.Sorted], tail)
           case model.Take.name => addTaskFromModel(pipeline ~> params.convertTo[model.Take], tail)
@@ -523,15 +457,15 @@ object PipelineJsonReaders {
           case ruleset.FindSimilar.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.FindSimilar], tail)
           case ruleset.FindDissimilar.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.FindDissimilar], tail)
           case ruleset.GetRules.name => pipeline ~> params.convertTo[ruleset.GetRules] ~> ToJsonTask.FromRules
-          case ruleset.GraphBasedRules.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.GraphBasedRules], tail)
+          case ruleset.GraphAwareRules.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.GraphAwareRules], tail)
           case ruleset.MakeClusters.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.MakeClusters], tail)
           case ruleset.Size.name => pipeline ~> params.convertTo[ruleset.Size] ~> ToJsonTask.FromInt
-          case ruleset.Slice.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Slice], tail)
+          case ruleset.Shrink.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Shrink], tail)
           case ruleset.Sort.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Sort], tail)
           case ruleset.Sorted.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Sorted], tail)
           case ruleset.Take.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Take], tail)
           case ruleset.CompleteDataset.name => addTaskFromDataset(pipeline ~> params.convertTo[ruleset.CompleteDataset], tail)
-          case ruleset.PredictTriples.name => addTaskFromDataset(pipeline ~> params.convertTo[ruleset.PredictTriples], tail)
+          case ruleset.Predict.name => addTaskFromDataset(pipeline ~> params.convertTo[ruleset.Predict], tail)
           case ruleset.Prune.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Prune], tail)
           case ruleset.Evaluate.name => pipeline ~> params.convertTo[ruleset.Evaluate] ~> ToJsonTask.FromEvaluationResult
           case ruleset.Instantiate.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Instantiate], tail)

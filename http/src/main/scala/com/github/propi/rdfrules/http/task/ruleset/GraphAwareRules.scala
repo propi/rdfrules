@@ -6,12 +6,12 @@ import com.github.propi.rdfrules.ruleset.Ruleset
 /**
   * Created by Vaclav Zeman on 9. 8. 2018.
   */
-class GraphBasedRules extends Task[Ruleset, Ruleset] {
-  val companion: TaskDefinition = GraphBasedRules
+class GraphAwareRules extends Task[Ruleset, Ruleset] {
+  val companion: TaskDefinition = GraphAwareRules
 
   def execute(input: Ruleset): Ruleset = input.graphAwareRules
 }
 
-object GraphBasedRules extends TaskDefinition {
-  val name: String = "GraphBasedRules"
+object GraphAwareRules extends TaskDefinition {
+  val name: String = "GraphAwareRules"
 }

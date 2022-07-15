@@ -15,6 +15,8 @@ trait Transformable[T, Coll] {
 
   def filter(f: T => Boolean): Coll = transform(coll.filter(f))
 
+  def filterIndices(indices: Set[Int]): Coll = transform(coll.zipWithIndex.filter(x => indices(x._2)).map(_._1))
+
   def slice(from: Int, until: Int): Coll = transform(coll.slice(from, until))
 
   def take(n: Int): Coll = transform(coll.take(n))

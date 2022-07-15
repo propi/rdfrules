@@ -193,6 +193,15 @@ trait ForEach[+T] {
 
   def filter(p: T => Boolean): ForEach[T] = (f: T => Unit) => self.foreach(x => if (p(x)) f(x))
 
+  def zipWithIndex: ForEach[(T, Int)] = {
+    var i = 0
+    map { x =>
+      val y = x -> i
+      i += 1
+      y
+    }
+  }
+
   def find(p: T => Boolean): Option[T] = {
     self.foreach(x => if (p(x)) return Some(x))
     None

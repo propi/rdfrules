@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.http.formats
 
 import com.github.propi.rdfrules.data.Prefix
+import com.github.propi.rdfrules.http.task.ruleset.Prune.PruningStrategy
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
@@ -23,5 +24,7 @@ object CommonDataJsonFormats {
 
     def read(json: JsValue): Prefix = Try(json.convertTo[Prefix.Full]).getOrElse(json.convertTo[Prefix.Namespace])
   }
+
+  implicit val dataCoveragePruningFormat: RootJsonFormat[PruningStrategy.DataCoveragePruning] = jsonFormat3(PruningStrategy.DataCoveragePruning)
 
 }
