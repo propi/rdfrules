@@ -45,7 +45,7 @@ trait Index {
     override def withEvaluatedLazyVals: Index = this
   }
 
-  final def mine(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer(_))): Ruleset = {
+  final def mine(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer())): Ruleset = {
     implicit val thi: TripleIndex[Int] = tripleMap
     implicit val mapper: TripleItemIndex = tripleItemMap
     ruleConsumer.invoke { ruleConsumer =>

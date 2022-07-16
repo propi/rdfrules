@@ -59,7 +59,7 @@ class Dataset private(val quads: QuadTraversableView, val userDefinedPrefixes: F
 
   def `export`(file: String)(implicit writer: RdfWriter): Unit = `export`(new File(file))
 
-  def mine(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer(_)))(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = Index(this, false).mine(miner, ruleConsumer)
+  def mine(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer()))(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = Index(this, false).mine(miner, ruleConsumer)
 
   def index(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = Index(this, false)
 

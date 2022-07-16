@@ -25,7 +25,7 @@ class TopKRuleConsumer private(k: Int, allowOverflowIfSameHeadCoverage: Boolean)
   private val _result = Promise[ForEach[FinalRule]]()
 
   private lazy val messages = {
-    val messages = new LinkedBlockingQueue[Option[Rule]]
+    val messages = new LinkedBlockingQueue[Option[FinalRule]]
     val job = new Runnable {
       def run(): Unit = try {
         val queue = new TopKQueue[FinalRule](k, allowOverflowIfSameHeadCoverage)(Ordering.by[FinalRule, Double](_.headCoverage).reverse)
@@ -33,9 +33,8 @@ class TopKRuleConsumer private(k: Int, allowOverflowIfSameHeadCoverage: Boolean)
         while (!stopped) {
           messages.take() match {
             case Some(rule) =>
-              val ruleSimple = Rule(rule)
-              if (queue.enqueue(ruleSimple)) {
-                nextConsumer.foreach(_.send(ruleSimple))
+              if (queue.enqueue(rule)) {
+                nextConsumer.foreach(_.send(rule))
                 if (queue.isFull) queue.head.map(_.headCoverage).map(MinHeadCoverageUpdatedEvent).foreach(invokeEvent)
               }
             case None => stopped = true
@@ -51,7 +50,7 @@ class TopKRuleConsumer private(k: Int, allowOverflowIfSameHeadCoverage: Boolean)
     messages
   }
 
-  def send(rule: Rule): Unit = messages.put(Some(rule))
+  def send(rule: FinalRule): Unit = messages.put(Some(rule))
 
   def result: ForEach[FinalRule] = {
     messages.put(None)

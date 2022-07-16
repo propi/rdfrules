@@ -2,7 +2,6 @@ package com.github.propi.rdfrules.algorithm
 
 import com.github.propi.rdfrules.algorithm.RuleConsumer.Event
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
-import com.github.propi.rdfrules.rule.Rule
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.utils.ForEach
 
@@ -14,7 +13,7 @@ trait RuleConsumer {
 
   final protected def nextConsumer: Option[RuleConsumer] = _nextConsumer
 
-  def send(rule: Rule): Unit
+  def send(rule: FinalRule): Unit
 
   def result: ForEach[FinalRule]
 

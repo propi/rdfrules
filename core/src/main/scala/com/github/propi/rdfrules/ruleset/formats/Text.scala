@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.ruleset.formats
 
-import com.github.propi.rdfrules.algorithm.consumer.RuleWriter
+import com.github.propi.rdfrules.algorithm.consumer.RuleIO
 import com.github.propi.rdfrules.data.{Prefix, TripleItem}
 import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.rule.ResolvedAtom.ResolvedItem
@@ -40,20 +40,27 @@ object Text {
     }
   }
 
-  class TextPrettyPrintedWriter(file: File)(implicit mapper: TripleItemIndex, stringifier: Stringifier[ResolvedRule]) extends RuleWriter {
-    private val fos = new FileOutputStream(file)
-    private val writer = new PrintWriter(new OutputStreamWriter(fos, "UTF-8"))
+  private class TextIO(file: File)(implicit mapper: TripleItemIndex, stringifier: Stringifier[ResolvedRule]) extends RuleIO {
+    def writer[T](f: RuleIO.Writer => T): T = {
+      val fos = new FileOutputStream(file)
+      val writer = new PrintWriter(new OutputStreamWriter(fos, "UTF-8"))
+      try {
+        f(new RuleIO.Writer {
+          def write(rule: FinalRule): Unit = writer.println(stringifier.toStringValue(ResolvedRule(rule)))
 
-    def write(rule: FinalRule): Unit = writer.println(stringifier.toStringValue(ResolvedRule(rule)))
-
-    def flush(): Unit = {
-      writer.flush()
-      fos.getFD.sync()
+          def flush(): Unit = {
+            writer.flush()
+            fos.getFD.sync()
+          }
+        })
+      } finally {
+        writer.close()
+      }
     }
 
-    def close(): Unit = writer.close()
+    def reader[T](f: RuleIO.Reader => T): T = throw new UnsupportedOperationException("Text format is not parsable")
   }
 
-  implicit def textPrettyPrintedWriter(source: RulesetSource.Text.type)(implicit mapper: TripleItemIndex, stringifier: Stringifier[ResolvedRule]): File => RuleWriter = new TextPrettyPrintedWriter(_)
+  implicit def textWriter(source: RulesetSource.Text.type)(implicit mapper: TripleItemIndex, stringifier: Stringifier[ResolvedRule]): File => RuleIO = new TextIO(_)
 
 }

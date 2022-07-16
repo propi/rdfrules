@@ -1,7 +1,6 @@
 package com.github.propi.rdfrules.algorithm.consumer
 
 import com.github.propi.rdfrules.algorithm.RuleConsumer
-import com.github.propi.rdfrules.rule.Rule
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.utils.ForEach
 
@@ -48,7 +47,7 @@ class OnDiskRuleConsumer private(ruleIO: RuleIO) extends RuleConsumer.NoEventRul
   }*/
 
   private lazy val messages = {
-    val messages = new LinkedBlockingQueue[Option[Rule]]
+    val messages = new LinkedBlockingQueue[Option[FinalRule]]
     val job = new Runnable {
       def run(): Unit = try {
         ruleIO.writer { writer =>
@@ -86,7 +85,7 @@ class OnDiskRuleConsumer private(ruleIO: RuleIO) extends RuleConsumer.NoEventRul
     messages
   }
 
-  def send(rule: Rule): Unit = messages.put(Some(rule))
+  def send(rule: FinalRule): Unit = messages.put(Some(rule))
 
   def result: ForEach[FinalRule] = {
     messages.put(None)

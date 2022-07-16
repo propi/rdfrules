@@ -1,7 +1,8 @@
 package com.github.propi.rdfrules.ruleset
 
+import com.github.propi.rdfrules.algorithm.consumer.RuleIO
+
 import java.io.File
-import com.github.propi.rdfrules.algorithm.consumer.RuleWriter
 import com.github.propi.rdfrules.data.Compression
 import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.rule.ResolvedRule
@@ -45,10 +46,10 @@ object RulesetSource {
     case NDJson => NDJson
   }
 
-  implicit def rulesetSourceToPrettyPrintedWriterBuilder(rulesetSource: RulesetSource)(implicit mapper: TripleItemIndex, stringifier: Stringifier[ResolvedRule]): File => RuleWriter = rulesetSource match {
+  implicit def rulesetSourceToRuleIOBuilder(rulesetSource: RulesetSource)(implicit mapper: TripleItemIndex, stringifier: Stringifier[ResolvedRule]): File => RuleIO = rulesetSource match {
     case Text => Text
     case NDJson => NDJson
-    case x => throw new IllegalArgumentException(s"Unsupported Pretty Printed Writer format: $x")
+    case x => throw new IllegalArgumentException(s"Unsupported RuleIO format: $x")
   }
 
   case class CompressedRulesetSource(rulesetSource: RulesetSource, compression: Compression)

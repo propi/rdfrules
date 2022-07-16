@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.ruleset.formats
 
-import com.github.propi.rdfrules.algorithm.consumer.RuleWriter
+import com.github.propi.rdfrules.algorithm.consumer.RuleIO
 import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.rule.ResolvedRule
 import com.github.propi.rdfrules.rule.Rule.FinalRule
@@ -38,20 +38,36 @@ object NDJson {
     }
   }
 
-  class NDJsonPrettyPrintedWriter(file: File)(implicit mapper: TripleItemIndex) extends RuleWriter {
-    private val fos = new FileOutputStream(file)
-    private val writer = new PrintWriter(new OutputStreamWriter(fos, "UTF-8"))
+  private class NDJsonIO(file: File)(implicit mapper: TripleItemIndex) extends RuleIO {
+    def writer[T](f: RuleIO.Writer => T): T = {
+      val fos = new FileOutputStream(file)
+      val writer = new PrintWriter(new OutputStreamWriter(fos, "UTF-8"))
+      try {
+        f(new RuleIO.Writer {
+          def write(rule: FinalRule): Unit = writer.println(ResolvedRule(rule).toJson.compactPrint)
 
-    def write(rule: FinalRule): Unit = writer.println(ResolvedRule(rule).toJson.compactPrint)
-
-    def flush(): Unit = {
-      writer.flush()
-      fos.getFD.sync()
+          def flush(): Unit = {
+            writer.flush()
+            fos.getFD.sync()
+          }
+        })
+      } finally {
+        writer.close()
+      }
     }
 
-    def close(): Unit = writer.close()
+    def reader[T](f: RuleIO.Reader => T): T = {
+      val is = new BufferedInputStream(new FileInputStream(file))
+      val source = Source.fromInputStream(is, "UTF-8")
+      try {
+        val it = source.getLines().map(_.parseJson.convertTo[ResolvedRule])
+        f(() => if (it.hasNext) Some(it.next().toRule) else None)
+      } finally {
+        source.close()
+      }
+    }
   }
 
-  implicit def jsonPrettyPrintedWriter(source: RulesetSource.NDJson.type)(implicit mapper: TripleItemIndex): File => RuleWriter = new NDJsonPrettyPrintedWriter(_)
+  implicit def ndjsonIO(source: RulesetSource.NDJson.type)(implicit mapper: TripleItemIndex): File => RuleIO = new NDJsonIO(_)
 
 }

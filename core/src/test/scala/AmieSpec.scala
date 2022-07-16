@@ -56,10 +56,10 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
       .addThreshold(Threshold.MinHeadCoverage(0.01))
     implicit val tihi: TripleItemIndex = index.tripleItemMap
     implicit val thi: TripleIndex[Int] = index.tripleMap
-    val rules = InMemoryRuleConsumer { consumer =>
+    val rules = InMemoryRuleConsumer() { consumer =>
       thi.subjects
       thi.objects
-      amie.mine(consumer).rules.toSeq.sortBy(_.measures.apply[Measure.HeadCoverage])(Ordering.by[Measure.HeadCoverage, Double](_.value).reverse)
+      amie.mine(consumer).toSeq.sortBy(_.measures.apply[Measure.HeadCoverage])(Ordering.by[Measure.HeadCoverage, Double](_.value).reverse)
     }
     rules.size shouldBe 67
     rules(1).measures.apply[Measure.HeadCoverage].value shouldBe 0.22784810126582278
@@ -76,10 +76,10 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
       .addThreshold(Threshold.MinHeadCoverage(0.01))
     implicit val tihi: TripleItemIndex = index.tripleItemMap
     implicit val thi: TripleIndex[Int] = index.tripleMap
-    val rules = InMemoryRuleConsumer { consumer =>
+    val rules = InMemoryRuleConsumer() { consumer =>
       thi.subjects
       thi.objects
-      amie.mine(consumer).rules.toIndexedSeq.sortBy(_.measures.apply[Measure.HeadCoverage])(Ordering.by[Measure.HeadCoverage, Double](_.value).reverse)
+      amie.mine(consumer).toIndexedSeq.sortBy(_.measures.apply[Measure.HeadCoverage])(Ordering.by[Measure.HeadCoverage, Double](_.value).reverse)
     }
     rules.size shouldBe 8
     rules(0).measures.apply[Measure.HeadCoverage].value shouldBe 0.22784810126582278
@@ -97,10 +97,10 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
       .addThreshold(Threshold.MinHeadCoverage(0.01))
     implicit val tihi: TripleItemIndex = index.tripleItemMap
     implicit val thi: TripleIndex[Int] = index.tripleMap
-    val rules = InMemoryRuleConsumer { consumer =>
+    val rules = InMemoryRuleConsumer() { consumer =>
       thi.subjects
       thi.objects
-      amie.mine(consumer).rules.toIndexedSeq
+      amie.mine(consumer).toIndexedSeq
     }
     rules.size shouldBe 59
     rules.iterator.flatMap(x => x.body :+ x.head).map(_.predicate).toSet should contain noneOf(tihi.getIndex(TripleItem.Uri("imports")), tihi.getIndex(TripleItem.Uri("exports")), tihi.getIndex(TripleItem.Uri("dealsWith")))
@@ -112,10 +112,10 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
       val amie = Amie().addConstraint(RuleConstraint.WithoutDuplicatePredicates()).addThreshold(Threshold.MinHeadCoverage(0.01))
       implicit val tihi: TripleItemIndex = index.tripleItemMap
       implicit val thi: TripleIndex[Int] = index.tripleMap
-      val rules = InMemoryRuleConsumer { consumer =>
+      val rules = InMemoryRuleConsumer() { consumer =>
         thi.subjects
         thi.objects
-        amie.mine(consumer).rules.toIndexedSeq
+        amie.mine(consumer).toIndexedSeq
       }
       rules.size shouldBe 211527
       rules.iterator.map(x => x.body.toSet -> x.head).toSet.size shouldBe 211527
@@ -159,10 +159,10 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
       val amie = Amie().addThreshold(Threshold.MinHeadCoverage(0.02))
       implicit val tihi: TripleItemIndex = index.tripleItemMap
       implicit val thi: TripleIndex[Int] = index.tripleMap
-      val rules = InMemoryRuleConsumer { consumer =>
+      val rules = InMemoryRuleConsumer() { consumer =>
         thi.subjects
         thi.objects
-        amie.mine(consumer).rules.toIndexedSeq
+        amie.mine(consumer).toIndexedSeq
       }
       val rulesWithDuplicitPredicates = rules.iterator.count(x => (x.body :+ x.head).map(_.predicate).toSet.size != x.ruleLength)
       rules.size shouldBe 51143
@@ -180,14 +180,14 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
         .addThreshold(Threshold.MinHeadCoverage(0.01))
       implicit val tihi: TripleItemIndex = index.tripleItemMap
       implicit val thi: TripleIndex[Int] = index.tripleMap
-      val rules = InMemoryRuleConsumer { consumer =>
+      val rules = InMemoryRuleConsumer() { consumer =>
         thi.subjects
         thi.objects
-        amie.mine(consumer).rules.toIndexedSeq.sortBy(_.measures[Measure.HeadCoverage])(Ordering.by[Measure.HeadCoverage, Double](_.value).reverse)
+        amie.mine(consumer).toIndexedSeq.sortBy(_.measures.apply[Measure.HeadCoverage])(Ordering.by[Measure.HeadCoverage, Double](_.value).reverse)
       }
-      rules.forall(_.measures[Measure.HeadCoverage].value >= 0.01) shouldBe true
+      rules.forall(_.measures.apply[Measure.HeadCoverage].value >= 0.01) shouldBe true
       rules.size shouldBe 74993
-      rules(1).measures[Measure.HeadCoverage].value shouldBe 0.22784810126582278
+      rules(1).measures.apply[Measure.HeadCoverage].value shouldBe 0.22784810126582278
     }
   }
 
@@ -200,10 +200,10 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
       .addThreshold(Threshold.MinHeadCoverage(0.01))
     implicit val tihi: TripleItemIndex = index.tripleItemMap
     implicit val thi: TripleIndex[Int] = index.tripleMap
-    var rules = InMemoryRuleConsumer { consumer =>
+    var rules = InMemoryRuleConsumer() { consumer =>
       thi.subjects
       thi.objects
-      amie.mine(consumer).rules.toIndexedSeq
+      amie.mine(consumer).toIndexedSeq
     }
     rules.size shouldBe 30
     amie = Amie()
@@ -211,10 +211,10 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
       .addThreshold(Threshold.MaxRuleLength(4))
       .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere))
       .addThreshold(Threshold.MinHeadCoverage(0.01))
-    rules = InMemoryRuleConsumer { consumer =>
+    rules = InMemoryRuleConsumer() { consumer =>
       thi.subjects
       thi.objects
-      amie.mine(consumer).rules.toIndexedSeq
+      amie.mine(consumer).toIndexedSeq
     }
     rules.size shouldBe 98
   }
@@ -228,13 +228,13 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
       .addThreshold(Threshold.MinHeadCoverage(0.01))
     implicit val tihi: TripleItemIndex = index.tripleItemMap
     implicit val thi: TripleIndex[Int] = index.tripleMap
-    val rules = InMemoryRuleConsumer { consumer =>
+    val rules = InMemoryRuleConsumer() { consumer =>
       thi.subjects
       thi.objects
-      amie.mine(consumer).rules.toIndexedSeq
+      amie.mine(consumer).toIndexedSeq
     }
     rules.size shouldBe 11
-    rules.forall(_.measures[Measure.HeadSize].value >= 1000) shouldBe true
+    rules.forall(_.measures.apply[Measure.HeadSize].value >= 1000) shouldBe true
   }
 
   it should "mine with topK threshold" in {
@@ -248,10 +248,10 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
       val rules = TopKRuleConsumer(10) { consumer =>
         thi.subjects
         thi.objects
-        amie.mine(consumer).rules.toIndexedSeq.sortBy(_.measures[Measure.HeadCoverage])(Ordering.by[Measure.HeadCoverage, Double](_.value).reverse)
+        amie.mine(consumer).toIndexedSeq.sortBy(_.measures.apply[Measure.HeadCoverage])(Ordering.by[Measure.HeadCoverage, Double](_.value).reverse)
       }
       rules.size shouldBe 10
-      rules(1).measures[Measure.HeadCoverage].value shouldBe 0.22784810126582278
+      rules(1).measures.apply[Measure.HeadCoverage].value shouldBe 0.22784810126582278
     }
   }
 
@@ -263,13 +263,13 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
       .addThreshold(Threshold.MinHeadCoverage(0.01))
     implicit val tihi: TripleItemIndex = index.tripleItemMap
     implicit val thi: TripleIndex[Int] = index.tripleMap
-    val rules = InMemoryRuleConsumer { consumer =>
+    val rules = InMemoryRuleConsumer() { consumer =>
       thi.subjects
       thi.objects
-      amie.mine(consumer).rules.map(_.withConfidence(0.2)).filter(_.measures.exists[Measure.Confidence]).toIndexedSeq
+      amie.mine(consumer).map(_.withConfidence(0.2)).filter(_.measures.exists[Measure.Confidence]).toIndexedSeq
     }
     rules.size shouldBe 7
-    rules.forall(_.measures[Measure.Confidence].value >= 0.2) shouldBe true
+    rules.forall(_.measures.apply[Measure.Confidence].value >= 0.2) shouldBe true
   }
 
   it should "mine with timemout" in {
@@ -285,7 +285,7 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
         .addThreshold(Threshold.MinHeadCoverage(0.01))
       implicit val tihi: TripleItemIndex = index.tripleItemMap
       implicit val thi: TripleIndex[Int] = index.tripleMap
-      InMemoryRuleConsumer { consumer =>
+      InMemoryRuleConsumer() { consumer =>
         thi.subjects
         thi.objects
         amie.mine(consumer)
@@ -301,10 +301,10 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
     var pattern: RulePattern = AtomPattern(predicate = TripleItem.Uri("livesIn")) =>: None
     implicit val tihi: TripleItemIndex = index.tripleItemMap
     implicit val thi: TripleIndex[Int] = index.tripleMap
-    var rules = InMemoryRuleConsumer { consumer =>
+    var rules = InMemoryRuleConsumer() { consumer =>
       thi.subjects
       thi.objects
-      amie.addPattern(pattern).mine(consumer).rules.toIndexedSeq
+      amie.addPattern(pattern).mine(consumer).toIndexedSeq
     }
     for (rule <- rules) {
       rule.body.map(_.predicate).map(tihi.getTripleItem) should contain(TripleItem.Uri("livesIn"))
@@ -312,8 +312,8 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
     rules.size shouldBe 10826
     //constant in object
     pattern = AtomPattern(predicate = TripleItem.Uri("livesIn"), `object` = TripleItem.Uri("Islamabad")) =>: None
-    rules = InMemoryRuleConsumer { consumer =>
-      amie.addPattern(pattern).mine(consumer).rules.toIndexedSeq
+    rules = InMemoryRuleConsumer() { consumer =>
+      amie.addPattern(pattern).mine(consumer).toIndexedSeq
     }
     for (rule <- rules) {
       rule.body.map(_.`object`) should contain(Atom.Constant(tihi.getIndex(TripleItem.Uri("Islamabad"))))
@@ -321,8 +321,8 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
     rules.size shouldBe 15
     //variable in object
     pattern = AtomPattern(predicate = TripleItem.Uri("livesIn"), `object` = 'b') =>: None
-    rules = InMemoryRuleConsumer { consumer =>
-      amie.addPattern(pattern).mine(consumer).rules.toIndexedSeq
+    rules = InMemoryRuleConsumer() { consumer =>
+      amie.addPattern(pattern).mine(consumer).toIndexedSeq
     }
     for (rule <- rules) {
       rule.body.map(_.`object`) should contain(Atom.Item('b'))
@@ -330,8 +330,8 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
     rules.size shouldBe 1549
     //any variable in object
     pattern = AtomPattern(predicate = TripleItem.Uri("livesIn"), `object` = AnyVariable) =>: None
-    rules = InMemoryRuleConsumer { consumer =>
-      amie.addPattern(pattern).mine(consumer).rules.toIndexedSeq
+    rules = InMemoryRuleConsumer() { consumer =>
+      amie.addPattern(pattern).mine(consumer).toIndexedSeq
     }
     for (rule <- rules) {
       rule.body.map(x => tihi.getTripleItem(x.predicate) -> x.`object`) should contain atLeastOneOf(TripleItem.Uri("livesIn") -> Atom.Item('a'), TripleItem.Uri("livesIn") -> Atom.Item('b'), TripleItem.Uri("livesIn") -> Atom.Item('c'))
@@ -339,8 +339,8 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
     rules.size shouldBe 10229
     //any constant in object
     pattern = AtomPattern(predicate = TripleItem.Uri("livesIn"), `object` = AnyConstant) =>: None
-    rules = InMemoryRuleConsumer { consumer =>
-      amie.addPattern(pattern).mine(consumer).rules.toIndexedSeq
+    rules = InMemoryRuleConsumer() { consumer =>
+      amie.addPattern(pattern).mine(consumer).toIndexedSeq
     }
     for (rule <- rules) {
       rule.body.map(_.`object`.isInstanceOf[Atom.Constant]) should contain(true)
@@ -348,30 +348,30 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
     rules.size shouldBe 597
     //specified consequent
     pattern = AtomPattern(predicate = TripleItem.Uri("livesIn")) =>: AtomPattern(predicate = TripleItem.Uri("hasAcademicAdvisor"))
-    rules = InMemoryRuleConsumer { consumer =>
-      amie.addPattern(pattern).mine(consumer).rules.toIndexedSeq
+    rules = InMemoryRuleConsumer() { consumer =>
+      amie.addPattern(pattern).mine(consumer).toIndexedSeq
     }
     val desiredCouple = Some(TripleItem.Uri("livesIn")) -> TripleItem.Uri("hasAcademicAdvisor")
     rules.map(x => x.body.map(_.predicate).map(tihi.getTripleItem).find(_ == TripleItem.Uri("livesIn")) -> tihi.getTripleItem(x.head.predicate)) should contain only desiredCouple
     rules.size shouldBe 33
     //two patterns in body
     pattern = AtomPattern(predicate = TripleItem.Uri("diedIn")) &: AtomPattern(predicate = TripleItem.Uri("livesIn")) =>: AtomPattern(predicate = TripleItem.Uri("hasAcademicAdvisor"))
-    rules = InMemoryRuleConsumer { consumer =>
-      amie.addPattern(pattern).mine(consumer).rules.toIndexedSeq
+    rules = InMemoryRuleConsumer() { consumer =>
+      amie.addPattern(pattern).mine(consumer).toIndexedSeq
     }
     rules.flatMap(x => x.body.map(_.predicate) :+ x.head.predicate).map(tihi.getTripleItem) should contain only(TripleItem.Uri("diedIn"), TripleItem.Uri("livesIn"), TripleItem.Uri("hasAcademicAdvisor"))
     rules.size shouldBe 2
     //exact pattern
     pattern = (AtomPattern(predicate = TripleItem.Uri("livesIn")) =>: None).withExact()
-    rules = InMemoryRuleConsumer { consumer =>
-      amie.addPattern(pattern).mine(consumer).rules.toIndexedSeq
+    rules = InMemoryRuleConsumer() { consumer =>
+      amie.addPattern(pattern).mine(consumer).toIndexedSeq
     }
     rules.map(_.ruleLength) should contain only 2
     rules.size shouldBe 50
     //oneOf pattern
     pattern = AtomPattern(predicate = OneOf(TripleItem.Uri("livesIn"), TripleItem.Uri("diedIn"))) =>: None
-    rules = InMemoryRuleConsumer { consumer =>
-      amie.addPattern(pattern).mine(consumer).rules.toIndexedSeq
+    rules = InMemoryRuleConsumer() { consumer =>
+      amie.addPattern(pattern).mine(consumer).toIndexedSeq
     }
     for (rule <- rules) {
       rule.body.map(_.predicate).map(tihi.getTripleItem) should contain atLeastOneOf(TripleItem.Uri("livesIn"), TripleItem.Uri("diedIn"))
@@ -379,8 +379,8 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
     rules.size shouldBe 11443
     //noneOf pattern
     pattern = AtomPattern(predicate = NoneOf(TripleItem.Uri("participatedIn"), TripleItem.Uri("imports"))) =>: None
-    rules = InMemoryRuleConsumer { consumer =>
-      amie.addPattern(pattern).addThreshold(Threshold.MaxRuleLength(2)).mine(consumer).rules.toIndexedSeq
+    rules = InMemoryRuleConsumer() { consumer =>
+      amie.addPattern(pattern).addThreshold(Threshold.MaxRuleLength(2)).mine(consumer).toIndexedSeq
     }
     rules.map(_.body.last.predicate).map(tihi.getTripleItem) should contain noneOf(TripleItem.Uri("participatedIn"), TripleItem.Uri("imports"))
     rules.size shouldBe 1784
@@ -390,8 +390,8 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
       .addPattern(AtomPattern(predicate = TripleItem.Uri("actedIn")))
       .addPattern(AtomPattern(predicate = TripleItem.Uri("directed")))
       .addThreshold(Threshold.MinHeadCoverage(0.01))
-    rules = InMemoryRuleConsumer { consumer =>
-      amie2.mine(consumer).rules.toIndexedSeq
+    rules = InMemoryRuleConsumer() { consumer =>
+      amie2.mine(consumer).toIndexedSeq
     }
     rules.map(_.head.predicate).map(tihi.getTripleItem) should contain only(TripleItem.Uri("actedIn"), TripleItem.Uri("directed"))
     rules.size shouldBe 36
@@ -405,10 +405,10 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
       .addThreshold(Threshold.MinHeadCoverage(0.01))
     implicit val tihi: TripleItemIndex = index.tripleItemMap
     implicit val thi: TripleIndex[Int] = index.tripleMap
-    val rules = InMemoryRuleConsumer { consumer =>
+    val rules = InMemoryRuleConsumer() { consumer =>
       thi.subjects
       thi.objects
-      amie.mine(consumer).rules.toIndexedSeq
+      amie.mine(consumer).toIndexedSeq
     }
     rules.map(_.head.predicate).map(tihi.getTripleItem) should contain allOf(TripleItem.Uri("http://cs.dbpedia.org/property/hudba"), TripleItem.Uri("hasCapital"))
     rules.size shouldBe 400
@@ -429,10 +429,10 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
         .addPattern(pattern)
         .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere))
         .addThreshold(Threshold.MinHeadCoverage(0.01))
-      val rules = InMemoryRuleConsumer { consumer =>
+      val rules = InMemoryRuleConsumer() { consumer =>
         thi.subjects
         thi.objects
-        amie.mine(consumer).rules.map(_.head.predicate).map(thi.getGraphs).map(_.iterator.toSeq).toIndexedSeq
+        amie.mine(consumer).map(_.head.predicate).map(thi.getGraphs).map(_.iterator.toSeq).toIndexedSeq
       }
       rules.flatten.map(tihi.getTripleItem) should contain only TripleItem.Uri("yago")
       rules.size shouldBe 67

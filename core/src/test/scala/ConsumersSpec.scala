@@ -1,17 +1,11 @@
-import java.io.File
-import com.github.propi.rdfrules.algorithm.RuleConsumer
 import com.github.propi.rdfrules.algorithm.amie.Amie
-import com.github.propi.rdfrules.algorithm.consumer.{InMemoryRuleConsumer, OnDiskRuleConsumer, TopKRuleConsumer}
 import com.github.propi.rdfrules.data._
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule._
-import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.Debugger
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.{CancelAfterFailure, Inside}
 import org.scalatest.matchers.should.Matchers
-
-import scala.io.Source
+import org.scalatest.{CancelAfterFailure, Inside}
 
 /**
   * Created by Vaclav Zeman on 18. 4. 2018.
@@ -39,7 +33,7 @@ class ConsumersSpec extends AnyFlatSpec with Matchers with Inside with CancelAft
     }
   }
 
-  it should "create pretty printed text output" in {
+  /*it should "create pretty printed text output" in {
     Debugger() { implicit debugger =>
       val file = new File("temp/rules.txt")
       val nindex = index.withDebugger
@@ -91,6 +85,6 @@ class ConsumersSpec extends AnyFlatSpec with Matchers with Inside with CancelAft
         source.close()
       }
     }
-  }
+  }*/
 
 }

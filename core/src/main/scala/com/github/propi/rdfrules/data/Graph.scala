@@ -58,7 +58,7 @@ class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView
 
   def toDataset: Dataset = Dataset(this)
 
-  def mine(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer(_)))(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = toDataset.mine(miner, ruleConsumer)
+  def mine(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer()))(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = toDataset.mine(miner, ruleConsumer)
 
   def index(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = toDataset.index()
 

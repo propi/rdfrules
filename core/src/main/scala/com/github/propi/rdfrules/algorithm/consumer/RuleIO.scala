@@ -1,6 +1,5 @@
 package com.github.propi.rdfrules.algorithm.consumer
 
-import com.github.propi.rdfrules.rule.Rule
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 
 trait RuleIO {
@@ -12,7 +11,7 @@ trait RuleIO {
 object RuleIO {
 
   trait Writer {
-    def write(rule: Rule): Unit
+    def write(rule: FinalRule): Unit
 
     /**
       * Flush all buffers and sync all in memory on to disk
