@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.rule
 
 import com.github.propi.rdfrules.index.TripleItemIndex
-import com.github.propi.rdfrules.rule.InstantiatedRule.PredictedResult
+import com.github.propi.rdfrules.prediction.PredictedResult
 
 import scala.language.implicitConversions
 
@@ -12,9 +12,11 @@ sealed trait ResolvedInstantiatedRule {
 
   def predictionResult: PredictedResult
 
-  def commingFrom: ResolvedRule
+  def source: ResolvedRule
 
   def toResolvedRule: ResolvedRule
+
+  def toInstantiatedRule(implicit tripleItemIndex: TripleItemIndex): InstantiatedRule
 }
 
 object ResolvedInstantiatedRule {
@@ -22,14 +24,21 @@ object ResolvedInstantiatedRule {
   private case class Basic(head: ResolvedInstantiatedAtom,
                            body: IndexedSeq[ResolvedInstantiatedAtom],
                            predictionResult: PredictedResult,
-                           commingFrom: ResolvedRule) extends ResolvedInstantiatedRule {
+                           source: ResolvedRule) extends ResolvedInstantiatedRule {
     def toResolvedRule: ResolvedRule = ResolvedRule(body.map(_.toResolvedAtom), head.toResolvedAtom)
+
+    def toInstantiatedRule(implicit tripleItemIndex: TripleItemIndex): InstantiatedRule = InstantiatedRule(head.toInstantiatedAtom, body.map(_.toInstantiatedAtom), predictionResult, source.toRule)
   }
+
+  def apply(head: ResolvedInstantiatedAtom,
+            body: IndexedSeq[ResolvedInstantiatedAtom],
+            predictionResult: PredictedResult,
+            source: ResolvedRule): ResolvedInstantiatedRule = Basic(head, body, predictionResult, source)
 
   implicit def apply(rule: InstantiatedRule)(implicit mapper: TripleItemIndex): ResolvedInstantiatedRule = Basic(
     rule.head,
     rule.body.map(ResolvedInstantiatedAtom.apply),
-    rule.predictionResult,
+    rule.predictedResult,
     rule.source
   )
 

@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.rule
 
-import com.github.propi.rdfrules.rule.InstantiatedRule.PredictedResult
+import com.github.propi.rdfrules.prediction.PredictedResult
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 
 sealed trait InstantiatedRule {
@@ -8,7 +8,7 @@ sealed trait InstantiatedRule {
 
   def head: InstantiatedAtom
 
-  def predictionResult: PredictedResult
+  def predictedResult: PredictedResult
 
   def source: FinalRule
 
@@ -17,19 +17,7 @@ sealed trait InstantiatedRule {
 
 object InstantiatedRule {
 
-  sealed trait PredictedResult
-
-  object PredictedResult {
-
-    case object Positive extends PredictedResult
-
-    case object Negative extends PredictedResult
-
-    case object PcaPositive extends PredictedResult
-
-  }
-
-  private case class Basic(head: InstantiatedAtom, body: IndexedSeq[InstantiatedAtom], predictionResult: PredictedResult, source: FinalRule) extends InstantiatedRule {
+  private case class Basic(head: InstantiatedAtom, body: IndexedSeq[InstantiatedAtom], predictedResult: PredictedResult, source: FinalRule) extends InstantiatedRule {
     def toRule: FinalRule = Rule(head.toAtom, body.map(_.toAtom))
   }
 

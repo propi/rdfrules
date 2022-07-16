@@ -10,12 +10,15 @@ import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.formats.CommonDataJsonReaders._
 import com.github.propi.rdfrules.http.task.Task.MergeDatasets
 import com.github.propi.rdfrules.http.task._
+import com.github.propi.rdfrules.http.task.ruleset.ComputeConfidence.ConfidenceType
+import com.github.propi.rdfrules.http.task.ruleset.Instantiate
 import com.github.propi.rdfrules.http.util.JsonSelector.PimpedJsValue
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.model.Model
 import com.github.propi.rdfrules.model.Model.PredictionType
-import com.github.propi.rdfrules.prediction.Instantiation
+import com.github.propi.rdfrules.prediction.{Instantiation, PredictedTriples}
 import com.github.propi.rdfrules.rule.InstantiatedRule.PredictedResult
+import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.{Measure, ResolvedRule, Rule, RulePattern}
 import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
@@ -262,33 +265,17 @@ object PipelineJsonReaders {
 
   implicit def computeConfidenceReader(implicit debugger: Debugger): RootJsonReader[ruleset.ComputeConfidence] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new ruleset.ComputeConfidence(fields.get("min").map(_.convertTo[Double]), fields.get("topk").map(_.convertTo[Int]))
-  }
-
-  implicit def computePcaConfidenceReader(implicit debugger: Debugger): RootJsonReader[ruleset.ComputePcaConfidence] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new ruleset.ComputePcaConfidence(fields.get("min").map(_.convertTo[Double]), fields.get("topk").map(_.convertTo[Int]))
-  }
-
-  implicit def computeLiftReader(implicit debugger: Debugger): RootJsonReader[ruleset.ComputeLift] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new ruleset.ComputeLift(fields.get("min").map(_.convertTo[Double]))
+    new ruleset.ComputeConfidence(fields("type").convertTo[ConfidenceType])
   }
 
   implicit def makeClustersReader(implicit debugger: Debugger): RootJsonReader[ruleset.MakeClusters] = (json: JsValue) => {
-    new ruleset.MakeClusters(json.convertTo[Clustering[Rule.Simple]])
+    new ruleset.MakeClusters(json.convertTo[Clustering[FinalRule]])
   }
 
   implicit val findSimilarReader: RootJsonReader[ruleset.FindSimilar] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     implicit val sc: SimilarityCounting[Rule] = fields.get("features").map(_.convertTo[SimilarityCounting[Rule]]).getOrElse(Rule.ruleSimilarityCounting)
-    new ruleset.FindSimilar(fields("rule").convertTo[ResolvedRule], fields("take").convertTo[Int])
-  }
-
-  implicit val findDissimilarReader: RootJsonReader[ruleset.FindDissimilar] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    implicit val sc: SimilarityCounting[Rule] = fields.get("features").map(_.convertTo[SimilarityCounting[Rule]]).getOrElse(Rule.ruleSimilarityCounting)
-    new ruleset.FindDissimilar(fields("rule").convertTo[ResolvedRule], fields("take").convertTo[Int])
+    new ruleset.FindSimilar(fields("rule").convertTo[ResolvedRule], fields("take").convertTo[Int], fields("dissimilar").convertTo[Boolean])
   }
 
   implicit def cacheRulesetReader(implicit debugger: Debugger): RootJsonReader[ruleset.Cache] = (json: JsValue) => {
@@ -302,29 +289,11 @@ object PipelineJsonReaders {
   }
 
   implicit val instantiateReader: RootJsonReader[ruleset.Instantiate] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new ruleset.Instantiate(
-      fields.get("rule").map(_.convertTo[ResolvedRule]),
-      fields("part").convertTo[Instantiation.Part],
-      fields("allowDuplicateAtoms").convertTo[Boolean]
-    )
+    val selector = json.toSelector
+    new ruleset.Instantiate(selector("predictedResults").toTypedIterable[PredictedResult].toSet, selector("injectiveMapping").to[Boolean].get)
   }
 
-  implicit val maximalReader: RootJsonReader[ruleset.Maximal] = (_: JsValue) => {
-    new ruleset.Maximal()
-  }
-
-  implicit val closedReader: RootJsonReader[ruleset.Closed] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new ruleset.Closed(fields("measure").convertTo[TypedKeyMap.Key[Measure]])
-  }
-
-  implicit val onlyBetterDescendantReader: RootJsonReader[ruleset.OnlyBetterDescendant] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new ruleset.OnlyBetterDescendant(fields("measure").convertTo[TypedKeyMap.Key[Measure]])
-  }
-
-  implicit val graphBasedRulesReader: RootJsonReader[ruleset.GraphAwareRules] = (_: JsValue) => {
+  implicit val graphAwareRulesReader: RootJsonReader[ruleset.GraphAwareRules] = (_: JsValue) => {
     new ruleset.GraphAwareRules()
   }
 
@@ -382,7 +351,6 @@ object PipelineJsonReaders {
           case data.AddPrefixes.name => addTaskFromDataset(pipeline ~> params.convertTo[data.AddPrefixes], tail)
           case data.Cache.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Cache], tail)
           case data.Discretize.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Discretize], tail)
-          case data.Drop.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Drop], tail)
           case data.ExportQuads.name => pipeline ~> params.convertTo[data.ExportQuads] ~> ToJsonTask.FromUnit
           case data.FilterQuads.name => addTaskFromDataset(pipeline ~> params.convertTo[data.FilterQuads], tail)
           case data.GetQuads.name => pipeline ~> params.convertTo[data.GetQuads] ~> ToJsonTask.FromQuads
@@ -393,7 +361,6 @@ object PipelineJsonReaders {
           case data.Prefixes.name => pipeline ~> params.convertTo[data.Prefixes] ~> ToJsonTask.FromPrefixes
           case data.Size.name => pipeline ~> params.convertTo[data.Size] ~> ToJsonTask.FromInt
           case data.Shrink.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Shrink], tail)
-          case data.Take.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Take], tail)
           case data.Properties.name => pipeline ~> params.convertTo[data.Properties] ~> ToJsonTask.FromTypes
           case data.Index.name => addTaskFromIndex(pipeline ~> params.convertTo[data.Index], tail)
           case MergeDatasets.name => addTaskFromDataset(pipeline |~> params.convertTo[MergeDatasets], tail)
@@ -409,15 +376,12 @@ object PipelineJsonReaders {
         val params = fields("parameters")
         fields("name").convertTo[String] match {
           case model.Cache.name => addTaskFromModel(pipeline ~> params.convertTo[model.Cache], tail)
-          case model.Drop.name => addTaskFromModel(pipeline ~> params.convertTo[model.Drop], tail)
           case model.ExportRules.name => pipeline ~> params.convertTo[model.ExportRules] ~> ToJsonTask.FromUnit
           case model.FilterRules.name => addTaskFromModel(pipeline ~> params.convertTo[model.FilterRules], tail)
           case model.GetRules.name => pipeline ~> params.convertTo[model.GetRules] ~> ToJsonTask.FromRules
           case model.Size.name => pipeline ~> params.convertTo[model.Size] ~> ToJsonTask.FromInt
           case model.Shrink.name => addTaskFromModel(pipeline ~> params.convertTo[model.Shrink], tail)
           case model.Sort.name => addTaskFromModel(pipeline ~> params.convertTo[model.Sort], tail)
-          case model.Sorted.name => addTaskFromModel(pipeline ~> params.convertTo[model.Sorted], tail)
-          case model.Take.name => addTaskFromModel(pipeline ~> params.convertTo[model.Take], tail)
           case x => throw deserializationError(s"Invalid task '$x' can not be bound to Model")
         }
       case _ => pipeline ~> new ToJsonTask.From[Model]
@@ -433,9 +397,6 @@ object PipelineJsonReaders {
           case index.Mine.name => addTaskFromRuleset(pipeline ~> params.convertTo[index.Mine], tail)
           case index.ToDataset.name => addTaskFromDataset(pipeline ~> params.convertTo[index.ToDataset], tail)
           case ruleset.LoadRuleset.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.LoadRuleset], tail)
-          case index.CompleteDataset.name => addTaskFromDataset(pipeline ~> params.convertTo[index.CompleteDataset], tail)
-          case index.PredictTriples.name => addTaskFromDataset(pipeline ~> params.convertTo[index.PredictTriples], tail)
-          case index.Evaluate.name => pipeline ~> params.convertTo[index.Evaluate] ~> ToJsonTask.FromEvaluationResult
           case x => throw deserializationError(s"Invalid task '$x' can not be bound to Index")
         }
       case _ => pipeline ~> new ToJsonTask.From[Index]
@@ -449,29 +410,43 @@ object PipelineJsonReaders {
         fields("name").convertTo[String] match {
           case ruleset.Cache.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Cache], tail)
           case ruleset.ComputeConfidence.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.ComputeConfidence], tail)
-          case ruleset.ComputeLift.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.ComputeLift], tail)
-          case ruleset.ComputePcaConfidence.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.ComputePcaConfidence], tail)
-          case ruleset.Drop.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Drop], tail)
           case ruleset.ExportRules.name => pipeline ~> params.convertTo[ruleset.ExportRules] ~> ToJsonTask.FromUnit
           case ruleset.FilterRules.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.FilterRules], tail)
           case ruleset.FindSimilar.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.FindSimilar], tail)
-          case ruleset.FindDissimilar.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.FindDissimilar], tail)
           case ruleset.GetRules.name => pipeline ~> params.convertTo[ruleset.GetRules] ~> ToJsonTask.FromRules
           case ruleset.GraphAwareRules.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.GraphAwareRules], tail)
           case ruleset.MakeClusters.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.MakeClusters], tail)
           case ruleset.Size.name => pipeline ~> params.convertTo[ruleset.Size] ~> ToJsonTask.FromInt
           case ruleset.Shrink.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Shrink], tail)
           case ruleset.Sort.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Sort], tail)
-          case ruleset.Sorted.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Sorted], tail)
-          case ruleset.Take.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Take], tail)
-          case ruleset.CompleteDataset.name => addTaskFromDataset(pipeline ~> params.convertTo[ruleset.CompleteDataset], tail)
           case ruleset.Predict.name => addTaskFromDataset(pipeline ~> params.convertTo[ruleset.Predict], tail)
           case ruleset.Prune.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Prune], tail)
-          case ruleset.Evaluate.name => pipeline ~> params.convertTo[ruleset.Evaluate] ~> ToJsonTask.FromEvaluationResult
           case ruleset.Instantiate.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Instantiate], tail)
-          case ruleset.Maximal.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Maximal], tail)
-          case ruleset.Closed.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Closed], tail)
-          case ruleset.OnlyBetterDescendant.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.OnlyBetterDescendant], tail)
+          case x => throw deserializationError(s"Invalid task '$x' can not be bound to Ruleset")
+        }
+      case _ => pipeline ~> new ToJsonTask.From[Ruleset]
+    }
+
+    @scala.annotation.tailrec
+    def addTaskFromPredictedTriples(pipeline: Pipeline[PredictedTriples], tail: Seq[JsValue]): Pipeline[Source[JsValue, NotUsed]] = tail match {
+      case Seq(head, tail@_*) =>
+        val fields = head.asJsObject.fields
+        val params = fields("parameters")
+        fields("name").convertTo[String] match {
+          case ruleset.Cache.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Cache], tail)
+          case ruleset.ComputeConfidence.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.ComputeConfidence], tail)
+          case ruleset.ExportRules.name => pipeline ~> params.convertTo[ruleset.ExportRules] ~> ToJsonTask.FromUnit
+          case ruleset.FilterRules.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.FilterRules], tail)
+          case ruleset.FindSimilar.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.FindSimilar], tail)
+          case ruleset.GetRules.name => pipeline ~> params.convertTo[ruleset.GetRules] ~> ToJsonTask.FromRules
+          case ruleset.GraphAwareRules.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.GraphAwareRules], tail)
+          case ruleset.MakeClusters.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.MakeClusters], tail)
+          case ruleset.Size.name => pipeline ~> params.convertTo[ruleset.Size] ~> ToJsonTask.FromInt
+          case ruleset.Shrink.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Shrink], tail)
+          case ruleset.Sort.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Sort], tail)
+          case ruleset.Predict.name => addTaskFromDataset(pipeline ~> params.convertTo[ruleset.Predict], tail)
+          case ruleset.Prune.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Prune], tail)
+          case ruleset.Instantiate.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Instantiate], tail)
           case x => throw deserializationError(s"Invalid task '$x' can not be bound to Ruleset")
         }
       case _ => pipeline ~> new ToJsonTask.From[Ruleset]

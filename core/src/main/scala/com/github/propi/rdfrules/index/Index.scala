@@ -26,7 +26,7 @@ trait Index {
 
   def cache(file: File): Index
 
-  def cache(file: String): Index
+  def cache(file: String): Index = cache(new File(file))
 
   def withDebugger(implicit debugger: Debugger): Index
 
@@ -50,7 +50,7 @@ trait Index {
     implicit val mapper: TripleItemIndex = tripleItemMap
     ruleConsumer.invoke { ruleConsumer =>
       val result = miner.mine(ruleConsumer)
-      Ruleset(this, result.rules)
+      Ruleset(this, result)
     }
   }
 

@@ -56,6 +56,8 @@ object Deserializer {
     }
   }
 
+  def by[B, A](f: B => A)(implicit deserializer: Deserializer[B]): Deserializer[A] = (v: Array[Byte]) => f(deserializer.deserialize(v))
+
   implicit def iterableDeserializer[T](implicit deserializer: Deserializer[T], serializationSize: SerializationSize[T]): Deserializer[Iterable[T]] = (v: Array[Byte]) => {
     val bais = new ByteArrayInputStream(v)
     Iterator.continually(deserializeOpt[T](bais)).takeWhile(_.nonEmpty).map(_.get).toIndexedSeq

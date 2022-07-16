@@ -1,10 +1,9 @@
 package com.github.propi.rdfrules.prediction
 
 import com.github.propi.rdfrules.algorithm.amie.{AtomCounting, VariableMap}
-import com.github.propi.rdfrules.index.{Index, TripleIndex}
-import com.github.propi.rdfrules.rule.InstantiatedRule.PredictedResult
+import com.github.propi.rdfrules.index.{Index, IndexItem, TripleIndex}
+import com.github.propi.rdfrules.rule.Atom
 import com.github.propi.rdfrules.rule.Rule.FinalRule
-import com.github.propi.rdfrules.rule.{Atom, InstantiatedAtom}
 import com.github.propi.rdfrules.utils.ForEach
 
 object Prediction {
@@ -19,11 +18,11 @@ object Prediction {
         val headVars = List(rule.head.subject, rule.head.`object`).collect {
           case x: Atom.Variable => x
         }
-        val constantsToTriple: Seq[Atom.Constant] => InstantiatedAtom = (rule.head.subject, rule.head.`object`) match {
-          case (_: Atom.Variable, _: Atom.Variable) => constants => InstantiatedAtom(constants.head.value, rule.head.predicate, constants.last.value)
-          case (_: Atom.Variable, Atom.Constant(o)) => constants => InstantiatedAtom(constants.head.value, rule.head.predicate, o)
-          case (Atom.Constant(s), _: Atom.Variable) => constants => InstantiatedAtom(s, rule.head.predicate, constants.head.value)
-          case (Atom.Constant(s), Atom.Constant(o)) => _ => InstantiatedAtom(s, rule.head.predicate, o)
+        val constantsToTriple: Seq[Atom.Constant] => IndexItem.IntTriple = (rule.head.subject, rule.head.`object`) match {
+          case (_: Atom.Variable, _: Atom.Variable) => constants => IndexItem.Triple(constants.head.value, rule.head.predicate, constants.last.value)
+          case (_: Atom.Variable, Atom.Constant(o)) => constants => IndexItem.Triple(constants.head.value, rule.head.predicate, o)
+          case (Atom.Constant(s), _: Atom.Variable) => constants => IndexItem.Triple(s, rule.head.predicate, constants.head.value)
+          case (Atom.Constant(s), Atom.Constant(o)) => _ => IndexItem.Triple(s, rule.head.predicate, o)
         }
         if (predictionResults.size == 1 && predictionResults(PredictedResult.Positive)) {
           atomCounting.specifyVariableMap(rule.head, VariableMap(injectiveMapping))
@@ -34,7 +33,7 @@ object Prediction {
           atomCounting
             .selectDistinctPairs(ruleBody, headVars, VariableMap(injectiveMapping))
             .map(constantsToTriple)
-            .map(x => PredictedTriple(x, Instantiation.resolvePredictionResult(x), rule))
+            .map(x => PredictedTriple(x, Instantiation.resolvePredictionResult(x.s, x.p, x.o), rule))
             .filter(x => predictionResults.isEmpty || predictionResults(x.predictedResult))
         }
       }

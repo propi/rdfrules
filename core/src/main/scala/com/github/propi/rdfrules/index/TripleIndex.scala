@@ -104,4 +104,28 @@ object TripleIndex {
     def pairIterator: Iterator[(K, V)]
   }
 
+  trait Builder[T] {
+    def build: TripleIndex[T]
+  }
+
+  implicit def setToHashSet[T](set: Set[T]): HashSet[T] = new HashSet[T] {
+    def iterator: Iterator[T] = set.iterator
+
+    def contains(x: T): Boolean = set(x)
+
+    def size: Int = set.size
+
+    def isEmpty: Boolean = set.isEmpty
+  }
+
+  implicit def builderToTripleIndex[T](implicit builder: Builder[T]): TripleIndex[T] = builder.build
+
+  implicit def indexToBuilder(index: Index): Builder[Int] = new Builder[Int] {
+    def build: TripleIndex[Int] = index.tripleMap
+  }
+
+  implicit def tripleIndexToBuilder[T](implicit tripleIndex: TripleIndex[T]): Builder[T] = new Builder[T] {
+    def build: TripleIndex[T] = tripleIndex
+  }
+
 }

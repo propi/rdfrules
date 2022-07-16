@@ -78,11 +78,14 @@ object Rule {
     Simple(head, body)(measuresMap)
   }
 
-  implicit def apply(rule: Rule): FinalRule = Simple(rule.head, rule.body)(TypedKeyMap(
-    Measure.Support(rule.support),
-    Measure.HeadSize(rule.headSize),
-    Measure.HeadCoverage(rule.headCoverage)
-  ))
+  implicit def apply(rule: Rule): FinalRule = rule match {
+    case x: FinalRule => x
+    case _ => Simple(rule.head, rule.body)(TypedKeyMap(
+      Measure.Support(rule.support),
+      Measure.HeadSize(rule.headSize),
+      Measure.HeadCoverage(rule.headCoverage)
+    ))
+  }
 
   implicit val ruleOrdering: Ordering[Rule] = Ordering.by[Rule, TypedKeyMap.Immutable[Measure]](_.measures)
 

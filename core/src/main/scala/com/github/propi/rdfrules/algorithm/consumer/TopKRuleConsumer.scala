@@ -1,18 +1,17 @@
 package com.github.propi.rdfrules.algorithm.consumer
 
-import java.io.File
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 import com.github.propi.rdfrules.algorithm.RuleConsumer
 import com.github.propi.rdfrules.algorithm.consumer.TopKRuleConsumer.MinHeadCoverageUpdatedEvent
 import com.github.propi.rdfrules.rule.Rule
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.utils.{ForEach, TopKQueue}
 
+import java.util.concurrent.LinkedBlockingQueue
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Promise}
 import scala.language.postfixOps
 
-class TopKRuleConsumer private(k: Int, allowOverflowIfSameHeadCoverage: Boolean, prettyPrintedFile: Option[(File, File => PrettyPrintedWriter)]) extends RuleConsumer {
+class TopKRuleConsumer private(k: Int, allowOverflowIfSameHeadCoverage: Boolean) extends RuleConsumer {
 
   @volatile private var _listener: PartialFunction[RuleConsumer.Event, Unit] = PartialFunction.empty
 
@@ -23,41 +22,26 @@ class TopKRuleConsumer private(k: Int, allowOverflowIfSameHeadCoverage: Boolean,
     this
   }
 
-  private val _result = Promise[RuleConsumer.Result]()
+  private val _result = Promise[ForEach[FinalRule]]()
 
   private lazy val messages = {
     val messages = new LinkedBlockingQueue[Option[Rule]]
     val job = new Runnable {
       def run(): Unit = try {
         val queue = new TopKQueue[FinalRule](k, allowOverflowIfSameHeadCoverage)(Ordering.by[FinalRule, Double](_.headCoverage).reverse)
-        val prettyPrintedWriter = prettyPrintedFile.map(x => x._2(x._1))
-        try {
-          val syncDuration = 10 seconds
-          var stopped = false
-          var lastSync = System.currentTimeMillis()
-          var isAdded = false
-          while (!stopped) {
-            messages.poll(syncDuration.toSeconds, TimeUnit.SECONDS) match {
-              case null =>
-              case Some(rule) =>
-                val ruleSimple = Rule(rule)
-                if (queue.enqueue(ruleSimple)) {
-                  if (queue.isFull) queue.head.map(_.headCoverage).map(MinHeadCoverageUpdatedEvent).foreach(invokeEvent)
-                  prettyPrintedWriter.foreach(_.write(ruleSimple))
-                  isAdded = true
-                }
-              case None => stopped = true
-            }
-            for (writer <- prettyPrintedWriter if isAdded && System.currentTimeMillis > (lastSync + syncDuration.toMillis)) {
-              writer.flush()
-              lastSync = System.currentTimeMillis()
-              isAdded = false
-            }
+        var stopped = false
+        while (!stopped) {
+          messages.take() match {
+            case Some(rule) =>
+              val ruleSimple = Rule(rule)
+              if (queue.enqueue(ruleSimple)) {
+                nextConsumer.foreach(_.send(ruleSimple))
+                if (queue.isFull) queue.head.map(_.headCoverage).map(MinHeadCoverageUpdatedEvent).foreach(invokeEvent)
+              }
+            case None => stopped = true
           }
-        } finally {
-          prettyPrintedWriter.foreach(_.close())
         }
-        _result.success(RuleConsumer.Result(ForEach.from(queue.dequeueAll.toIndexedSeq)))
+        _result.success(ForEach.from(queue.dequeueAll.toIndexedSeq))
       } catch {
         case th: Throwable => _result.failure(th)
       }
@@ -69,8 +53,9 @@ class TopKRuleConsumer private(k: Int, allowOverflowIfSameHeadCoverage: Boolean,
 
   def send(rule: Rule): Unit = messages.put(Some(rule))
 
-  def result: RuleConsumer.Result = {
+  def result: ForEach[FinalRule] = {
     messages.put(None)
+    nextConsumer.foreach(_.result)
     Await.result(_result.future, 1 minute)
   }
 
@@ -88,12 +73,8 @@ object TopKRuleConsumer {
     ruleConsumer.result
   }
 
-  def apply[T](k: Int)(f: TopKRuleConsumer => T): T = apply(new TopKRuleConsumer(normK(k), false, None))(f)
+  def apply[T](k: Int, allowOverflowIfSameHeadCoverage: Boolean)(f: TopKRuleConsumer => T): T = apply(new TopKRuleConsumer(normK(k), allowOverflowIfSameHeadCoverage))(f)
 
-  def apply[T](k: Int, allowOverflowIfSameHeadCoverage: Boolean)(f: TopKRuleConsumer => T): T = apply(new TopKRuleConsumer(normK(k), allowOverflowIfSameHeadCoverage, None))(f)
-
-  def apply[T](k: Int, allowOverflowIfSameHeadCoverage: Boolean, prettyPrintedFile: File, prettyPrintedWriterBuilder: File => PrettyPrintedWriter)(f: TopKRuleConsumer => T): T = {
-    apply(new TopKRuleConsumer(normK(k), allowOverflowIfSameHeadCoverage, Some(prettyPrintedFile -> prettyPrintedWriterBuilder)))(f)
-  }
+  def apply[T](k: Int)(f: TopKRuleConsumer => T): T = apply(k, false)(f)
 
 }

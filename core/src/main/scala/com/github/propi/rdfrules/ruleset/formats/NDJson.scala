@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.ruleset.formats
 
-import com.github.propi.rdfrules.algorithm.consumer.PrettyPrintedWriter
+import com.github.propi.rdfrules.algorithm.consumer.RuleWriter
 import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.rule.ResolvedRule
 import com.github.propi.rdfrules.rule.Rule.FinalRule
@@ -38,7 +38,7 @@ object NDJson {
     }
   }
 
-  class NDJsonPrettyPrintedWriter(file: File)(implicit mapper: TripleItemIndex) extends PrettyPrintedWriter {
+  class NDJsonPrettyPrintedWriter(file: File)(implicit mapper: TripleItemIndex) extends RuleWriter {
     private val fos = new FileOutputStream(file)
     private val writer = new PrintWriter(new OutputStreamWriter(fos, "UTF-8"))
 
@@ -52,6 +52,6 @@ object NDJson {
     def close(): Unit = writer.close()
   }
 
-  implicit def jsonPrettyPrintedWriter(source: RulesetSource.NDJson.type)(implicit mapper: TripleItemIndex): File => PrettyPrintedWriter = new NDJsonPrettyPrintedWriter(_)
+  implicit def jsonPrettyPrintedWriter(source: RulesetSource.NDJson.type)(implicit mapper: TripleItemIndex): File => RuleWriter = new NDJsonPrettyPrintedWriter(_)
 
 }

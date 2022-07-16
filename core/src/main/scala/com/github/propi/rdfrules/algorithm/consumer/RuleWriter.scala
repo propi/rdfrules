@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.algorithm.consumer
 
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 
-trait PrettyPrintedWriter {
+trait RuleWriter {
   def write(rule: FinalRule): Unit
 
   /**

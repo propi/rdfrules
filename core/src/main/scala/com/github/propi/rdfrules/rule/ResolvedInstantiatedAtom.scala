@@ -14,12 +14,20 @@ sealed trait ResolvedInstantiatedAtom {
   def `object`: TripleItem
 
   def toResolvedAtom: ResolvedAtom
+
+  def toInstantiatedAtom(implicit tripleItemIndex: TripleItemIndex): InstantiatedAtom
 }
 
 object ResolvedInstantiatedAtom {
 
   private case class Basic(subject: TripleItem.Uri, predicate: TripleItem.Uri, `object`: TripleItem) extends ResolvedInstantiatedAtom {
     def toResolvedAtom: ResolvedAtom = ResolvedAtom(ResolvedItem(subject), predicate, ResolvedItem(`object`))
+
+    def toInstantiatedAtom(implicit tripleItemIndex: TripleItemIndex): InstantiatedAtom = InstantiatedAtom(
+      tripleItemIndex.getIndex(subject),
+      tripleItemIndex.getIndex(predicate),
+      tripleItemIndex.getIndex(`object`)
+    )
   }
 
   def apply(subject: TripleItem.Uri, predicate: TripleItem.Uri, `object`: TripleItem): ResolvedInstantiatedAtom = Basic(subject, predicate, `object`)

@@ -34,8 +34,6 @@ trait Cacheable extends QuadsIndex {
     this
   }
 
-  def cache(file: String): Index = cache(new File(file))
-
 }
 
 object Cacheable {

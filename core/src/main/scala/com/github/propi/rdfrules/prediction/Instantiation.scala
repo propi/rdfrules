@@ -4,7 +4,6 @@ import com.github.propi.rdfrules.algorithm.amie.{AtomCounting, VariableMap}
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.index.{Index, TripleIndex}
 import com.github.propi.rdfrules.rule.InstantiatedAtom.PimpedAtom
-import com.github.propi.rdfrules.rule.InstantiatedRule.PredictedResult
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.{InstantiatedAtom, InstantiatedRule}
 import com.github.propi.rdfrules.utils.ForEach
@@ -35,16 +34,16 @@ import com.github.propi.rdfrules.utils.ForEach
 
 object Instantiation {
 
-  def resolvePredictionResult(head: InstantiatedAtom)(implicit thi: TripleIndex[Int]): PredictedResult = {
-    val predicateIndex = thi.predicates.get(head.predicate)
-    val isPositive = predicateIndex.exists(_.subjects.get(head.subject).exists(_.contains(head.`object`)))
+  def resolvePredictionResult(s: Int, p: Int, o: Int)(implicit thi: TripleIndex[Int]): PredictedResult = {
+    val predicateIndex = thi.predicates.get(p)
+    val isPositive = predicateIndex.exists(_.subjects.get(s).exists(_.contains(o)))
     if (isPositive) {
       PredictedResult.Positive
     } else {
       val isCompletelyMissing = predicateIndex.exists { predicateIndex =>
         predicateIndex.higherCardinalitySide match {
-          case TriplePosition.Subject => !predicateIndex.subjects.contains(head.subject)
-          case TriplePosition.Object => !predicateIndex.objects.contains(head.`object`)
+          case TriplePosition.Subject => !predicateIndex.subjects.contains(s)
+          case TriplePosition.Object => !predicateIndex.objects.contains(o)
         }
       }
       if (isCompletelyMissing) {
@@ -54,6 +53,8 @@ object Instantiation {
       }
     }
   }
+
+  private def resolvePredictionResult(head: InstantiatedAtom)(implicit thi: TripleIndex[Int]): PredictedResult = resolvePredictionResult(head.subject, head.predicate, head.`object`)
 
   private def instantiateRule(rule: FinalRule, injectiveMapping: Boolean)(implicit ac: AtomCounting): Iterator[InstantiatedRule] = {
     val bodySet = rule.body.toSet
@@ -73,7 +74,7 @@ object Instantiation {
     for {
       rule <- rules
       iRule <- instantiateRule(rule, injectiveMapping)
-      if predictionResults.isEmpty || predictionResults(iRule.predictionResult)
+      if predictionResults.isEmpty || predictionResults(iRule.predictedResult)
     } {
       f(iRule)
     }

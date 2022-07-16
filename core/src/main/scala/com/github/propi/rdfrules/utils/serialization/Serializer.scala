@@ -33,6 +33,8 @@ object Serializer {
     }
   }
 
+  def by[A, B](f: A => B)(implicit serializer: Serializer[B]): Serializer[A] = (v: A) => serializer.serialize(f(v))
+
   def serializeToOutputStream[T](buildOutputStream: => OutputStream)
                                 (f: Writer[T] => Unit)
                                 (implicit serializer: Serializer[T], serializationSize: SerializationSize[T]): Unit = {

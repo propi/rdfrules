@@ -1,5 +1,7 @@
 package com.github.propi.rdfrules.data
 
+import com.github.propi.rdfrules.index.IndexItem.IntTriple
+import com.github.propi.rdfrules.index.{IndexItem, TripleItemIndex}
 import com.github.propi.rdfrules.utils.{ForEach, Stringifier}
 import org.apache.jena.graph
 
@@ -16,6 +18,8 @@ case class Triple private(subject: TripleItem.Uri, predicate: TripleItem.Uri, `o
   def intern: Triple = new Triple(subject.intern, predicate.intern, `object`.intern)
 
   def copy(subject: TripleItem.Uri = subject, predicate: TripleItem.Uri = predicate, `object`: TripleItem = `object`): Triple = Triple(subject, predicate, `object`)
+
+  def toIndexedTriple(implicit tripleItemIndex: TripleItemIndex): IntTriple = IndexItem.Triple(tripleItemIndex.getIndex(subject), tripleItemIndex.getIndex(predicate), tripleItemIndex.getIndex(`object`))
 
   override def toString: String = Stringifier(this)
 }

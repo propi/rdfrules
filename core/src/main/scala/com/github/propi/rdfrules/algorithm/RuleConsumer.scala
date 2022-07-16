@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.algorithm
 
-import com.github.propi.rdfrules.algorithm.RuleConsumer.{Event, Result}
+import com.github.propi.rdfrules.algorithm.RuleConsumer.Event
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.Rule
 import com.github.propi.rdfrules.rule.Rule.FinalRule
@@ -10,11 +10,20 @@ import scala.language.implicitConversions
 
 trait RuleConsumer {
 
+  @volatile private var _nextConsumer: Option[RuleConsumer] = None
+
+  final protected def nextConsumer: Option[RuleConsumer] = _nextConsumer
+
   def send(rule: Rule): Unit
 
-  def result: Result
+  def result: ForEach[FinalRule]
 
   def withListener(listener: PartialFunction[Event, Unit]): RuleConsumer
+
+  final def ~>(consumer: RuleConsumer): RuleConsumer = {
+    _nextConsumer = Some(consumer)
+    consumer
+  }
 
   protected def listener: PartialFunction[Event, Unit]
 
@@ -34,7 +43,40 @@ object RuleConsumer {
 
   trait Invoker[T] extends {
     def invoke(f: RuleConsumer => T)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): T
+
+    def ~>(invoker: Invoker[T]): Invoker[T] = new Invokers(Vector(this, invoker))
   }
+
+  private class Invokers[T](invokers: Vector[Invoker[T]]) extends Invoker[T] {
+    def invoke(f: RuleConsumer => T)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): T = {
+      def invokeRecursively(consumers: Vector[RuleConsumer], invokers: Seq[Invoker[T]]): T = {
+        invokers match {
+          case Seq(head, tail@_*) => head.invoke(consumer => invokeRecursively(consumers :+ consumer, tail))
+          case _ =>
+            consumers.reduce(_ ~> _)
+            f(consumers.head)
+        }
+      }
+
+      invokeRecursively(Vector.empty, invokers)
+    }
+
+    override def ~>(invoker: Invoker[T]): Invoker[T] = new Invokers(invokers :+ invoker)
+  }
+
+  /*final class Invoker[T] private[RuleConsumer](gs: Seq[InvokerType[T]]) {
+    def invoke(f: RuleConsumer => T)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): T = {
+      def invokeRecursively(consumers: Vector[RuleConsumer], invorkers: Seq[InvokerType[T]]): T = {
+        invorkers match {
+          case Seq(head, tail@_*) => head(tripleIndex)(mapper)(consumer => invokeRecursively(consumers :+ consumer, tail))
+          case _ =>
+            consumers.reduce(_ ~> _)
+            f(consumers.head)
+        }
+      }
+      invokeRecursively(Vector.empty, gs)
+    }
+  }*/
 
   def apply[T](g: (RuleConsumer => T) => T): Invoker[T] = new Invoker[T] {
     def invoke(f: RuleConsumer => T)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): T = g(f)
@@ -51,7 +93,5 @@ object RuleConsumer {
   def withMapper[T](g: TripleItemIndex => (RuleConsumer => T) => T): Invoker[T] = new Invoker[T] {
     def invoke(f: RuleConsumer => T)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): T = g(mapper)(f)
   }
-
-  case class Result(rules: ForEach[FinalRule])
 
 }

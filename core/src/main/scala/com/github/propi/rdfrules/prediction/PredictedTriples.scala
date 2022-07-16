@@ -2,12 +2,14 @@ package com.github.propi.rdfrules.prediction
 
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
-import com.github.propi.rdfrules.index.{Index, TripleIndex, TripleItemIndex}
+import com.github.propi.rdfrules.index.{AutoIndex, Index, TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
 import com.github.propi.rdfrules.rule.{PatternMatcher, Rule, RulePattern}
 import com.github.propi.rdfrules.serialization.TripleSerialization._
 import com.github.propi.rdfrules.utils.ForEach
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
+
+import java.io.{File, FileInputStream, InputStream}
 
 /**
   * Created by Vaclav Zeman on 6. 10. 2017.
@@ -25,16 +27,16 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
 
   protected def cachedTransform(col: ForEach[PredictedTriple]): PredictedTriples = new PredictedTriples(col, index)
 
-  protected val serializer: Serializer[PredictedTriple] = implicitly[Serializer[PredictedTriple]]
-  protected val deserializer: Deserializer[PredictedTriple] = implicitly[Deserializer[PredictedTriple]]
-  protected val serializationSize: SerializationSize[PredictedTriple] = implicitly[SerializationSize[PredictedTriple]]
+  protected val serializer: Serializer[PredictedTriple] = Serializer.by[PredictedTriple, ResolvedPredictedTriple](ResolvedPredictedTriple(_)(index.tripleItemMap))
+  protected val deserializer: Deserializer[PredictedTriple] = Deserializer.by[ResolvedPredictedTriple, PredictedTriple](_.toPredictedTriple(index.tripleItemMap))
+  protected val serializationSize: SerializationSize[PredictedTriple] = SerializationSize.by[PredictedTriple, ResolvedPredictedTriple]
   protected val dataLoadingText: String = "Predicted triples loading"
 
   def withIndex(index: Index): PredictedTriples = new PredictedTriples(triples, index)
 
   def filter(pattern: RulePattern, patterns: RulePattern*): PredictedTriples = transform((f: PredictedTriple => Unit) => {
     implicit val mapper: TripleItemIndex = index.tripleItemMap
-    implicit val thi: TripleIndex[Int] = index.tripleMap
+    implicit val thi: TripleIndex.Builder[Int] = index
     val rulePatternMatcher = implicitly[PatternMatcher[Rule, RulePattern.Mapped]]
     val mappedPatterns = (pattern +: patterns).map(_.withOrderless().mapped)
     triples.filter(triple => mappedPatterns.exists(rulePattern => triple.rules.exists(rule => rulePatternMatcher.matchPattern(rule, rulePattern)))).foreach(f)
@@ -69,18 +71,37 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
   def onlyFunctionalProperties: PredictedTriples = {
     val tm = index.tripleMap
     transform(triples.distinctBy { x =>
-      val higherCardinalityConstant = tm.predicates(x.triple.predicate).higherCardinalitySide match {
-        case TriplePosition.Subject => x.triple.subject
-        case TriplePosition.Object => x.triple.`object`
+      val higherCardinalityConstant = tm.predicates(x.triple.p).higherCardinalitySide match {
+        case TriplePosition.Subject => x.triple.s
+        case TriplePosition.Object => x.triple.o
       }
-      higherCardinalityConstant -> x.triple.predicate
+      higherCardinalityConstant -> x.triple.p
     })
   }
 
 }
 
 object PredictedTriples {
-
   def apply(index: Index, triples: ForEach[PredictedTriple]): PredictedTriples = new PredictedTriples(triples, index)
 
+  def apply(index: Index, triples: ForEach[ResolvedPredictedTriple])(implicit i1: DummyImplicit): PredictedTriples = apply(index, triples.map(_.toPredictedTriple(index.tripleItemMap)))
+
+  def apply(triples: ForEach[ResolvedPredictedTriple]): PredictedTriples = apply(AutoIndex(), triples)
+
+  def fromCache(index: Index, is: => InputStream): PredictedTriples = apply(
+    index,
+    (f: PredictedTriple => Unit) => Deserializer.deserializeFromInputStream[ResolvedPredictedTriple, Unit](is) { reader =>
+      Iterator.continually(reader.read()).takeWhile(_.isDefined).map(_.get).map(_.toPredictedTriple(index.tripleItemMap)).foreach(f)
+    }
+  )
+
+  def fromCache(index: Index, file: File): PredictedTriples = fromCache(index, new FileInputStream(file))
+
+  def fromCache(index: Index, file: String): PredictedTriples = fromCache(index, new File(file))
+
+  def fromCache(is: => InputStream): PredictedTriples = fromCache(AutoIndex(), is)
+
+  def fromCache(file: File): PredictedTriples = fromCache(new FileInputStream(file))
+
+  def fromCache(file: String): PredictedTriples = fromCache(new File(file))
 }

@@ -1,26 +1,22 @@
 package com.github.propi.rdfrules.serialization
 
 import com.github.propi.rdfrules.data.TripleItem
-import com.github.propi.rdfrules.index.TripleHashIndex.MutableHashSet
-import com.github.propi.rdfrules.rule.InstantiatedRule.PredictedResult
+import com.github.propi.rdfrules.prediction.PredictedResult
 import com.github.propi.rdfrules.rule.ResolvedAtom.ResolvedItem
-import com.github.propi.rdfrules.rule.Rule.FinalRule
-import com.github.propi.rdfrules.rule.{Atom, InstantiatedAtom, InstantiatedRule, Measure, ResolvedAtom, ResolvedRule, Rule}
+import com.github.propi.rdfrules.rule.{Measure, ResolvedAtom, ResolvedInstantiatedAtom, ResolvedInstantiatedRule, ResolvedRule}
 import com.github.propi.rdfrules.serialization.TripleItemSerialization._
 import com.github.propi.rdfrules.utils.TypedKeyMap
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 import com.github.propi.rdfrules.utils.serialization.Serializer._
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.nio.ByteBuffer
-import scala.jdk.CollectionConverters._
 import scala.language.implicitConversions
 
 object RuleSerialization {
 
-  implicit private def atomItemToInt(item: Atom.Item): Int = item match {
+  /*implicit private def atomItemToInt(item: Atom.Item): Int = item match {
     case x: Atom.Variable => x.index
     case x: Atom.Constant => x.value
   }
@@ -85,7 +81,7 @@ object RuleSerialization {
     } else {
       Deserializer.deserialize[Atom.GraphAware](bais)
     }
-  }
+  }*/
 
   implicit val resolvedAtomItemSerializer: Serializer[ResolvedItem] = (v: ResolvedItem) => {
     val baos = new ByteArrayOutputStream()
@@ -214,7 +210,7 @@ object RuleSerialization {
     }
   }
 
-  implicit val instantiatedAtomSerializationSize: SerializationSize[InstantiatedAtom] = new SerializationSize[InstantiatedAtom] {
+  /*implicit val instantiatedAtomSerializationSize: SerializationSize[InstantiatedAtom] = new SerializationSize[InstantiatedAtom] {
     val size: Int = 12
   }
 
@@ -249,7 +245,7 @@ object RuleSerialization {
 
   implicit val ruleSimpleSerializer: Serializer[FinalRule] = (v: FinalRule) => ruleSerializer.serialize(v)
 
-  implicit val ruleSimpleDeserializer: Deserializer[FinalRule] = (v: Array[Byte]) => ruleDeserializer.deserialize(v).asInstanceOf[FinalRule]
+  implicit val ruleSimpleDeserializer: Deserializer[FinalRule] = (v: Array[Byte]) => ruleDeserializer.deserialize(v).asInstanceOf[FinalRule]*/
 
   implicit val resolvedRuleSerializer: Serializer[ResolvedRule] = (v: ResolvedRule) => {
     val measuresBytes = Serializer.serialize(v.measures.iterator)
@@ -264,14 +260,24 @@ object RuleSerialization {
     ResolvedRule(atoms.tail.toIndexedSeq, atoms.head)(measures)
   }
 
-  implicit val instantiatedRuleSerializer: Serializer[InstantiatedRule] = (v: InstantiatedRule) => {
+  implicit val resolvedInstantiatedAtomSerializer: Serializer[ResolvedInstantiatedAtom] = (v: ResolvedInstantiatedAtom) => {
+    Serializer.serialize((v.subject, v.predicate, v.`object`))
+  }
+
+  implicit val resolvedInstantiatedAtomDeserializer: Deserializer[ResolvedInstantiatedAtom] = (v: Array[Byte]) => {
+    val bais = new ByteArrayInputStream(v)
+    val (s, p, o) = Deserializer.deserialize[(TripleItem.Uri, TripleItem.Uri, TripleItem)](bais)
+    ResolvedInstantiatedAtom(s, p, o)
+  }
+
+  implicit val resolvedInstantiatedRuleSerializer: Serializer[ResolvedInstantiatedRule] = (v: ResolvedInstantiatedRule) => {
     Serializer.serialize(((v.head +: v.body).iterator, v.source, v.predictionResult))
   }
 
-  implicit val instantiatedRuleDeserializer: Deserializer[InstantiatedRule] = (v: Array[Byte]) => {
+  implicit val resolvedInstantiatedRuleDeserializer: Deserializer[ResolvedInstantiatedRule] = (v: Array[Byte]) => {
     val bais = new ByteArrayInputStream(v)
-    val (atoms, source, predictionResult) = Deserializer.deserialize[(Iterable[InstantiatedAtom], FinalRule, PredictedResult)](bais)
-    InstantiatedRule(atoms.head, atoms.tail.toIndexedSeq, predictionResult, source)
+    val (atoms, source, predictionResult) = Deserializer.deserialize[(Iterable[ResolvedInstantiatedAtom], ResolvedRule, PredictedResult)](bais)
+    ResolvedInstantiatedRule(atoms.head, atoms.tail.toIndexedSeq, predictionResult, source)
   }
 
 }

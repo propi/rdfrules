@@ -3,8 +3,9 @@ package com.github.propi.rdfrules.algorithm.amie
 import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.algorithm.amie.RuleRefinement.Settings
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
+import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule._
-import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
+import com.github.propi.rdfrules.utils.{Debugger, ForEach, TypedKeyMap}
 
 import scala.language.postfixOps
 
@@ -24,7 +25,7 @@ class HeadsMiner private(_parallelism: Int = Runtime.getRuntime.availableProcess
                           patterns: List[RulePattern],
                           parallelism: Int): RulesMining = new HeadsMiner(parallelism, thresholds, constraints, patterns)
 
-  def mine(ruleConsumer: RuleConsumer)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): RuleConsumer.Result = {
+  def mine(ruleConsumer: RuleConsumer)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): ForEach[FinalRule] = {
     //val logger = debugger.logger
     //create amie process with debugger and final triple index
     implicit val settings: RuleRefinement.Settings = new Settings(this)(/*if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) */ debugger /* else Debugger.EmptyDebugger*/ , mapper)

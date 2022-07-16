@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.ruleset.formats
 
-import com.github.propi.rdfrules.algorithm.consumer.PrettyPrintedWriter
+import com.github.propi.rdfrules.algorithm.consumer.RuleWriter
 import com.github.propi.rdfrules.data.{Prefix, TripleItem}
 import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.rule.ResolvedAtom.ResolvedItem
@@ -40,7 +40,7 @@ object Text {
     }
   }
 
-  class TextPrettyPrintedWriter(file: File)(implicit mapper: TripleItemIndex, stringifier: Stringifier[ResolvedRule]) extends PrettyPrintedWriter {
+  class TextPrettyPrintedWriter(file: File)(implicit mapper: TripleItemIndex, stringifier: Stringifier[ResolvedRule]) extends RuleWriter {
     private val fos = new FileOutputStream(file)
     private val writer = new PrintWriter(new OutputStreamWriter(fos, "UTF-8"))
 
@@ -54,6 +54,6 @@ object Text {
     def close(): Unit = writer.close()
   }
 
-  implicit def textPrettyPrintedWriter(source: RulesetSource.Text.type)(implicit mapper: TripleItemIndex, stringifier: Stringifier[ResolvedRule]): File => PrettyPrintedWriter = new TextPrettyPrintedWriter(_)
+  implicit def textPrettyPrintedWriter(source: RulesetSource.Text.type)(implicit mapper: TripleItemIndex, stringifier: Stringifier[ResolvedRule]): File => RuleWriter = new TextPrettyPrintedWriter(_)
 
 }

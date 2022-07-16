@@ -12,6 +12,8 @@ sealed trait ResolvedAtom {
   def predicate: TripleItem.Uri
   def `object`: ResolvedItem
 
+  def toAtom(implicit tripleItemIndex: TripleItemIndex): Atom
+
   override def equals(obj: scala.Any): Boolean = obj match {
     case x: ResolvedAtom => (this eq x) || (subject == x.subject && predicate == x.predicate && `object` == x.`object`)
     case _ => false
@@ -24,13 +26,19 @@ object ResolvedAtom {
     def graphs: Set[TripleItem.Uri]
   }
 
-  sealed trait ResolvedItem
+  sealed trait ResolvedItem {
+    def toItem(implicit tripleItemIndex: TripleItemIndex): Atom.Item
+  }
 
   object ResolvedItem {
 
-    case class Variable private(value: String) extends ResolvedItem
+    case class Variable private(value: String) extends ResolvedItem {
+      def toItem(implicit tripleItemIndex: TripleItemIndex): Atom.Item = Atom.Item(value)
+    }
 
-    case class Constant private(tripleItem: TripleItem) extends ResolvedItem
+    case class Constant private(tripleItem: TripleItem) extends ResolvedItem {
+      def toItem(implicit tripleItemIndex: TripleItemIndex): Atom.Item = Atom.Item(tripleItem)
+    }
 
     def apply(char: Char): ResolvedItem = Variable("?" + char)
 
@@ -44,9 +52,13 @@ object ResolvedAtom {
     }
   }
 
-  private case class Basic private(subject: ResolvedItem, predicate: TripleItem.Uri, `object`: ResolvedItem) extends ResolvedAtom
+  private case class Basic private(subject: ResolvedItem, predicate: TripleItem.Uri, `object`: ResolvedItem) extends ResolvedAtom {
+    def toAtom(implicit tripleItemIndex: TripleItemIndex): Atom = rule.Atom(subject.toItem, tripleItemIndex.getIndex(predicate), `object`.toItem)
+  }
 
-  private case class GraphAwareBasic private(subject: ResolvedItem, predicate: TripleItem.Uri, `object`: ResolvedItem)(val graphs: Set[TripleItem.Uri]) extends GraphAware
+  private case class GraphAwareBasic private(subject: ResolvedItem, predicate: TripleItem.Uri, `object`: ResolvedItem)(val graphs: Set[TripleItem.Uri]) extends GraphAware {
+    def toAtom(implicit tripleItemIndex: TripleItemIndex): Atom = rule.Atom(subject.toItem, tripleItemIndex.getIndex(predicate), `object`.toItem, graphs.map(tripleItemIndex.getIndex))
+  }
 
   def apply(subject: ResolvedItem, predicate: TripleItem.Uri, `object`: ResolvedItem): ResolvedAtom = Basic(subject, predicate, `object`)
 

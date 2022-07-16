@@ -1,8 +1,9 @@
 package com.github.propi.rdfrules.algorithm
 
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
+import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.{RuleConstraint, RulePattern, Threshold}
-import com.github.propi.rdfrules.utils.TypedKeyMap
+import com.github.propi.rdfrules.utils.{ForEach, TypedKeyMap}
 
 /**
   * Created by Vaclav Zeman on 14. 3. 2018.
@@ -44,6 +45,6 @@ abstract class RulesMining(_parallelism: Int, _thresholds: TypedKeyMap[Threshold
 
   final def parallelism: Int = _parallelism
 
-  def mine(ruleConsumer: RuleConsumer)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): RuleConsumer.Result
+  def mine(ruleConsumer: RuleConsumer)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): ForEach[FinalRule]
 
 }

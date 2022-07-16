@@ -1,8 +1,6 @@
 package com.github.propi.rdfrules.rule
 
-import com.github.propi.rdfrules.data.TripleItem
 import com.github.propi.rdfrules.index.TripleItemIndex
-import com.github.propi.rdfrules.rule
 import com.github.propi.rdfrules.rule.ResolvedAtom.ResolvedItem
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.utils.{Stringifier, TypedKeyMap}
@@ -15,18 +13,17 @@ import scala.language.implicitConversions
 case class ResolvedRule private(body: IndexedSeq[ResolvedAtom], head: ResolvedAtom)(val measures: TypedKeyMap.Immutable[Measure]) {
   def ruleLength: Int = body.size + 1
 
+  def toRule(implicit tripleItemIndex: TripleItemIndex): FinalRule = Rule(
+    head.toAtom,
+    body.map(_.toAtom)
+  )(measures)
+
   override def toString: String = Stringifier(this)
 }
 
 object ResolvedRule {
 
-  /**
-    *
-    * @param resolvedRule rule without mapping to index
-    * @param mapper       mapper
-    * @return mapped rule to index -> new mapping of triple items which can not be mapped to index (no records in index)
-    */
-  def simple(resolvedRule: ResolvedRule)(implicit mapper: TripleItemIndex): (FinalRule, collection.Map[Int, TripleItem]) = {
+  /*def simple(resolvedRule: ResolvedRule)(implicit mapper: TripleItemIndex): (FinalRule, collection.Map[Int, TripleItem]) = {
     var i = 0
     val map = collection.mutable.Map.empty[TripleItem, Int]
 
@@ -55,7 +52,7 @@ object ResolvedRule {
       atom(resolvedRule.head),
       resolvedRule.body.map(atom)
     )(resolvedRule.measures) -> map.map(_.swap)
-  }
+  }*/
 
   def apply(body: IndexedSeq[ResolvedAtom], head: ResolvedAtom, measures: Measure*): ResolvedRule = ResolvedRule(body, head)(TypedKeyMap(measures))
 

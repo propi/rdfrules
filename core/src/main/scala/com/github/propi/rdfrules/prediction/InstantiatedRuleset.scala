@@ -24,9 +24,9 @@ class InstantiatedRuleset private(val rules: ForEach[InstantiatedRule], val inde
 
   protected def cachedTransform(col: ForEach[InstantiatedRule]): InstantiatedRuleset = new InstantiatedRuleset(col, index)
 
-  protected val serializer: Serializer[InstantiatedRule] = implicitly[Serializer[InstantiatedRule]]
-  protected val deserializer: Deserializer[InstantiatedRule] = implicitly[Deserializer[InstantiatedRule]]
-  protected val serializationSize: SerializationSize[InstantiatedRule] = implicitly[SerializationSize[InstantiatedRule]]
+  protected val serializer: Serializer[InstantiatedRule] = Serializer.by[InstantiatedRule, ResolvedInstantiatedRule](ResolvedInstantiatedRule(_)(index.tripleItemMap))
+  protected val deserializer: Deserializer[InstantiatedRule] = Deserializer.by[ResolvedInstantiatedRule, InstantiatedRule](_.toInstantiatedRule(index.tripleItemMap))
+  protected val serializationSize: SerializationSize[InstantiatedRule] = SerializationSize.by[InstantiatedRule, ResolvedInstantiatedRule]
   protected val dataLoadingText: String = "Instantiated ruleset loading"
 
   def withIndex(index: Index): InstantiatedRuleset = new InstantiatedRuleset(rules, index)

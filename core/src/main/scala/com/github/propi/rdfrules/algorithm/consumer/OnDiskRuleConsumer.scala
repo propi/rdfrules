@@ -3,20 +3,18 @@ package com.github.propi.rdfrules.algorithm.consumer
 import com.github.propi.rdfrules.algorithm.RuleConsumer
 import com.github.propi.rdfrules.rule.Rule
 import com.github.propi.rdfrules.rule.Rule.FinalRule
-import com.github.propi.rdfrules.serialization.RuleSerialization._
-import com.github.propi.rdfrules.utils.serialization.{Deserializer, Serializer}
+import com.github.propi.rdfrules.utils.ForEach
 
-import java.io.{File, FileInputStream, FileOutputStream, OutputStream}
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Promise}
 import scala.language.postfixOps
 
-class OnDiskRuleConsumer private(file: File, prettyPrintedFile: Option[(File, File => PrettyPrintedWriter)]) extends RuleConsumer.NoEventRuleConsumer {
+class OnDiskRuleConsumer private(ruleIO: RuleIO) extends RuleConsumer.NoEventRuleConsumer {
 
-  private val _result = Promise[RuleConsumer.Result]()
+  private val _result = Promise[ForEach[FinalRule]]()
 
-  private class BufferedOutputStream(stream: OutputStream) extends OutputStream {
+  /*private class BufferedOutputStream(stream: OutputStream) extends OutputStream {
     private val buffer = new Array[Byte](8192)
     private var pointer = 0
 
@@ -47,16 +45,13 @@ class OnDiskRuleConsumer private(file: File, prettyPrintedFile: Option[(File, Fi
       flush()
       stream.close()
     }
-  }
+  }*/
 
   private lazy val messages = {
     val messages = new LinkedBlockingQueue[Option[Rule]]
     val job = new Runnable {
       def run(): Unit = try {
-        val fos = new FileOutputStream(file)
-        val bos = new BufferedOutputStream(fos)
-        val prettyPrintedWriter = prettyPrintedFile.map(x => x._2(x._1))
-        try {
+        ruleIO.writer { writer =>
           val syncDuration = 10 seconds
           var stopped = false
           var lastSync = System.currentTimeMillis()
@@ -65,29 +60,23 @@ class OnDiskRuleConsumer private(file: File, prettyPrintedFile: Option[(File, Fi
             messages.poll(syncDuration.toSeconds, TimeUnit.SECONDS) match {
               case null =>
               case Some(rule) =>
-                val ruleSimple = Rule(rule)
-                bos.write(ruleSimple)
+                writer.write(rule)
+                nextConsumer.foreach(_.send(rule))
                 isAdded = true
-                prettyPrintedWriter.foreach(_.write(ruleSimple))
               case None => stopped = true
             }
             if (isAdded && System.currentTimeMillis > (lastSync + syncDuration.toMillis)) {
-              bos.flush()
-              fos.getFD.sync()
-              prettyPrintedWriter.foreach(_.flush())
+              writer.flush()
               lastSync = System.currentTimeMillis()
               isAdded = false
             }
           }
-        } finally {
-          bos.close()
-          prettyPrintedWriter.foreach(_.close())
         }
-        _result.success(RuleConsumer.Result((f: FinalRule => Unit) => {
-          Deserializer.deserializeFromInputStream[FinalRule, Unit](new FileInputStream(file)) { reader =>
+        _result.success((f: FinalRule => Unit) => {
+          ruleIO.reader { reader =>
             Iterator.continually(reader.read()).takeWhile(_.isDefined).map(_.get).foreach(f)
           }
-        }))
+        })
       } catch {
         case th: Throwable => _result.failure(th)
       }
@@ -99,8 +88,9 @@ class OnDiskRuleConsumer private(file: File, prettyPrintedFile: Option[(File, Fi
 
   def send(rule: Rule): Unit = messages.put(Some(rule))
 
-  def result: RuleConsumer.Result = {
+  def result: ForEach[FinalRule] = {
     messages.put(None)
+    nextConsumer.foreach(_.result)
     Await.result(_result.future, 1 minute)
   }
 
@@ -114,10 +104,6 @@ object OnDiskRuleConsumer {
     ruleConsumer.result
   }
 
-  def apply[T](file: File)(f: OnDiskRuleConsumer => T): T = apply(new OnDiskRuleConsumer(file, None))(f)
-
-  def apply[T](file: File, prettyPrintedFile: File, prettyPrintedWriterBuilder: File => PrettyPrintedWriter)(f: OnDiskRuleConsumer => T): T = {
-    apply(new OnDiskRuleConsumer(file, Some(prettyPrintedFile -> prettyPrintedWriterBuilder)))(f)
-  }
+  def apply[T](ruleIO: RuleIO)(f: OnDiskRuleConsumer => T): T = apply(new OnDiskRuleConsumer(ruleIO))(f)
 
 }

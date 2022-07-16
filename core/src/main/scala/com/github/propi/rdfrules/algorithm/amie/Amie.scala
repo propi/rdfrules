@@ -5,9 +5,10 @@ import com.github.propi.rdfrules.algorithm.consumer.TopKRuleConsumer
 import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.ExpandingRule.ClosedRule
+import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
 import com.github.propi.rdfrules.rule._
-import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap, UniqueQueue}
+import com.github.propi.rdfrules.utils.{Debugger, ForEach, TypedKeyMap, UniqueQueue}
 
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
@@ -40,7 +41,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
     *         Rules contains only these measures: head size, head coverage and support
     *         Rules are not ordered
     */
-  def mine(ruleConsumer: RuleConsumer)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): RuleConsumer.Result = {
+  def mine(ruleConsumer: RuleConsumer)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): ForEach[FinalRule] = {
     val logger = debugger.logger
     implicit val settings: RuleRefinement.Settings = new Settings(this)(/*if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) */ debugger /* else Debugger.EmptyDebugger*/ , mapper)
     val observedRuleConsumer = ruleConsumer.withListener {
