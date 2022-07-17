@@ -30,6 +30,38 @@ trait ForEach[+T] {
 
   def knownSize: Int = -1
 
+  def withDebugger(dataLoadingText: String)(implicit debugger: Debugger): ForEach[T] = new ForEach[T] {
+    def foreach(f: T => Unit): Unit = {
+      val num = if (self.knownSize > 0) self.knownSize else 0
+      debugger.debug(dataLoadingText, num) { ad =>
+        for (x <- self.takeWhile(_ => !debugger.isInterrupted)) {
+          f(x)
+          ad.done()
+        }
+        if (debugger.isInterrupted) {
+          debugger.logger.warn(s"The loading task has been interrupted. The loaded data may not be complete.")
+        }
+      }
+    }
+
+    override def knownSize: Int = self.knownSize
+  }
+
+  def topK[A >: T](k: Int, allowOverflowIfSameThreshold: Boolean = false)(updatedTail: A => Unit)(implicit ord: Ordering[A]): ForEach[A] = (f: A => Unit) => {
+    val queue = new TopKQueue[A](k, allowOverflowIfSameThreshold)
+    for (x <- self) {
+      if (queue.isFull) {
+        val enqueued = queue.enqueue(x)
+        if (enqueued && !queue.isOverflowed) {
+          queue.head.foreach(updatedTail)
+        }
+      } else {
+        queue.enqueue(x)
+      }
+    }
+    queue.dequeueAll.foreach(f)
+  }
+
   def size: Int = if (knownSize >= 0) {
     knownSize
   } else {

@@ -13,7 +13,6 @@ import com.github.propi.rdfrules.ruleset.ops.{Sortable, Treeable}
 import com.github.propi.rdfrules.serialization.RuleSerialization._
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
-import com.github.propi.rdfrules.utils.workers.Workers._
 import com.github.propi.rdfrules.utils.{Debugger, ForEach, TypedKeyMap}
 
 import java.io._
@@ -118,32 +117,6 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     })
   }
 
-  private def mapRuleset(f: TripleIndex[Int] => FinalRule => FinalRule)(implicit debugger: Int => (Debugger.ActionDebugger => Unit) => Unit): Ruleset = transform(new ForEach[FinalRule] {
-    def foreach(f2: FinalRule => Unit): Unit = {
-      val thi = index.tripleMap
-      val cached = coll.toIndexedSeq
-      debugger(cached.size) { ad =>
-        //here we use parallel mapping
-        cached.parMap(parallelism) { rule =>
-          ad.result()(f(thi)(rule))
-        }.foreach(x => f2(x))
-      }
-    }
-
-    override def knownSize: Int = coll.knownSize
-  })
-
-  private def shrinkRuleset[T](topK: Int, initThreshold: T, updateThreshold: FinalRule => T)(f: TripleIndex[Int] => (FinalRule, T) => FinalRule)(implicit ord: Ordering[FinalRule], debugger: Int => (Debugger.ActionDebugger => Unit) => Unit): Ruleset = transform((f2: FinalRule => Unit) => {
-    val thi = index.tripleMap
-    val cached = coll.toIndexedSeq
-    debugger(cached.size) { ad =>
-      //here we use topK parallel enumeration with some initThreshold and with a function which updates threshold once the queue head is changed
-      cached.topK(topK, initThreshold, updateThreshold, parallelism) { (rule, threshold) =>
-        Iterator(ad.result()(f(thi)(rule, threshold)))
-      }.foreach(x => f2(x))
-    }
-  })
-
   def graphAwareRules: Ruleset = {
     implicit val ad: Int => (Debugger.ActionDebugger => Unit) => Unit = size => f => Debugger.EmptyDebugger.debug("", size)(f)
     transform(new ForEach[FinalRule] {
@@ -157,52 +130,55 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
   }
 
   def computeConfidence(minConfidence: Double, topK: Int = 0)(implicit debugger: Debugger): Ruleset = {
-    implicit val ad: Int => (Debugger.ActionDebugger => Unit) => Unit = size => f => debugger.debug("Confidence computing", size)(f)
-    val newRuleset = if (topK > 0) {
+    @volatile var threshold = minConfidence
+    implicit val ti: TripleIndex[Int] = index.tripleMap
+
+    val rulesWithConfidence = rules.parMap(parallelism) { rule =>
+      rule.withConfidence(threshold)
+    }.withDebugger("Confidence computing")
+
+    val resColl = if (topK > 0) {
       //if we use topK approach then the final ruleset will have size lower than or equals to the original size
       //therefore we shrink the original ruleset
       //first we need to define rule ordering for priority queue
       implicit val ord: Ordering[FinalRule] = Ordering.by[FinalRule, (Double, Double)](x => x.measures.get[Measure.Confidence].map(_.value).getOrElse(0.0) -> x.measures.apply[Measure.HeadCoverage].value).reverse
-      shrinkRuleset(topK, minConfidence, _.measures.get[Measure.Confidence].map(_.value).getOrElse(minConfidence)) { implicit thi =>
-        (rule, threshold) => rule.withConfidence(threshold)
-      }
+      rulesWithConfidence.topK(topK)(rule => threshold = rule.measures.apply[Measure.Confidence].value)
     } else {
-      //otherwise we only map each rule to another with computed confidence
-      mapRuleset { implicit thi =>
-        _.withConfidence(minConfidence)
-      }
+      rulesWithConfidence
     }
-    newRuleset.filter(_.measures.get[Measure.Confidence].exists(_.value >= minConfidence))
+    transform(resColl)
   }
 
   def computePcaConfidence(minPcaConfidence: Double, topK: Int = 0)(implicit debugger: Debugger): Ruleset = {
-    implicit val ad: Int => (Debugger.ActionDebugger => Unit) => Unit = size => f => debugger.debug("PCA Confidence computing", size)(f)
-    val newRuleset = if (topK > 0) {
+    @volatile var threshold = minPcaConfidence
+    implicit val ti: TripleIndex[Int] = index.tripleMap
+
+    val rulesWithConfidence = rules.parMap(parallelism) { rule =>
+      rule.withPcaConfidence(threshold)
+    }.withDebugger("Confidence computing")
+
+    val resColl = if (topK > 0) {
       //if we use topK approach then the final ruleset will have size lower than or equals to the original size
       //therefore we shrink the original ruleset
       //first we need to define rule ordering for priority queue
       implicit val ord: Ordering[FinalRule] = Ordering.by[FinalRule, (Double, Double)](x => x.measures.get[Measure.PcaConfidence].map(_.value).getOrElse(0.0) -> x.measures.apply[Measure.HeadCoverage].value).reverse
-      shrinkRuleset(topK, minPcaConfidence, _.measures.get[Measure.PcaConfidence].map(_.value).getOrElse(minPcaConfidence)) { implicit thi =>
-        (rule, threshold) => rule.withPcaConfidence(threshold)
-      }
+      rulesWithConfidence.topK(topK)(rule => threshold = rule.measures.apply[Measure.Confidence].value)
     } else {
-      //otherwise we only map each rule to another with computed confidence
-      mapRuleset { implicit thi =>
-        _.withPcaConfidence(minPcaConfidence)
-      }
+      rulesWithConfidence
     }
-    newRuleset.filter(_.measures.get[Measure.PcaConfidence].exists(_.value >= minPcaConfidence))
+    transform(resColl)
   }
 
   def computeLift(minConfidence: Double = 0.5)(implicit debugger: Debugger): Ruleset = {
-    implicit val ad: Int => (Debugger.ActionDebugger => Unit) => Unit = size => f => debugger.debug("Lift computing", size)(f)
-    mapRuleset { implicit thi =>
+    implicit val ti: TripleIndex[Int] = index.tripleMap
+    val resColl = rules.parMap(parallelism) { rule =>
       Function.chain[FinalRule](List(
         rule => if (rule.measures.exists[Measure.Confidence]) rule else rule.withConfidence(minConfidence),
         rule => if (rule.measures.exists[Measure.HeadConfidence]) rule else rule.withHeadConfidence,
         rule => rule.withLift
-      ))
-    }.filter(_.measures.exists[Measure.Lift])
+      ))(rule)
+    }.withDebugger("Lift computing")
+    transform(resColl)
   }
 
   def instantiate(predictionResults: Set[PredictedResult] = Set.empty, injectiveMapping: Boolean = true): InstantiatedRuleset = {

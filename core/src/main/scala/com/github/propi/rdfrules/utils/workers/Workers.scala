@@ -7,12 +7,14 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
 //TODO replace Future by new Thread
+
 /**
   * Created by Vaclav Zeman on 9. 5. 2019.
   *
   * This object is helper for starting multithreading computing with Workers (actors)
   * It better scales than the standard scala parallel collection.
   */
+@deprecated("Use ForEach parMap")
 object Workers {
 
   /**
@@ -88,6 +90,7 @@ object Workers {
       * @param f           a function for processing a single item of the input sequence
       * @param ec          execution context for parallel processing
       */
+    @deprecated("Use ForEach parMap")
     def parForeach(parallelism: Int = Runtime.getRuntime.availableProcessors())(f: I => Unit)(implicit ec: ExecutionContext = ExecutionContext.global): Unit = {
       //shared error variable; it is populated as soon as some worker ends with an exception
       //once the workerError variable is defined then all workers should stop computing
@@ -149,6 +152,7 @@ object Workers {
       * @tparam O the type of mapped item
       * @return mapped collection
       */
+    @deprecated("Use ForEach parMap")
     def parMap[O](parallelism: Int = Runtime.getRuntime.availableProcessors())(f: I => O)(implicit ec: ExecutionContext = ExecutionContext.global): IndexedSeq[O] = {
       val resultBuffer = collection.mutable.ArrayBuffer.empty[O]
       parForeach(parallelism) { x =>
