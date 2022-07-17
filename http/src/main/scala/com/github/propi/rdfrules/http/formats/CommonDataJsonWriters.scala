@@ -1,9 +1,12 @@
 package com.github.propi.rdfrules.http.formats
 
 import com.github.propi.rdfrules.data.Properties.PropertyStats
-import com.github.propi.rdfrules.data.{Histogram, Quad, TripleItem, TripleItemType}
+import com.github.propi.rdfrules.data.{Histogram, Quad, Triple, TripleItemType}
+import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.service.Task.TaskResponse
+import com.github.propi.rdfrules.http.task.GroupedPredictedTriple
 import com.github.propi.rdfrules.prediction.EvaluationResult
+import com.github.propi.rdfrules.rule.{ResolvedInstantiatedAtom, ResolvedInstantiatedRule}
 import com.github.propi.rdfrules.ruleset.formats.Json._
 import spray.json.DefaultJsonProtocol._
 import spray.json._
@@ -25,10 +28,16 @@ object CommonDataJsonWriters {
   )
 
   implicit val quadWriter: RootJsonWriter[Quad] = (obj: Quad) => JsObject(
-    "subject" -> obj.triple.subject.asInstanceOf[TripleItem].toJson,
-    "predicate" -> obj.triple.predicate.asInstanceOf[TripleItem].toJson,
+    "subject" -> obj.triple.subject.toJson,
+    "predicate" -> obj.triple.predicate.toJson,
     "object" -> obj.triple.`object`.toJson,
-    "graph" -> obj.graph.asInstanceOf[TripleItem].toJson
+    "graph" -> obj.graph.toJson
+  )
+
+  implicit val tripleWriter: RootJsonWriter[Triple] = (obj: Triple) => JsObject(
+    "subject" -> obj.subject.toJson,
+    "predicate" -> obj.predicate.toJson,
+    "object" -> obj.`object`.toJson
   )
 
   implicit val tripleItemTypeWriter: RootJsonWriter[TripleItemType] = {
@@ -45,10 +54,29 @@ object CommonDataJsonWriters {
   )*/
 
   implicit val histogramWriter: RootJsonWriter[(Histogram.Key, Int)] = (obj: (Histogram.Key, Int)) => JsObject(
-    "subject" -> obj._1.s.map(_.asInstanceOf[TripleItem].toJson).getOrElse(JsNull),
-    "predicate" -> obj._1.p.map(_.asInstanceOf[TripleItem].toJson).getOrElse(JsNull),
+    "subject" -> obj._1.s.map(_.toJson).getOrElse(JsNull),
+    "predicate" -> obj._1.p.map(_.toJson).getOrElse(JsNull),
     "object" -> obj._1.o.map(_.toJson).getOrElse(JsNull),
     "amount" -> obj._2.toJson
+  )
+
+  implicit val groupedPredictedTripleWriter: RootJsonWriter[GroupedPredictedTriple] = (obj: GroupedPredictedTriple) => JsObject(
+    "triple" -> obj.triple.toJson,
+    "predictedResult" -> obj.predictedResult.toJson,
+    "rules" -> obj.rules.toJson
+  )
+
+  implicit val resolvedInstantiatedAtomWriter: RootJsonWriter[ResolvedInstantiatedAtom] = (obj: ResolvedInstantiatedAtom) => JsObject(
+    "subject" -> obj.subject.toJson,
+    "predicate" -> obj.predicate.toJson,
+    "object" -> obj.`object`.toJson
+  )
+
+  implicit val resolvedInstantiatedRuleWriter: RootJsonWriter[ResolvedInstantiatedRule] = (obj: ResolvedInstantiatedRule) => JsObject(
+    "head" -> obj.head.toJson,
+    "body" -> JsArray(obj.body.iterator.map(_.toJson).toVector),
+    "source" -> obj.source.toJson,
+    "predictedResult" -> obj.predictionResult.toJson
   )
 
   implicit val propertyStatsWriter: RootJsonWriter[PropertyStats] = (obj: PropertyStats) => obj.iterator.map(x => JsObject("name" -> x._1.toJson, "amount" -> x._2.toJson)).toSeq.toJson

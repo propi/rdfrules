@@ -1,8 +1,8 @@
 package com.github.propi.rdfrules.http.formats
 
-import java.net.URL
 import akka.NotUsed
 import akka.stream.scaladsl.Source
+import com.github.propi.rdfrules.algorithm.consumer.InMemoryRuleConsumer
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
 import com.github.propi.rdfrules.algorithm.{Clustering, RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.data.{Dataset, DiscretizationTask, Prefix, RdfSource, TripleItem}
@@ -10,14 +10,12 @@ import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.formats.CommonDataJsonReaders._
 import com.github.propi.rdfrules.http.task.Task.MergeDatasets
 import com.github.propi.rdfrules.http.task._
+import com.github.propi.rdfrules.http.task.prediction.{GetPrediction, LoadPredictionWithoutIndex}
 import com.github.propi.rdfrules.http.task.ruleset.ComputeConfidence.ConfidenceType
-import com.github.propi.rdfrules.http.task.ruleset.Instantiate
+import com.github.propi.rdfrules.http.task.ruleset.LoadRulesetWithoutIndex
 import com.github.propi.rdfrules.http.util.JsonSelector.PimpedJsValue
 import com.github.propi.rdfrules.index.Index
-import com.github.propi.rdfrules.model.Model
-import com.github.propi.rdfrules.model.Model.PredictionType
-import com.github.propi.rdfrules.prediction.{Instantiation, PredictedTriples}
-import com.github.propi.rdfrules.rule.InstantiatedRule.PredictedResult
+import com.github.propi.rdfrules.prediction.{PredictedResult, PredictedTriples}
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.{Measure, ResolvedRule, Rule, RulePattern}
 import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
@@ -25,6 +23,8 @@ import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
 import org.apache.jena.riot.RDFFormat
 import spray.json.DefaultJsonProtocol._
 import spray.json._
+
+import java.net.URL
 
 /**
   * Created by Vaclav Zeman on 13. 8. 2018.
@@ -56,6 +56,20 @@ object PipelineJsonReaders {
     )
   }
 
+  implicit def loadRulesetWithoutIndexReader(implicit debugger: Debugger): RootJsonReader[ruleset.LoadRulesetWithoutIndex] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    val format = fields.get("format").flatMap {
+      case JsString("cache") => None
+      case x => Some(x.convertTo[RulesetSource])
+    }
+    new LoadRulesetWithoutIndex(fields("path").convertTo[String], format, fields.get("parallelism").map(_.convertTo[Int]))
+  }
+
+  implicit def loadPredictionWithoutIndexReader(implicit debugger: Debugger): RootJsonReader[prediction.LoadPredictionWithoutIndex] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new LoadPredictionWithoutIndex(fields("path").convertTo[String])
+  }
+
   implicit val mergeDatasetsReader: RootJsonReader[MergeDatasets] = (_: JsValue) => {
     new MergeDatasets()
   }
@@ -77,7 +91,7 @@ object PipelineJsonReaders {
   }
 
   implicit val shrinkQuadsReader: RootJsonReader[data.Shrink] = (json: JsValue) => {
-    new data.Shrink(json.convertTo[data.Shrink.ShrinkSetup])
+    new data.Shrink(json.convertTo[ShrinkSetup])
   }
 
   implicit val addPrefixesReader: RootJsonReader[data.AddPrefixes] = (json: JsValue) => {
@@ -152,37 +166,31 @@ object PipelineJsonReaders {
     new index.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
   }
 
-  implicit val toDatasetReader: RootJsonReader[index.ToDataset] = (_: JsValue) => {
-    new index.ToDataset()
+  implicit val infoxToDatasetReader: RootJsonReader[index.ToDataset] = (_: JsValue) => {
+    new index.ToDataset
+  }
+
+  implicit val predictionToDatasetReader: RootJsonReader[prediction.ToDataset] = (_: JsValue) => {
+    new prediction.ToDataset
   }
 
   implicit def mineReader(implicit debugger: Debugger): RootJsonReader[index.Mine] = (json: JsValue) => {
-    new index.Mine(json.convertTo[RulesMining], json.convertTo[RuleConsumer.Invoker[Ruleset]])
+    val selector = json.toSelector
+    new index.Mine(json.convertTo[RulesMining], selector("ruleConsumers").toTypedIterable[RuleConsumer.Invoker[Ruleset]].reduceOption(_ ~> _).getOrElse(RuleConsumer(InMemoryRuleConsumer())))
   }
 
   implicit def loadRulesetReader(implicit debugger: Debugger): RootJsonReader[ruleset.LoadRuleset] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    val format = fields.get("format").map {
-      case JsString("cache") => Left(true)
-      case JsString("modelCache") => Left(false)
-      case x => Right(x.convertTo[RulesetSource])
+    val format = fields.get("format").flatMap {
+      case JsString("cache") => None
+      case x => Some(x.convertTo[RulesetSource])
     }
     new ruleset.LoadRuleset(fields("path").convertTo[String], format, fields.get("parallelism").map(_.convertTo[Int]))
   }
 
-  private def getModelPathFormat(json: JsValue) = {
+  implicit def loadPredictionReader(implicit debugger: Debugger): RootJsonReader[prediction.LoadPrediction] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    val path = fields("path").convertTo[String]
-    val format = fields.get("format").map {
-      case JsString("cache") => None
-      case x => Some(x.convertTo[RulesetSource])
-    }
-    path -> format
-  }
-
-  implicit def loadModelReader(implicit debugger: Debugger): RootJsonReader[model.LoadModel] = (json: JsValue) => {
-    val (path, format) = getModelPathFormat(json)
-    new model.LoadModel(path, format)
+    new prediction.LoadPrediction(fields("path").convertTo[String])
   }
 
   implicit val predictReader: RootJsonReader[ruleset.Predict] = (json: JsValue) => {
@@ -210,9 +218,16 @@ object PipelineJsonReaders {
     )
   }
 
-  implicit val modelFilterRulesReader: RootJsonReader[model.FilterRules] = (json: JsValue) => {
+  implicit val filterPredictionReader: RootJsonReader[prediction.Filter] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new model.FilterRules(
+    val selector = json.toSelector
+    new prediction.Filter(
+      selector("predictedResults").toTypedIterable[PredictedResult].toSet,
+      selector("distinctPrediction").to[Boolean].getOrElse(false),
+      selector("onlyFunctionalPredictions").to[Boolean].getOrElse(false),
+      selector("tripleMatchers").toIterable.flatMap { selector =>
+        selector.to[TripleMatcher].zip(selector("inverse").to[Boolean].orElse(Some(false)))
+      }.toSeq,
       fields.get("measures").iterator.flatMap(_.convertTo[JsArray].elements).map { json =>
         val fields = json.asJsObject.fields
         fields("name") -> fields("value").convertTo[String]
@@ -226,14 +241,14 @@ object PipelineJsonReaders {
   }
 
   implicit val rulesetShrinkReader: RootJsonReader[ruleset.Shrink] = (json: JsValue) => {
-    new ruleset.Shrink(json.convertTo[data.Shrink.ShrinkSetup])
+    new ruleset.Shrink(json.convertTo[ShrinkSetup])
   }
 
-  implicit val modelShrinkReader: RootJsonReader[model.Shrink] = (json: JsValue) => {
-    new model.Shrink(json.convertTo[data.Shrink.ShrinkSetup])
+  implicit val predictionShrinkReader: RootJsonReader[prediction.Shrink] = (json: JsValue) => {
+    new prediction.Shrink(json.convertTo[ShrinkSetup])
   }
 
-  implicit val sortReader: RootJsonReader[ruleset.Sort] = (json: JsValue) => {
+  implicit val rulesetSortReader: RootJsonReader[ruleset.Sort] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new ruleset.Sort(
       fields.get("by").collect {
@@ -248,19 +263,8 @@ object PipelineJsonReaders {
     )
   }
 
-  implicit val modelSortReader: RootJsonReader[model.Sort] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new model.Sort(
-      fields.get("by").collect {
-        case JsArray(x) => x.map { json =>
-          val fields = json.asJsObject.fields
-          (fields("measure") match {
-            case JsString("RuleLength") => None
-            case x => Some(x.convertTo[TypedKeyMap.Key[Measure]])
-          }) -> fields.get("reversed").exists(_.convertTo[Boolean])
-        }
-      }.getOrElse(Nil)
-    )
+  implicit val predictionSortReader: RootJsonReader[prediction.Sort] = (_: JsValue) => {
+    new prediction.Sort
   }
 
   implicit def computeConfidenceReader(implicit debugger: Debugger): RootJsonReader[ruleset.ComputeConfidence] = (json: JsValue) => {
@@ -283,9 +287,9 @@ object PipelineJsonReaders {
     new ruleset.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
   }
 
-  implicit val cacheModelReader: RootJsonReader[model.Cache] = (json: JsValue) => {
+  implicit def cachePredictionReader(implicit debugger: Debugger): RootJsonReader[prediction.Cache] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new model.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
+    new prediction.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
   }
 
   implicit val instantiateReader: RootJsonReader[ruleset.Instantiate] = (json: JsValue) => {
@@ -305,28 +309,21 @@ object PipelineJsonReaders {
     )
   }
 
-  implicit val modelExportRulesReader: RootJsonReader[model.ExportRules] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new model.ExportRules(
-      fields("path").convertTo[String],
-      fields.get("format").map(_.convertTo[RulesetSource])
-    )
-  }
-
   implicit val getRulesReader: RootJsonReader[ruleset.GetRules] = (_: JsValue) => {
     new ruleset.GetRules()
   }
 
-  implicit val modelGetRulesReader: RootJsonReader[model.GetRules] = (_: JsValue) => {
-    new model.GetRules()
+  implicit val getPredictionReader: RootJsonReader[prediction.GetPrediction] = (json: JsValue) => {
+    val selector = json.toSelector
+    new GetPrediction(selector("group").to[Boolean].getOrElse(false))
   }
 
   implicit val rulesetSizeReader: RootJsonReader[ruleset.Size] = (_: JsValue) => {
     new ruleset.Size()
   }
 
-  implicit val modelSizeReader: RootJsonReader[model.Size] = (_: JsValue) => {
-    new model.Size()
+  implicit val predictionSizeReader: RootJsonReader[prediction.Size] = (_: JsValue) => {
+    new prediction.Size()
   }
 
   implicit val pipelineReader: RootJsonReader[Debugger => Pipeline[Source[JsValue, NotUsed]]] = (json: JsValue) => { implicit debugger =>
@@ -337,7 +334,8 @@ object PipelineJsonReaders {
         case data.LoadDataset.name => addTaskFromDataset(Pipeline(params.convertTo[data.LoadDataset]), tail)
         case data.LoadGraph.name => addTaskFromDataset(Pipeline(params.convertTo[data.LoadGraph]), tail)
         case index.LoadIndex.name => addTaskFromIndex(Pipeline(params.convertTo[index.LoadIndex]), tail)
-        case model.LoadModel.name => addTaskFromModel(Pipeline(params.convertTo[model.LoadModel]), tail)
+        case ruleset.LoadRulesetWithoutIndex.name => addTaskFromRuleset(Pipeline(params.convertTo[ruleset.LoadRulesetWithoutIndex]), tail)
+        case prediction.LoadPredictionWithoutIndex.name => addTaskFromPrediction(Pipeline(params.convertTo[prediction.LoadPredictionWithoutIndex]), tail)
         case x => throw deserializationError(s"Invalid first task: $x")
       }
     }
@@ -370,21 +368,21 @@ object PipelineJsonReaders {
     }
 
     @scala.annotation.tailrec
-    def addTaskFromModel(pipeline: Pipeline[Model], tail: Seq[JsValue]): Pipeline[Source[JsValue, NotUsed]] = tail match {
+    def addTaskFromPrediction(pipeline: Pipeline[PredictedTriples], tail: Seq[JsValue]): Pipeline[Source[JsValue, NotUsed]] = tail match {
       case Seq(head, tail@_*) =>
         val fields = head.asJsObject.fields
         val params = fields("parameters")
         fields("name").convertTo[String] match {
-          case model.Cache.name => addTaskFromModel(pipeline ~> params.convertTo[model.Cache], tail)
-          case model.ExportRules.name => pipeline ~> params.convertTo[model.ExportRules] ~> ToJsonTask.FromUnit
-          case model.FilterRules.name => addTaskFromModel(pipeline ~> params.convertTo[model.FilterRules], tail)
-          case model.GetRules.name => pipeline ~> params.convertTo[model.GetRules] ~> ToJsonTask.FromRules
-          case model.Size.name => pipeline ~> params.convertTo[model.Size] ~> ToJsonTask.FromInt
-          case model.Shrink.name => addTaskFromModel(pipeline ~> params.convertTo[model.Shrink], tail)
-          case model.Sort.name => addTaskFromModel(pipeline ~> params.convertTo[model.Sort], tail)
+          case prediction.Cache.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Cache], tail)
+          case prediction.Filter.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Filter], tail)
+          case prediction.GetPrediction.name => pipeline ~> params.convertTo[prediction.GetPrediction] ~> ToJsonTask.FromGroupedPredictedTriple
+          case prediction.ToDataset.name => addTaskFromDataset(pipeline ~> params.convertTo[prediction.ToDataset], tail)
+          case prediction.Size.name => pipeline ~> params.convertTo[prediction.Size] ~> ToJsonTask.FromInt
+          case prediction.Shrink.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Shrink], tail)
+          case prediction.Sort.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Sort], tail)
           case x => throw deserializationError(s"Invalid task '$x' can not be bound to Model")
         }
-      case _ => pipeline ~> new ToJsonTask.From[Model]
+      case _ => pipeline ~> new ToJsonTask.From[PredictedTriples]
     }
 
     @scala.annotation.tailrec
@@ -397,6 +395,7 @@ object PipelineJsonReaders {
           case index.Mine.name => addTaskFromRuleset(pipeline ~> params.convertTo[index.Mine], tail)
           case index.ToDataset.name => addTaskFromDataset(pipeline ~> params.convertTo[index.ToDataset], tail)
           case ruleset.LoadRuleset.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.LoadRuleset], tail)
+          case prediction.LoadPrediction.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.LoadPrediction], tail)
           case x => throw deserializationError(s"Invalid task '$x' can not be bound to Index")
         }
       case _ => pipeline ~> new ToJsonTask.From[Index]
@@ -419,34 +418,9 @@ object PipelineJsonReaders {
           case ruleset.Size.name => pipeline ~> params.convertTo[ruleset.Size] ~> ToJsonTask.FromInt
           case ruleset.Shrink.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Shrink], tail)
           case ruleset.Sort.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Sort], tail)
-          case ruleset.Predict.name => addTaskFromDataset(pipeline ~> params.convertTo[ruleset.Predict], tail)
+          case ruleset.Predict.name => addTaskFromPrediction(pipeline ~> params.convertTo[ruleset.Predict], tail)
           case ruleset.Prune.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Prune], tail)
-          case ruleset.Instantiate.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Instantiate], tail)
-          case x => throw deserializationError(s"Invalid task '$x' can not be bound to Ruleset")
-        }
-      case _ => pipeline ~> new ToJsonTask.From[Ruleset]
-    }
-
-    @scala.annotation.tailrec
-    def addTaskFromPredictedTriples(pipeline: Pipeline[PredictedTriples], tail: Seq[JsValue]): Pipeline[Source[JsValue, NotUsed]] = tail match {
-      case Seq(head, tail@_*) =>
-        val fields = head.asJsObject.fields
-        val params = fields("parameters")
-        fields("name").convertTo[String] match {
-          case ruleset.Cache.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Cache], tail)
-          case ruleset.ComputeConfidence.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.ComputeConfidence], tail)
-          case ruleset.ExportRules.name => pipeline ~> params.convertTo[ruleset.ExportRules] ~> ToJsonTask.FromUnit
-          case ruleset.FilterRules.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.FilterRules], tail)
-          case ruleset.FindSimilar.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.FindSimilar], tail)
-          case ruleset.GetRules.name => pipeline ~> params.convertTo[ruleset.GetRules] ~> ToJsonTask.FromRules
-          case ruleset.GraphAwareRules.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.GraphAwareRules], tail)
-          case ruleset.MakeClusters.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.MakeClusters], tail)
-          case ruleset.Size.name => pipeline ~> params.convertTo[ruleset.Size] ~> ToJsonTask.FromInt
-          case ruleset.Shrink.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Shrink], tail)
-          case ruleset.Sort.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Sort], tail)
-          case ruleset.Predict.name => addTaskFromDataset(pipeline ~> params.convertTo[ruleset.Predict], tail)
-          case ruleset.Prune.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Prune], tail)
-          case ruleset.Instantiate.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Instantiate], tail)
+          case ruleset.Instantiate.name => pipeline ~> params.convertTo[ruleset.Instantiate] ~> ToJsonTask.FromInstantiatedRules
           case x => throw deserializationError(s"Invalid task '$x' can not be bound to Ruleset")
         }
       case _ => pipeline ~> new ToJsonTask.From[Ruleset]

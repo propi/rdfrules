@@ -9,7 +9,7 @@ import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.formats.CommonDataJsonWriters._
 import com.github.propi.rdfrules.http.util.TraversablePublisher._
 import com.github.propi.rdfrules.prediction.EvaluationResult
-import com.github.propi.rdfrules.rule.ResolvedRule
+import com.github.propi.rdfrules.rule.{ResolvedInstantiatedRule, ResolvedRule}
 import com.github.propi.rdfrules.ruleset.formats.Json._
 import com.github.propi.rdfrules.utils.ForEach
 import spray.json.DefaultJsonProtocol._
@@ -49,18 +49,6 @@ object ToJsonTask extends TaskDefinition {
     def execute(input: ForEach[Prefix]): Source[JsValue, NotUsed] = Source.fromPublisher(input.map(_.toJson))
   }
 
-  /*
-  new Traversable[JsValue] {
-      def foreach[U](f: JsValue => U): Unit = {
-        var i = 0
-        for (rule <- input) {
-          f(JsObject(rule.toJson.asJsObject.fields + ("num" -> i.toJson)))
-          i += 1
-        }
-      }
-    }
-   */
-
   object FromRules extends ToJsonTask[Seq[ResolvedRule]] {
     def execute(input: Seq[ResolvedRule]): Source[JsValue, NotUsed] = Source.fromPublisher(input.view.map(_.toJson))
   }
@@ -72,5 +60,15 @@ object ToJsonTask extends TaskDefinition {
   object FromHistogram extends ToJsonTask[Seq[(Histogram.Key, Int)]] {
     def execute(input: Seq[(Histogram.Key, Int)]): Source[JsValue, NotUsed] = Source.fromIterator(() => input.iterator.map(_.toJson))
   }
+
+  object FromGroupedPredictedTriple extends ToJsonTask[Seq[GroupedPredictedTriple]] {
+    def execute(input: Seq[GroupedPredictedTriple]): Source[JsValue, NotUsed] = Source.fromIterator(() => input.iterator.map(_.toJson))
+  }
+
+  object FromInstantiatedRules extends ToJsonTask[Seq[ResolvedInstantiatedRule]] {
+    def execute(input: Seq[ResolvedInstantiatedRule]): Source[JsValue, NotUsed] = Source.fromIterator(() => input.iterator.map(_.toJson))
+  }
+
+
 
 }

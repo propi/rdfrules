@@ -15,7 +15,7 @@ import java.io.{File, FileInputStream, InputStream}
 /**
   * Created by Vaclav Zeman on 6. 10. 2017.
   */
-class PredictedTriples private(val triples: ForEach[PredictedTriple], val index: Index, isDistinct: Boolean)
+class PredictedTriples private(val triples: ForEach[PredictedTriple], val index: Index, protected val isDistinct: Boolean)
   extends Transformable[PredictedTriple, PredictedTriples]
     with Cacheable[PredictedTriple, PredictedTriples]
     with Sortable[PredictedTriple, PredictedTriples]
@@ -63,7 +63,7 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
 
   def foreach(f: ResolvedPredictedTriple => Unit): Unit = resolvedTriples.foreach(f)
 
-  def +(predictedTriples: PredictedTriples): PredictedTriples = transform(triples.concat(predictedTriples.triples), isDistinct && predictedTriples.isDistinct)
+   def +(predictedTriples: PredictedTriples): PredictedTriples = transform(triples.concat(predictedTriples.triples), isDistinct && predictedTriples.isDistinct)
 
   def headResolved: ResolvedPredictedTriple = resolvedTriples.head
 

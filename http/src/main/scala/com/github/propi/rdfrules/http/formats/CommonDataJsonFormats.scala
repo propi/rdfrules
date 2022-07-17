@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.http.formats
 
 import com.github.propi.rdfrules.data.Prefix
 import com.github.propi.rdfrules.http.task.ruleset.Prune.PruningStrategy
+import com.github.propi.rdfrules.prediction.PredictedResult
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
@@ -23,6 +24,21 @@ object CommonDataJsonFormats {
     }
 
     def read(json: JsValue): Prefix = Try(json.convertTo[Prefix.Full]).getOrElse(json.convertTo[Prefix.Namespace])
+  }
+
+  implicit val predictedResultFormat: RootJsonFormat[PredictedResult] = new RootJsonFormat[PredictedResult] {
+    def read(json: JsValue): PredictedResult = json.convertTo[String] match {
+      case "Positive" => PredictedResult.Positive
+      case "Negative" => PredictedResult.Negative
+      case "PcaPositive" => PredictedResult.PcaPositive
+      case x => deserializationError(s"Invalid predicted result name: $x")
+    }
+
+    def write(obj: PredictedResult): JsValue = obj match {
+      case PredictedResult.Positive => "Positive".toJson
+      case PredictedResult.Negative => "Negative".toJson
+      case PredictedResult.PcaPositive => "PcaPositive".toJson
+    }
   }
 
   implicit val dataCoveragePruningFormat: RootJsonFormat[PruningStrategy.DataCoveragePruning] = jsonFormat3(PruningStrategy.DataCoveragePruning)

@@ -6,6 +6,8 @@ import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.TypedKeyMap
 
+import scala.math.Ordering.Implicits.seqOrdering
+
 /**
   * Created by Vaclav Zeman on 9. 8. 2018.
   */
@@ -30,7 +32,7 @@ class Sort(measures: Seq[(Option[TypedKeyMap.Key[Measure]], Boolean)]) extends T
         case Measure.Support => rule: FinalRule => Measure.Support(rule.measures.get(Measure.Support).map(_.value).getOrElse(0) * revNum(x._2))
         case Measure.Cluster => rule: FinalRule => Measure.Cluster(rule.measures.get(Measure.Cluster).map(_.number).getOrElse(0) * revNum(x._2))
       }.getOrElse((rule: FinalRule) => Measure.Cluster(rule.ruleLength * revNum(x._2))))
-      input.sortBy[Iterable[Measure]] { rule =>
+      input.sortBy { rule =>
         measuresConverters.map(_ (rule))
       }
     }

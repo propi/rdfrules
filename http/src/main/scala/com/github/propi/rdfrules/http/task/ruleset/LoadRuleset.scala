@@ -3,7 +3,6 @@ package com.github.propi.rdfrules.http.task.ruleset
 import com.github.propi.rdfrules.http.Workspace
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 import com.github.propi.rdfrules.index.Index
-import com.github.propi.rdfrules.model.Model
 import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.Debugger
 

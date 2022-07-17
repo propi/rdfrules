@@ -7,14 +7,12 @@ import com.github.propi.rdfrules.algorithm.dbscan.{DbScan, SimilarityCounting}
 import com.github.propi.rdfrules.algorithm.{Clustering, RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.data.{DiscretizationTask, Prefix, RdfSource, TripleItem}
 import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
-import com.github.propi.rdfrules.http.task.data.Shrink.ShrinkSetup
 import com.github.propi.rdfrules.http.task.ruleset.ComputeConfidence.ConfidenceType
 import com.github.propi.rdfrules.http.task.ruleset.Prune.PruningStrategy
-import com.github.propi.rdfrules.http.task.{QuadMapper, QuadMatcher, TripleItemMapper, data}
+import com.github.propi.rdfrules.http.task._
 import com.github.propi.rdfrules.http.util.Conf
 import com.github.propi.rdfrules.http.util.JsonSelector.PimpedJsValue
 import com.github.propi.rdfrules.http.{Main, Workspace}
-import com.github.propi.rdfrules.rule.InstantiatedRule.PredictedResult
 import com.github.propi.rdfrules.rule.ResolvedAtom.ResolvedItem
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
@@ -78,6 +76,15 @@ object CommonDataJsonReaders {
     )
   }
 
+  implicit val tripleMatcherReader: RootJsonReader[TripleMatcher] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    TripleMatcher(
+      fields.get("subject").map(_.convertTo[String]),
+      fields.get("predicate").map(_.convertTo[String]),
+      fields.get("object").map(_.convertTo[String])
+    )
+  }
+
   implicit val quadMapperReader: RootJsonReader[QuadMapper] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new QuadMapper(
@@ -133,13 +140,6 @@ object CommonDataJsonReaders {
       case "Timeout" => Threshold.Timeout(fields("value").convertTo[Int])
       case x => deserializationError(s"Invalid threshold name: $x")
     }
-  }
-
-  implicit val predictedResultReader: RootJsonReader[PredictedResult] = (json: JsValue) => json.convertTo[String] match {
-    case "Positive" => PredictedResult.Positive
-    case "Negative" => PredictedResult.Negative
-    case "PcaPositive" => PredictedResult.PcaPositive
-    case x => deserializationError(s"Invalid predicted result name: $x")
   }
 
   implicit val atomItemPatternReader: RootJsonReader[AtomPattern.AtomItemPattern] = (json: JsValue) => {
@@ -214,32 +214,18 @@ object CommonDataJsonReaders {
   }
 
   implicit val ruleConsumerReader: RootJsonReader[RuleConsumer.Invoker[Ruleset]] = (json: JsValue) => {
-    json.asJsObject.fields.get("ruleConsumer") match {
-      case Some(ruleConsumerJson) =>
-        val fields = ruleConsumerJson.asJsObject.fields
-        val pfile = fields
-          .get("pfile")
-          .map(_.convertTo[String])
-          .zip(fields.get("format").map(_.convertTo[RulesetSource]))
-        fields("name").convertTo[String] match {
-          case "inMemory" =>
-            pfile.map { case (pfile, format) =>
-              RuleConsumer.withMapper[Ruleset](implicit mapper => InMemoryRuleConsumer(new File(Workspace.path(pfile)), format))
-            }.getOrElse(RuleConsumer(InMemoryRuleConsumer(_)))
-          case "onDisk" =>
-            val file = new File(Workspace.path(fields("file").convertTo[String]))
-            pfile.map { case (pfile, format) =>
-              RuleConsumer.withMapper[Ruleset](implicit mapper => OnDiskRuleConsumer(file, new File(Workspace.path(pfile)), format))
-            }.getOrElse(RuleConsumer(OnDiskRuleConsumer(file)))
-          case "topK" =>
-            val k = fields("k").convertTo[Int]
-            val allowOverflow = fields.get("allowOverflow").exists(_.convertTo[Boolean])
-            pfile.map { case (pfile, format) =>
-              RuleConsumer.withMapper[Ruleset](implicit mapper => TopKRuleConsumer(k, allowOverflow, new File(Workspace.path(pfile)), format))
-            }.getOrElse(RuleConsumer(TopKRuleConsumer(k, allowOverflow)))
-          case x => deserializationError(s"Invalid type of rule consumer: $x")
-        }
-      case None => RuleConsumer(InMemoryRuleConsumer(_))
+    val fields = json.asJsObject.fields
+    fields("name").convertTo[String] match {
+      case "inMemory" => RuleConsumer(InMemoryRuleConsumer())
+      case "onDisk" =>
+        val file = new File(Workspace.path(fields("file").convertTo[String]))
+        val format = fields("format").convertTo[RulesetSource]
+        RuleConsumer.withMapper[Ruleset](implicit mapper => OnDiskRuleConsumer(format(file)))
+      case "topK" =>
+        val k = fields("k").convertTo[Int]
+        val allowOverflow = fields.get("allowOverflow").exists(_.convertTo[Boolean])
+        RuleConsumer(TopKRuleConsumer(k, allowOverflow))
+      case x => deserializationError(s"Invalid type of rule consumer: $x")
     }
   }
 
@@ -338,32 +324,32 @@ object CommonDataJsonReaders {
 
   implicit val shrinkSetupReader: RootJsonReader[ShrinkSetup] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    fields.get("take").map(x => data.Shrink.ShrinkSetup.Take(x.convertTo[Int]))
-      .orElse(fields.get("drop").map(x => data.Shrink.ShrinkSetup.Drop(x.convertTo[Int])))
-      .getOrElse(data.Shrink.ShrinkSetup.Slice(fields("start").convertTo[Int], fields("end").convertTo[Int]))
+    fields.get("take").map(x => ShrinkSetup.Take(x.convertTo[Int]))
+      .orElse(fields.get("drop").map(x => ShrinkSetup.Drop(x.convertTo[Int])))
+      .getOrElse(ShrinkSetup.Slice(fields("start").convertTo[Int], fields("end").convertTo[Int]))
   }
 
   implicit val pruningStrategyReader: RootJsonReader[PruningStrategy] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     val selector = json.toSelector
-    selector("name").to[String] match {
+    selector("name").to[String].map {
       case "DataCoveragePruning" => json.convertTo[PruningStrategy.DataCoveragePruning]
       case "Maximal" => PruningStrategy.Maximal
       case "Closed" => PruningStrategy.Closed(fields("measure").convertTo[TypedKeyMap.Key[Measure]])
       case "OnlyBetterDescendant" => PruningStrategy.OnlyBetterDescendant(fields("measure").convertTo[TypedKeyMap.Key[Measure]])
       case x => deserializationError(s"Invalid name of pruning strategy: $x")
-    }
+    }.get
   }
 
   implicit val confidenceTypeReader: RootJsonReader[ConfidenceType] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     val selector = json.toSelector
-    selector("name").to[String] match {
+    selector("name").to[String].map {
       case "StandardConfidence" => ConfidenceType.StandardConfidence(fields("min").convertTo[Double], fields("topk").convertTo[Int])
       case "PcaConfidence" => ConfidenceType.PcaConfidence(fields("min").convertTo[Double], fields("topk").convertTo[Int])
       case "Lift" => ConfidenceType.Lift(fields("min").convertTo[Double])
       case x => deserializationError(s"Invalid name of confidence type: $x")
-    }
+    }.get
   }
 
 }

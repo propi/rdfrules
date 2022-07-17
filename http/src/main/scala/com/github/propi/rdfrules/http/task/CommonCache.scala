@@ -5,8 +5,9 @@ import com.github.propi.rdfrules.http.{InMemoryCache, Workspace}
 import com.github.propi.rdfrules.index.Index
 
 import java.io.File
+import scala.reflect.ClassTag
 
-abstract class CommonCache[T](path: String, inMemory: Boolean, revalidate: Boolean) extends Task.CacheTask[T] with Task.Prevalidate {
+abstract class CommonCache[T](path: String, inMemory: Boolean, revalidate: Boolean)(implicit tag: ClassTag[T]) extends Task.CacheTask[T] with Task.Prevalidate {
   self =>
 
   def cacheInMemory(x: T): T
