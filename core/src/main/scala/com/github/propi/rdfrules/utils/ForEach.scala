@@ -180,6 +180,15 @@ trait ForEach[+T] {
 
   def slice(from: Int, until: Int): ForEach[T] = drop(from).take(until - from)
 
+  def groupedBy[K](g: T => K): ForEach[ForEach[T]] = (f: ForEach[T] => Unit) => {
+    val hmap = collection.mutable.HashMap.empty[K, collection.mutable.ArrayBuffer[T]]
+    for (x <- self) {
+      val key = g(x)
+      hmap.getOrElseUpdate(key, collection.mutable.ArrayBuffer.empty).addOne(x)
+    }
+    hmap.valuesIterator.map(ForEach.from).foreach(f)
+  }
+
   def groupBy[K, C](g: T => K)(factory: Factory[T, C]): Map[K, C] = {
     val hmap = collection.mutable.Map.empty[K, collection.mutable.Builder[T, C]]
     self.foreach(x => hmap.getOrElseUpdate(g(x), factory.newBuilder).addOne(x))

@@ -12,7 +12,7 @@ import scala.language.implicitConversions
 sealed trait ResolvedPredictedTriple {
   def triple: Triple
 
-  def rules: Set[ResolvedRule]
+  def rule: ResolvedRule
 
   def predictedResult: PredictedResult
 
@@ -21,15 +21,15 @@ sealed trait ResolvedPredictedTriple {
 
 object ResolvedPredictedTriple {
 
-  private case class Basic(triple: Triple)(val rules: Set[ResolvedRule], val predictedResult: PredictedResult) extends ResolvedPredictedTriple {
+  private case class Basic(triple: Triple, rule: ResolvedRule)(val predictedResult: PredictedResult) extends ResolvedPredictedTriple {
     def toPredictedTriple(implicit tripleItemIndex: TripleItemIndex): PredictedTriple = PredictedTriple(
       triple.toIndexedTriple,
       predictedResult,
-      rules.map(_.toRule)
+      rule.toRule
     )
   }
 
-  def apply(triple: Triple, predictedResult: PredictedResult, rules: Set[ResolvedRule]): ResolvedPredictedTriple = Basic(triple)(rules, predictedResult)
+  def apply(triple: Triple, predictedResult: PredictedResult, rule: ResolvedRule): ResolvedPredictedTriple = Basic(triple, rule)(predictedResult)
 
   implicit def apply(predictedTriple: PredictedTriple)(implicit mapper: TripleItemIndex): ResolvedPredictedTriple = apply(
     Triple(
@@ -38,7 +38,7 @@ object ResolvedPredictedTriple {
       mapper.getTripleItem(predictedTriple.triple.o)
     ),
     predictedTriple.predictedResult,
-    predictedTriple.rules.map(ResolvedRule(_))
+    ResolvedRule(predictedTriple.rule)
   )
 
 }

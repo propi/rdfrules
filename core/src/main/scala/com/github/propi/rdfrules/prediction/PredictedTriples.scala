@@ -5,6 +5,7 @@ import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
 import com.github.propi.rdfrules.index.{AutoIndex, Index, TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
 import com.github.propi.rdfrules.rule.{PatternMatcher, Rule, RulePattern}
+import com.github.propi.rdfrules.ruleset.ops.Sortable
 import com.github.propi.rdfrules.serialization.TripleSerialization._
 import com.github.propi.rdfrules.utils.ForEach
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
@@ -17,6 +18,7 @@ import java.io.{File, FileInputStream, InputStream}
 class PredictedTriples private(val triples: ForEach[PredictedTriple], val index: Index)
   extends Transformable[PredictedTriple, PredictedTriples]
     with Cacheable[PredictedTriple, PredictedTriples]
+    with Sortable[PredictedTriple, PredictedTriples]
     with Debugable[PredictedTriple, PredictedTriples] {
 
   self =>
@@ -27,6 +29,7 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
 
   protected def cachedTransform(col: ForEach[PredictedTriple]): PredictedTriples = new PredictedTriples(col, index)
 
+  protected implicit val ordering: Ordering[PredictedTriple] = Ordering.by(_.rule)
   protected val serializer: Serializer[PredictedTriple] = Serializer.by[PredictedTriple, ResolvedPredictedTriple](ResolvedPredictedTriple(_)(index.tripleItemMap))
   protected val deserializer: Deserializer[PredictedTriple] = Deserializer.by[ResolvedPredictedTriple, PredictedTriple](_.toPredictedTriple(index.tripleItemMap))
   protected val serializationSize: SerializationSize[PredictedTriple] = SerializationSize.by[PredictedTriple, ResolvedPredictedTriple]
@@ -39,7 +42,7 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
     implicit val thi: TripleIndex.Builder[Int] = index
     val rulePatternMatcher = implicitly[PatternMatcher[Rule, RulePattern.Mapped]]
     val mappedPatterns = (pattern +: patterns).map(_.withOrderless().mapped)
-    triples.filter(triple => mappedPatterns.exists(rulePattern => triple.rules.exists(rule => rulePatternMatcher.matchPattern(rule, rulePattern)))).foreach(f)
+    triples.filter(triple => mappedPatterns.exists(rulePattern => rulePatternMatcher.matchPattern(triple.rule, rulePattern))).foreach(f)
   })
 
   def filterResolved(f: ResolvedPredictedTriple => Boolean): PredictedTriples = transform((f2: PredictedTriple => Unit) => {
@@ -66,9 +69,9 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
 
   def findResolved(f: ResolvedPredictedTriple => Boolean): Option[ResolvedPredictedTriple] = resolvedTriples.find(f)
 
-  def distinct: PredictedTriples = transform(triples.distinct)
+  def distinctPredictions: PredictedTriples = transform(triples.distinctBy(_.triple))
 
-  def onlyFunctionalProperties: PredictedTriples = {
+  def onlyFunctionalPredictions: PredictedTriples = {
     val tm = index.tripleMap
     transform(triples.distinctBy { x =>
       val higherCardinalityConstant = tm.predicates(x.triple.p).higherCardinalitySide match {

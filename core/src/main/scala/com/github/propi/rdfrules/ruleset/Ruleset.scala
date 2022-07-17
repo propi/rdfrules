@@ -108,9 +108,9 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     transform((f: FinalRule => Unit) => {
       implicit val mapper: TripleItemIndex = index.tripleItemMap
       val predictedResults: Set[PredictedResult] = if (onlyExistingTriples) Set(PredictedResult.Positive) else Set.empty
-      val predictionResult = if (onlyFunctionalProperties) predict(predictedResults, injectiveMapping).onlyFunctionalProperties else predict(predictedResults, injectiveMapping).distinct
+      val predictionResult = if (onlyFunctionalProperties) predict(predictedResults, injectiveMapping).onlyFunctionalPredictions else predict(predictedResults, injectiveMapping).distinctPredictions
       val hashSet = collection.mutable.LinkedHashSet.empty[FinalRule]
-      for (rule <- predictionResult.triples.flatMap(_.rules)) {
+      for (rule <- predictionResult.triples.map(_.rule)) {
         hashSet += rule
       }
       hashSet.foreach(f)

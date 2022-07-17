@@ -9,17 +9,15 @@ import com.github.propi.rdfrules.rule.Rule.FinalRule
 sealed trait PredictedTriple {
   def triple: IntTriple
 
-  def rules: Set[FinalRule]
+  def rule: FinalRule
 
   def predictedResult: PredictedResult
 }
 
 object PredictedTriple {
-  private case class Basic(triple: IntTriple)(val rules: Set[FinalRule], val predictedResult: PredictedResult) extends PredictedTriple
+  private case class Basic(triple: IntTriple, rule: FinalRule)(val predictedResult: PredictedResult) extends PredictedTriple
 
-  def apply(triple: IntTriple, predictedResult: PredictedResult, rule: FinalRule): PredictedTriple = apply(triple, predictedResult, Set(rule))
-
-  def apply(triple: IntTriple, predictedResult: PredictedResult, rules: Set[FinalRule]): PredictedTriple = Basic(triple)(rules, predictedResult)
+  def apply(triple: IntTriple, predictedResult: PredictedResult, rule: FinalRule): PredictedTriple = Basic(triple, rule)(predictedResult)
 }
 
 
