@@ -38,5 +38,5 @@ class Sort(measures: Seq[(Option[TypedKeyMap.Key[Measure]], Boolean)]) extends T
 }
 
 object Sort extends TaskDefinition {
-  val name: String = "Sort"
+  val name: String = "SortRuleset"
 }

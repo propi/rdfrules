@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.http.task
 
 import com.github.propi.rdfrules.data.{Quad, TripleItem}
 import com.github.propi.rdfrules.http.task.QuadMatcher.CapturedQuadItems
+import com.github.propi.rdfrules.http.task.TripleMatcher.CapturedTripleItems
 
 /**
   * Created by Vaclav Zeman on 8. 8. 2018.
@@ -43,10 +44,10 @@ class QuadMatcher private(s: Option[TripleItemMatcher.Resource],
 
 object QuadMatcher {
 
-  class CapturedQuadItems(val s: IndexedSeq[String],
+  class CapturedQuadItems (val s: IndexedSeq[String],
                           val p: IndexedSeq[String],
                           val o: IndexedSeq[String],
-                          val g: IndexedSeq[String]) {
+                          val g: IndexedSeq[String]) extends CapturedTripleItems {
     def matched: Boolean = List(s, p, o, g).forall(_.nonEmpty)
   }
 

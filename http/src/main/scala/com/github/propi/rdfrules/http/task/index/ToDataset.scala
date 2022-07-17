@@ -14,5 +14,5 @@ class ToDataset extends Task[Index, Dataset] {
 }
 
 object ToDataset extends TaskDefinition {
-  val name: String = "ToDataset"
+  val name: String = "IndexToDataset"
 }

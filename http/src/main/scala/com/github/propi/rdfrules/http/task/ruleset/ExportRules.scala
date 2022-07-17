@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.http.task.ruleset
 import com.github.propi.rdfrules.http.Workspace
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 import com.github.propi.rdfrules.http.util.BasicExceptions.ValidationException
-import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource, RulesetWriter}
+import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
 
 /**
   * Created by Vaclav Zeman on 9. 8. 2018.

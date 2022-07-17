@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.prediction
 
-import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
+import com.github.propi.rdfrules.data.{Graph, TriplePosition}
 import com.github.propi.rdfrules.index.{AutoIndex, Index, TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
 import com.github.propi.rdfrules.rule.{PatternMatcher, Rule, RulePattern}
@@ -15,7 +15,7 @@ import java.io.{File, FileInputStream, InputStream}
 /**
   * Created by Vaclav Zeman on 6. 10. 2017.
   */
-class PredictedTriples private(val triples: ForEach[PredictedTriple], val index: Index)
+class PredictedTriples private(val triples: ForEach[PredictedTriple], val index: Index, isDistinct: Boolean)
   extends Transformable[PredictedTriple, PredictedTriples]
     with Cacheable[PredictedTriple, PredictedTriples]
     with Sortable[PredictedTriple, PredictedTriples]
@@ -25,9 +25,11 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
 
   protected def coll: ForEach[PredictedTriple] = triples
 
-  protected def transform(col: ForEach[PredictedTriple]): PredictedTriples = new PredictedTriples(col, index)
+  protected def transform(col: ForEach[PredictedTriple]): PredictedTriples = new PredictedTriples(col, index, isDistinct)
 
-  protected def cachedTransform(col: ForEach[PredictedTriple]): PredictedTriples = new PredictedTriples(col, index)
+  private def transform(col: ForEach[PredictedTriple], isDistinct: Boolean) = new PredictedTriples(col, index, isDistinct)
+
+  protected def cachedTransform(col: ForEach[PredictedTriple]): PredictedTriples = new PredictedTriples(col, index, isDistinct)
 
   protected implicit val ordering: Ordering[PredictedTriple] = Ordering.by(_.rule)
   protected val serializer: Serializer[PredictedTriple] = Serializer.by[PredictedTriple, ResolvedPredictedTriple](ResolvedPredictedTriple(_)(index.tripleItemMap))
@@ -35,7 +37,7 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
   protected val serializationSize: SerializationSize[PredictedTriple] = SerializationSize.by[PredictedTriple, ResolvedPredictedTriple]
   protected val dataLoadingText: String = "Predicted triples loading"
 
-  def withIndex(index: Index): PredictedTriples = new PredictedTriples(triples, index)
+  def withIndex(index: Index): PredictedTriples = new PredictedTriples(triples, index, isDistinct)
 
   def filter(pattern: RulePattern, patterns: RulePattern*): PredictedTriples = transform((f: PredictedTriple => Unit) => {
     implicit val mapper: TripleItemIndex = index.tripleItemMap
@@ -61,7 +63,7 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
 
   def foreach(f: ResolvedPredictedTriple => Unit): Unit = resolvedTriples.foreach(f)
 
-  def +(predictedTriples: PredictedTriples): PredictedTriples = transform(triples.concat(predictedTriples.triples))
+  def +(predictedTriples: PredictedTriples): PredictedTriples = transform(triples.concat(predictedTriples.triples), isDistinct && predictedTriples.isDistinct)
 
   def headResolved: ResolvedPredictedTriple = resolvedTriples.head
 
@@ -69,7 +71,7 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
 
   def findResolved(f: ResolvedPredictedTriple => Boolean): Option[ResolvedPredictedTriple] = resolvedTriples.find(f)
 
-  def distinctPredictions: PredictedTriples = transform(triples.distinctBy(_.triple))
+  def distinctPredictions: PredictedTriples = transform(triples.distinctBy(_.triple), true)
 
   def onlyFunctionalPredictions: PredictedTriples = {
     val tm = index.tripleMap
@@ -79,13 +81,15 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
         case TriplePosition.Object => x.triple.o
       }
       higherCardinalityConstant -> x.triple.p
-    })
+    }, true)
   }
+
+  def toGraph: Graph = Graph((if (isDistinct) distinctPredictions else this).resolvedTriples.map(_.triple))
 
 }
 
 object PredictedTriples {
-  def apply(index: Index, triples: ForEach[PredictedTriple]): PredictedTriples = new PredictedTriples(triples, index)
+  def apply(index: Index, triples: ForEach[PredictedTriple]): PredictedTriples = new PredictedTriples(triples, index, false)
 
   def apply(index: Index, triples: ForEach[ResolvedPredictedTriple])(implicit i1: DummyImplicit): PredictedTriples = apply(index, triples.map(_.toPredictedTriple(index.tripleItemMap)))
 
