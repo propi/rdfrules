@@ -18,4 +18,6 @@ object Globals extends js.Object {
   def getParameterByName(name: String, url: String = js.native): String = js.native
 
   def saveAs(blob: Blob, filename: String): Unit = js.native
+
+  def escapeHTML(text: String): String = js.native
 }
