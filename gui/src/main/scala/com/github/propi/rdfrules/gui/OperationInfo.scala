@@ -41,12 +41,8 @@ object OperationInfo {
       DatasetTransformation.AddPrefixes,
       DatasetTransformation.MapQuads,
       DatasetTransformation.FilterQuads,
-      DatasetTransformation.TakeQuads,
-      DatasetTransformation.DropQuads,
-      DatasetTransformation.SliceQuads,
-      DatasetTransformation.DiscretizeEqualDistance,
-      DatasetTransformation.DiscretizeEqualFrequency,
-      DatasetTransformation.DiscretizeEqualSize,
+      DatasetTransformation.ShrinkQuads,
+      DatasetTransformation.Discretize,
       DatasetTransformation.CacheDataset,
       DatasetTransformation.Index,
       CacheDatasetAction,
@@ -64,12 +60,9 @@ object OperationInfo {
   sealed trait IndexTransformation extends Transformation {
     val followingOperations: Constants[OperationInfo] = Constants(
       IndexTransformation.CacheIndex,
-      IndexTransformation.ToDataset,
+      IndexTransformation.IndexToDataset,
       IndexTransformation.Mine,
-      IndexTransformation.CompleteDataset,
-      IndexTransformation.PredictTriples,
       IndexTransformation.LoadRuleset,
-      EvaluateIndex,
       CacheIndexAction,
     )
 
@@ -79,49 +72,21 @@ object OperationInfo {
   sealed trait RulesetTransformation extends Transformation {
     val followingOperations: Constants[OperationInfo] = Constants(
       RulesetTransformation.FilterRules,
-      RulesetTransformation.TakeRules,
-      RulesetTransformation.DropRules,
-      RulesetTransformation.SliceRules,
-      RulesetTransformation.Sorted,
+      RulesetTransformation.ShrinkRules,
       RulesetTransformation.Sort,
       RulesetTransformation.ComputeConfidence,
-      RulesetTransformation.ComputePcaConfidence,
-      RulesetTransformation.ComputeLift,
       RulesetTransformation.MakeClusters,
       RulesetTransformation.GraphBasedRules,
       RulesetTransformation.CacheRuleset,
-      RulesetTransformation.CompleteDataset,
-      RulesetTransformation.PredictTriples,
+      RulesetTransformation.Predict,
       RulesetTransformation.Prune,
-      RulesetTransformation.Maximal,
-      RulesetTransformation.Closed,
-      RulesetTransformation.OnlyBetterDescendant,
-      CacheRulesetAction,
-      ExportRules,
-      GetRules,
-      RulesetSize,
-      EvaluateRuleset
-    )
-
-    def groups: Set[OperationGroup] = OperationGroup.Structure.Ruleset
-  }
-
-  sealed trait ModelTransformation extends Transformation {
-    val followingOperations: Constants[OperationInfo] = Constants(
-      ModelTransformation.FilterRules,
-      ModelTransformation.TakeRules,
-      ModelTransformation.DropRules,
-      ModelTransformation.SliceRules,
-      ModelTransformation.Sorted,
-      ModelTransformation.Sort,
-      ModelTransformation.CacheRuleset,
       CacheRulesetAction,
       ExportRules,
       GetRules,
       RulesetSize
     )
 
-    def groups: Set[OperationGroup] = OperationGroup.Structure.Model
+    def groups: Set[OperationGroup] = OperationGroup.Structure.Ruleset
   }
 
   object Root extends Transformation {
@@ -130,8 +95,7 @@ object OperationInfo {
     val followingOperations: Constants[OperationInfo] = Constants(
       DatasetTransformation.LoadGraph,
       DatasetTransformation.LoadDataset,
-      IndexTransformation.LoadIndex,
-      ModelTransformation.LoadModel
+      IndexTransformation.LoadIndex
     )
     val description: String = ""
 
@@ -188,40 +152,16 @@ object OperationInfo {
     val description: String = "Filter all quads by user-defined conditions."
   }
 
-  sealed trait TakeQuads extends Transformation {
-    val name: String = "TakeQuads"
-    val title: String = "Take"
-    val description: String = "Take first N quads from the last loaded dataset."
-  }
-
-  sealed trait DropQuads extends Transformation {
-    val name: String = "DropQuads"
-    val title: String = "Drop"
-    val description: String = "Drop first N quads from the last loaded dataset."
-  }
-
-  sealed trait SliceQuads extends Transformation {
-    val name: String = "SliceQuads"
-    val title: String = "Slice"
+  sealed trait ShrinkQuads extends Transformation {
+    val name: String = "ShrinkQuads"
+    val title: String = "Shrink"
     val description: String = "Slice the dataset (set of quads) with a specified window."
   }
 
-  sealed trait DiscretizeEqualFrequency extends Transformation {
+  sealed trait Discretize extends Transformation {
     val name: String = "Discretize"
-    val title: String = "Discretize (equal frequency)"
-    val description: String = "Discretize all numeric literals related to filtered quads by the equal frequency strategy."
-  }
-
-  sealed trait DiscretizeEqualSize extends Transformation {
-    val name: String = "Discretize"
-    val title: String = "Discretize (equal size)"
-    val description: String = "Discretize all numeric literals related to filtered quads by the equal size (support) strategy."
-  }
-
-  sealed trait DiscretizeEqualDistance extends Transformation {
-    val name: String = "Discretize"
-    val title: String = "Discretize (equal distance)"
-    val description: String = "Discretize all numeric literals related to filtered quads by the equal distance strategy."
+    val title: String = "Discretize"
+    val description: String = "Discretize all numeric literals related to filtered quads by a selected discretization strategy."
   }
 
   sealed trait CacheDataset extends Transformation {
@@ -230,8 +170,8 @@ object OperationInfo {
     val description: String = "Serialize loaded dataset into a file in the workspace at the server side for later use."
   }
 
-  sealed trait ToDataset extends Transformation {
-    val name: String = "ToDataset"
+  sealed trait IndexToDataset extends Transformation {
+    val name: String = "IndexToDataset"
     val title: String = "To dataset"
     val description: String = "Convert the memory index back to the dataset."
   }
@@ -242,21 +182,9 @@ object OperationInfo {
     val description: String = "Filter all rules by patterns or measure conditions."
   }
 
-  sealed trait TakeRules extends Transformation {
-    val name: String = "TakeRules"
-    val title: String = "Take"
-    val description: String = "Take first N rules from the ruleset."
-  }
-
-  sealed trait DropRules extends Transformation {
-    val name: String = "DropRules"
-    val title: String = "Drop"
-    val description: String = "Drop first N rules from the ruleset."
-  }
-
-  sealed trait SliceRules extends Transformation {
-    val name: String = "SliceRules"
-    val title: String = "Slice"
+  sealed trait ShrinkRules extends Transformation {
+    val name: String = "ShrinkRules"
+    val title: String = "Shrink"
     val description: String = "Slice the ruleset (set of rules) with a specified window."
   }
 
@@ -302,15 +230,9 @@ object OperationInfo {
     val description: String = "Load serialized rules/model from a file in the workspace."
   }
 
-  sealed trait CompleteDataset extends Transformation {
-    val name: String = "CompleteDataset"
-    val title: String = "Complete dataset"
-    val description: String = "Use a rules model to complete the loaded dataset."
-  }
-
-  sealed trait PredictTriples extends Transformation {
-    val name: String = "PredictTriples"
-    val title: String = "Predict triples"
+  sealed trait Predict extends Transformation {
+    val name: String = "Predict"
+    val title: String = "Predict"
     val description: String = "Use a rules model to generate/predict triples from the loaded dataset."
   }
 
@@ -346,28 +268,12 @@ object OperationInfo {
       def buildOperation(from: Operation): Operation = new operations.FilterQuads(from, this)
     }
 
-    object TakeQuads extends OperationInfo.TakeQuads with DatasetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.TakeQuads(from, this)
+    object ShrinkQuads extends OperationInfo.ShrinkQuads with DatasetTransformation {
+      def buildOperation(from: Operation): Operation = new operations.ShrinkQuads(from, this)
     }
 
-    object DropQuads extends OperationInfo.DropQuads with DatasetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.DropQuads(from, this)
-    }
-
-    object SliceQuads extends OperationInfo.SliceQuads with DatasetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.SliceQuads(from, this)
-    }
-
-    object DiscretizeEqualFrequency extends OperationInfo.DiscretizeEqualFrequency with DatasetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.DiscretizeEqualFrequency(from, this)
-    }
-
-    object DiscretizeEqualSize extends OperationInfo.DiscretizeEqualSize with DatasetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.DiscretizeEqualSize(from, this)
-    }
-
-    object DiscretizeEqualDistance extends OperationInfo.DiscretizeEqualDistance with DatasetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.DiscretizeEqualDistance(from, this)
+    object Discretize extends OperationInfo.Discretize with DatasetTransformation {
+      def buildOperation(from: Operation): Operation = new operations.Discretize(from, this)
     }
 
     object CacheDataset extends OperationInfo.CacheDataset with DatasetTransformation {
@@ -398,18 +304,6 @@ object OperationInfo {
       override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Transforming
     }
 
-    object CompleteDataset extends OperationInfo.CompleteDataset with DatasetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.CompleteDataset(from, this, true)
-
-      override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Transforming
-    }
-
-    object PredictTriples extends OperationInfo.PredictTriples with DatasetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.PredictTriples(from, this, true)
-
-      override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Transforming
-    }
-
     object CacheIndex extends OperationInfo.CacheIndex with IndexTransformation {
       def buildOperation(from: Operation): Operation = buildOperation(from, None)
 
@@ -418,8 +312,8 @@ object OperationInfo {
       override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
     }
 
-    object ToDataset extends OperationInfo.ToDataset with DatasetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.ToDataset(from, this)
+    object IndexToDataset extends OperationInfo.IndexToDataset with DatasetTransformation {
+      def buildOperation(from: Operation): Operation = new operations.IndexToDataset(from, this)
 
       override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Transforming
     }
@@ -438,20 +332,8 @@ object OperationInfo {
       def buildOperation(from: Operation): Operation = new operations.FilterRules(from, this)
     }
 
-    object TakeRules extends OperationInfo.TakeRules with RulesetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.TakeRules(from, this)
-    }
-
-    object DropRules extends OperationInfo.DropRules with RulesetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.DropRules(from, this)
-    }
-
-    object SliceRules extends OperationInfo.SliceRules with RulesetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.SliceRules(from, this)
-    }
-
-    object Sorted extends OperationInfo.Sorted with RulesetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.Sorted(from, this)
+    object ShrinkRules extends OperationInfo.ShrinkRules with RulesetTransformation {
+      def buildOperation(from: Operation): Operation = new operations.ShrinkRules(from, this)
     }
 
     object Sort extends OperationInfo.Sort with RulesetTransformation {
@@ -466,44 +348,14 @@ object OperationInfo {
       override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
     }
 
-    object CompleteDataset extends OperationInfo.CompleteDataset with DatasetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.CompleteDataset(from, this, false)
-
-      override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Transforming
-    }
-
-    object PredictTriples extends OperationInfo.PredictTriples with DatasetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.PredictTriples(from, this, false)
+    object Predict extends OperationInfo.Predict with DatasetTransformation {
+      def buildOperation(from: Operation): Operation = new operations.Predict(from, this, false)
 
       override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Transforming
     }
 
     object Prune extends OperationInfo.Prune with RulesetTransformation {
       def buildOperation(from: Operation): Operation = new operations.Prune(from, this)
-    }
-
-    object Maximal extends RulesetTransformation {
-      val name: String = "Maximal"
-      val title: String = "Maximal"
-      val description: String = "Return most specific rules (only rules with no descendants) within the ruleset tree."
-
-      def buildOperation(from: Operation): Operation = new operations.Maximal(from, this)
-    }
-
-    object Closed extends RulesetTransformation {
-      val name: String = "Closed"
-      val title: String = "Closed"
-      val description: String = "Return closed rules within the ruleset tree. A rule is closed if its parent has a different measure."
-
-      def buildOperation(from: Operation): Operation = new operations.Closed(from, this)
-    }
-
-    object OnlyBetterDescendant extends RulesetTransformation {
-      val name: String = "OnlyBetterDescendant"
-      val title: String = "Only better descendant"
-      val description: String = "This avoids outputting rules that do not improve the chosen measure w.r.t their parents."
-
-      def buildOperation(from: Operation): Operation = new operations.Closed(from, this)
     }
 
     object Instantiate extends RulesetTransformation {
@@ -522,22 +374,6 @@ object OperationInfo {
       def buildOperation(from: Operation): Operation = new operations.ComputeConfidence(from, this)
     }
 
-    object ComputePcaConfidence extends RulesetTransformation {
-      val name: String = "ComputePcaConfidence"
-      val title: String = "Compute PCA confidence"
-      val description: String = "Compute the PCA confidence for all rules and filter them by a minimal threshold value."
-
-      def buildOperation(from: Operation): Operation = new operations.ComputePcaConfidence(from, this)
-    }
-
-    object ComputeLift extends RulesetTransformation {
-      val name: String = "ComputeLift"
-      val title: String = "Compute lift"
-      val description: String = "Compute the standard confidence and lift for all rules and filter them by a minimal threshold value."
-
-      def buildOperation(from: Operation): Operation = new operations.ComputeLift(from, this)
-    }
-
     object MakeClusters extends RulesetTransformation {
       val name: String = "MakeClusters"
       val title: String = "Make clusters"
@@ -552,44 +388,6 @@ object OperationInfo {
       val description: String = "Attach information about graphs belonging to output rules."
 
       def buildOperation(from: Operation): Operation = new operations.GraphBasedRules(from, this)
-    }
-
-  }
-
-  object ModelTransformation {
-
-    object LoadModel extends OperationInfo.LoadModel with ModelTransformation {
-      def buildOperation(from: Operation): Operation = new operations.LoadModel(from, this)
-    }
-
-    object FilterRules extends OperationInfo.FilterRules with ModelTransformation {
-      def buildOperation(from: Operation): Operation = new operations.FilterRules(from, this)
-    }
-
-    object TakeRules extends OperationInfo.TakeRules with ModelTransformation {
-      def buildOperation(from: Operation): Operation = new operations.TakeRules(from, this)
-    }
-
-    object DropRules extends OperationInfo.DropRules with ModelTransformation {
-      def buildOperation(from: Operation): Operation = new operations.DropRules(from, this)
-    }
-
-    object SliceRules extends OperationInfo.SliceRules with ModelTransformation {
-      def buildOperation(from: Operation): Operation = new operations.SliceRules(from, this)
-    }
-
-    object Sorted extends OperationInfo.Sorted with ModelTransformation {
-      def buildOperation(from: Operation): Operation = new operations.Sorted(from, this)
-    }
-
-    object Sort extends OperationInfo.Sort with ModelTransformation {
-      def buildOperation(from: Operation): Operation = new operations.Sort(from, this)
-    }
-
-    object CacheRuleset extends OperationInfo.CacheRuleset with ModelTransformation {
-      def buildOperation(from: Operation): Operation = new operations.CacheRuleset(from, this, None)
-
-      override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
     }
 
   }
@@ -714,7 +512,7 @@ object OperationInfo {
     def buildOperation(from: Operation): Operation = new actions.CacheIndex(from)
   }
 
-  object EvaluateIndex extends Action {
+  /*object EvaluateIndex extends Action {
     val name: String = "Evaluate"
     val title: String = "Evaluate model"
     val description: String = "Evaluate a rules model based on the loaded dataset as the test set."
@@ -722,9 +520,9 @@ object OperationInfo {
     def groups: Set[OperationGroup] = OperationGroup.Structure.Index
 
     def buildOperation(from: Operation): Operation = new actions.Evaluate(from, this, true)
-  }
+  }*/
 
-  object EvaluateRuleset extends Action {
+  /*object EvaluateRuleset extends Action {
     val name: String = "Evaluate"
     val title: String = "Evaluate model"
     val description: String = "Evaluate a rules model based on the loaded index as the test set."
@@ -732,59 +530,36 @@ object OperationInfo {
     def groups: Set[OperationGroup] = OperationGroup.Structure.Ruleset
 
     def buildOperation(from: Operation): Operation = new actions.Evaluate(from, this, false)
-  }
+  }*/
 
   def apply(op: js.Dynamic, parent: Operation): Option[OperationInfo] = {
     val name = op.name.asInstanceOf[String]
     val ops = (parent.info match {
-      case _: ModelTransformation => Iterator(
-        ModelTransformation.CacheRuleset,
-        ModelTransformation.DropRules,
-        ModelTransformation.FilterRules,
-        ModelTransformation.SliceRules,
-        ModelTransformation.Sort,
-        ModelTransformation.Sorted,
-        ModelTransformation.TakeRules
-      )
       case _: DatasetTransformation => Iterator(
         DatasetTransformation.MergeDatasets,
         DatasetTransformation.AddPrefixes,
         DatasetTransformation.MapQuads,
         DatasetTransformation.FilterQuads,
-        DatasetTransformation.TakeQuads,
-        DatasetTransformation.DropQuads,
-        DatasetTransformation.SliceQuads,
+        DatasetTransformation.Discretize,
+        DatasetTransformation.ShrinkQuads,
         DatasetTransformation.CacheDataset,
         DatasetTransformation.Index
       )
       case _: RulesetTransformation => Iterator(
         RulesetTransformation.FilterRules,
-        RulesetTransformation.TakeRules,
-        RulesetTransformation.DropRules,
-        RulesetTransformation.SliceRules,
-        RulesetTransformation.Sorted,
+        RulesetTransformation.ShrinkRules,
         RulesetTransformation.Sort,
         RulesetTransformation.ComputeConfidence,
-        RulesetTransformation.ComputePcaConfidence,
-        RulesetTransformation.ComputeLift,
         RulesetTransformation.MakeClusters,
         RulesetTransformation.GraphBasedRules,
         RulesetTransformation.CacheRuleset,
-        RulesetTransformation.CompleteDataset,
-        RulesetTransformation.PredictTriples,
-        RulesetTransformation.Prune,
-        RulesetTransformation.Maximal,
-        RulesetTransformation.Closed,
-        RulesetTransformation.OnlyBetterDescendant,
-        EvaluateRuleset
+        RulesetTransformation.Predict,
+        RulesetTransformation.Prune
       )
       case _: IndexTransformation => Iterator(
         IndexTransformation.CacheIndex,
-        IndexTransformation.CompleteDataset,
         IndexTransformation.Mine,
-        IndexTransformation.PredictTriples,
-        IndexTransformation.ToDataset,
-        EvaluateIndex
+        IndexTransformation.IndexToDataset
       )
       case _ => Iterator()
     }) ++ Iterator(
@@ -792,7 +567,6 @@ object OperationInfo {
       DatasetTransformation.LoadDataset,
       IndexTransformation.LoadIndex,
       IndexTransformation.LoadRuleset,
-      ModelTransformation.LoadModel,
       CacheDatasetAction,
       ExportQuads,
       GetQuads,
@@ -806,16 +580,7 @@ object OperationInfo {
       GetRules,
       RulesetSize
     )
-    if (name == "Discretize") {
-      op.parameters.task.name.asInstanceOf[String] match {
-        case "EquidistanceDiscretizationTask" => Some(DatasetTransformation.DiscretizeEqualDistance)
-        case "EquifrequencyDiscretizationTask" => Some(DatasetTransformation.DiscretizeEqualFrequency)
-        case "EquisizeDiscretizationTask" => Some(DatasetTransformation.DiscretizeEqualSize)
-        case _ => None
-      }
-    } else {
-      ops.find(_.name == name)
-    }
+    ops.find(_.name == name)
   }
 
 }

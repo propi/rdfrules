@@ -268,8 +268,7 @@ object PipelineJsonReaders {
   }
 
   implicit def computeConfidenceReader(implicit debugger: Debugger): RootJsonReader[ruleset.ComputeConfidence] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new ruleset.ComputeConfidence(fields("type").convertTo[ConfidenceType])
+    new ruleset.ComputeConfidence(json.convertTo[ConfidenceType])
   }
 
   implicit def makeClustersReader(implicit debugger: Debugger): RootJsonReader[ruleset.MakeClusters] = (json: JsValue) => {

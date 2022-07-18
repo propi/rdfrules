@@ -345,8 +345,8 @@ object CommonDataJsonReaders {
     val fields = json.asJsObject.fields
     val selector = json.toSelector
     selector("name").to[String].map {
-      case "StandardConfidence" => ConfidenceType.StandardConfidence(fields("min").convertTo[Double], fields("topk").convertTo[Int])
-      case "PcaConfidence" => ConfidenceType.PcaConfidence(fields("min").convertTo[Double], fields("topk").convertTo[Int])
+      case "StandardConfidence" => ConfidenceType.StandardConfidence(fields("min").convertTo[Double], fields.get("topk").map(_.convertTo[Int]).getOrElse(0))
+      case "PcaConfidence" => ConfidenceType.PcaConfidence(fields("min").convertTo[Double], fields.get("topk").map(_.convertTo[Int]).getOrElse(0))
       case "Lift" => ConfidenceType.Lift(fields("min").convertTo[Double])
       case x => deserializationError(s"Invalid name of confidence type: $x")
     }.get

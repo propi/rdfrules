@@ -17,7 +17,7 @@ object OperationGroup {
 
     object Ruleset extends Structure
 
-    object Model extends Structure
+    object Prediction extends Structure
   }
 
   object Caching extends OperationGroup

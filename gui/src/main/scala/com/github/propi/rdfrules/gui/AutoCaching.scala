@@ -49,7 +49,6 @@ object AutoCaching {
       }
       if (
         operation.info.groups(OperationGroup.Caching) || //if operation is Cache => No cache
-          operation.info.groups(OperationGroup.Structure.Model) || //if operation is Model struct => No cache
           operation.info.`type` == Operation.Type.Action || //if operation is Action => No cache
           operation.getNextOperation.exists(_.info.groups(OperationGroup.Caching)) //if next operation is Cache => No cache again
       ) {

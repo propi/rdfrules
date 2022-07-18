@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.gui
 import com.github.propi.rdfrules.gui.Task.{Result, TaskException}
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding
 import com.thoughtworks.binding.Binding
-import com.thoughtworks.binding.Binding.{Constant, Constants, Var, Vars}
+import com.thoughtworks.binding.Binding.{Constants, Var, Vars}
 import org.lrng.binding.html
 import org.scalajs.dom.html.Div
 import org.scalajs.dom.raw.HTMLUListElement

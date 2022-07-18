@@ -8,7 +8,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class PredictTriples(fromOperation: Operation, val info: OperationInfo, allowToChooseModel: Boolean) extends Operation {
+class Predict(fromOperation: Operation, val info: OperationInfo, allowToChooseModel: Boolean) extends Operation {
   val properties: Constants[Property] = {
     Constants(
       List(
