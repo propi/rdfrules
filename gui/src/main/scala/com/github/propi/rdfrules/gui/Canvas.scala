@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.gui
 import com.github.propi.rdfrules.gui.operations.Root
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding
 import com.thoughtworks.binding.Binding
-import com.thoughtworks.binding.Binding.{Constant, Var, Vars}
+import com.thoughtworks.binding.Binding.{Var, Vars}
 import org.lrng.binding.html
 import org.scalajs.dom.html.Div
 import org.scalajs.dom.raw.{FileReader, HTMLElement, HTMLInputElement}
@@ -34,7 +34,7 @@ class Canvas {
       case (_, Some((x, y))) => s"left: ${x}px; top: ${y}px; position: absolute;"
       case _ => ""
     }}>
-      <i class={"material-icons close" + (if (fixedHint.bind.isEmpty) " hidden" else "")} onclick={_: Event => unfixHint()}>close</i>{hint.bind.map(_._1).getOrElse("")}
+      <i class={"material-icons close" + (if (fixedHint.bind.isEmpty) " hidden" else "")} onclick={_: Event => unfixHint()}>close</i><div innerHTML={hint.bind.map(_._1).getOrElse("")}></div>
     </div>
     <div class={"modal" + (if (modal.bind.isEmpty) " closed" else " open")}>
       <a class="close" onclick={_: Event => closeModal()}>

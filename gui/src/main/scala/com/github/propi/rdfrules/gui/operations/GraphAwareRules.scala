@@ -6,4 +6,4 @@ import com.github.propi.rdfrules.gui.{Operation, OperationInfo}
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class MergeDatasets(fromOperation: Operation, info: OperationInfo) extends EmptyOperation(fromOperation, info)
+class GraphAwareRules(fromOperation: Operation, info: OperationInfo) extends EmptyOperation(fromOperation, info)

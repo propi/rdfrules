@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.gui.properties
 
+import com.github.propi.rdfrules.gui.Documentation.Context
 import com.github.propi.rdfrules.gui.Property
 import com.thoughtworks.binding.Binding.Var
 import com.thoughtworks.binding.Binding
@@ -14,11 +15,11 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class Checkbox(val name: String, val title: String, default: Boolean = false, description: String = "", onChecked: Boolean => Unit = _ => {}) extends Property {
+class Checkbox(val name: String, val title: String, default: Boolean = false, onChecked: Boolean => Unit = _ => {})(implicit context: Context) extends Property {
 
   private var _isChecked: Boolean = default
 
-  val descriptionVar: Binding.Var[String] = Var(description)
+  val descriptionVar: Binding.Var[String] = Var(context(title).description)
 
   def setValue(data: js.Dynamic): Unit = {
     _isChecked = data.asInstanceOf[Boolean]

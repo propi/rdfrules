@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.gui.properties
 
+import com.github.propi.rdfrules.gui.Documentation.Context
 import com.github.propi.rdfrules.gui.Property
 import com.thoughtworks.binding.Binding.{Constants, Var, Vars}
 import com.thoughtworks.binding.Binding
@@ -13,11 +14,11 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class DynamicGroup(val name: String, val title: String, properties: () => Constants[Property], description: String = "") extends Property {
+class DynamicGroup private(val name: String, val title: String, properties: Context => Constants[Property])(implicit context: Context) extends Property {
 
   private val groups: Vars[Constants[Property]] = Vars.empty
 
-  val descriptionVar: Binding.Var[String] = Var(description)
+  val descriptionVar: Binding.Var[String] = Var(context(title).description)
 
   def getGroups: Iterable[Constants[Property]] = groups.value
 
@@ -26,7 +27,7 @@ class DynamicGroup(val name: String, val title: String, properties: () => Consta
   def setValue(data: js.Dynamic): Unit = {
     groups.value.clear()
     for (x <- data.asInstanceOf[js.Array[js.Dynamic]]) {
-      val props = properties()
+      val props = properties(context(title))
       for (prop <- props.value) {
         val propData = x.selectDynamic(prop.name)
         if (!js.isUndefined(propData)) prop.setValue(propData)
@@ -51,10 +52,16 @@ class DynamicGroup(val name: String, val title: String, properties: () => Consta
         </tr>{for (property <- group) yield {
         property.view.bind
       }}
-      </table>}<a class="add" onclick={_: Event => groups.value += properties()}>
+      </table>}<a class="add" onclick={_: Event => groups.value += properties(context(title))}>
       <i class="material-icons">add_circle_outline</i>
     </a>
     </div>
   }
+
+}
+
+object DynamicGroup {
+
+  def apply(name: String, title: String)(properties: Context => Constants[Property])(implicit context: Context): DynamicGroup = new DynamicGroup(name, title, properties)
 
 }

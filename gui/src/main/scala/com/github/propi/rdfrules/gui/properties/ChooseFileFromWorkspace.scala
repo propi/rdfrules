@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.gui.properties
 
+import com.github.propi.rdfrules.gui.Documentation.Context
 import com.github.propi.rdfrules.gui.Endpoint.UploadProgress
 import com.github.propi.rdfrules.gui.{Property, Workspace}
 import com.github.propi.rdfrules.gui.Workspace.FileValue
@@ -23,8 +24,7 @@ import scala.scalajs.js
 class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
                               val name: String,
                               val title: String = "Choose a file from the workspace",
-                              description: String = "",
-                              validator: Validator[String] = NoValidator[String]()) extends Property {
+                              validator: Validator[String] = NoValidator[String]())(implicit context: Context) extends Property {
 
   private implicit val ec: ExecutionContext = scala.scalajs.concurrent.JSExecutionContext.queue
 
@@ -34,7 +34,7 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
   private val progressBar: Var[UploadProgress] = Var(UploadProgress(0.0, None))
   private val selectedFile: Var[Option[FileValue.File]] = Var(None)
 
-  val descriptionVar: Binding.Var[String] = Var(description)
+  val descriptionVar: Binding.Var[String] = Var(context(title).description)
 
   def setValue(data: js.Dynamic): Unit = {
     val path = data.asInstanceOf[String]

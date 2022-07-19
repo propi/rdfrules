@@ -267,8 +267,8 @@ object CommonDataJsonReaders {
   implicit def clusteringReader(implicit debugger: Debugger): RootJsonReader[Clustering[FinalRule]] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     DbScan(
-      fields.get("minNeighbours").map(_.convertTo[Int]).getOrElse(5),
-      fields.get("minSimilarity").map(_.convertTo[Double]).getOrElse(0.9)
+      fields.get("minNeighbours").map(_.convertTo[Int]).getOrElse(2),
+      fields.get("minSimilarity").map(_.convertTo[Double]).getOrElse(0.85)
     )(fields.get("features").map(_.convertTo[SimilarityCounting[Rule]]).getOrElse(implicitly[SimilarityCounting[Rule]]), debugger)
   }
 

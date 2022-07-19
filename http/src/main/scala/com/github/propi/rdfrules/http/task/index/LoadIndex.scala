@@ -8,6 +8,7 @@ import com.github.propi.rdfrules.utils.Debugger
 /**
   * Created by Vaclav Zeman on 7. 8. 2018.
   */
+//TODO: remove partially - do partial loading automaticaly and more effectively
 class LoadIndex(path: String, partially: Boolean)(implicit debugger: Debugger) extends Task[Task.NoInput.type, Index] {
   val companion: TaskDefinition = LoadIndex
 

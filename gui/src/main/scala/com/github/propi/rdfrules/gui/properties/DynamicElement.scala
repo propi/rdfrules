@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.gui.properties
 import com.github.propi.rdfrules.gui.Property
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding
 import com.thoughtworks.binding.Binding
-import com.thoughtworks.binding.Binding.{Constant, Constants, Var}
+import com.thoughtworks.binding.Binding.{Constants, Var}
 import org.lrng.binding.html
 import org.scalajs.dom.html.{Div, TableRow}
 
@@ -12,11 +12,11 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 17. 9. 2018.
   */
-class DynamicElement(properties: Constants[Property], description: String = "", hidden: Boolean = false) extends Property {
+class DynamicElement(properties: Constants[Property], hidden: Boolean = false) extends Property {
   val name: String = properties.value.head.name
   val title: String = properties.value.head.title
 
-  val descriptionVar: Var[String] = Var(description)
+  val descriptionVar: Var[String] = Var("")
 
   private val active: Var[Int] = Var(-1)
 
@@ -57,7 +57,7 @@ class DynamicElement(properties: Constants[Property], description: String = "", 
       if (hidden) {
         isHidden.value = true
       }
-      descriptionVar.value = description
+      descriptionVar.value = ""
       errorMsg.value = None
     } else {
       val el = properties.value(x)

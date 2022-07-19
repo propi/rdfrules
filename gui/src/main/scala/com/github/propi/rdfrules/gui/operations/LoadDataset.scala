@@ -9,9 +9,9 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
   */
 class LoadDataset(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
-    new ChooseFileFromWorkspace(Workspace.loadFiles, "path", description = "It is possible to load a file from the workspace on the server side (just click onto a file name), or you can load any remote file from URL (see below)."),
-    new OptionalText[String]("url", "URL", description = "A URL to a remote file to be loaded. If this is specified then the workspace file is ommited."),
-    new Select("format", "RDF format", Constants("ttl" -> "Turtle", "nt" -> "N-Triples", "nq" -> "N-Quads", "xml" -> "RDF/XML", "json" -> "JSON-LD", "trig" -> "TriG", "trix" -> "TriX", "tsv" -> "TSV", "sql" -> "SQL", "cache" -> "Cache"), description = "The RDF format is automatically detected from the file extension. But, you can specify the format explicitly.")
+    new ChooseFileFromWorkspace(Workspace.loadFiles, "path"),
+    new OptionalText[String]("url", "URL"),
+    new Select("format", "RDF format", Constants("ttl" -> "Turtle", "nt" -> "N-Triples", "nq" -> "N-Quads", "xml" -> "RDF/XML", "json" -> "JSON-LD", "trig" -> "TriG", "trix" -> "TriX", "tsv" -> "TSV", "sql" -> "SQL", "cache" -> "Cache"))
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 

@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.gui.properties
 
+import com.github.propi.rdfrules.gui.Documentation.Context
 import com.github.propi.rdfrules.gui.Property
 import com.thoughtworks.binding.Binding.{Var, Vars}
 import com.thoughtworks.binding.Binding
@@ -13,11 +14,11 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class ArrayElement(val name: String, val title: String, property: () => Property, description: String = "") extends Property {
+class ArrayElement(val name: String, val title: String, property: Context => Property, description: String = "")(implicit context: Context) extends Property {
 
   private val groups: Vars[Property] = Vars.empty
 
-  val descriptionVar: Binding.Var[String] = Var(description)
+  val descriptionVar: Binding.Var[String] = Var(context(title).description)
 
   def validate(): Option[String] = {
     val msg = groups.value.iterator.map(_.validate()).find(_.nonEmpty).flatten.map(x => s"There is an error within '$title' properties: $x")
@@ -27,7 +28,7 @@ class ArrayElement(val name: String, val title: String, property: () => Property
 
   def setValue(data: js.Dynamic): Unit = {
     for (x <- data.asInstanceOf[js.Array[js.Dynamic]]) {
-      val newProperty = property()
+      val newProperty = property(context(title))
       newProperty.errorMsg.addListener((_: Option[String], _: Option[String]) => validate())
       newProperty.setValue(x)
       groups.value += newProperty
@@ -50,7 +51,7 @@ class ArrayElement(val name: String, val title: String, property: () => Property
         <i class="material-icons">remove_circle_outline</i>
       </a>
       </div>}<a class="add" onclick={_: Event =>
-      val newProperty = property()
+      val newProperty = property(context(title))
       groups.value += newProperty
       newProperty.errorMsg.addListener((_: Option[String], _: Option[String]) => validate())}>
       <i class="material-icons">add_circle_outline</i>

@@ -9,7 +9,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
   */
 class Sort(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
-    new DynamicGroup("by", "Sort by", () => Constants(
+    DynamicGroup("by", "Sort by")(_ => Constants(
       new Select("measure", "Measure", Constants(
         "RuleLength" -> "Rule length",
         "HeadSize" -> "Head size",

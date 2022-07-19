@@ -10,12 +10,14 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
   */
 class AddPrefixes(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
-    new ChooseFileFromWorkspace(Workspace.loadFiles, "path", description = "It is possible to load a file with prefixes in the Turtle (.ttl) format from the workspace on the server side (just click onto a file name), or you can load any remote prefix file from URL (see below)."),
-    new OptionalText[String]("url", "URL", description = "A URL to a remote file with prefixes in the Turtle (.ttl) format to be loaded. If this is specified then the workspace file is ommited."),
-    new DynamicGroup("prefixes", "Hand-defined prefixes", () => Constants(
-      new OptionalText[String]("prefix", "Prefix", description = "A short name for the namespace.", validator = RegExp("[0-9a-zA-Z]\\w*")),
-      new OptionalText[String]("nameSpace", "Namespace", description = "A namespace URI to be shortened. It should end with the slash or hash symbol, e.g., http://dbpedia.org/property/.", validator = RegExp("\\S+[/#?=&]"))
-    ), "Here, you can define your own prefixes manually.")
+    new ChooseFileFromWorkspace(Workspace.loadFiles, "path"),
+    new OptionalText[String]("url", "URL"),
+    DynamicGroup("prefixes", "Hand-defined prefixes") { implicit context =>
+      Constants(
+        new OptionalText[String]("prefix", "Prefix", validator = RegExp("[0-9a-zA-Z]\\w*")),
+        new OptionalText[String]("nameSpace", "Namespace", validator = RegExp("\\S+[/#?=&]"))
+      )
+    }
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 }

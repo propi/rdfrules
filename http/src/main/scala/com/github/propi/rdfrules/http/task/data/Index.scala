@@ -8,16 +8,10 @@ import com.github.propi.rdfrules.utils.Debugger
 /**
   * Created by Vaclav Zeman on 9. 8. 2018.
   */
-class Index(prefixedUris: Boolean)(implicit debugger: Debugger) extends Task[Dataset, index.Index] {
+class Index(implicit debugger: Debugger) extends Task[Dataset, index.Index] {
   val companion: TaskDefinition = Index
 
-  def execute(input: Dataset): index.Index = {
-    if (prefixedUris) {
-      input.withPrefixedUris.index
-    } else {
-      input.index
-    }
-  }
+  def execute(input: Dataset): index.Index = input.withPrefixedUris.index
 }
 
 object Index extends TaskDefinition {

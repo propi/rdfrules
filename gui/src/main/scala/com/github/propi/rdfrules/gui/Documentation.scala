@@ -1,7 +1,6 @@
 package com.github.propi.rdfrules.gui
 
 import com.github.propi.rdfrules.gui.utils.Markdown
-import com.thoughtworks.binding.Binding.Var
 import org.scalajs.dom.experimental.Fetch
 
 import scala.concurrent.Future
@@ -15,6 +14,10 @@ object Documentation {
     def description: String
 
     def apply(x: String): Context
+
+    final def use[T](f: Context => T): T = f(this)
+
+    final def use[T](x: String)(f: Context => T): T = f(apply(x))
   }
 
   private object Empty extends Context {
@@ -64,16 +67,20 @@ object Documentation {
     protected def buildChild(x: Markdown.Heading): Struct = new Struct(x)
   }
 
-  val doc: Var[Option[Context]] = Var(None)
+  private var doc: Context = Empty
 
-  Fetch.fetch("README.md").toFuture.flatMap { response =>
-    if (response.ok) {
-      response.text().toFuture
-    } else {
-      Future.successful("")
+  def apply(x: String): Context = doc(x)
+
+  def init(): Unit = {
+    Fetch.fetch("README.md").toFuture.flatMap { response =>
+      if (response.ok) {
+        response.text().toFuture
+      } else {
+        Future.successful("")
+      }
+    }.foreach { text =>
+      Markdown(text).foreach(x => doc = new Root(x))
     }
-  }.foreach { text =>
-    doc.value = Markdown(text).map(new Root(_))
   }
 
 }

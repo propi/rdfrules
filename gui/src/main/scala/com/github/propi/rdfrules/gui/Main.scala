@@ -1,9 +1,5 @@
 package com.github.propi.rdfrules.gui
 
-import com.github.propi.rdfrules.gui.operations.Instantiate
-import com.github.propi.rdfrules.gui.results.Rules
-
-import scala.scalajs.js.JSON
 import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
 
 /**
@@ -18,8 +14,9 @@ object Main {
   def loadTask(content: String): Unit = canvas.loadTask(content)
 
   def main(args: Array[String]): Unit = {
+    Documentation.init()
     canvas.render()
-    for {
+    /*for {
       taskId <- Option(Globals.getParameterByName("pickup")).map(_.trim).filter(_.nonEmpty)
       task <- LocalStorage.get[String](taskId)(Some(_))
       rule <- LocalStorage.get[String](taskId + "-rule")(Some(_)).map(JSON.parse(_)).map(_.asInstanceOf[Rules.Rule])
@@ -34,7 +31,7 @@ object Main {
       canvas.addOperation(op1)
       canvas.addOperation(op1.appendOperation(OperationInfo.GetRules))
       op1.openModal()
-    }
+    }*/
   }
 
 }

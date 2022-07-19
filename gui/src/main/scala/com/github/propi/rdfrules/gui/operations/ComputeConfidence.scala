@@ -12,12 +12,12 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 class ComputeConfidence(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = {
     val min = new DynamicElement(Constants(
-      new FixedText[Double]("min", "Min confidence", "0.5", "A minimal confidence threshold. This operation counts the standard confidence for all rules and filter them by this minimal threshold. The value range is between 0.001 and 1 included. Default value is set to 0.5.", RegExp("1(\\.0+)?|0\\.00[1-9]\\d*|0\\.0?[1-9]\\d*")),
-      new FixedText[Double]("min", "Min PCA confidence", "0.5", "A minimal PCA (Partial Completeness Assumption) confidence threshold. This operation counts the PCA confidence for all rules and filter them by this minimal threshold. The value range is between 0.001 and 1 included. Default value is set to 0.5.", RegExp("1(\\.0+)?|0\\.00[1-9]\\d*|0\\.0?[1-9]\\d*")),
-      new FixedText[Double]("min", "Min confidence", "0.5", "A minimal confidence threshold. This operation first counts the standard confidence for all rules and filter them by this minimal threshold, then it counts the lift measure by the computed cofindence. The value range is between 0.001 and 1 included. Default value is set to 0.5.", RegExp("1(\\.0+)?|0\\.00[1-9]\\d*|0\\.0?[1-9]\\d*"))
+      context.use("CWA confidence")(implicit context => new FixedText[Double]("min", "Min confidence", "0.5", RegExp("1(\\.0+)?|0\\.00[1-9]\\d*|0\\.0?[1-9]\\d*"))),
+      context.use("PCA confidence")(implicit context => new FixedText[Double]("min", "Min PCA confidence", "0.5", RegExp("1(\\.0+)?|0\\.00[1-9]\\d*|0\\.0?[1-9]\\d*"))),
+      context.use("Lift")(implicit context => new FixedText[Double]("min", "Min confidence", "0.5", RegExp("1(\\.0+)?|0\\.00[1-9]\\d*|0\\.0?[1-9]\\d*")))
     ))
     val topK = new DynamicElement(Constants(
-      new OptionalText[Int]("topk", "Top-k", description = "Get top-k rules with highest confidence. This is the optional parameter.", validator = GreaterThanOrEqualsTo[Int](1))
+      new OptionalText[Int]("topk", "Top-k", validator = GreaterThanOrEqualsTo[Int](1))
     ))
 
     def activeStrategy(minIndex: Int, hasTopK: Boolean): Unit = {

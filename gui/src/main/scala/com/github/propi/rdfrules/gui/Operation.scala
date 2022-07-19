@@ -23,6 +23,8 @@ trait Operation {
   val previousOperation: Var[Option[Operation]]
   val errorMsg: Var[Option[String]] = Var(None)
 
+  implicit def context: Documentation.Context = info.context
+
   def buildActionProgress(id: Future[String]): Option[ActionProgress] = None
 
   def validateAll(): Boolean = {
@@ -154,13 +156,13 @@ trait Operation {
     val _previousOperation = previousOperation.bind
     val classHidden = if (_nextOperation.nonEmpty && _previousOperation.isEmpty) " hidden" else ""
     val classHasNext = if (_nextOperation.nonEmpty) " has-next" else ""
-    info.`type`.toString + " operation " + info.name + classHidden + classHasNext} onclick={_: Event =>
+    s"${info.`type`.toString} operation ${info.name}$classHidden$classHasNext"} onclick={_: Event =>
       if (properties.value.nonEmpty) {
         errorMsg.value = None
         Main.canvas.openModal(viewProperties)
       }}>
       {info.`type` match {
-      case Operation.Type.Transformation =>
+      case Operation.Type.Transformation | Operation.Type.Loading =>
         <a class="add" onclick={e: Event => Main.canvas.openModal(viewFollowingOperations); e.stopPropagation();}>
           <i class="material-icons">add_circle_outline</i>
         </a>
@@ -225,7 +227,7 @@ trait Operation {
     <div class="following-operations">
       <h3>Transformations</h3>
       <div class="transformations">
-        {for (operationInfo <- Constants(info.followingOperations.value.filter(x => x.`type` == Operation.Type.Transformation && nextOperation.value.forall(y => x.followingOperations.value.contains(y.info))).toList: _*)) yield viewOperationInfo(operationInfo).bind}
+        {for (operationInfo <- Constants(info.followingOperations.value.filter(x => (x.`type` == Operation.Type.Transformation || x.`type` == Operation.Type.Loading) && nextOperation.value.forall(y => x.followingOperations.value.contains(y.info))).toList: _*)) yield viewOperationInfo(operationInfo).bind}
       </div>
       <h3 class={if (info.followingOperations.value.exists(_.`type` == Operation.Type.Action)) "" else "hidden"}>Actions</h3>
       <div class="actions">
@@ -238,16 +240,28 @@ trait Operation {
 
 object Operation {
 
-  sealed trait Type
+  sealed trait Type {
+    def docName: String
+  }
 
   object Type {
 
+    object Loading extends Type {
+      def docName: String = "Loading"
+
+      override def toString: String = docName
+    }
+
     object Transformation extends Type {
-      override def toString: String = "transformation"
+      def docName: String = s"${this.toString}s"
+
+      override def toString: String = "Transformation"
     }
 
     object Action extends Type {
-      override def toString: String = "action"
+      def docName: String = s"${this.toString}s"
+
+      override def toString: String = "Action"
     }
 
   }

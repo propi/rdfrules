@@ -36,16 +36,17 @@ object AutoCaching {
     private def stringifyOperation(operation: Operation): String = JSON.stringify(js.Array(operation.toJson(Nil): _*))
 
     private def cacheOperation(operation: Operation, cacheId: String): Option[Operation] = {
-      operation.info.groups.collectFirst {
-        case OperationGroup.Structure.Dataset => OperationInfo.DatasetTransformation.CacheDataset.buildOperation(operation, Some(cacheId))
-        case OperationGroup.Structure.Index => OperationInfo.IndexTransformation.CacheIndex.buildOperation(operation, Some(cacheId))
-        case OperationGroup.Structure.Ruleset => OperationInfo.RulesetTransformation.CacheRuleset.buildOperation(operation, Some(cacheId))
+      operation.info.targetStructure match {
+        case OperationStructure.Dataset => Some(OperationInfo.DatasetTransformation.CacheDataset.buildOperation(operation, Some(cacheId)))
+        case OperationStructure.Index => Some(OperationInfo.IndexTransformation.CacheIndex.buildOperation(operation, Some(cacheId)))
+        case OperationStructure.Ruleset => Some(OperationInfo.RulesetTransformation.CacheRuleset.buildOperation(operation, Some(cacheId)))
+        case _ => None
       }
     }
 
     def tryCache(operation: Operation): Option[Operation] = {
       if (!hasIndex) {
-        hasIndex = operation.info.groups(OperationGroup.Structure.Index)
+        hasIndex = operation.info.targetStructure == OperationStructure.Index
       }
       if (
         operation.info.groups(OperationGroup.Caching) || //if operation is Cache => No cache
@@ -58,7 +59,7 @@ object AutoCaching {
         val res = lastCaches.get(pipelineContent) match {
           case Some(id) =>
             //if the previous pipeline has been cached in past we use the cache again
-            if (operation.info.groups(OperationGroup.Structure.Dataset) && hasIndex) {
+            if (operation.info.targetStructure == OperationStructure.Dataset && hasIndex) {
               //if dataset is indexed we removed all dataset caches, they are no more needed
               None
             } else {
@@ -69,15 +70,15 @@ object AutoCaching {
           case None =>
             if (
             //index is always cached
-              operation.info == OperationInfo.IndexTransformation.LoadIndex ||
+              operation.info == OperationInfo.Loading.LoadIndex ||
                 //index is always cached
                 operation.info == OperationInfo.DatasetTransformation.Index ||
                 //after mining it is cached
                 operation.info == OperationInfo.IndexTransformation.Mine ||
                 //last ruleset operation is cached (before action or transformation to other structure)
-                (operation.info.groups(OperationGroup.Structure.Ruleset) && operation.getNextOperation.exists(x => x.info.`type` == Operation.Type.Action || x.info.groups(OperationGroup.Transforming))) ||
+                (operation.info.targetStructure == OperationStructure.Ruleset && operation.getNextOperation.exists(x => x.info.isTransforming)) ||
                 //last dataset operation is cached (before action)
-                (operation.info.groups(OperationGroup.Structure.Dataset) && operation.getNextOperation.exists(x => x.info.`type` == Operation.Type.Action))
+                (operation.info.targetStructure == OperationStructure.Dataset && operation.getNextOperation.exists(x => x.info.`type` == Operation.Type.Action))
             ) {
               val id = UUID.randomUUID().toString
               cacheOperation(operation, id).map(_ -> id)

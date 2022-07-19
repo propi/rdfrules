@@ -120,8 +120,8 @@ object PipelineJsonReaders {
   }
 
   implicit def indexReader(implicit debugger: Debugger): RootJsonReader[data.Index] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new data.Index(fields("prefixedUris").convertTo[Boolean])
+    //val fields = json.asJsObject.fields
+    new data.Index//(fields("prefixedUris").convertTo[Boolean])
   }
 
   implicit val exportQuadsReader: RootJsonReader[data.ExportQuads] = (json: JsValue) => {

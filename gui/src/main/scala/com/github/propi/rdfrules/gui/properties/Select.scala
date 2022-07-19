@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.gui.properties
 
+import com.github.propi.rdfrules.gui.Documentation.Context
 import com.github.propi.rdfrules.gui.Property
 import com.thoughtworks.binding.Binding.{Constants, Var}
 import com.thoughtworks.binding.Binding
@@ -14,9 +15,9 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class Select(val name: String, val title: String, items: Constants[(String, String)], default: Option[String] = None, onSelect: String => Unit = _ => {}, description: String = "") extends Property {
+class Select(val name: String, val title: String, items: Constants[(String, String)], default: Option[String] = None, onSelect: String => Unit = _ => {})(implicit context: Context) extends Property {
 
-  val descriptionVar: Binding.Var[String] = Var(description)
+  val descriptionVar: Binding.Var[String] = Var(context(title).description)
 
   private var selectedItem: Option[String] = default
   private val preparedItems: Constants[(String, String)] = if (default.isEmpty) {

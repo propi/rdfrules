@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.gui.properties
 
+import com.github.propi.rdfrules.gui.Documentation.Context
 import com.github.propi.rdfrules.gui.Property
 import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.{Constants, Var}
@@ -12,9 +13,11 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class Group(val name: String, val title: String, properties: Constants[Property], description: String = "") extends Property {
+class Group private(val name: String, val title: String, propertiesBuilder: Context => Constants[Property])(implicit context: Context) extends Property {
 
-  val descriptionVar: Binding.Var[String] = Var(description)
+  private val properties = propertiesBuilder(context(title))
+
+  val descriptionVar: Binding.Var[String] = Var(context(title).description)
 
   def validate(): Option[String] = properties.value.iterator.map(_.validate()).find(_.nonEmpty).flatten.map(x => s"There is an error within '$title' properties: $x")
 
@@ -37,5 +40,11 @@ class Group(val name: String, val title: String, properties: Constants[Property]
       </table>
     </div>
   }
+
+}
+
+object Group {
+
+  def apply(name: String, title: String)(propertiesBuilder: Context => Constants[Property])(implicit context: Context): Group = new Group(name, title, propertiesBuilder)
 
 }

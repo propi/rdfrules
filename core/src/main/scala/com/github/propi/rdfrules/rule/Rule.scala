@@ -91,12 +91,12 @@ object Rule {
 
   implicit val ruleSimpleOrdering: Ordering[FinalRule] = Ordering.by[FinalRule, Rule](_.asInstanceOf[Rule])
 
-  implicit val ruleSimilarityCounting: SimilarityCounting[Rule] = (0.5 * AtomsSimilarityCounting) ~
+  implicit val ruleSimilarityCounting: SimilarityCounting[Rule] = AtomsSimilarityCounting/*(0.5 * AtomsSimilarityCounting) ~
     (0.1 * LengthSimilarityCounting) ~
     (0.15 * SupportSimilarityCounting) ~
     (0.05 * ConfidenceSimilarityCounting) ~
     (0.15 * PcaConfidenceSimilarityCounting) ~
-    (0.05 * LiftSimilarityCounting)
+    (0.05 * LiftSimilarityCounting)*/
 
   implicit def ruleStringifier(implicit ruleSimpleStringifier: Stringifier[FinalRule]): Stringifier[Rule] = (v: Rule) => ruleSimpleStringifier.toStringValue(v match {
     case x: Simple => x

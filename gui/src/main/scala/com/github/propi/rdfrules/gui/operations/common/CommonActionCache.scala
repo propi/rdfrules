@@ -1,21 +1,19 @@
-package com.github.propi.rdfrules.gui.operations.actions
+package com.github.propi.rdfrules.gui.operations.common
 
 import com.github.propi.rdfrules.gui.properties._
 import com.github.propi.rdfrules.gui.results.NoResult
 import com.github.propi.rdfrules.gui.utils.CommonValidators.NonEmpty
-import com.github.propi.rdfrules.gui.{ActionProgress, Operation, OperationInfo, Property}
+import com.github.propi.rdfrules.gui.utils.StringConverters._
+import com.github.propi.rdfrules.gui.{ActionProgress, Operation, Property}
 import com.thoughtworks.binding.Binding.{Constants, Var}
 
 import scala.concurrent.Future
 
-/**
-  * Created by Vaclav Zeman on 21. 7. 2018.
-  */
-class ExportRules(fromOperation: Operation) extends Operation {
-  val info: OperationInfo = OperationInfo.ExportRules
+abstract class CommonActionCache(fromOperation: Operation) extends Operation {
   val properties: Constants[Property] = Constants(
     new FixedText[String]("path", "Path", validator = NonEmpty),
-    new Select("format", "Rules format", Constants("txt" -> "Text (unparsable)", "json" -> "JSON (as model - parsable)", "ndjson" -> "NDJSON (as model - parsable and streaming)"))
+    new Hidden[Boolean]("inMemory", "false"),
+    new Hidden[Boolean]("revalidate", "true")
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 

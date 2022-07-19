@@ -12,9 +12,9 @@ import scala.concurrent.Future
 class Histogram(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.Histogram
   val properties: Constants[Property] = Constants(
-    new Checkbox("subject", "Subject", description = "Aggregate quads by subjects."),
-    new Checkbox("predicate", "Predicate", description = "Aggregate quads by predicates."),
-    new Checkbox("object", "Object", description = "Aggregate quads by objects.")
+    new Checkbox("subject", "Subject"),
+    new Checkbox("predicate", "Predicate"),
+    new Checkbox("object", "Object")
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 

@@ -14,8 +14,8 @@ import scala.concurrent.Future
 class ExportQuads(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.ExportQuads
   val properties: Constants[Property] = Constants(
-    new FixedText[String]("path", "Path", description = "A relative path to a file related to the workspace where the exported dataset should be saved.", validator = NonEmpty),
-    new Select("format", "RDF format", Constants("ttl" -> "Turtle", "nt" -> "N-Triples", "nq" -> "N-Quads", "trig" -> "TriG", "trix" -> "TriX", "tsv" -> "TSV"), description = "The RDF format is automatically detected from the file extension. But, you can specify the format explicitly.")
+    new FixedText[String]("path", "Path", validator = NonEmpty),
+    new Select("format", "RDF format", Constants("ttl" -> "Turtle", "nt" -> "N-Triples", "nq" -> "N-Quads", "trig" -> "TriG", "trix" -> "TriX", "tsv" -> "TSV"))
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 
