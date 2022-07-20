@@ -206,6 +206,30 @@ Convert the memory index back to the dataset.
 
 Mine rules from the indexed dataset with user-defined threshold, patterns and constraints. Default mining parameters are MinHeadSize=100, MinHeadCoverage=0.01, MaxRuleLength=3, no patterns, no constraints (only logical rules without constants).
 
+##### Properties
+
+- **Thresholds**: Mining thresholds. For one mining task you can specify several thresholds. All mined rules must reach defined thresholds. This greatly affects the mining time. Default thresholds are MinHeadSize=100 (if MinHeadSize is not defined), MinSupport=1 (if MinSupport and MinHeadCovarage are not defined), MaxRuleLength=3 (if MaxRuleLength is not defined).
+  - **MinHeadCoverage**:
+    - **Value**: The minimal value is 0.001 and maximal value is 1.
+  - **MinHeadSize or MinSupport or Timeout**:
+    - **Value**: The minimal value is 1.
+  - **MaxRuleLength**:
+    - **Value**: The minimal value is 2.
+  - **MinAtomSize**:
+    - **Value**: If negative value, the minimal atom size is same as the current minimal support threshold.
+- **Rule consumers**:
+  - **Top-k**:
+    - **k-value**: A k value for the top-k approach. The minimal value is 1.
+    - **Allow overflow**: If there are multiple rules with the lowest head coverage in the priority queue, then all of them may not be saved into the queue since the k value can not be exceeded. For this case the ordering of such rules is not deterministic and same task can return different results due to the long tail of rules with a same head coverage. If you check this, the overflowed long tail will be also returned but you can get much more rules on the output than the k value.
+  - **On-disk**:
+    - **Export path**: A relative path to a file where the rules will be continuously saved in a pretty printed format.
+    - **Export rules format**: 
+- **Patterns**: In this property, you can define several rule patterns. During the mining phase, each rule must match at least one of the defined patterns.
+- **Constraints**: Within constraints you can specify whether to mine rules without constants or you can include only chosen predicates into the mining phase.
+  - **OnlyPredicates or WithoutPredicates**:
+    - **Values**: List of predicates. You can use prefixed URI or full URI in angle brackets.
+- **Parallelism**: If the value is lower than or equal to 0 and greater than 'all available cores' then the parallelism level is set to 'all available cores'.
+
 #### Load ruleset
 
 Load serialized ruleset from a file in the workspace.

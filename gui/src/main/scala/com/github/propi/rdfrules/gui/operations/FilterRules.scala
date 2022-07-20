@@ -11,7 +11,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 class FilterRules(fromOperation: Operation, val info: OperationInfo) extends Operation {
   //val info: OperationInfo = OperationInfo.FilterRules
   val properties: Constants[Property] = Constants(
-    DynamicGroup("patterns", "Patterns")(implicit context => Pattern()),
+    Pattern("patterns", "Patterns"),
     DynamicGroup("measures", "Measures")(implicit context => Constants(
       new Select("name", "Name", Constants(
         "RuleLength" -> "Rule length",

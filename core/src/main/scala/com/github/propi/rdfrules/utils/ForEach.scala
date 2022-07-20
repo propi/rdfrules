@@ -5,7 +5,7 @@ import com.github.propi.rdfrules.utils.ForEach.{KnownSizeForEach, ParallelForEac
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 import scala.collection.immutable.ArraySeq
-import scala.collection.{Factory, MapView}
+import scala.collection.{Factory, MapView, mutable}
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.language.implicitConversions
@@ -68,6 +68,30 @@ trait ForEach[+T] {
     var i = 0
     foreach(_ => i += 1)
     i
+  }
+
+  def streamingCached[A >: T](implicit tag: ClassTag[A]): ForEach[A] = {
+    var col: Either[ForEach[T], Array[A]] = Left(self)
+    new ForEach[A] {
+      override def knownSize: Int = col.fold(_.knownSize, _.knownSize)
+
+      def foreach(f: A => Unit): Unit = col match {
+        case Left(_col) =>
+          val buffer = mutable.ArrayBuilder.make[A]
+          for (x <- _col) {
+            buffer.addOne(x)
+            f(x)
+          }
+          col = Right(buffer.result())
+        case Right(col) => col.foreach(f)
+      }
+
+      override def toIndexedSeq: IndexedSeq[A] = col.fold(_.toIndexedSeq, ArraySeq.unsafeWrapArray)
+
+      override def toSeq: Seq[A] = toIndexedSeq
+
+      override def toArray[B >: A](implicit tag: ClassTag[B]): Array[B] = col.fold(_.toArray, x => x.asInstanceOf[Array[B]])
+    }
   }
 
   def cached[A >: T](implicit tag: ClassTag[A]): ForEach[A] = {

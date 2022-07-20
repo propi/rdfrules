@@ -21,8 +21,8 @@ object Documentation {
   }
 
   private object Empty extends Context {
-    val title: String = "Unknown name"
-    val description: String = "Missing description in the doc."
+    val title: String = ""
+    val description: String = ""
 
     def apply(x: String): Context = Empty
   }

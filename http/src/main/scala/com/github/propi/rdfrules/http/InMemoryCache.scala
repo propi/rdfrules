@@ -17,6 +17,7 @@ import scala.reflect.ClassTag
 /**
   * Created by Vaclav Zeman on 26. 1. 2020.
   */
+//TODO dont save interrupted tasks into the cache
 object InMemoryCache {
 
   private val logger = Logger[InMemoryCache.type]

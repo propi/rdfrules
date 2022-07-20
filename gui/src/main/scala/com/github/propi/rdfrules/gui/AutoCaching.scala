@@ -49,9 +49,12 @@ object AutoCaching {
         hasIndex = operation.info.targetStructure == OperationStructure.Index
       }
       if (
-        operation.info.groups(OperationGroup.Caching) || //if operation is Cache => No cache
-          operation.info.`type` == Operation.Type.Action || //if operation is Action => No cache
-          operation.getNextOperation.exists(_.info.groups(OperationGroup.Caching)) //if next operation is Cache => No cache again
+      //if operation is Cache => No cache
+        operation.info.groups(OperationGroup.Caching) ||
+          //if operation is Action => No cache
+          operation.info.`type` == Operation.Type.Action ||
+          //if next operation is Cache => No cache again
+          operation.getNextOperation.exists(x => x.info.groups(OperationGroup.Caching))
       ) {
         None
       } else {
@@ -59,14 +62,14 @@ object AutoCaching {
         val res = lastCaches.get(pipelineContent) match {
           case Some(id) =>
             //if the previous pipeline has been cached in past we use the cache again
-            if (operation.info.targetStructure == OperationStructure.Dataset && hasIndex) {
-              //if dataset is indexed we removed all dataset caches, they are no more needed
-              None
-            } else {
-              //any other saved cache is reused
-              lastCaches.remove(pipelineContent)
-              cacheOperation(operation, id).map(_ -> id)
-            }
+            //if (operation.info.targetStructure == OperationStructure.Dataset && hasIndex) {
+            //if dataset is indexed we removed all dataset caches, they are no more needed
+            /*None
+          } else {*/
+            //any other saved cache is reused
+            lastCaches.remove(pipelineContent)
+            cacheOperation(operation, id).map(_ -> id)
+          //}
           case None =>
             if (
             //index is always cached
@@ -76,9 +79,12 @@ object AutoCaching {
                 //after mining it is cached
                 operation.info == OperationInfo.IndexTransformation.Mine ||
                 //last ruleset operation is cached (before action or transformation to other structure)
-                (operation.info.targetStructure == OperationStructure.Ruleset && operation.getNextOperation.exists(x => x.info.isTransforming)) ||
-                //last dataset operation is cached (before action)
-                (operation.info.targetStructure == OperationStructure.Dataset && operation.getNextOperation.exists(x => x.info.`type` == Operation.Type.Action))
+                (operation.info.targetStructure == OperationStructure.Ruleset && operation.getNextOperation.exists(x => x.info.isTransforming))// ||
+            //last dataset operation is cached (before action), cache is not created after ToDataset operation from index
+            /*(operation.info.targetStructure == OperationStructure.Dataset &&
+              Iterator.iterate(Option(operation))(_.flatMap(_.previousOperation.value)).takeWhile(_.isDefined).map(_.get).forall(_.info.sourceStructure != OperationStructure.Index) &&
+              operation.getNextOperation.exists(x => x.info.`type` == Operation.Type.Action
+            ))*/
             ) {
               val id = UUID.randomUUID().toString
               cacheOperation(operation, id).map(_ -> id)

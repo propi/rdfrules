@@ -166,7 +166,7 @@ object PipelineJsonReaders {
     new index.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
   }
 
-  implicit val infoxToDatasetReader: RootJsonReader[index.ToDataset] = (_: JsValue) => {
+  implicit def infoxToDatasetReader(implicit debugger: Debugger): RootJsonReader[index.ToDataset] = (_: JsValue) => {
     new index.ToDataset
   }
 
