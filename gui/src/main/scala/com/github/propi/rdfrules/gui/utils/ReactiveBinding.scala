@@ -4,7 +4,7 @@ import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.BindingSeq
 import org.lrng.binding.html
 import org.scalajs.dom.Node
-import org.scalajs.dom.html.Div
+import org.scalajs.dom.html.{Div, Span}
 
 import scala.collection.mutable
 
@@ -15,6 +15,9 @@ object ReactiveBinding {
 
   @html
   def empty: Binding[Div] = <div></div>
+
+  @html
+  def emptySpan: Binding[Span] = <span></span>
 
   @html
   def custom(x: Binding[Div]): Binding[Div] = <div>{x.bind}</div>

@@ -10,7 +10,7 @@ import com.thoughtworks.binding.Binding
 import org.lrng.binding.html
 import org.lrng.binding.html.NodeBinding
 import org.scalajs.dom.Event
-import org.scalajs.dom.html.Div
+import org.scalajs.dom.html.{Div, Span}
 import org.scalajs.dom.window
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
@@ -24,7 +24,8 @@ import scala.scalajs.js
 class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
                               val name: String,
                               val title: String = "Choose a file from the workspace",
-                              validator: Validator[String] = NoValidator[String]())(implicit context: Context) extends Property {
+                              validator: Validator[String] = NoValidator[String](),
+                              val summaryTitle: String = "")(implicit context: Context) extends Property {
 
   private implicit val ec: ExecutionContext = scala.scalajs.concurrent.JSExecutionContext.queue
 
@@ -141,5 +142,11 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
     }}
     </div>
   }
+
+  @html
+  final def summaryContentView: Binding[Span] = <span>{Binding.BindingInstances.map(selectedFile){
+    case Some(file) => s"${file.name} (${file.prettySize})"
+    case None => "none"
+  }.bind}</span>
 
 }

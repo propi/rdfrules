@@ -5,8 +5,12 @@ import com.github.propi.rdfrules.gui.utils.CommonValidators.GreaterThanOrEqualsT
 import com.github.propi.rdfrules.gui.{Operation, OperationInfo, Property}
 import com.thoughtworks.binding.Binding.{Constants, Var}
 import com.github.propi.rdfrules.gui.utils.StringConverters._
+import com.thoughtworks.binding.Binding
 
 abstract class CommonShrink(fromOperation: Operation, val info: OperationInfo) extends Operation {
+
+  Binding.BindingInstances.traverse()
+
   val properties: Constants[Property] = {
     val take = new DynamicElement(Constants(new FixedText[Int]("take", "Take", validator = GreaterThanOrEqualsTo[Int](0))), true)
     val drop = new DynamicElement(Constants(new FixedText[Int]("drop", "Drop", validator = GreaterThanOrEqualsTo[Int](0))), true)

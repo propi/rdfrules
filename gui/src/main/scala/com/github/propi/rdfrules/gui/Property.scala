@@ -2,9 +2,9 @@ package com.github.propi.rdfrules.gui
 
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding
 import com.thoughtworks.binding.Binding
-import com.thoughtworks.binding.Binding.Var
+import com.thoughtworks.binding.Binding.{Constant, Var, Vars}
 import org.lrng.binding.html
-import org.scalajs.dom.html.{Div, TableRow}
+import org.scalajs.dom.html.{Div, Span, TableRow}
 import org.scalajs.dom.{Event, MouseEvent}
 
 import scala.scalajs.js
@@ -16,9 +16,14 @@ trait Property {
   val name: String
   val title: String
   val descriptionVar: Var[String]
+  val summaryTitle: String
 
   val errorMsg: ReactiveBinding.Var[Option[String]] = ReactiveBinding.Var(None)
   val isHidden: Var[Boolean] = Var(false)
+
+  def hasSummary: Binding[Boolean] = Constant(summaryTitle.nonEmpty)
+
+  def summaryContentView: Binding[Span]
 
   def valueView: Binding[Div]
 
@@ -27,6 +32,18 @@ trait Property {
   def validate(): Option[String]
 
   def setValue(data: js.Dynamic): Unit
+
+  @html
+  def summaryView: Binding[Span] = {
+    <span class="property-summary">
+      <span class="title">
+        {summaryTitle}
+      </span>
+      <span class="content">
+        {summaryContentView.bind}
+      </span>
+    </span>
+  }
 
   @html
   def view: Binding[TableRow] = {

@@ -48,6 +48,8 @@ trait Operation {
 
   def getNextOperation: Option[Operation] = nextOperation.value
 
+  def getPreviousOperation: Option[Operation] = previousOperation.value
+
   def setValue(data: js.Dynamic): Unit = {
     for (prop <- properties.value) {
       val propData = data.selectDynamic(prop.name)
@@ -96,7 +98,7 @@ trait Operation {
   final def toJson(list: List[js.Any])(implicit autoCaching: AutoCachingSession = AutoCaching.Noop): List[js.Any] = {
     previousOperation.value match {
       case Some(op) =>
-        val json = js.Dynamic.literal(name = info.name, parameters = propertiesToJson)
+        val json = autoCaching.tryRevalidate(this)(op => js.Dynamic.literal(name = op.info.name, parameters = op.propertiesToJson))
         val jsonCache = autoCaching.tryCache(this).map(cache => js.Dynamic.literal(name = cache.info.name, parameters = cache.propertiesToJson))
         op.toJson(Function.chain[List[js.Any]](List(
           list => jsonCache.map(_ :: list).getOrElse(list),
@@ -185,7 +187,7 @@ trait Operation {
       <strong class="title">
         {info.title}
       </strong>
-      <span class="description"></span>
+      <span class="description">{for (property <- properties if property.hasSummary.bind) yield property.summaryView}</span>
     </div>
   }
 

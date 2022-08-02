@@ -2,23 +2,24 @@ package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Documentation.Context
 import com.github.propi.rdfrules.gui.Property
-import com.thoughtworks.binding.Binding.{Var, Vars}
 import com.thoughtworks.binding.Binding
+import com.thoughtworks.binding.Binding.{Var, Vars}
 import org.lrng.binding.html
-import org.lrng.binding.html.NodeBinding
 import org.scalajs.dom.Event
-import org.scalajs.dom.html.Div
+import org.scalajs.dom.html.{Div, Span}
 
 import scala.scalajs.js
 
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class ArrayElement(val name: String, val title: String, property: Context => Property, description: String = "")(implicit context: Context) extends Property {
+class ArrayElement private(val name: String, val title: String, property: Context => Property, val summaryTitle: String = "")(implicit context: Context) extends Property {
 
   private val groups: Vars[Property] = Vars.empty
 
   val descriptionVar: Binding.Var[String] = Var(context(title).description)
+
+  override def hasSummary: Binding[Boolean] = Binding.BindingInstances.map(groups.nonEmpty)(_ && summaryTitle.nonEmpty)
 
   def validate(): Option[String] = {
     val msg = groups.value.iterator.map(_.validate()).find(_.nonEmpty).flatten.map(x => s"There is an error within '$title' properties: $x")
@@ -41,7 +42,7 @@ class ArrayElement(val name: String, val title: String, property: Context => Pro
   }.toList: _*)
 
   @html
-  def valueView: NodeBinding[Div] = {
+  def valueView: Binding[Div] = {
     <div>
       {for (group <- groups) yield
       <div>
@@ -58,5 +59,16 @@ class ArrayElement(val name: String, val title: String, property: Context => Pro
     </a>
     </div>
   }
+
+  @html
+  final def summaryContentView: Binding[Span] = <span>
+    {for (group <- groups if group.hasSummary.bind) yield group.summaryView.bind}
+  </span>
+
+}
+
+object ArrayElement {
+
+  def apply(name: String, title: String)(property: Context => Property)(implicit context: Context) = new ArrayElement(name, title, property)
 
 }

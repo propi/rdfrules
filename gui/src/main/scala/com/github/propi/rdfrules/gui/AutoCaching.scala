@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.gui
 
+import com.github.propi.rdfrules.gui.operations.common.CommonCache
 import com.thoughtworks.binding.Binding.Var
 
 import java.util.UUID
@@ -24,6 +25,8 @@ object AutoCaching {
 
     def tryCache(operation: Operation): Option[Operation]
 
+    def tryRevalidate[T](operation: Operation)(f: Operation => T): T
+
     private[AutoCaching] def clearUnusedCaches(): Future[Boolean]
 
   }
@@ -41,6 +44,22 @@ object AutoCaching {
         case OperationStructure.Index => Some(OperationInfo.IndexTransformation.CacheIndex.buildOperation(operation, Some(cacheId)))
         case OperationStructure.Ruleset => Some(OperationInfo.RulesetTransformation.CacheRuleset.buildOperation(operation, Some(cacheId)))
         case _ => None
+      }
+    }
+
+    def tryRevalidate[T](operation: Operation)(f: Operation => T): T = {
+      //we save all transformation caches for auto revalidation
+      operation match {
+        case cache: CommonCache =>
+          val pipelineContent = stringifyOperation(cache)
+          caches.addOne(pipelineContent -> cache.getId.getOrElse(""))
+          if (lastCaches.contains(pipelineContent)) {
+            lastCaches.remove(pipelineContent)
+            f(cache)
+          } else {
+            cache.revalidated(f(_))
+          }
+        case _ => f(operation)
       }
     }
 
@@ -79,7 +98,7 @@ object AutoCaching {
                 //after mining it is cached
                 operation.info == OperationInfo.IndexTransformation.Mine ||
                 //last ruleset operation is cached (before action or transformation to other structure)
-                (operation.info.targetStructure == OperationStructure.Ruleset && operation.getNextOperation.exists(x => x.info.isTransforming))// ||
+                (operation.info.targetStructure == OperationStructure.Ruleset && operation.getNextOperation.exists(x => x.info.isTransforming)) // ||
             //last dataset operation is cached (before action), cache is not created after ToDataset operation from index
             /*(operation.info.targetStructure == OperationStructure.Dataset &&
               Iterator.iterate(Option(operation))(_.flatMap(_.previousOperation.value)).takeWhile(_.isDefined).map(_.get).forall(_.info.sourceStructure != OperationStructure.Index) &&
@@ -98,7 +117,7 @@ object AutoCaching {
     }
 
     private[AutoCaching] def clearUnusedCaches(): Future[Boolean] = {
-      Future.traverse(lastCaches.valuesIterator)(id => Endpoint.removeCache(id)).map { it =>
+      Future.traverse(lastCaches.valuesIterator)(id => if (id.isEmpty) Future.successful(true) else Endpoint.removeCache(id)).map { it =>
         lastCaches.clear()
         lastCaches.addAll(caches)
         caches.clear()
@@ -110,6 +129,8 @@ object AutoCaching {
 
   object Noop extends AutoCachingSession {
     def tryCache(operation: Operation): Option[Operation] = None
+
+    def tryRevalidate[T](operation: Operation)(f: Operation => T): T = f(operation)
 
     private[AutoCaching] def clearUnusedCaches(): Future[Boolean] = Future.successful(true)
   }
