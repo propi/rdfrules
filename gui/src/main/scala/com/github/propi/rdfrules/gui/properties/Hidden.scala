@@ -1,10 +1,12 @@
 package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Property
+import com.github.propi.rdfrules.gui.utils.ReactiveBinding
+import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.Var
 import org.lrng.binding.html
 import org.lrng.binding.html.NodeBinding
-import org.scalajs.dom.html.Div
+import org.scalajs.dom.html.{Div, Span}
 
 import scala.scalajs.js
 
@@ -12,6 +14,10 @@ import scala.scalajs.js
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
 class Hidden[T](val name: String, value: String)(implicit f: String => T, g: T => js.Any) extends Property {
+
+  val summaryTitle: String = ""
+
+  def summaryContentView: Binding[Span] = ReactiveBinding.emptySpan
 
   private var _value: String = value
 

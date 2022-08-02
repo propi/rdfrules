@@ -2,21 +2,26 @@ package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Documentation.Context
 import com.github.propi.rdfrules.gui.Property
-import com.thoughtworks.binding.Binding.{Constants, Var, Vars}
+import com.github.propi.rdfrules.gui.utils.ReactiveBinding.PimpedBindingSeq
 import com.thoughtworks.binding.Binding
+import com.thoughtworks.binding.Binding.{Constant, Constants, Var, Vars}
 import org.lrng.binding.html
 import org.lrng.binding.html.NodeBinding
 import org.scalajs.dom.Event
-import org.scalajs.dom.html.Div
+import org.scalajs.dom.html.{Div, Span}
 
 import scala.scalajs.js
 
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class DynamicGroup private(val name: String, val title: String, properties: Context => Constants[Property])(implicit context: Context) extends Property {
+class DynamicGroup private(val name: String, val title: String, val summaryTitle: String, properties: Context => Constants[Property])(implicit context: Context) extends Property {
 
   private val groups: Vars[Constants[Property]] = Vars.empty
+
+  override def hasSummary: Binding[Boolean] = {
+    Binding.BindingInstances.ifM(Constant(summaryTitle.isEmpty), Constant(false), groups.existsBinding(_.existsBinding(_.hasSummary)))
+  }
 
   val descriptionVar: Binding.Var[String] = Var(context(title).description)
 
@@ -58,6 +63,12 @@ class DynamicGroup private(val name: String, val title: String, properties: Cont
     </div>
   }
 
+  @html
+  def summaryContentView: Binding[Span] = <span>
+    {for (group <- groups) yield <span class="group">
+      {for (property <- group if property.hasSummary.bind) yield property.summaryView.bind}
+    </span>}
+  </span>
 }
 
 object DynamicGroup {

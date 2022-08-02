@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.gui.utils
 
 import com.thoughtworks.binding.Binding
-import com.thoughtworks.binding.Binding.BindingSeq
+import com.thoughtworks.binding.Binding.{BindingSeq, Constant}
 import org.lrng.binding.html
 import org.scalajs.dom.Node
 import org.scalajs.dom.html.{Div, Span}
@@ -21,6 +21,18 @@ object ReactiveBinding {
 
   @html
   def custom(x: Binding[Div]): Binding[Div] = <div>{x.bind}</div>
+
+  implicit class PimpedBindingSeq[T](val x: BindingSeq[T]) extends AnyVal {
+    def exists(f: T => Boolean): Binding[Boolean] = Binding.BindingInstances.map(x.all)(_.exists(f))
+
+    def existsBinding(f: T => Binding[Boolean]): Binding[Boolean] = foldLeftBinding(Constant(false))((x, y) => Binding.BindingInstances.apply2(x, f(y))(_ || _))
+
+    def foldLeft[A](zero: A)(f: (A, T) => A): Binding[A] = Binding.BindingInstances.map(x.all)(_.foldLeft(zero)(f))
+
+    def foldLeftBinding[A](zero: Binding[A])(f: (Binding[A], T) => Binding[A]): Binding[A] = Binding.BindingInstances.bind(x.all)(_.foldLeft(zero)(f))
+
+    def reduceLeftOption[A >: T](f: (A, A) => A): Binding[Option[T]] = Binding.BindingInstances.map(x.all)(_.reduceLeftOption(f))
+  }
 
   trait Listener[T] {
     def changed(oldValue: T, newValue: T): Unit
