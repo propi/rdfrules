@@ -8,6 +8,7 @@ import com.thoughtworks.binding.Binding.{Constant, Var, Vars}
 import org.lrng.binding.html
 import org.scalajs.dom.Event
 import org.scalajs.dom.html.{Div, Span}
+import com.thoughtworks.binding.Binding.BindingInstances.monadSyntax._
 
 import scala.scalajs.js
 
@@ -20,9 +21,7 @@ class ArrayElement private(val name: String, val title: String, val summaryTitle
 
   val descriptionVar: Binding.Var[String] = Var(context(title).description)
 
-  override def hasSummary: Binding[Boolean] = {
-    Binding.BindingInstances.ifM(Constant(summaryTitle.isEmpty), Constant(false), groups.existsBinding(_.hasSummary))
-  }
+  override def hasSummary: Binding[Boolean] = Constant(summaryTitle.isEmpty).ifM(Constant(false), groups.existsBinding(_.hasSummary))
 
   def validate(): Option[String] = {
     val msg = groups.value.iterator.map(_.validate()).find(_.nonEmpty).flatten.map(x => s"There is an error within '$title' properties: $x")
@@ -72,6 +71,6 @@ class ArrayElement private(val name: String, val title: String, val summaryTitle
 
 object ArrayElement {
 
-  def apply(name: String, title: String)(property: Context => Property)(implicit context: Context) = new ArrayElement(name, title, property)
+  def apply(name: String, title: String, summaryTitle: String = "")(property: Context => Property)(implicit context: Context) = new ArrayElement(name, title, summaryTitle, property)
 
 }

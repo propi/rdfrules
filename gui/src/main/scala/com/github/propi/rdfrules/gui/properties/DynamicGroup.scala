@@ -9,6 +9,7 @@ import org.lrng.binding.html
 import org.lrng.binding.html.NodeBinding
 import org.scalajs.dom.Event
 import org.scalajs.dom.html.{Div, Span}
+import com.thoughtworks.binding.Binding.BindingInstances.monadSyntax._
 
 import scala.scalajs.js
 
@@ -20,7 +21,7 @@ class DynamicGroup private(val name: String, val title: String, val summaryTitle
   private val groups: Vars[Constants[Property]] = Vars.empty
 
   override def hasSummary: Binding[Boolean] = {
-    Binding.BindingInstances.ifM(Constant(summaryTitle.isEmpty), Constant(false), groups.existsBinding(_.existsBinding(_.hasSummary)))
+    Constant(summaryTitle.isEmpty).ifM(Constant(false), groups.existsBinding(_.existsBinding(_.hasSummary)))
   }
 
   val descriptionVar: Binding.Var[String] = Var(context(title).description)
@@ -73,6 +74,6 @@ class DynamicGroup private(val name: String, val title: String, val summaryTitle
 
 object DynamicGroup {
 
-  def apply(name: String, title: String)(properties: Context => Constants[Property])(implicit context: Context): DynamicGroup = new DynamicGroup(name, title, properties)
+  def apply(name: String, title: String, summaryTitle: String = "")(properties: Context => Constants[Property])(implicit context: Context): DynamicGroup = new DynamicGroup(name, title, summaryTitle, properties)
 
 }

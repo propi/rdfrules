@@ -164,6 +164,35 @@ main {
   margin-bottom: 1.5em;
   cursor: default;
 }
+.canvas .operations .operation .description {
+  display: flex;
+  font-size: 0.7em;
+  font-style: italic;
+  justify-content: center;
+}
+.canvas .operations .operation .description .property-summary {
+  display: flex;
+  justify-content: center;
+  margin-right: 0.2em;
+}
+.canvas .operations .operation .description .property-summary::after {
+  content: ',';
+}
+.canvas .operations .operation .description .property-summary:last-child {
+  margin-right: 0;
+}
+.canvas .operations .operation .description .property-summary:last-child::after {
+  content: '';
+}
+.canvas .operations .operation .description .property-summary span {
+  display: flex;
+}
+.canvas .operations .operation .description .property-summary .ps-title {
+  margin-right: 0.05em;
+}
+.canvas .operations .operation .description .property-summary .ps-title::after {
+  content: ':';
+}
 .canvas .operations .operation .action-buttons {
   cursor: pointer;
   position: absolute;
@@ -228,11 +257,18 @@ main {
 .canvas .operations .operation.has-next .add {
   display: block;
   font-size: 1em;
-  height: 1.3em;
-  bottom: -1.45em;
+  height: 1.1em;
+  bottom: -1.35em;
   width: 100%;
   background: url(../images/arrow-down.png) no-repeat center;
   background-size: contain;
+  /*&::after {
+          background: url(../images/arrow-down.png) no-repeat center;
+          background-size: contain;
+          content: '';
+          width: 46px;
+          height:46px;
+        }*/
 }
 .canvas .operations .operation.has-next .add i {
   display: none;

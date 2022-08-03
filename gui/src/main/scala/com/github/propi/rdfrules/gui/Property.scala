@@ -36,10 +36,10 @@ trait Property {
   @html
   def summaryView: Binding[Span] = {
     <span class="property-summary">
-      <span class="title">
+      <span class="ps-title">
         {summaryTitle}
       </span>
-      <span class="content">
+      <span class="ps-content">
         {summaryContentView.bind}
       </span>
     </span>

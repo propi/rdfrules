@@ -14,6 +14,7 @@ import org.scalajs.dom.html.{Div, Span}
 import org.scalajs.dom.window
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
+import com.thoughtworks.binding.Binding.BindingInstances.monadSyntax._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
@@ -144,9 +145,11 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
   }
 
   @html
-  final def summaryContentView: Binding[Span] = <span>{Binding.BindingInstances.map(selectedFile){
-    case Some(file) => s"${file.name} (${file.prettySize})"
-    case None => "none"
-  }.bind}</span>
+  final def summaryContentView: Binding[Span] = <span>
+    {selectedFile.map {
+      case Some(file) => s"${file.name} (${file.prettySize})"
+      case None => "none"
+    }.bind}
+  </span>
 
 }

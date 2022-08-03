@@ -165,6 +165,42 @@ main {
       margin-bottom: 1.5em;
       cursor: default;
 
+      .description {
+        display: flex;
+        font-size: 0.7em;
+        font-style: italic;
+        justify-content: center;
+
+        .property-summary {
+          display: flex;
+          justify-content: center;
+          margin-right: 0.2em;
+
+          &::after {
+            content: ',';
+          }
+
+          &:last-child {
+            margin-right: 0;
+            &::after {
+              content: '';
+            }
+          }
+
+          span {
+            display: flex;
+          }
+
+          .ps-title {
+            margin-right: 0.05em;
+
+            &::after {
+              content: ':';
+            }
+          }
+        }
+      }
+
       .action-buttons {
         cursor: pointer;
         position: absolute;
@@ -225,11 +261,19 @@ main {
       .add {
         display: block;
         font-size: 1em;
-        height: 1.3em;
-        bottom: -1.45em;
+        height: 1.1em;
+        bottom: -1.35em;
         width: 100%;
         background: url(../images/arrow-down.png) no-repeat center;
         background-size: contain;
+
+        /*&::after {
+          background: url(../images/arrow-down.png) no-repeat center;
+          background-size: contain;
+          content: '';
+          width: 46px;
+          height:46px;
+        }*/
 
         i {
           display: none;

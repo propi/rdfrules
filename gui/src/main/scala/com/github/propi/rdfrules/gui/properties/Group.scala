@@ -8,6 +8,7 @@ import com.thoughtworks.binding.Binding.{Constant, Constants, Var}
 import org.lrng.binding.html
 import org.lrng.binding.html.NodeBinding
 import org.scalajs.dom.html.{Div, Span}
+import com.thoughtworks.binding.Binding.BindingInstances.monadSyntax._
 
 import scala.scalajs.js
 
@@ -20,9 +21,7 @@ class Group private(val name: String, val title: String, val summaryTitle: Strin
 
   val descriptionVar: Binding.Var[String] = Var(context(title).description)
 
-  override def hasSummary: Binding[Boolean] = {
-    Binding.BindingInstances.ifM(Constant(summaryTitle.isEmpty), Constant(false), properties.existsBinding(_.hasSummary))
-  }
+  override def hasSummary: Binding[Boolean] = Constant(summaryTitle.isEmpty).ifM(Constant(false), properties.existsBinding(_.hasSummary))
 
   def validate(): Option[String] = properties.value.iterator.map(_.validate()).find(_.nonEmpty).flatten.map(x => s"There is an error within '$title' properties: $x")
 
@@ -54,6 +53,6 @@ class Group private(val name: String, val title: String, val summaryTitle: Strin
 
 object Group {
 
-  def apply(name: String, title: String)(propertiesBuilder: Context => Constants[Property])(implicit context: Context): Group = new Group(name, title, propertiesBuilder)
+  def apply(name: String, title: String, summaryTitle: String = "")(propertiesBuilder: Context => Constants[Property])(implicit context: Context): Group = new Group(name, title, summaryTitle, propertiesBuilder)
 
 }

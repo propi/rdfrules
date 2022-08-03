@@ -2,20 +2,17 @@ package com.github.propi.rdfrules.gui.operations.common
 
 import com.github.propi.rdfrules.gui.properties._
 import com.github.propi.rdfrules.gui.utils.CommonValidators.GreaterThanOrEqualsTo
+import com.github.propi.rdfrules.gui.utils.StringConverters._
 import com.github.propi.rdfrules.gui.{Operation, OperationInfo, Property}
 import com.thoughtworks.binding.Binding.{Constants, Var}
-import com.github.propi.rdfrules.gui.utils.StringConverters._
-import com.thoughtworks.binding.Binding
 
 abstract class CommonShrink(fromOperation: Operation, val info: OperationInfo) extends Operation {
 
-  Binding.BindingInstances.traverse()
-
   val properties: Constants[Property] = {
-    val take = new DynamicElement(Constants(new FixedText[Int]("take", "Take", validator = GreaterThanOrEqualsTo[Int](0))), true)
-    val drop = new DynamicElement(Constants(new FixedText[Int]("drop", "Drop", validator = GreaterThanOrEqualsTo[Int](0))), true)
-    val start = new DynamicElement(Constants(new FixedText[Int]("start", "From", validator = GreaterThanOrEqualsTo[Int](0))), true)
-    val end = new DynamicElement(Constants(new FixedText[Int]("end", "Until", validator = GreaterThanOrEqualsTo[Int](0))), true)
+    val take = new DynamicElement(Constants(new FixedText[Int]("take", "Take", validator = GreaterThanOrEqualsTo[Int](0), summaryTitle = "take")), true)
+    val drop = new DynamicElement(Constants(new FixedText[Int]("drop", "Drop", validator = GreaterThanOrEqualsTo[Int](0), summaryTitle = "drop")), true)
+    val start = new DynamicElement(Constants(new FixedText[Int]("start", "From", validator = GreaterThanOrEqualsTo[Int](0), summaryTitle = "start")), true)
+    val end = new DynamicElement(Constants(new FixedText[Int]("end", "Until", validator = GreaterThanOrEqualsTo[Int](0), summaryTitle = "end")), true)
 
     def activeStrategy(hasTake: Boolean, hasDrop: Boolean, hasSlice: Boolean): Unit = {
       if (hasSlice) {

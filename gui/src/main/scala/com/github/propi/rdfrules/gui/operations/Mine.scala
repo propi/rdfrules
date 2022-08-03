@@ -2,12 +2,15 @@ package com.github.propi.rdfrules.gui.operations
 
 import com.github.propi.rdfrules.gui.properties._
 import com.github.propi.rdfrules.gui.utils.CommonValidators.{GreaterThanOrEqualsTo, LowerThanOrEqualsTo, NonEmpty, RegExp}
+import com.github.propi.rdfrules.gui.utils.ReactiveBinding
+import com.github.propi.rdfrules.gui.utils.ReactiveBinding.PimpedBindingSeq
 import com.github.propi.rdfrules.gui.utils.StringConverters._
 import com.github.propi.rdfrules.gui.{Operation, OperationInfo, Property}
 import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.{Constants, Var}
 import org.lrng.binding.html
-import org.scalajs.dom.html.Div
+import org.scalajs.dom.html.{Div, Span}
+import com.thoughtworks.binding.Binding.BindingInstances.monadSyntax._
 
 import scala.scalajs.js
 
@@ -20,13 +23,14 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
     val name: String = "ruleConsumers"
     val title: String = "Rule consumers"
     val descriptionVar: Var[String] = Var(context(title).description)
+    val summaryTitle: String = ""
 
     private var hasTopK: Boolean = false
     private var hasOnDisk: Boolean = false
     private var selectedFormat: String = "ndjson"
 
-    private val properties = context.use(title){ implicit context =>
-      val k = new DynamicElement(Constants(new FixedText[Double]("k", "k-value", validator = GreaterThanOrEqualsTo[Int](1))), hidden = true)
+    private val properties = context.use(title) { implicit context =>
+      val k = new DynamicElement(Constants(new FixedText[Double]("k", "k-value", validator = GreaterThanOrEqualsTo[Int](1), summaryTitle = "top")), hidden = true)
       val allowOverflow = new DynamicElement(Constants(new Checkbox("allowOverflow", "Allow overflow")), hidden = true)
       val file = new DynamicElement(Constants(new FixedText[String]("file", "Export path", validator = NonEmpty)), hidden = true)
       val format = new DynamicElement(Constants(new Select("format", "Export rules format", Constants("txt" -> "Text (unparsable)", "ndjson" -> "streaming NDJSON (as model - parsable)"), Some(selectedFormat), selectedFormat = _)), hidden = true)
@@ -57,6 +61,14 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
         format
       )
     }
+
+    private val summaryProperty = properties.findBinding(_.hasSummary)
+
+    override def hasSummary: Binding[Boolean] = summaryProperty.map(_.nonEmpty)
+
+    def summaryContentView: Binding[Span] = summaryProperty.flatMap(_.map(_.summaryView).getOrElse(ReactiveBinding.emptySpan))
+
+    override def summaryView: Binding[Span] = summaryContentView
 
     @html
     def valueView: Binding[Div] = <div class="properties sub">

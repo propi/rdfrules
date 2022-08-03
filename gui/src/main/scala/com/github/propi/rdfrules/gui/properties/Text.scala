@@ -4,11 +4,12 @@ import com.github.propi.rdfrules.gui.Documentation.Context
 import com.github.propi.rdfrules.gui.Property
 import com.github.propi.rdfrules.gui.utils.Validate._
 import com.thoughtworks.binding.Binding
-import com.thoughtworks.binding.Binding.Var
+import com.thoughtworks.binding.Binding.{Constant, Var}
 import org.lrng.binding.html
 import org.scalajs.dom.Event
 import org.scalajs.dom.html.{Div, Span}
 import org.scalajs.dom.raw.HTMLInputElement
+import com.thoughtworks.binding.Binding.BindingInstances.monadSyntax._
 
 import scala.scalajs.js
 
@@ -17,7 +18,7 @@ import scala.scalajs.js
   */
 abstract class Text(val name: String, val title: String, default: String, validator: Validator[String], val summaryTitle: String)(implicit context: Context) extends Property {
 
-  protected val text: Var[String] = Var(default)
+  private val text: Var[String] = Var(default)
 
   val descriptionVar: Binding.Var[String] = Var(context(title).description)
 
@@ -46,4 +47,6 @@ abstract class Text(val name: String, val title: String, default: String, valida
   final def summaryContentView: Binding[Span] = <span>
     {text.bind}
   </span>
+
+  override def hasSummary: Binding[Boolean] = Constant(summaryTitle.isEmpty).ifM(Constant(false), text.map(_.trim.nonEmpty))
 }

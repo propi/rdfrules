@@ -6,6 +6,7 @@ import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.{Constant, Constants, Var}
 import org.lrng.binding.html
 import org.scalajs.dom.html.{Div, Span, TableRow}
+import com.thoughtworks.binding.Binding.BindingInstances.monadSyntax._
 
 import scala.scalajs.js
 
@@ -38,9 +39,9 @@ class DynamicElement(properties: Constants[Property], hidden: Boolean = false) e
     }
   }
 
-  override def hasSummary: Binding[Boolean] = Binding.BindingInstances.bind(active)(x => if (x >= 0) properties.value(x).hasSummary else Constant(false))
+  override def hasSummary: Binding[Boolean] = active.flatMap(x => if (x >= 0) properties.value(x).hasSummary else Constant(false))
 
-  def summaryContentView: Binding[Span] = Binding.BindingInstances.bind(active)(x => if (x >= 0) properties.value(x).summaryView else ReactiveBinding.emptySpan)
+  def summaryContentView: Binding[Span] = active.flatMap(x => if (x >= 0) properties.value(x).summaryView else ReactiveBinding.emptySpan)
 
   override def summaryView: Binding[Span] = summaryContentView
 

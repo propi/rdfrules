@@ -2,10 +2,12 @@ package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Property
 import com.github.propi.rdfrules.gui.results.Rules
+import com.github.propi.rdfrules.gui.utils.ReactiveBinding
+import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.Var
 import org.lrng.binding.html
 import org.lrng.binding.html.NodeBinding
-import org.scalajs.dom.html.Div
+import org.scalajs.dom.html.{Div, Span}
 
 import scala.scalajs.js
 
@@ -19,6 +21,9 @@ class Rule extends Property {
   val name: String = "rule"
   val title: String = "Rule"
   val descriptionVar: Var[String] = Var("")
+  val summaryTitle: String = ""
+
+  def summaryContentView: Binding[Span] = ReactiveBinding.emptySpan
 
   def setRule(rule: Rules.Rule): Unit = this.rule.value = Some(rule)
 

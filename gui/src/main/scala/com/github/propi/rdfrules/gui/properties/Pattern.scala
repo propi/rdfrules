@@ -320,7 +320,7 @@ object Pattern {
     def validate(x: String): Try[String] = parseRule(x).map(_ => x)
   }
 
-  private class PatternInput(implicit context: Context) extends Text("pattern", "Pattern", "", RuleValidator) {
+  private class PatternInput(implicit context: Context) extends Text("pattern", "Pattern", "", RuleValidator, "") {
     def toJson: js.Any = parseRule(getText).map(_.toJson).getOrElse(js.undefined)
 
     override def setValue(data: js.Dynamic): Unit = {

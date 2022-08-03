@@ -9,6 +9,7 @@ import org.lrng.binding.html.NodeBinding
 import org.scalajs.dom.Event
 import org.scalajs.dom.html.{Div, Span}
 import org.scalajs.dom.raw.HTMLInputElement
+import com.thoughtworks.binding.Binding.BindingInstances.monadSyntax._
 
 import scala.scalajs.js
 
@@ -35,12 +36,12 @@ class Checkbox(val name: String, val title: String, default: Boolean = false, on
   def toJson: js.Any = isChecked
 
   @html
-  final def summaryContentView: Binding[Span] = <span>{Binding.BindingInstances.map(_isChecked)(x => if (x) "yes" else "no").bind}</span>
+  final def summaryContentView: Binding[Span] = <span>{_isChecked.map(x => if (x) "yes" else "no").bind}</span>
 
   @html
   final def valueView: NodeBinding[Div] = {
     <div>
-      <input type="checkbox" class="checkbox" checked={_isChecked} onchange={e: Event =>
+      <input type="checkbox" class="checkbox" checked={_isChecked.bind} onchange={e: Event =>
       _isChecked.value = e.target.asInstanceOf[HTMLInputElement].checked
       onChecked(_isChecked.value)}/>
     </div>

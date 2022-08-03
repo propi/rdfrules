@@ -1,9 +1,9 @@
 package com.github.propi.rdfrules.gui.utils
 
 import com.thoughtworks.binding.Binding
+import com.thoughtworks.binding.Binding.BindingInstances.monadSyntax._
 import com.thoughtworks.binding.Binding.{BindingSeq, Constant}
 import org.lrng.binding.html
-import org.scalajs.dom.Node
 import org.scalajs.dom.html.{Div, Span}
 
 import scala.collection.mutable
@@ -20,18 +20,24 @@ object ReactiveBinding {
   def emptySpan: Binding[Span] = <span></span>
 
   @html
-  def custom(x: Binding[Div]): Binding[Div] = <div>{x.bind}</div>
+  def custom(x: Binding[Div]): Binding[Div] = <div>
+    {x.bind}
+  </div>
 
   implicit class PimpedBindingSeq[T](val x: BindingSeq[T]) extends AnyVal {
-    def exists(f: T => Boolean): Binding[Boolean] = Binding.BindingInstances.map(x.all)(_.exists(f))
+    def exists(f: T => Boolean): Binding[Boolean] = x.all.map(_.exists(f))
 
     def existsBinding(f: T => Binding[Boolean]): Binding[Boolean] = foldLeftBinding(Constant(false))((x, y) => Binding.BindingInstances.apply2(x, f(y))(_ || _))
 
-    def foldLeft[A](zero: A)(f: (A, T) => A): Binding[A] = Binding.BindingInstances.map(x.all)(_.foldLeft(zero)(f))
+    def find(f: T => Boolean): Binding[Option[T]] = x.all.map(_.find(f))
 
-    def foldLeftBinding[A](zero: Binding[A])(f: (Binding[A], T) => Binding[A]): Binding[A] = Binding.BindingInstances.bind(x.all)(_.foldLeft(zero)(f))
+    def findBinding(f: T => Binding[Boolean]): Binding[Option[T]] = foldLeftBinding(Constant(Option.empty[T]))((x, y) => Binding.BindingInstances.apply2(x, f(y))((x, yr) => x.orElse(if (yr) Some(y) else None)))
 
-    def reduceLeftOption[A >: T](f: (A, A) => A): Binding[Option[T]] = Binding.BindingInstances.map(x.all)(_.reduceLeftOption(f))
+    def foldLeft[A](zero: A)(f: (A, T) => A): Binding[A] = x.all.map(_.foldLeft(zero)(f))
+
+    def foldLeftBinding[A](zero: Binding[A])(f: (Binding[A], T) => Binding[A]): Binding[A] = x.all.flatMap(_.foldLeft(zero)(f))
+
+    def reduceLeftOption[A >: T](f: (A, A) => A): Binding[Option[A]] = x.all.map(_.reduceLeftOption(f))
   }
 
   trait Listener[T] {
