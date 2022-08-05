@@ -2,7 +2,8 @@ package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Documentation.Context
 import com.github.propi.rdfrules.gui.Property
-import com.thoughtworks.binding.Binding.Var
+import com.github.propi.rdfrules.gui.utils.ReactiveBinding
+import com.thoughtworks.binding.Binding.{Constant, Var}
 import com.thoughtworks.binding.Binding
 import org.lrng.binding.html
 import org.lrng.binding.html.NodeBinding
@@ -35,8 +36,16 @@ class Checkbox(val name: String, val title: String, default: Boolean = false, on
 
   def toJson: js.Any = isChecked
 
+  override def hasSummary: Binding[Boolean] = Constant(summaryTitle.isEmpty).ifM(Constant(false), _isChecked)
+
   @html
-  final def summaryContentView: Binding[Span] = <span>{_isChecked.map(x => if (x) "yes" else "no").bind}</span>
+  override def summaryView: Binding[Span] = <span class="property-summary">
+    <span class="ps-title novalue">
+      {summaryTitle}
+    </span>
+  </span>
+
+  final def summaryContentView: Binding[Span] = ReactiveBinding.emptySpan
 
   @html
   final def valueView: NodeBinding[Div] = {

@@ -20,9 +20,9 @@ class Discretize(fromOperation: Operation, val info: OperationInfo) extends Oper
       new OptionalText[String]("object", "Object", validator = RegExp("[><]=? \\d+(\\.\\d+)?|[\\[\\(]\\d+(\\.\\d+)?;\\d+(\\.\\d+)?[\\]\\)]", true)),
       new OptionalText[String]("graph", "Graph", validator = RegExp("<.*>|\\w+:.*", true)),
       new Checkbox("inverse", "Negation"),
-      Group("task", "Strategy") { implicit context =>
-        val bins = context.use("Equidistance or Equifrequency")(implicit context => new DynamicElement(Constants(new FixedText[Int]("bins", "Number of bins", validator = GreaterThan[Int](0)))))
-        val support = context.use("Equisize")(implicit context => new DynamicElement(Constants(new FixedText[Double]("support", "Min support", validator = GreaterThanOrEqualsTo(0.0).map[String] & LowerThanOrEqualsTo(1.0).map[String]))))
+      Group("task", "Strategy", "strategy") { implicit context =>
+        val bins = context.use("Equidistance or Equifrequency")(implicit context => new DynamicElement(Constants(new FixedText[Int]("bins", "Number of bins", validator = GreaterThan[Int](0))), true))
+        val support = context.use("Equisize")(implicit context => new DynamicElement(Constants(new FixedText[Double]("support", "Min support", validator = GreaterThanOrEqualsTo(0.0).map[String] & LowerThanOrEqualsTo(1.0).map[String])), true))
 
         def activeStrategy(hasBins: Boolean, hasSupport: Boolean): Unit = {
           if (hasBins) bins.setElement(0) else bins.setElement(-1)
@@ -32,11 +32,13 @@ class Discretize(fromOperation: Operation, val info: OperationInfo) extends Oper
         Constants(
           new Select("name", "Name",
             Constants("EquidistanceDiscretizationTask" -> "Equidistance", "EquifrequencyDiscretizationTask" -> "Equifrequency", "EquisizeDiscretizationTask" -> "Equisize"),
-            onSelect = {
+            Some("EquidistanceDiscretizationTask"),
+            {
               case "EquisizeDiscretizationTask" => activeStrategy(false, true)
               case "EquidistanceDiscretizationTask" | "EquifrequencyDiscretizationTask" => activeStrategy(true, false)
               case _ => activeStrategy(false, false)
-            }
+            },
+            " ",
           ),
           bins,
           support

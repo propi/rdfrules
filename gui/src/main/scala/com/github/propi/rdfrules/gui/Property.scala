@@ -34,16 +34,17 @@ trait Property {
   def setValue(data: js.Dynamic): Unit
 
   @html
-  def summaryView: Binding[Span] = {
-    <span class="property-summary">
+  def summaryView: Binding[Span] = <span class="property-summary">
+    {if (summaryTitle == " ") {
+      <!-- empty content -->
+    } else {
       <span class="ps-title">
         {summaryTitle}
       </span>
-      <span class="ps-content">
-        {summaryContentView.bind}
-      </span>
+    }}<span class="ps-content">
+      {summaryContentView.bind}
     </span>
-  }
+  </span>
 
   @html
   def view: Binding[TableRow] = {

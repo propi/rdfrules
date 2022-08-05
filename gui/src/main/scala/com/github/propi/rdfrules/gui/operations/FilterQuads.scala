@@ -10,13 +10,13 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
   */
 class FilterQuads(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
-    DynamicGroup("or", "Filter by (logical OR)") { implicit context =>
+    DynamicGroup("or", "Filter by (logical OR)", "by") { implicit context =>
       Constants(
-        new OptionalText[String]("subject", "Subject", validator = RegExp("<.*>|.*:.*", true)),
-        new OptionalText[String]("predicate", "Predicate", validator = RegExp("<.*>|.*:.*", true)),
-        new OptionalText[String]("object", "Object"),
-        new OptionalText[String]("graph", "Graph", validator = RegExp("<.*>|.*:.*", true)),
-        new Checkbox("inverse", "Negation")
+        new OptionalText[String]("subject", "Subject", validator = RegExp("<.*>|.*:.*", true), summaryTitle = "subject"),
+        new OptionalText[String]("predicate", "Predicate", validator = RegExp("<.*>|.*:.*", true), summaryTitle = "predicate"),
+        new OptionalText[String]("object", "Object", summaryTitle = "object"),
+        new OptionalText[String]("graph", "Graph", validator = RegExp("<.*>|.*:.*", true), summaryTitle = "graph"),
+        new Checkbox("inverse", "Negation", summaryTitle = "negated")
       )
     }
   )

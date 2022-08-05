@@ -29,6 +29,8 @@ class Select(val name: String, val title: String, items: Constants[(String, Stri
   }
   private val selectedItemLabel = preparedItems.findBinding(x => selectedItem.map(_.contains(x._1))).map(_.map(_._2).getOrElse(""))
 
+  default.foreach(onSelect)
+
   override def hasSummary: Binding[Boolean] = Constant(summaryTitle.isEmpty).ifM(Constant(false), selectedItem.map(_.nonEmpty))
 
   def validate(): Option[String] = None
@@ -45,7 +47,9 @@ class Select(val name: String, val title: String, items: Constants[(String, Stri
   }
 
   @html
-  final def summaryContentView: Binding[Span] = <span>{selectedItemLabel.bind}</span>
+  final def summaryContentView: Binding[Span] = <span>
+    {selectedItemLabel.bind}
+  </span>
 
   @html
   final def valueView: NodeBinding[Div] = {

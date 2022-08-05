@@ -5,7 +5,7 @@ import com.github.propi.rdfrules.gui.Endpoint.UploadProgress
 import com.github.propi.rdfrules.gui.{Property, Workspace}
 import com.github.propi.rdfrules.gui.Workspace.FileValue
 import com.github.propi.rdfrules.gui.utils.Validate.{NoValidator, Validator, _}
-import com.thoughtworks.binding.Binding.Var
+import com.thoughtworks.binding.Binding.{Constant, Var}
 import com.thoughtworks.binding.Binding
 import org.lrng.binding.html
 import org.lrng.binding.html.NodeBinding
@@ -30,7 +30,18 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
 
   private implicit val ec: ExecutionContext = scala.scalajs.concurrent.JSExecutionContext.queue
 
-  files.foreach(x => loadedFiles.value = Some(x))
+  private def processLoadedFiles(workspace: Workspace.FileValue.Directory): Unit = {
+    loadedFiles.value = Some(workspace)
+    for {
+      _selectedFile <- selectedFile.value
+      mappedFile <- workspace.find(_selectedFile.path)
+    } {
+      selectedFile.value = None
+      selectedFile.value = Some(mappedFile)
+    }
+  }
+
+  files.foreach(processLoadedFiles)
 
   private val loadedFiles: Var[Option[FileValue.Directory]] = Var(None)
   private val progressBar: Var[UploadProgress] = Var(UploadProgress(0.0, None))
@@ -40,7 +51,7 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
 
   def setValue(data: js.Dynamic): Unit = {
     val path = data.asInstanceOf[String]
-    selectedFile.value = Some(FileValue.File(path.replaceFirst(".*/", ""), path)())
+    selectedFile.value = loadedFiles.value.flatMap(_.find(path)).orElse(Some(FileValue.File(path.replaceFirst(".*/", ""), path)()))
   }
 
   def getSelectedFile: Option[FileValue.File] = selectedFile.value
@@ -58,7 +69,7 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
 
   private def reload(): Unit = {
     loadedFiles.value = None
-    Workspace.loadFiles.foreach(x => loadedFiles.value = Some(x))
+    Workspace.loadFiles.foreach(processLoadedFiles)
   }
 
   private def uploadToDirectory(directory: FileValue.Directory): Unit = {
@@ -143,6 +154,8 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
     }}
     </div>
   }
+
+  override def hasSummary: Binding[Boolean] = Constant(summaryTitle.isEmpty).ifM(Constant(false), selectedFile.map(_.isDefined))
 
   @html
   final def summaryContentView: Binding[Span] = <span>

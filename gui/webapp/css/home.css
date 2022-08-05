@@ -169,6 +169,18 @@ main {
   font-size: 0.7em;
   font-style: italic;
   justify-content: center;
+  flex-wrap: wrap;
+}
+.canvas .operations .operation .description .group {
+  flex-wrap: wrap;
+}
+.canvas .operations .operation .description .dynamic-group {
+  flex-wrap: wrap;
+  gap: 0.2em;
+}
+.canvas .operations .operation .description .dynamic-group .group {
+  padding: 0 0.2em;
+  width: 100%;
 }
 .canvas .operations .operation .description .property-summary {
   display: flex;
@@ -192,6 +204,12 @@ main {
 }
 .canvas .operations .operation .description .property-summary .ps-title::after {
   content: ':';
+}
+.canvas .operations .operation .description .property-summary .ps-title.novalue {
+  margin-right: 0;
+}
+.canvas .operations .operation .description .property-summary .ps-title.novalue::after {
+  content: '';
 }
 .canvas .operations .operation .action-buttons {
   cursor: pointer;

@@ -170,6 +170,21 @@ main {
         font-size: 0.7em;
         font-style: italic;
         justify-content: center;
+        flex-wrap: wrap;
+
+        .group {
+          flex-wrap: wrap;
+        }
+
+        .dynamic-group {
+          flex-wrap: wrap;
+          gap: 0.2em;
+
+          .group {
+            padding: 0 0.2em;
+            width: 100%;
+          }
+        }
 
         .property-summary {
           display: flex;
@@ -182,6 +197,7 @@ main {
 
           &:last-child {
             margin-right: 0;
+
             &::after {
               content: '';
             }
@@ -196,6 +212,14 @@ main {
 
             &::after {
               content: ':';
+            }
+
+            &.novalue {
+              margin-right: 0;
+
+              &::after {
+                content: '';
+              }
             }
           }
         }

@@ -32,7 +32,13 @@ object Workspace {
       def prettySize: String = humanReadableByteSize(size)
     }
 
-    case class Directory(name: String, path: String, writable: Boolean, files: Constants[FileValue]) extends FileValue
+    case class Directory(name: String, path: String, writable: Boolean, files: Constants[FileValue]) extends FileValue {
+      def find(path: String): Option[File] = files.value.view.flatMap {
+        case f: File if path == f.path => Some(f)
+        case f: Directory if path.startsWith(f.path) => f.find(path)
+        case _ => None
+      }.headOption
+    }
 
   }
 

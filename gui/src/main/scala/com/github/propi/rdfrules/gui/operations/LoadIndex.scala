@@ -10,7 +10,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
   */
 class LoadIndex(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
-    new ChooseFileFromWorkspace(Workspace.loadFiles, "path", validator = NonEmpty),
+    new ChooseFileFromWorkspace(Workspace.loadFiles, "path", validator = NonEmpty, summaryTitle = "file"),
     new Checkbox("partially", "Partial loading", false)
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))

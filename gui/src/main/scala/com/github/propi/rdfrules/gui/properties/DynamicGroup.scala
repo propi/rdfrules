@@ -65,7 +65,7 @@ class DynamicGroup private(val name: String, val title: String, val summaryTitle
   }
 
   @html
-  def summaryContentView: Binding[Span] = <span>
+  def summaryContentView: Binding[Span] = <span class="dynamic-group">
     {for (group <- groups) yield <span class="group">
       {for (property <- group if property.hasSummary.bind) yield property.summaryView.bind}
     </span>}
