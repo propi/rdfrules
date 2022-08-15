@@ -6,6 +6,4 @@ import com.github.propi.rdfrules.gui.{Operation, OperationInfo}
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class CacheIndex(fromOperation: Operation) extends CommonActionCache(fromOperation) {
-  val info: OperationInfo = OperationInfo.CacheIndexAction
-}
+class CacheIndex(fromOperation: Operation) extends CommonActionCache(fromOperation, OperationInfo.CacheIndexAction)

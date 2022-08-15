@@ -10,7 +10,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
   */
 class LoadPrediction(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
-    new ChooseFileFromWorkspace(Workspace.loadFiles, "path", validator = NonEmpty)
+    new ChooseFileFromWorkspace(Workspace.loadFiles, false, "path", validator = NonEmpty)
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 }

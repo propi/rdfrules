@@ -442,12 +442,16 @@ main {
 }
 .properties .choose-file .directory .name {
   font-style: italic;
+  display: flex;
+  gap: 0.2em;
 }
 .properties .choose-file .directory .files {
   padding-left: 1em;
 }
 .properties .choose-file .file {
   cursor: pointer;
+  display: flex;
+  gap: 0.2em;
 }
 .properties .choose-file .file:before {
   content: '-';

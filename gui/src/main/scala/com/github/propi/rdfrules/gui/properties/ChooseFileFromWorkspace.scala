@@ -23,6 +23,7 @@ import scala.scalajs.js
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
 class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
+                              fileCreationEnabled: Boolean,
                               val name: String,
                               val title: String = "Choose a file from the workspace",
                               validator: Validator[String] = NoValidator[String](),
@@ -32,12 +33,9 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
 
   private def processLoadedFiles(workspace: Workspace.FileValue.Directory): Unit = {
     loadedFiles.value = Some(workspace)
-    for {
-      _selectedFile <- selectedFile.value
-      mappedFile <- workspace.find(_selectedFile.path)
-    } {
+    for (file <- selectedFile.value.map(file => workspace.prependPath(file.path))) {
       selectedFile.value = None
-      selectedFile.value = Some(mappedFile)
+      selectedFile.value = Some(file)
     }
   }
 
@@ -50,8 +48,10 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
   val descriptionVar: Binding.Var[String] = Var(context(title).description)
 
   def setValue(data: js.Dynamic): Unit = {
-    val path = data.asInstanceOf[String]
-    selectedFile.value = loadedFiles.value.flatMap(_.find(path)).orElse(Some(FileValue.File(path.replaceFirst(".*/", ""), path)()))
+    val path = data.asInstanceOf[String].trim
+    selectedFile.value = loadedFiles.value.map(_.prependPath(path)).orElse {
+      Some(FileValue.File(path.replaceFirst(".*/", ""), path)())
+    }
   }
 
   def getSelectedFile: Option[FileValue.File] = selectedFile.value
@@ -70,6 +70,17 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
   private def reload(): Unit = {
     loadedFiles.value = None
     Workspace.loadFiles.foreach(processLoadedFiles)
+  }
+
+  private def makeFile(directory: FileValue.Directory): Unit = {
+    for {
+      name <- Option(window.prompt("File name")).map(_.trim) if name.nonEmpty
+      file <- directory.files.value.collectFirst {
+        case file: FileValue.File if file.name == name => file
+      }.orElse(Some(directory.prependPath(name)))
+    } {
+      selectedFile.value = Some(file)
+    }
   }
 
   private def uploadToDirectory(directory: FileValue.Directory): Unit = {
@@ -128,7 +139,11 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
           </span>{if (directory.writable) {
           <i class="material-icons control" title="upload a file" style="cursor: pointer;" onclick={_: Event => uploadToDirectory(directory)}>cloud_upload</i>
         } else {
-          <i></i>
+          <!-- empty content -->
+        }}{if (directory.writable && fileCreationEnabled) {
+          <i class="material-icons control" title="create a file" style="cursor: pointer;" onclick={_: Event => makeFile(directory)}>note_add</i>
+        } else {
+          <!-- empty content -->
         }}
         </div>
         <div class="files">

@@ -422,7 +422,7 @@ object OperationInfo {
   }
 
   object CacheRulesetAction extends Action {
-    val name: String = "CacheRuleset"
+    val name: String = "CacheRulesetAction"
     val title: String = "Cache"
 
     def sourceStructure: OperationStructure = OperationStructure.Ruleset
@@ -460,7 +460,7 @@ object OperationInfo {
   }
 
   object CacheDatasetAction extends Action {
-    val name: String = "CacheDataset"
+    val name: String = "CacheDatasetAction"
     val title: String = "Cache"
 
     def sourceStructure: OperationStructure = OperationStructure.Dataset
@@ -525,7 +525,7 @@ object OperationInfo {
   }
 
   object CacheIndexAction extends Action {
-    val name: String = "CacheIndex"
+    val name: String = "CacheIndexAction"
     val title: String = "Cache"
 
     def sourceStructure: OperationStructure = OperationStructure.Index

@@ -11,7 +11,7 @@ import com.github.propi.rdfrules.gui.utils.StringConverters._
   */
 class LoadRuleset(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
-    new ChooseFileFromWorkspace(Workspace.loadFiles, "path", validator = NonEmpty),
+    new ChooseFileFromWorkspace(Workspace.loadFiles, false, "path", validator = NonEmpty),
     new Select("format", "Rules format", Constants("cache" -> "Ruleset cache", "json" -> "JSON", "ndjson" -> "NDJSON")),
     new FixedText[Int]("parallelism", "Parallelism", "0", GreaterThanOrEqualsTo[Int](0))
   )

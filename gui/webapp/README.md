@@ -179,7 +179,7 @@ Aggregate triples by their parts and show the histogram.
 
 ##### Properties
 
-- **Subjecty**: Aggregate quads by subjects.
+- **Subject**: Aggregate quads by subjects.
 - **Predicate**: Aggregate quads by predicates.
 - **Object**: Aggregate quads by objects.
 

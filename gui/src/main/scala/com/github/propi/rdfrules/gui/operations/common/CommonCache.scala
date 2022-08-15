@@ -8,7 +8,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 import java.util.UUID
 
 abstract class CommonCache(fromOperation: Operation, val info: OperationInfo, id: Option[String]) extends Operation {
-  private val onDiskPath = context.use("On-disk")(implicit context => new ChooseFileFromWorkspace(Workspace.loadFiles, "path", "Path", validator = NonEmpty, "path"))
+  private val onDiskPath = context.use("On-disk")(implicit context => new ChooseFileFromWorkspace(Workspace.loadFiles, true, "path", "Path", validator = NonEmpty, "file"))
   private val inMemoryId = context.use("In-memory")(implicit context => new FixedText[String]("path", "Cache ID", validator = NonEmpty, default = id.getOrElse(UUID.randomUUID().toString)))
   private val path = new DynamicElement(Constants(
     onDiskPath,

@@ -3,10 +3,11 @@ package com.github.propi.rdfrules.gui
 import com.github.propi.rdfrules.gui.Endpoint.UploadProgress
 import com.github.propi.rdfrules.gui.Task.TaskException
 import com.github.propi.rdfrules.gui.utils.StringConverters._
-import com.thoughtworks.binding.Binding.Constants
+import com.thoughtworks.binding.Binding.Vars
 import org.scalajs.dom.File
 import org.scalajs.dom.raw.FormData
 
+import scala.annotation.tailrec
 import scala.concurrent.{Future, Promise}
 import scala.scalajs.js
 
@@ -26,18 +27,45 @@ object Workspace {
 
   object FileValue {
 
-    case class File(name: String, path: String)(val size: Long = 0L, val writable: Boolean = false) extends FileValue {
+    case class File(name: String, path: String)(val size: Long = 0L, val writable: Boolean = false, val downloadable: Boolean = false) extends FileValue {
       def link: String = Globals.endpoint + "/workspace" + path
 
       def prettySize: String = humanReadableByteSize(size)
     }
 
-    case class Directory(name: String, path: String, writable: Boolean, files: Constants[FileValue]) extends FileValue {
+    case class Directory(name: String, path: String, writable: Boolean, files: Vars[FileValue]) extends FileValue {
       def find(path: String): Option[File] = files.value.view.flatMap {
         case f: File if path == f.path => Some(f)
         case f: Directory if path.startsWith(f.path) => f.find(path)
         case _ => None
       }.headOption
+
+      @tailrec
+      final def prependPath(path: String): File = {
+        val (prefix, suffix) = path.trim.stripPrefix("/").stripSuffix("/").span(_ != '/')
+        val trimmedPrefix = prefix.trim
+        val trimmedSuffix = suffix.trim
+        require(trimmedPrefix.nonEmpty)
+        if (trimmedSuffix.isEmpty) {
+          prependFile(trimmedPrefix)
+        } else {
+          files.value.collectFirst {
+            case dir: Directory if dir.name == trimmedPrefix => dir
+          } match {
+            case Some(dir) => dir.prependPath(trimmedSuffix)
+            case None =>
+              val newDir = Directory(trimmedPrefix, s"$path/$trimmedPrefix", false, Vars.empty)
+              files.value.prepend(newDir)
+              newDir.prependPath(trimmedSuffix)
+          }
+        }
+      }
+
+      def prependFile(name: String): File = {
+        val newFile = File(name, s"$path/$name")()
+        files.value.prepend(newFile)
+        newFile
+      }
     }
 
   }
@@ -47,8 +75,8 @@ object Workspace {
     x.selectDynamic("subfiles").asInstanceOf[js.UndefOr[js.Array[js.Dynamic]]].toOption match {
       case Some(files) =>
         val writable = x.selectDynamic("writable").asInstanceOf[Boolean]
-        FileValue.Directory(if (name.isEmpty) "workspace" else name, path + name, writable, Constants(files.map(anyToFileValue(_, path + name + "/", writable)).toList: _*))
-      case None => FileValue.File(name, path + name)(x.selectDynamic("size").toString, writable)
+        FileValue.Directory(if (name.isEmpty) "workspace" else name, path + name, writable, Vars(files.map(anyToFileValue(_, path + name + "/", writable)).toList: _*))
+      case None => FileValue.File(name, path + name)(x.selectDynamic("size").toString, writable, true)
     }
   }
 
