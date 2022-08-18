@@ -5,7 +5,7 @@ import com.github.propi.rdfrules.gui.utils.CommonValidators.{GreaterThanOrEquals
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding.PimpedBindingSeq
 import com.github.propi.rdfrules.gui.utils.StringConverters._
-import com.github.propi.rdfrules.gui.{Operation, OperationInfo, Property}
+import com.github.propi.rdfrules.gui.{Operation, OperationInfo, Property, Workspace}
 import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.{Constants, Var}
 import org.lrng.binding.html
@@ -32,7 +32,7 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
     private val properties = context.use(title) { implicit context =>
       val k = new DynamicElement(Constants(new FixedText[Double]("k", "k-value", validator = GreaterThanOrEqualsTo[Int](1), summaryTitle = "top")), hidden = true)
       val allowOverflow = new DynamicElement(Constants(new Checkbox("allowOverflow", "Allow overflow")), hidden = true)
-      val file = new DynamicElement(Constants(new FixedText[String]("file", "Export path", validator = NonEmpty)), hidden = true)
+      val file = new DynamicElement(Constants(new ChooseFileFromWorkspace(Workspace.loadFiles, true, "file", "Export path", validator = NonEmpty)), hidden = true)
       val format = new DynamicElement(Constants(new Select("format", "Export rules format", Constants("txt" -> "Text (unparsable)", "ndjson" -> "streaming NDJSON (as model - parsable)"), Some(selectedFormat), selectedFormat = _)), hidden = true)
       Constants(
         new Checkbox("topk", "Top-k", onChecked = { isChecked =>
@@ -104,19 +104,19 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
         consumers.push(js.Dictionary("name" -> "inMemory"))
       }
       if (hasOnDisk) {
-        consumers.push(js.Dictionary("name" -> "onDisk", properties.value(4).name -> properties.value(4).name, properties.value(5).name -> properties.value(5).name))
+        consumers.push(js.Dictionary("name" -> "onDisk", properties.value(4).name -> properties.value(4).toJson, properties.value(5).name -> properties.value(5).toJson))
       }
       consumers
     }
   }
 
   val properties: Constants[Property] = {
-    val thresholds = DynamicGroup("thresholds", "Thresholds") { implicit context =>
+    val thresholds = DynamicGroup("thresholds", "Thresholds", "thresholds") { implicit context =>
       val value = new DynamicElement(Constants(
-        context.use("MinHeadCoverage")(implicit context => new FixedText[Double]("value", "Value", default = "0.1", validator = GreaterThanOrEqualsTo(0.001).map[String] & LowerThanOrEqualsTo(1.0).map[String])),
-        context.use("MinHeadSize or MinSupport or Timeout")(implicit context => new FixedText[Double]("value", "Value", validator = GreaterThanOrEqualsTo[Int](1))),
-        context.use("MaxRuleLength")(implicit context => new FixedText[Double]("value", "Value", validator = GreaterThanOrEqualsTo[Int](2))),
-        context.use("MinAtomSize")(implicit context => new FixedText[Double]("value", "Value", default = "-1"))
+        context.use("MinHeadCoverage")(implicit context => new FixedText[Double]("value", "Value", "0.1", GreaterThanOrEqualsTo(0.001).map[String] & LowerThanOrEqualsTo(1.0).map[String], " ")),
+        context.use("MinHeadSize or MinSupport or Timeout")(implicit context => new FixedText[Double]("value", "Value", validator = GreaterThanOrEqualsTo[Int](1), summaryTitle = " ")),
+        context.use("MaxRuleLength")(implicit context => new FixedText[Double]("value", "Value", validator = GreaterThanOrEqualsTo[Int](2), summaryTitle = " ")),
+        context.use("MinAtomSize")(implicit context => new FixedText[Double]("value", "Value", default = "-1", summaryTitle = " "))
       ))
       Constants(
         new Select(
@@ -129,12 +129,13 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
             case "MaxRuleLength" => value.setElement(2)
             case "MinAtomSize" => value.setElement(3)
             case _ => value.setElement(-1)
-          }
+          },
+          summaryTitle = " "
         ),
         value
       )
     }
-    val constraints = DynamicGroup("constraints", "Constraints") { implicit context =>
+    val constraints = DynamicGroup("constraints", "Constraints", "constraints") { implicit context =>
       val value = new DynamicElement(Constants(
         context.use("OnlyPredicates or WithoutPredicates")(implicit context => ArrayElement("values", "Values")(implicit context => new OptionalText[String]("value", "Value", validator = RegExp("<.*>|\\w+:.*"))))
       ))
@@ -142,7 +143,7 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
         new Select("name", "Name", Constants("WithoutConstants" -> "Without constants", "OnlyObjectConstants" -> "With constants at the object position", "OnlySubjectConstants" -> "With constants at the subject position", "OnlyLeastFunctionalConstants" -> "With constants at the least functional position", "WithoutDuplicitPredicates" -> "Without duplicit predicates", "OnlyPredicates" -> "Only predicates", "WithoutPredicates" -> "Without predicates"), onSelect = {
           case "OnlyPredicates" | "WithoutPredicates" => value.setElement(0)
           case _ => value.setElement(-1)
-        }),
+        }, summaryTitle = " "),
         value
       )
     }

@@ -176,6 +176,10 @@ object PipelineJsonReaders {
 
   implicit def mineReader(implicit debugger: Debugger): RootJsonReader[index.Mine] = (json: JsValue) => {
     val selector = json.toSelector
+    val hoho = selector("ruleConsumers").toTypedIterable[RuleConsumer.Invoker[Ruleset]]
+    println(selector("ruleConsumers").jsValue)
+    println(hoho.size)
+    hoho.foreach(println)
     new index.Mine(json.convertTo[RulesMining], selector("ruleConsumers").toTypedIterable[RuleConsumer.Invoker[Ruleset]].reduceOption(_ ~> _).getOrElse(RuleConsumer(InMemoryRuleConsumer())))
   }
 
@@ -346,7 +350,7 @@ object PipelineJsonReaders {
         val params = fields("parameters")
         fields("name").convertTo[String] match {
           case data.AddPrefixes.name => addTaskFromDataset(pipeline ~> params.convertTo[data.AddPrefixes], tail)
-          case data.Cache.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Cache], tail)
+          case data.Cache.name | s"${data.Cache.name}Action" => addTaskFromDataset(pipeline ~> params.convertTo[data.Cache], tail)
           case data.Discretize.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Discretize], tail)
           case data.ExportQuads.name => pipeline ~> params.convertTo[data.ExportQuads] ~> ToJsonTask.FromUnit
           case data.FilterQuads.name => addTaskFromDataset(pipeline ~> params.convertTo[data.FilterQuads], tail)
@@ -372,7 +376,7 @@ object PipelineJsonReaders {
         val fields = head.asJsObject.fields
         val params = fields("parameters")
         fields("name").convertTo[String] match {
-          case prediction.Cache.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Cache], tail)
+          case prediction.Cache.name | s"${prediction.Cache.name}Action" => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Cache], tail)
           case prediction.Filter.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Filter], tail)
           case prediction.GetPrediction.name => pipeline ~> params.convertTo[prediction.GetPrediction] ~> ToJsonTask.FromGroupedPredictedTriple
           case prediction.ToDataset.name => addTaskFromDataset(pipeline ~> params.convertTo[prediction.ToDataset], tail)
@@ -390,7 +394,7 @@ object PipelineJsonReaders {
         val fields = head.asJsObject.fields
         val params = fields("parameters")
         fields("name").convertTo[String] match {
-          case index.Cache.name => addTaskFromIndex(pipeline ~> params.convertTo[index.Cache], tail)
+          case index.Cache.name | s"${index.Cache.name}Action" => addTaskFromIndex(pipeline ~> params.convertTo[index.Cache], tail)
           case index.Mine.name => addTaskFromRuleset(pipeline ~> params.convertTo[index.Mine], tail)
           case index.ToDataset.name => addTaskFromDataset(pipeline ~> params.convertTo[index.ToDataset], tail)
           case ruleset.LoadRuleset.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.LoadRuleset], tail)
@@ -406,7 +410,7 @@ object PipelineJsonReaders {
         val fields = head.asJsObject.fields
         val params = fields("parameters")
         fields("name").convertTo[String] match {
-          case ruleset.Cache.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Cache], tail)
+          case ruleset.Cache.name | s"${ruleset.Cache.name}Action" => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Cache], tail)
           case ruleset.ComputeConfidence.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.ComputeConfidence], tail)
           case ruleset.ExportRules.name => pipeline ~> params.convertTo[ruleset.ExportRules] ~> ToJsonTask.FromUnit
           case ruleset.FilterRules.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.FilterRules], tail)

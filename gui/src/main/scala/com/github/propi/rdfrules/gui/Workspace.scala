@@ -62,9 +62,13 @@ object Workspace {
       }
 
       def prependFile(name: String): File = {
-        val newFile = File(name, s"$path/$name")()
-        files.value.prepend(newFile)
-        newFile
+        files.value.collectFirst {
+          case file: File if file.name == name => file
+        }.getOrElse {
+          val newFile = File(name, s"$path/$name")()
+          files.value.prepend(newFile)
+          newFile
+        }
       }
     }
 

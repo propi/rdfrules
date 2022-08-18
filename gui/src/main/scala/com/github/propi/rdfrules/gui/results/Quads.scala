@@ -25,10 +25,14 @@ class Quads(val title: String, val id: Future[String]) extends ActionProgress wi
     </div>
     <div class="object">
       {Rules.viewAtomItem(record.`object`)}
-    </div>
-    <div class="graph">
-      {Rules.viewAtomItem(record.graph)}
-    </div>
+    </div>{val graph = Rules.viewAtomItem(record.graph)
+    if (graph.nonEmpty && graph != "<>") {
+      <div class="graph">
+        {graph}
+      </div>
+    } else {
+      <!-- empty content -->
+    }}
   </div>
 
   @html

@@ -74,6 +74,8 @@ object InMemoryCache {
     value.to[T]
   }
 
+  def putAlias(key: String, alias: String): Unit = hmap.get(key).foreach(hmap.putIfAbsent(alias, _))
+
   def put(key: String, value: Any): Unit = {
     val cacheValue = new CacheValue(value)
     hmap.put(key, cacheValue)
@@ -91,6 +93,6 @@ object InMemoryCache {
     logger.info(s"The memory cache was cleaned")
   }
 
-  def getMemoryInfo: MemoryInfo = MemoryInfo(Runtime.getRuntime.totalMemory(), Runtime.getRuntime.freeMemory(), hmap.size)
+  def getMemoryInfo: MemoryInfo = MemoryInfo(Runtime.getRuntime.totalMemory(), Runtime.getRuntime.freeMemory(), hmap.valuesIterator.toSet.size)
 
 }

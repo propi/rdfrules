@@ -5,12 +5,13 @@ import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.{Constants, Var}
 import org.lrng.binding.html
 import org.scalajs.dom.html.{Anchor, Div}
-import org.scalajs.dom.{Event, MouseEvent}
+import org.scalajs.dom.{Event, MouseEvent, window}
 
 import scala.annotation.tailrec
 import scala.concurrent.Future
 import scala.scalajs.js
 import scala.scalajs.concurrent.JSExecutionContext.Implicits._
+import scala.scalajs.js.JSON
 
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
@@ -73,6 +74,16 @@ trait Operation {
   def openModal(): Unit = {
     Main.canvas.closeModal()
     Main.canvas.openModal(viewProperties)
+  }
+
+  def newWindow(): Unit = {
+    val isValid = validateAll()
+    if (isValid) {
+      val json = js.Array(toJson(Nil): _*)
+      LocalStorage.put(Canvas.newWindowTaskKey, JSON.stringify(json))
+      AutoCaching.saveCache()
+      window.open(s"./?new=1")
+    }
   }
 
   def delete(): Unit = {
@@ -176,9 +187,12 @@ trait Operation {
           Main.canvas.openModal(viewActionProgress)
           e.stopPropagation()}>Show results</a>
         </div>
-    }}<a class="del" onclick={e: Event => delete(); e.stopPropagation();}>
-      <i class="material-icons">delete</i>
+    }}<a class="new" onclick={e: Event => newWindow(); e.stopPropagation();}>
+      <i class="material-icons">open_in_new</i>
     </a>
+      <a class="del" onclick={e: Event => delete(); e.stopPropagation();}>
+        <i class="material-icons">delete</i>
+      </a>
       <a class={"error" + (if (errorMsg.bind.isEmpty) " hidden" else "")} onmousemove={e: MouseEvent => Main.canvas.openHint(errorMsg.value.getOrElse(""), e)} onmouseout={_: MouseEvent => Main.canvas.closeHint()} onclick={e: Event =>
         e.stopPropagation()
         Main.canvas.fixHint()}>
@@ -187,7 +201,9 @@ trait Operation {
       <strong class="title">
         {info.title}
       </strong>
-      <span class="description">{for (property <- properties if property.hasSummary.bind) yield property.summaryView}</span>
+      <span class="description">
+        {for (property <- properties if property.hasSummary.bind) yield property.summaryView}
+      </span>
     </div>
   }
 

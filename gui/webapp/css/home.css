@@ -165,50 +165,25 @@ main {
   cursor: default;
 }
 .canvas .operations .operation .description {
-  display: flex;
+  display: block;
   font-size: 0.7em;
   font-style: italic;
-  justify-content: center;
-  flex-wrap: wrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.canvas .operations .operation .description .group {
-  flex-wrap: wrap;
-}
-.canvas .operations .operation .description .dynamic-group {
-  flex-wrap: wrap;
-  gap: 0.2em;
-}
-.canvas .operations .operation .description .dynamic-group .group {
-  padding: 0 0.2em;
-  width: 100%;
-}
-.canvas .operations .operation .description .property-summary {
-  display: flex;
-  justify-content: center;
-  margin-right: 0.2em;
+.canvas .operations .operation .description span {
+  display: inline;
 }
 .canvas .operations .operation .description .property-summary::after {
   content: ',';
 }
-.canvas .operations .operation .description .property-summary:last-child {
-  margin-right: 0;
-}
 .canvas .operations .operation .description .property-summary:last-child::after {
   content: '';
 }
-.canvas .operations .operation .description .property-summary span {
-  display: flex;
+.canvas .operations .operation .description .group::after {
+  content: ';';
 }
-.canvas .operations .operation .description .property-summary .ps-title {
-  margin-right: 0.05em;
-}
-.canvas .operations .operation .description .property-summary .ps-title::after {
-  content: ':';
-}
-.canvas .operations .operation .description .property-summary .ps-title.novalue {
-  margin-right: 0;
-}
-.canvas .operations .operation .description .property-summary .ps-title.novalue::after {
+.canvas .operations .operation .description .group:last-child::after {
   content: '';
 }
 .canvas .operations .operation .action-buttons {
@@ -246,6 +221,12 @@ main {
 .canvas .operations .operation .del {
   position: absolute;
   right: 0.2em;
+  top: 0;
+  cursor: pointer;
+}
+.canvas .operations .operation .new {
+  position: absolute;
+  left: 0.2em;
   top: 0;
   cursor: pointer;
 }
@@ -300,7 +281,8 @@ main {
 .canvas .operations .operation.root .add {
   bottom: 0;
 }
-.canvas .operations .operation.root .del {
+.canvas .operations .operation.root .del,
+.canvas .operations .operation.root .new {
   display: none;
 }
 .canvas .operations .operation.hidden {

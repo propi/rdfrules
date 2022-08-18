@@ -47,7 +47,7 @@ class Select(val name: String, val title: String, items: Constants[(String, Stri
   }
 
   @html
-  final def summaryContentView: Binding[Span] = <span>
+  final def summaryContentView: Binding[Span] = <span class="ps-text">
     {selectedItemLabel.bind}
   </span>
 

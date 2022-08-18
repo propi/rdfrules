@@ -44,7 +44,7 @@ abstract class Text(val name: String, val title: String, default: String, valida
   }
 
   @html
-  final def summaryContentView: Binding[Span] = <span>
+  final def summaryContentView: Binding[Span] = <span class="ps-text">
     {text.bind}
   </span>
 

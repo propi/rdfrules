@@ -34,7 +34,7 @@ class Canvas {
       case (_, Some((x, y))) => s"left: ${x}px; top: ${y}px; position: absolute;"
       case _ => ""
     }}>
-      <i class={"material-icons close" + (if (fixedHint.bind.isEmpty) " hidden" else "")} onclick={_: Event => unfixHint()}>close</i><div innerHTML={hint.bind.map(_._1).getOrElse("")}></div>
+      <i class={"material-icons close" + (if (fixedHint.bind.isEmpty) " hidden" else "")} onclick={_: Event => unfixHint()}>close</i> <div innerHTML={hint.bind.map(_._1).getOrElse("")}></div>
     </div>
     <div class={"modal" + (if (modal.bind.isEmpty) " closed" else " open")}>
       <a class="close" onclick={_: Event => closeModal()}>
@@ -142,5 +142,11 @@ class Canvas {
   }
 
   def render(): Unit = html.render(document.getElementById("rdfrules"), view)
+
+}
+
+object Canvas {
+
+  val newWindowTaskKey = "task"
 
 }

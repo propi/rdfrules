@@ -23,6 +23,14 @@ class Cache {
         InMemoryCache.remove(id)
         System.gc()
         complete("removed")
+      } ~ post {
+        formField("alias") { alias =>
+          val aliasId = alias.trim
+          validate(aliasId.nonEmpty, "Alias must be non-empty string.") {
+            InMemoryCache.putAlias(id, alias)
+            complete("added")
+          }
+        }
       }
     }
   }

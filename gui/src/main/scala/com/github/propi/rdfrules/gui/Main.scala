@@ -16,6 +16,11 @@ object Main {
   def main(args: Array[String]): Unit = {
     Documentation.init()
     canvas.render()
+    Option(Globals.getParameterByName("new"))
+      .filter(_ == "1")
+      .flatMap(_ => LocalStorage.get[String](Canvas.newWindowTaskKey)(Some(_)))
+      .foreach(canvas.loadTask)
+    AutoCaching.loadCache()
     /*for {
       taskId <- Option(Globals.getParameterByName("pickup")).map(_.trim).filter(_.nonEmpty)
       task <- LocalStorage.get[String](taskId)(Some(_))

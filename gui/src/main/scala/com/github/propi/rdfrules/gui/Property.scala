@@ -39,7 +39,7 @@ trait Property {
       <!-- empty content -->
     } else {
       <span class="ps-title">
-        {summaryTitle}
+        {s"$summaryTitle:"}
       </span>
     }}<span class="ps-content">
       {summaryContentView.bind}

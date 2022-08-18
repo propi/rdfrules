@@ -166,60 +166,36 @@ main {
       cursor: default;
 
       .description {
-        display: flex;
+        display: block;
         font-size: 0.7em;
         font-style: italic;
-        justify-content: center;
-        flex-wrap: wrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
 
-        .group {
-          flex-wrap: wrap;
-        }
-
-        .dynamic-group {
-          flex-wrap: wrap;
-          gap: 0.2em;
-
-          .group {
-            padding: 0 0.2em;
-            width: 100%;
-          }
+        span {
+          display: inline;
         }
 
         .property-summary {
-          display: flex;
-          justify-content: center;
-          margin-right: 0.2em;
-
           &::after {
             content: ',';
           }
 
           &:last-child {
-            margin-right: 0;
-
             &::after {
               content: '';
             }
           }
+        }
 
-          span {
-            display: flex;
+        .group {
+          &::after {
+            content: ';';
           }
 
-          .ps-title {
-            margin-right: 0.05em;
-
+          &:last-child {
             &::after {
-              content: ':';
-            }
-
-            &.novalue {
-              margin-right: 0;
-
-              &::after {
-                content: '';
-              }
+              content: '';
             }
           }
         }
@@ -264,6 +240,13 @@ main {
       .del {
         position: absolute;
         right: 0.2em;
+        top: 0;
+        cursor: pointer;
+      }
+
+      .new {
+        position: absolute;
+        left: 0.2em;
         top: 0;
         cursor: pointer;
       }
@@ -327,7 +310,7 @@ main {
         bottom: 0;
       }
 
-      .del {
+      .del, .new {
         display: none;
       }
     }

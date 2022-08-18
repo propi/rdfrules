@@ -1,7 +1,5 @@
 # RDFRules: GUI operations documentation
 
-*popis* rdf rules [bobo](https://duckduckgo.com)
-
 ## Dataset
 
 ### Loading
@@ -62,6 +60,7 @@ Map/Replace selected quads and their parts by user-defined filters and replaceme
   - **Predicate**: Replacement can be only the full URI or blank node (prefixed URI is not allowed). If this field is empty then no replace is applied here. You can refer to captured parts and groups of found quad, e.g, $0 = the full match, $1 = captured group 1 in regexp, $s1 = captured group in regexp in the subject position.
   - **Object**: For RESOURCE, the replacement can be only the full URI or blank node (prefixed URI is not allowed). For TEXT, the replacement must start and end with double quotes. For NUMBER, the replacement must be a number or some arithmetic evaluation with captured value, e.g., $o0 + 5 (it adds 5 to original numeric value). For BOOLEAN, there are only two valid values true|false. For INTERVAL, the replacement has the interval form, e.g, (10;80] (both borders of the found interval are captured, we can refer to them in replacement: [$o1;$o2]). If this field is empty then no replace is applied here. You can refer to captured parts and groups of found quad, e.g, $0 = the full match, $1 = captured group 1 in regexp, $s1 = captured group in regexp in the subject position.
   - **Graph**: Replacement can be only the full URI or blank node (prefixed URI is not allowed). If this field is empty then no replace is applied here. You can refer to captured parts and groups of found quad, e.g, $0 = the full match, $1 = captured group 1 in regexp, $s1 = captured group in regexp in the subject position.
+
 #### Shrink
 
 Slice the dataset (set of quads) with a specified window.

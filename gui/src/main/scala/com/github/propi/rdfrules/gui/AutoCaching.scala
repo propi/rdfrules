@@ -2,22 +2,26 @@ package com.github.propi.rdfrules.gui
 
 import com.github.propi.rdfrules.gui.operations.common.CommonCache
 import com.thoughtworks.binding.Binding.Var
+import org.scalajs.dom.raw.FormData
 
 import java.util.UUID
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
 import scala.scalajs.concurrent.JSExecutionContext.Implicits._
 import scala.scalajs.js
+import scala.scalajs.js.JSConverters.JSRichMap
 import scala.scalajs.js.JSON
+import scala.util.{Failure, Success}
 
 object AutoCaching {
 
-  private val localStorageKey = "auto-caching"
+  private val localStorageOnOffKey = "auto-caching"
+  private val localStorageCacheKey = "auto-caches"
 
-  val isOn: Var[Boolean] = Var(LocalStorage.get[Boolean](localStorageKey)(_.toBooleanOption).getOrElse(true))
+  val isOn: Var[Boolean] = Var(LocalStorage.get[Boolean](localStorageOnOffKey)(_.toBooleanOption).getOrElse(true))
 
   def toggle(): Unit = {
     val newValue = !isOn.value
-    LocalStorage.put[Boolean](localStorageKey, newValue)(_.toString)
+    LocalStorage.put[Boolean](localStorageOnOffKey, newValue)(_.toString)
     isOn.value = newValue
   }
 
@@ -139,6 +143,39 @@ object AutoCaching {
     val autoCaching = if (isOn.value) new AutoCachingImpl else Noop
     val res = f(autoCaching)
     autoCaching.clearUnusedCaches().map(_ => res)
+  }
+
+  def saveCache(): Unit = LocalStorage.put(localStorageCacheKey, JSON.stringify(lastCaches.toJSDictionary))
+
+  private def saveAlias(id: String): Future[String] = {
+    val alias = UUID.randomUUID().toString
+    val formData = new FormData()
+    formData.append("alias", alias)
+    val result = Promise[String]()
+    Endpoint.postWithAutoContentType[String](s"/cache/$id", formData) { response =>
+      if (response.status == 200) {
+        result.success(alias)
+      } else {
+        result.failure(new NoSuchElementException(response.data))
+      }
+    }
+    result.future
+  }
+
+  def loadCache(): Unit = LocalStorage.get[String](localStorageCacheKey)(Some(_))
+    .map(JSON.parse(_))
+    .filter(js.typeOf(_) == "object")
+    .iterator
+    .flatMap(_.asInstanceOf[js.Dictionary[String]])
+    .foldLeft(Future.successful(List.empty[(String, String)])) { case (result, (content, id)) =>
+      result.flatMap(list => saveAlias(id).map(alias => (content -> alias) :: list).recover {
+        case th: NoSuchElementException =>
+          th.printStackTrace()
+          list
+      })
+    }.onComplete {
+    case Success(list) => lastCaches ++= list
+    case Failure(th) => th.printStackTrace()
   }
 
   private val lastCaches = collection.mutable.Map.empty[String, String]
