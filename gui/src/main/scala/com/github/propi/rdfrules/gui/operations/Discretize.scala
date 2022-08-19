@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.gui.operations
 
+import com.github.propi.rdfrules.gui.Property.SummaryTitle
 import com.github.propi.rdfrules.gui.properties._
 import com.github.propi.rdfrules.gui.utils.CommonValidators._
 import com.github.propi.rdfrules.gui.utils.StringConverters._
@@ -38,7 +39,7 @@ class Discretize(fromOperation: Operation, val info: OperationInfo) extends Oper
               case "EquidistanceDiscretizationTask" | "EquifrequencyDiscretizationTask" => activeStrategy(true, false)
               case _ => activeStrategy(false, false)
             },
-            " ",
+            SummaryTitle.NoTitle,
           ),
           bins,
           support

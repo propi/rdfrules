@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Documentation.Context
 import com.github.propi.rdfrules.gui.Property
+import com.github.propi.rdfrules.gui.Property.SummaryTitle
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding.PimpedBindingSeq
 import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.{Constant, Var, Vars}
@@ -15,7 +16,7 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class ArrayElement private(val name: String, val title: String, val summaryTitle: String, property: Context => Property)(implicit context: Context) extends Property {
+class ArrayElement private(val name: String, val title: String, val summaryTitle: SummaryTitle, property: Context => Property)(implicit context: Context) extends Property {
 
   private val groups: Vars[Property] = Vars.empty
 
@@ -71,6 +72,6 @@ class ArrayElement private(val name: String, val title: String, val summaryTitle
 
 object ArrayElement {
 
-  def apply(name: String, title: String, summaryTitle: String = "")(property: Context => Property)(implicit context: Context) = new ArrayElement(name, title, summaryTitle, property)
+  def apply(name: String, title: String, summaryTitle: SummaryTitle = SummaryTitle.Empty)(property: Context => Property)(implicit context: Context) = new ArrayElement(name, title, summaryTitle, property)
 
 }

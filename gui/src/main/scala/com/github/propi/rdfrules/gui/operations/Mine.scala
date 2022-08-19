@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.gui.operations
 
+import com.github.propi.rdfrules.gui.Property.SummaryTitle
 import com.github.propi.rdfrules.gui.properties._
 import com.github.propi.rdfrules.gui.utils.CommonValidators.{GreaterThanOrEqualsTo, LowerThanOrEqualsTo, NonEmpty, RegExp}
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding
@@ -23,7 +24,7 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
     val name: String = "ruleConsumers"
     val title: String = "Rule consumers"
     val descriptionVar: Var[String] = Var(context(title).description)
-    val summaryTitle: String = ""
+    val summaryTitle: SummaryTitle = SummaryTitle.Empty
 
     private var hasTopK: Boolean = false
     private var hasOnDisk: Boolean = false
@@ -111,31 +112,34 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
   }
 
   val properties: Constants[Property] = {
-    val thresholds = DynamicGroup("thresholds", "Thresholds", "thresholds") { implicit context =>
+    val thresholds = DynamicGroup("thresholds", "Thresholds", SummaryTitle.NoTitle) { implicit context =>
+      val summaryTitle = SummaryTitle.Variable(Var(""))
       val value = new DynamicElement(Constants(
-        context.use("MinHeadCoverage")(implicit context => new FixedText[Double]("value", "Value", "0.1", GreaterThanOrEqualsTo(0.001).map[String] & LowerThanOrEqualsTo(1.0).map[String], " ")),
-        context.use("MinHeadSize or MinSupport or Timeout")(implicit context => new FixedText[Double]("value", "Value", validator = GreaterThanOrEqualsTo[Int](1), summaryTitle = " ")),
-        context.use("MaxRuleLength")(implicit context => new FixedText[Double]("value", "Value", validator = GreaterThanOrEqualsTo[Int](2), summaryTitle = " ")),
-        context.use("MinAtomSize")(implicit context => new FixedText[Double]("value", "Value", default = "-1", summaryTitle = " "))
+        context.use("MinHeadCoverage")(implicit context => new FixedText[Double]("value", "Value", "0.1", GreaterThanOrEqualsTo(0.001).map[String] & LowerThanOrEqualsTo(1.0).map[String], summaryTitle)),
+        context.use("MinHeadSize or MinSupport or Timeout")(implicit context => new FixedText[Double]("value", "Value", validator = GreaterThanOrEqualsTo[Int](1), summaryTitle = summaryTitle)),
+        context.use("MaxRuleLength")(implicit context => new FixedText[Double]("value", "Value", validator = GreaterThanOrEqualsTo[Int](2), summaryTitle = summaryTitle)),
+        context.use("MinAtomSize")(implicit context => new FixedText[Double]("value", "Value", default = "-1", summaryTitle = summaryTitle))
       ))
       Constants(
         new Select(
           "name",
           "Name",
           Constants("MinHeadSize" -> "Min head size", "MinAtomSize" -> "Min atom size", "MinHeadCoverage" -> "Min head coverage", "MinSupport" -> "Min support", "MaxRuleLength" -> "Max rule length", "Timeout" -> "Timeout"),
-          onSelect = {
-            case "MinHeadCoverage" => value.setElement(0)
-            case "MinHeadSize" | "MinSupport" | "Timeout" => value.setElement(1)
-            case "MaxRuleLength" => value.setElement(2)
-            case "MinAtomSize" => value.setElement(3)
-            case _ => value.setElement(-1)
-          },
-          summaryTitle = " "
+          onSelect = selectedItem => {
+            summaryTitle.title.value = selectedItem
+            selectedItem match {
+              case "MinHeadCoverage" => value.setElement(0)
+              case "MinHeadSize" | "MinSupport" | "Timeout" => value.setElement(1)
+              case "MaxRuleLength" => value.setElement(2)
+              case "MinAtomSize" => value.setElement(3)
+              case _ => value.setElement(-1)
+            }
+          }
         ),
         value
       )
     }
-    val constraints = DynamicGroup("constraints", "Constraints", "constraints") { implicit context =>
+    val constraints = DynamicGroup("constraints", "Constraints", SummaryTitle.NoTitle) { implicit context =>
       val value = new DynamicElement(Constants(
         context.use("OnlyPredicates or WithoutPredicates")(implicit context => ArrayElement("values", "Values")(implicit context => new OptionalText[String]("value", "Value", validator = RegExp("<.*>|\\w+:.*"))))
       ))
@@ -143,7 +147,7 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
         new Select("name", "Name", Constants("WithoutConstants" -> "Without constants", "OnlyObjectConstants" -> "With constants at the object position", "OnlySubjectConstants" -> "With constants at the subject position", "OnlyLeastFunctionalConstants" -> "With constants at the least functional position", "WithoutDuplicitPredicates" -> "Without duplicit predicates", "OnlyPredicates" -> "Only predicates", "WithoutPredicates" -> "Without predicates"), onSelect = {
           case "OnlyPredicates" | "WithoutPredicates" => value.setElement(0)
           case _ => value.setElement(-1)
-        }, summaryTitle = " "),
+        }, summaryTitle = SummaryTitle.NoTitle),
         value
       )
     }

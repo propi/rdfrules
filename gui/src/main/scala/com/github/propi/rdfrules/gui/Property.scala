@@ -1,12 +1,14 @@
 package com.github.propi.rdfrules.gui
 
+import com.github.propi.rdfrules.gui.Property.SummaryTitle
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding
 import com.thoughtworks.binding.Binding
-import com.thoughtworks.binding.Binding.{Constant, Var, Vars}
+import com.thoughtworks.binding.Binding.{Constant, Var}
 import org.lrng.binding.html
 import org.scalajs.dom.html.{Div, Span, TableRow}
 import org.scalajs.dom.{Event, MouseEvent}
 
+import scala.language.implicitConversions
 import scala.scalajs.js
 
 /**
@@ -16,7 +18,7 @@ trait Property {
   val name: String
   val title: String
   val descriptionVar: Var[String]
-  val summaryTitle: String
+  val summaryTitle: SummaryTitle
 
   val errorMsg: ReactiveBinding.Var[Option[String]] = ReactiveBinding.Var(None)
   val isHidden: Var[Boolean] = Var(false)
@@ -35,11 +37,14 @@ trait Property {
 
   @html
   def summaryView: Binding[Span] = <span class="property-summary">
-    {if (summaryTitle == " ") {
+    {if (summaryTitle == SummaryTitle.NoTitle) {
       <!-- empty content -->
     } else {
       <span class="ps-title">
-        {s"$summaryTitle:"}
+        {summaryTitle match {
+        case x: SummaryTitle.Fixed => s"${x.title}:"
+        case SummaryTitle.Variable(title) => s"${title.bind}:"
+      }}
       </span>
     }}<span class="ps-content">
       {summaryContentView.bind}
@@ -71,4 +76,36 @@ trait Property {
   }
 
   def toJson: js.Any
+}
+
+object Property {
+
+  sealed trait SummaryTitle {
+    def isEmpty: Boolean = false
+
+    final def nonEmpty: Boolean = !isEmpty
+  }
+
+  object SummaryTitle {
+    implicit def apply(x: String): SummaryTitle = Value(x)
+
+    sealed trait Fixed extends SummaryTitle {
+      def title: String
+    }
+
+    case object Empty extends SummaryTitle with Fixed {
+      override def isEmpty: Boolean = true
+
+      def title: String = ""
+    }
+
+    case object NoTitle extends SummaryTitle with Fixed {
+      def title: String = ""
+    }
+
+    case class Value(title: String) extends SummaryTitle with Fixed
+
+    case class Variable(title: Var[String]) extends SummaryTitle
+  }
+
 }

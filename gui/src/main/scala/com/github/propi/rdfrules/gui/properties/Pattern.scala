@@ -41,7 +41,7 @@ object Pattern {
     case class Variable(c: Char) extends AtomItem {
       def toJson: js.Any = js.Dictionary(
         "name" -> "Variable",
-        "value" -> c
+        "value" -> c.toString
       )
 
       override def toString: String = s"?$c"
@@ -131,7 +131,11 @@ object Pattern {
       "orderless" -> true
     )
 
-    override def toString: String = s"${(Iterator(if (exact) "" else "*") ++ body.iterator.map(_.toString)).mkString(" ^ ")} => ${head.toString}"
+    override def toString: String = {
+      val bodyIt = body.iterator.map(_.toString)
+
+      s"${(if (exact) bodyIt else Iterator("*") ++ bodyIt).mkString(" ^ ")} => ${head.toString}"
+    }
   }
 
   private object Rule {
@@ -142,12 +146,13 @@ object Pattern {
     )
   }
 
-  private def parseVariable(it: Iterator[Char]): Either[AtomItem, String] = if (it.hasNext) {
+  private def parseVariable(it: Iterator[Char]): Either[(AtomItem, Option[Char]), String] = if (it.hasNext) {
     it.next() match {
-      case 'V' => Left(AtomItem.AnyVariable)
-      case 'C' => Left(AtomItem.AnyConstant)
-      case x if x.isSpaceChar => Left(AtomItem.Any)
-      case x if x.isLetter && x.isLower => Left(AtomItem.Variable(x))
+      case 'V' => Left(AtomItem.AnyVariable -> None)
+      case 'C' => Left(AtomItem.AnyConstant -> None)
+      case ')' => Left(AtomItem.Any -> Some(')'))
+      case x if x.isSpaceChar => Left(AtomItem.Any -> None)
+      case x if x.isLetter && x.isLower => Left(AtomItem.Variable(x) -> None)
       case x => Right(s"Invalid character '$x' occured during variable parsing.")
     }
   } else {
@@ -214,11 +219,11 @@ object Pattern {
   private def parseConstant(it: Iterator[Char]): Either[(AtomItem.Constant, Option[Char]), String] = if (it.hasNext) {
     val x = it.next()
     x match {
-      case '"' => parseText(it, new mutable.StringBuilder(x)).left.map(_ -> None)
-      case '[' | '(' => parseInterval(it, new mutable.StringBuilder(x)).left.map(_ -> None)
-      case '<' => parseUri(it, new mutable.StringBuilder(x)).left.map(_ -> None)
+      case '"' => parseText(it, new mutable.StringBuilder(x.toString)).left.map(_ -> None)
+      case '[' | '(' => parseInterval(it, new mutable.StringBuilder(x.toString)).left.map(_ -> None)
+      case '<' => parseUri(it, new mutable.StringBuilder(x.toString)).left.map(_ -> None)
       case x if x.isSpaceChar => parseConstant(it)
-      case _ => parseOtherConstant(it, new mutable.StringBuilder(x))
+      case _ => parseOtherConstant(it, new mutable.StringBuilder(x.toString))
     }
   } else {
     Right("Invalid rule atom.")
@@ -249,7 +254,7 @@ object Pattern {
     x match {
       case ')' => Left(atom)
       case '?' => parseVariable(it) match {
-        case Left(x) => parseAtom(it, atom.replace(x, pointer), pointer + 1)
+        case Left(x) => parseAtom(x._2.map(Iterator(_) ++ it).getOrElse(it), atom.replace(x._1, pointer), pointer + 1)
         case Right(x) => Right(x)
       }
       case '!' | '{' =>

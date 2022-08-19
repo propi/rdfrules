@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Property
+import com.github.propi.rdfrules.gui.Property.SummaryTitle
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding
 import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.Var
@@ -15,7 +16,7 @@ import scala.scalajs.js
   */
 class Hidden[T](val name: String, value: String)(implicit f: String => T, g: T => js.Any) extends Property {
 
-  val summaryTitle: String = ""
+  val summaryTitle: SummaryTitle = SummaryTitle.Empty
 
   def summaryContentView: Binding[Span] = ReactiveBinding.emptySpan
 

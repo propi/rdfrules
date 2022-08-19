@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Documentation.Context
 import com.github.propi.rdfrules.gui.Property
+import com.github.propi.rdfrules.gui.Property.SummaryTitle
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding.PimpedBindingSeq
 import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.{Constant, Constants, Var}
@@ -15,7 +16,7 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class Group private(val name: String, val title: String, val summaryTitle: String, propertiesBuilder: Context => Constants[Property])(implicit context: Context) extends Property {
+class Group private(val name: String, val title: String, val summaryTitle: SummaryTitle, propertiesBuilder: Context => Constants[Property])(implicit context: Context) extends Property {
 
   private val properties = propertiesBuilder(context(title))
 
@@ -53,6 +54,6 @@ class Group private(val name: String, val title: String, val summaryTitle: Strin
 
 object Group {
 
-  def apply(name: String, title: String, summaryTitle: String = "")(propertiesBuilder: Context => Constants[Property])(implicit context: Context): Group = new Group(name, title, summaryTitle, propertiesBuilder)
+  def apply(name: String, title: String, summaryTitle: SummaryTitle = SummaryTitle.Empty)(propertiesBuilder: Context => Constants[Property])(implicit context: Context): Group = new Group(name, title, summaryTitle, propertiesBuilder)
 
 }

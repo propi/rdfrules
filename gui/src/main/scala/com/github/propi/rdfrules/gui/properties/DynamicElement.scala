@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Property
+import com.github.propi.rdfrules.gui.Property.SummaryTitle
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding
 import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.{Constant, Constants, Var}
@@ -16,7 +17,7 @@ import scala.scalajs.js
 class DynamicElement(properties: Constants[Property], hidden: Boolean = false) extends Property {
   val name: String = properties.value.head.name
   val title: String = properties.value.head.title
-  val summaryTitle: String = ""
+  val summaryTitle: SummaryTitle = SummaryTitle.Empty
   val descriptionVar: Var[String] = Var("")
 
   private val active: Var[Int] = Var(-1)

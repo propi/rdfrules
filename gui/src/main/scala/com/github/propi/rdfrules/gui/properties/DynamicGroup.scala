@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Documentation.Context
 import com.github.propi.rdfrules.gui.Property
+import com.github.propi.rdfrules.gui.Property.SummaryTitle
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding.PimpedBindingSeq
 import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.{Constant, Constants, Var, Vars}
@@ -16,7 +17,7 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class DynamicGroup private(val name: String, val title: String, val summaryTitle: String, properties: Context => Constants[Property])(implicit context: Context) extends Property {
+class DynamicGroup private(val name: String, val title: String, val summaryTitle: SummaryTitle, properties: Context => Constants[Property])(implicit context: Context) extends Property {
 
   private val groups: Vars[Constants[Property]] = Vars.empty
 
@@ -74,6 +75,6 @@ class DynamicGroup private(val name: String, val title: String, val summaryTitle
 
 object DynamicGroup {
 
-  def apply(name: String, title: String, summaryTitle: String = "")(properties: Context => Constants[Property])(implicit context: Context): DynamicGroup = new DynamicGroup(name, title, summaryTitle, properties)
+  def apply(name: String, title: String, summaryTitle: SummaryTitle = SummaryTitle.Empty)(properties: Context => Constants[Property])(implicit context: Context): DynamicGroup = new DynamicGroup(name, title, summaryTitle, properties)
 
 }

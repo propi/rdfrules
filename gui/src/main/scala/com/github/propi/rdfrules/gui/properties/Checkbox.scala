@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Documentation.Context
 import com.github.propi.rdfrules.gui.Property
+import com.github.propi.rdfrules.gui.Property.SummaryTitle
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding
 import com.thoughtworks.binding.Binding.{Constant, Var}
 import com.thoughtworks.binding.Binding
@@ -17,7 +18,7 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class Checkbox(val name: String, val title: String, default: Boolean = false, onChecked: Boolean => Unit = _ => {}, val summaryTitle: String = "")(implicit context: Context) extends Property {
+class Checkbox(val name: String, val title: String, default: Boolean = false, onChecked: Boolean => Unit = _ => {}, val summaryTitle: SummaryTitle = SummaryTitle.Empty)(implicit context: Context) extends Property {
 
   private val _isChecked: Var[Boolean] = Var(default)
 
@@ -41,7 +42,10 @@ class Checkbox(val name: String, val title: String, default: Boolean = false, on
   @html
   override def summaryView: Binding[Span] = <span class="property-summary">
     <span class="ps-title novalue">
-      {summaryTitle}
+      {summaryTitle match {
+      case x: SummaryTitle.Fixed => x.title
+      case SummaryTitle.Variable(title) => title.bind
+    }}
     </span>
   </span>
 

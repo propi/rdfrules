@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Documentation.Context
 import com.github.propi.rdfrules.gui.Endpoint.UploadProgress
+import com.github.propi.rdfrules.gui.Property.SummaryTitle
 import com.github.propi.rdfrules.gui.{Property, Workspace}
 import com.github.propi.rdfrules.gui.Workspace.FileValue
 import com.github.propi.rdfrules.gui.utils.Validate.{NoValidator, Validator, _}
@@ -27,7 +28,7 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
                               val name: String,
                               val title: String = "Choose a file from the workspace",
                               validator: Validator[String] = NoValidator[String](),
-                              val summaryTitle: String = "")(implicit context: Context) extends Property {
+                              val summaryTitle: SummaryTitle = SummaryTitle.Empty)(implicit context: Context) extends Property {
 
   private implicit val ec: ExecutionContext = scala.scalajs.concurrent.JSExecutionContext.queue
 

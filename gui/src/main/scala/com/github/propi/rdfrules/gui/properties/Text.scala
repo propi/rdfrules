@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Documentation.Context
 import com.github.propi.rdfrules.gui.Property
+import com.github.propi.rdfrules.gui.Property.SummaryTitle
 import com.github.propi.rdfrules.gui.utils.Validate._
 import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.{Constant, Var}
@@ -16,7 +17,7 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-abstract class Text(val name: String, val title: String, default: String, validator: Validator[String], val summaryTitle: String)(implicit context: Context) extends Property {
+abstract class Text(val name: String, val title: String, default: String, validator: Validator[String], val summaryTitle: SummaryTitle)(implicit context: Context) extends Property {
 
   private val text: Var[String] = Var(default)
 

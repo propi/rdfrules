@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Property
+import com.github.propi.rdfrules.gui.Property.SummaryTitle
 import com.github.propi.rdfrules.gui.results.Rules
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding
 import com.thoughtworks.binding.Binding
@@ -21,7 +22,7 @@ class Rule extends Property {
   val name: String = "rule"
   val title: String = "Rule"
   val descriptionVar: Var[String] = Var("")
-  val summaryTitle: String = ""
+  val summaryTitle: SummaryTitle = SummaryTitle.Empty
 
   def summaryContentView: Binding[Span] = ReactiveBinding.emptySpan
 
