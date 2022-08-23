@@ -11,7 +11,9 @@ import scala.language.implicitConversions
   */
 sealed trait Atom {
   def subject: Atom.Item
+
   def predicate: Int
+
   def `object`: Atom.Item
 
   def subjectPosition: TripleItemPosition.Subject[Atom.Item] = TripleItemPosition.Subject(subject)
@@ -77,10 +79,8 @@ object Atom {
   case class Variable(index: Int) extends Item {
     def value: String = {
       val doubleVal = math.abs(index).toDouble
-      "?" + Iterator.iterate(math.floor(doubleVal / 26) -> (doubleVal % 26))(x => math.floor(x._1 / 26) -> ((x._1 % 26) - 1))
-        .takeWhile(_._2 >= 0)
-        .map(x => (97 + x._2).toChar)
-        .foldLeft("")((x, y) => s"$y$x")
+      val sValue = Iterator.iterate(math.floor(doubleVal / 26) -> (doubleVal % 26))(x => math.floor(x._1 / 26) -> ((x._1 % 26) - 1)).takeWhile(_._2 >= 0).map(x => (97 + x._2).toChar).foldLeft("")((x, y) => s"$y$x")
+      s"?$sValue"
     }
 
     def ++ : Variable = Variable(index + 1)

@@ -129,12 +129,12 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     })
   }
 
-  def computeConfidence(minConfidence: Double, topK: Int = 0)(implicit debugger: Debugger): Ruleset = {
+  def computeConfidence(minConfidence: Double, injectiveMapping: Boolean = true, topK: Int = 0)(implicit debugger: Debugger): Ruleset = {
     @volatile var threshold = minConfidence
     implicit val ti: TripleIndex[Int] = index.tripleMap
 
     val rulesWithConfidence = rules.parMap(parallelism) { rule =>
-      rule.withConfidence(threshold)
+      rule.withConfidence(threshold, injectiveMapping)
     }.withDebugger("Confidence computing")
 
     val resColl = if (topK > 0) {
@@ -149,12 +149,12 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     transform(resColl)
   }
 
-  def computePcaConfidence(minPcaConfidence: Double, topK: Int = 0)(implicit debugger: Debugger): Ruleset = {
+  def computePcaConfidence(minPcaConfidence: Double, injectiveMapping: Boolean = true, topK: Int = 0)(implicit debugger: Debugger): Ruleset = {
     @volatile var threshold = minPcaConfidence
     implicit val ti: TripleIndex[Int] = index.tripleMap
 
     val rulesWithConfidence = rules.parMap(parallelism) { rule =>
-      rule.withPcaConfidence(threshold)
+      rule.withPcaConfidence(threshold, injectiveMapping)
     }.withDebugger("Confidence computing")
 
     val resColl = if (topK > 0) {
@@ -169,11 +169,11 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     transform(resColl)
   }
 
-  def computeLift(minConfidence: Double = 0.5)(implicit debugger: Debugger): Ruleset = {
+  def computeLift(minConfidence: Double = 0.5, injectiveMapping: Boolean = true)(implicit debugger: Debugger): Ruleset = {
     implicit val ti: TripleIndex[Int] = index.tripleMap
     val resColl = rules.parMap(parallelism) { rule =>
       Function.chain[FinalRule](List(
-        rule => if (rule.measures.exists[Measure.Confidence]) rule else rule.withConfidence(minConfidence),
+        rule => if (rule.measures.exists[Measure.Confidence]) rule else rule.withConfidence(minConfidence, injectiveMapping),
         rule => if (rule.measures.exists[Measure.HeadConfidence]) rule else rule.withHeadConfidence,
         rule => rule.withLift
       ))(rule)

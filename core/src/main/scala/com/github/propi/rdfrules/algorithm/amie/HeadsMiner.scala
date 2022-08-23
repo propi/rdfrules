@@ -1,7 +1,6 @@
 package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
-import com.github.propi.rdfrules.algorithm.amie.RuleRefinement.Settings
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule._
@@ -28,13 +27,13 @@ class HeadsMiner private(_parallelism: Int = Runtime.getRuntime.availableProcess
   def mine(ruleConsumer: RuleConsumer)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): ForEach[FinalRule] = {
     //val logger = debugger.logger
     //create amie process with debugger and final triple index
-    implicit val settings: RuleRefinement.Settings = new Settings(this)(/*if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) */ debugger /* else Debugger.EmptyDebugger*/ , mapper)
+    implicit val settings: AmieSettings = new AmieSettings(this)(/*if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) */ debugger /* else Debugger.EmptyDebugger*/ , mapper)
     val process = new AmieProcess
     process.getHeads.foreach(ruleConsumer.send(_))
     ruleConsumer.result
   }
 
-  private class AmieProcess(implicit val tripleIndex: TripleIndex[Int], val settings: RuleRefinement.Settings, val forAtomMatcher: MappedAtomPatternMatcher[Atom]) extends HeadsFetcher
+  private class AmieProcess(implicit val tripleIndex: TripleIndex[Int], val settings: AmieSettings, val forAtomMatcher: MappedAtomPatternMatcher[Atom]) extends HeadsFetcher
 
 }
 

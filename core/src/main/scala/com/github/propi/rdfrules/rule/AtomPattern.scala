@@ -27,9 +27,9 @@ object AtomPattern {
 
     object Mapped {
 
-      case class OneOf(col: Seq[Mapped]) extends Mapped
+      case class OneOf(col: Seq[Mapped.Constant]) extends Mapped
 
-      case class NoneOf(col: Seq[Mapped]) extends Mapped
+      case class NoneOf(col: Seq[Mapped.Constant]) extends Mapped
 
       case class Constant(constant: Atom.Constant) extends Mapped
 
@@ -39,20 +39,20 @@ object AtomPattern {
       def mapped(implicit mapper: TripleItemIndex): Mapped = this
     }
 
-    case class OneOf(col: Seq[AtomItemPattern]) extends AtomItemPattern {
+    case class OneOf(col: Seq[AtomItemPattern.Constant]) extends AtomItemPattern {
       def mapped(implicit mapper: TripleItemIndex): Mapped.OneOf = Mapped.OneOf(col.map(_.mapped))
     }
 
     object OneOf {
-      def apply(atomItemPattern: AtomItemPattern, atomItemPatterns: AtomItemPattern*): OneOf = new OneOf(atomItemPattern +: atomItemPatterns)
+      def apply(atomItemPattern: AtomItemPattern.Constant, atomItemPatterns: AtomItemPattern.Constant*): OneOf = new OneOf(atomItemPattern +: atomItemPatterns)
     }
 
-    case class NoneOf(col: Seq[AtomItemPattern]) extends AtomItemPattern {
+    case class NoneOf(col: Seq[AtomItemPattern.Constant]) extends AtomItemPattern {
       def mapped(implicit mapper: TripleItemIndex): Mapped.NoneOf = Mapped.NoneOf(col.map(_.mapped))
     }
 
     object NoneOf {
-      def apply(atomItemPattern: AtomItemPattern, atomItemPatterns: AtomItemPattern*): NoneOf = new NoneOf(atomItemPattern +: atomItemPatterns)
+      def apply(atomItemPattern: AtomItemPattern.Constant, atomItemPatterns: AtomItemPattern.Constant*): NoneOf = new NoneOf(atomItemPattern +: atomItemPatterns)
     }
 
     case object AnyVariable extends AtomItemPattern with Mapped {

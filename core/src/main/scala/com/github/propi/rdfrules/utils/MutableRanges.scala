@@ -1,20 +1,24 @@
 package com.github.propi.rdfrules.utils
 
 import java.util
+import scala.annotation.tailrec
+import scala.jdk.CollectionConverters._
 
 /**
   * Created by Vaclav Zeman on 28. 5. 2020.
   */
-class MutableRanges private(ranges: util.LinkedList[MutableRanges.Item]) {
+class MutableRanges private(ranges: util.LinkedList[MutableRanges.Item], var i: Int) {
   private def getLast: Option[MutableRanges.Item] = if (ranges.isEmpty) None else Some(ranges.getLast)
 
-  private def getFirst: Option[MutableRanges.Item] = if (ranges.isEmpty) None else Some(ranges.getFirst)
+  def size: Int = i
 
-  def size: Int = ranges.size()
+  def copy(): MutableRanges = new MutableRanges(ranges.clone().asInstanceOf[util.LinkedList[MutableRanges.Item]], i)
 
-  def copy(): MutableRanges = new MutableRanges(ranges.clone().asInstanceOf[util.LinkedList[MutableRanges.Item]])
+  def validator: MutableRanges.Validator = new MutableRanges.Validator(ranges.iterator().asScala)
 
-  def +=(x: Int): Unit = {
+  def +=(x: Int): this.type = {
+    ranges.iterator()
+    i += 1
     getLast match {
       case Some(MutableRanges.Item.Value(y)) =>
         if (y + 1 == x) {
@@ -32,34 +36,46 @@ class MutableRanges private(ranges: util.LinkedList[MutableRanges.Item]) {
         }
       case None => ranges.add(MutableRanges.Item.Value(x))
     }
+    this
   }
 
   def clear(): Unit = ranges.clear()
-
-  def isInRange(x: Int): Boolean = getFirst match {
-    case Some(MutableRanges.Item.Range(start, end)) =>
-      if (x >= start) {
-        if (x < end) {
-          true
-        } else {
-          ranges.removeFirst()
-          true
-        }
-      } else {
-        false
-      }
-    case Some(MutableRanges.Item.Value(y)) =>
-      if (x < y) {
-        false
-      } else {
-        ranges.removeFirst()
-        true
-      }
-    case None => false
-  }
 }
 
 object MutableRanges {
+
+  class Validator private[MutableRanges](it: Iterator[MutableRanges.Item]) {
+    private var _current = Option.empty[MutableRanges.Item]
+
+    private def next(): Unit = if (it.hasNext) _current = Some(it.next()) else _current = None
+
+    next()
+
+    @tailrec
+    final def isInRange(x: Int): Boolean = _current match {
+      case Some(MutableRanges.Item.Range(start, end)) =>
+        if (x >= start) {
+          if (x <= end) {
+            true
+          } else {
+            next()
+            isInRange(x)
+          }
+        } else {
+          false
+        }
+      case Some(MutableRanges.Item.Value(y)) =>
+        if (x < y) {
+          false
+        } else if (x == y) {
+          true
+        } else {
+          next()
+          isInRange(x)
+        }
+      case None => false
+    }
+  }
 
   sealed trait Item
 
@@ -71,7 +87,7 @@ object MutableRanges {
 
   }
 
-  def apply(): MutableRanges = new MutableRanges(new util.LinkedList[MutableRanges.Item])
+  def apply(): MutableRanges = new MutableRanges(new util.LinkedList[MutableRanges.Item], 0)
 
   /**
     * Make mutable ranges from 0 to x included
@@ -83,10 +99,13 @@ object MutableRanges {
     val ranges = new util.LinkedList[MutableRanges.Item]
     if (x == 0) {
       ranges.add(Item.Value(0))
+      new MutableRanges(ranges, 1)
     } else if (x > 0) {
       ranges.add(Item.Range(0, x))
+      new MutableRanges(ranges, x + 1)
+    } else {
+      new MutableRanges(ranges, 0)
     }
-    new MutableRanges(ranges)
   }
 
 }

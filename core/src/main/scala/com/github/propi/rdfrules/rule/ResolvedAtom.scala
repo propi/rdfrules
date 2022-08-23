@@ -9,7 +9,9 @@ import scala.language.implicitConversions
 
 sealed trait ResolvedAtom {
   def subject: ResolvedItem
+
   def predicate: TripleItem.Uri
+
   def `object`: ResolvedItem
 
   def toAtom(implicit tripleItemIndex: TripleItemIndex): Atom
@@ -33,11 +35,13 @@ object ResolvedAtom {
   object ResolvedItem {
 
     case class Variable private(value: String) extends ResolvedItem {
-      def toItem(implicit tripleItemIndex: TripleItemIndex): Atom.Item = Atom.Item(value)
+      def toVariable: Atom.Variable = Atom.Item(value)
+
+      def toItem(implicit tripleItemIndex: TripleItemIndex): Atom.Variable = toVariable
     }
 
     case class Constant private(tripleItem: TripleItem) extends ResolvedItem {
-      def toItem(implicit tripleItemIndex: TripleItemIndex): Atom.Item = Atom.Item(tripleItem)
+      def toItem(implicit tripleItemIndex: TripleItemIndex): Atom.Constant = Atom.Item(tripleItem)
     }
 
     def apply(char: Char): ResolvedItem = Variable("?" + char)

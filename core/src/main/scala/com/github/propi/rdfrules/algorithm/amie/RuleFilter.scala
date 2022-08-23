@@ -301,12 +301,27 @@ object RuleFilter {
     * @param head head of the rule
     * @param body body of the rule
     */
+  @deprecated("This is resolved by variables mapping and duplicate checking.", "1.4.3")
   class NoDuplicitRuleFilter(head: Atom, body: Set[Atom]) extends RuleFilter {
     def apply(newAtom: Atom, support: Int): FilterResult = {
-      newAtom != head && !body(newAtom)
+      val res = newAtom != head && !body(newAtom)
+      if (!res) {
+        println(s"$newAtom : $body => $head")
+      }
+      res
       //val x = newAtom != head && !body(newAtom)
       //if (!x) println(s"atom: $newAtom, rule $body -> $head")
       //x
+    }
+  }
+
+  class QuasiBindingFilter(body: Set[Atom], injectiveMapping: Boolean, atomCounting: AtomCounting) extends RuleFilter {
+    def apply(newAtom: Atom, support: Int): FilterResult = {
+      if (newAtom.subject.isInstanceOf[Atom.Constant] || newAtom.`object`.isInstanceOf[Atom.Constant]) {
+        atomCounting.countDistinctPairs(body + newAtom, newAtom, 1.0, injectiveMapping) > 1
+      } else {
+        true
+      }
     }
   }
 

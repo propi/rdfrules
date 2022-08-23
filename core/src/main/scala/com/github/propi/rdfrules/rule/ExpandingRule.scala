@@ -1,14 +1,19 @@
 package com.github.propi.rdfrules.rule
 
 import com.github.propi.rdfrules.index.TripleIndex
-import com.github.propi.rdfrules.utils.TypedKeyMap
+import com.github.propi.rdfrules.utils.{MutableRanges, TypedKeyMap}
+
+import scala.ref.SoftReference
 
 /**
   * Created by Vaclav Zeman on 31. 7. 2017.
   */
 sealed trait ExpandingRule extends Rule {
-  //val headTriples: IndexedSeq[(Int, Int)]
   val maxVariable: Atom.Variable
+
+  def parent: Option[ExpandingRule]
+
+  def supportedRanges: Option[MutableRanges]
 
   final def measures: TypedKeyMap.Immutable[Measure] = throw new UnsupportedOperationException
 
@@ -129,26 +134,53 @@ object ExpandingRule {
     eqHeads && checkPartialBodyEquality(bodyParent, bodyChild, newVariables, newVariablesItems)
   }
 
-  case class ClosedRule(body: IndexedSeq[Atom], head: Atom)
-                       (val support: Int,
-                        val headSize: Int,
-                        val variables: List[Atom.Variable],
-                        val maxVariable: Atom.Variable) extends ExpandingRule {
-
-    override def equals(obj: scala.Any): Boolean = obj match {
-      case rule: ClosedRule => checkRuleContentsEquality(body, rule.body.toSet, head, rule.head)
+  sealed trait ClosedRule extends ExpandingRule {
+    override def equals(other: Any): Boolean = other match {
+      case rule: ClosedRule if ruleLength == rule.ruleLength &&
+        headSize == rule.headSize &&
+        support == rule.support => checkRuleContentsEquality(body, rule.body.toSet, head, rule.head)
       case _ => false
     }
 
+    override def hashCode(): Int = body.hashCode() * 31 + head.hashCode()
+
+    val variables: List[Atom.Variable]
   }
 
-  case class DanglingRule(body: IndexedSeq[Atom], head: Atom)
-                         (val support: Int,
-                          val headSize: Int,
-                          val variables: DanglingVariables,
-                          val maxVariable: Atom.Variable) extends ExpandingRule {
+  object ClosedRule {
+    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, variables: List[Atom.Variable], maxVariable: Atom.Variable): ClosedRule = new BasicClosedRule(body, head, support, headSize, variables, maxVariable)
 
-    override def equals(obj: scala.Any): Boolean = obj match {
+    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, variables: List[Atom.Variable], maxVariable: Atom.Variable, supportedRanges: MutableRanges, parent: ExpandingRule): ClosedRule = new CachedClosedRule(body, head, support, headSize, variables, maxVariable, SoftReference(parent), SoftReference(supportedRanges))
+  }
+
+  private class BasicClosedRule(val body: IndexedSeq[Atom],
+                                val head: Atom,
+                                val support: Int,
+                                val headSize: Int,
+                                val variables: List[Atom.Variable],
+                                val maxVariable: Atom.Variable,
+                               ) extends ClosedRule {
+    def parent: Option[ExpandingRule] = None
+
+    def supportedRanges: Option[MutableRanges] = None
+  }
+
+  private class CachedClosedRule(val body: IndexedSeq[Atom],
+                                 val head: Atom,
+                                 val support: Int,
+                                 val headSize: Int,
+                                 val variables: List[Atom.Variable],
+                                 val maxVariable: Atom.Variable,
+                                 _parent: SoftReference[ExpandingRule],
+                                 _supportedRanges: SoftReference[MutableRanges]
+                                ) extends ClosedRule {
+    def parent: Option[ExpandingRule] = _parent.get
+
+    def supportedRanges: Option[MutableRanges] = _supportedRanges.get
+  }
+
+  sealed trait DanglingRule extends ExpandingRule {
+    override def equals(other: Any): Boolean = other match {
       case rule: DanglingRule if ruleLength == rule.ruleLength &&
         headSize == rule.headSize &&
         support == rule.support =>
@@ -156,6 +188,40 @@ object ExpandingRule {
       case _ => false
     }
 
+    override def hashCode(): Int = (1 + body.hashCode()) * 31 + head.hashCode()
+
+    val variables: DanglingVariables
+  }
+
+  object DanglingRule {
+    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, variables: DanglingVariables, maxVariable: Atom.Variable): DanglingRule = new BasicDanglingRule(body, head, support, headSize, variables, maxVariable)
+
+    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, variables: DanglingVariables, maxVariable: Atom.Variable, supportedRanges: MutableRanges, parent: ExpandingRule): DanglingRule = new CachedDanglingRule(body, head, support, headSize, variables, maxVariable, SoftReference(parent), SoftReference(supportedRanges))
+  }
+
+  private class BasicDanglingRule(val body: IndexedSeq[Atom],
+                                  val head: Atom,
+                                  val support: Int,
+                                  val headSize: Int,
+                                  val variables: DanglingVariables,
+                                  val maxVariable: Atom.Variable) extends DanglingRule {
+    def parent: Option[ExpandingRule] = None
+
+    def supportedRanges: Option[MutableRanges] = None
+  }
+
+  private class CachedDanglingRule(val body: IndexedSeq[Atom],
+                                   val head: Atom,
+                                   val support: Int,
+                                   val headSize: Int,
+                                   val variables: DanglingVariables,
+                                   val maxVariable: Atom.Variable,
+                                   _parent: SoftReference[ExpandingRule],
+                                   _supportedRanges: SoftReference[MutableRanges]
+                                  ) extends DanglingRule {
+    def parent: Option[ExpandingRule] = _parent.get
+
+    def supportedRanges: Option[MutableRanges] = _supportedRanges.get
   }
 
 }

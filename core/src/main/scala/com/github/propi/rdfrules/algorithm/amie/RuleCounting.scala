@@ -20,7 +20,7 @@ trait RuleCounting extends AtomCounting {
     *                      rule with confidence lower than minConfidence will have confidence = minConfidence - 1
     * @return New rule with counted confidence
     */
-  def withConfidence(minConfidence: Double, allPaths: Boolean = false): FinalRule = {
+  def withConfidence(minConfidence: Double, injectiveMapping: Boolean, allPaths: Boolean = false): FinalRule = {
     /*TODO: Check confidence counting - it may be wrong, e.g.: p(c, b) & p(c, a) => p(a, b)
     A -> C1 -> B
     A -> C2 -> B
@@ -37,9 +37,9 @@ trait RuleCounting extends AtomCounting {
       //first we count body size threshold: support / minConfidence
       //it counts wanted body site. If the body size is greater than wanted body size then confidence will be always lower than our defined threshold (min confidence)
       val bodySize = if (allPaths) {
-        count(rule.body.toSet, (support / minConfidence) + 1, VariableMap(true))
+        count(rule.body.toSet, (support / minConfidence) + 1, VariableMap(injectiveMapping))
       } else {
-        countDistinctPairs(rule.body.toSet, rule.head, (support / minConfidence) + 1)
+        countDistinctPairs(rule.body.toSet, rule.head, (support / minConfidence) + 1, injectiveMapping)
       }
       //confidence is number of head triples which are connected to other atoms in the rule DIVIDED number of all possible paths from body
       val confidence = support.toDouble / bodySize
@@ -107,7 +107,7 @@ trait RuleCounting extends AtomCounting {
     *                         rule with pca confidence lower than minPcaConfidence will have confidence = minPcaConfidence - 1
     * @return New rule with counted pca confidence
     */
-  def withPcaConfidence(minPcaConfidence: Double, allPaths: Boolean = false): FinalRule = {
+  def withPcaConfidence(minPcaConfidence: Double, injectiveMapping: Boolean, allPaths: Boolean = false): FinalRule = {
     //minimal allowed confidence is 0.1%
     if (minPcaConfidence < 0.001) {
       withPcaConfidence(0.001, allPaths)
@@ -161,7 +161,7 @@ trait RuleCounting extends AtomCounting {
             }
         }
       }
-      val pcaBodySize = countDistinctPairs(bodySet, rule.head, maxPcaBodySize, isPCA)
+      val pcaBodySize = countDistinctPairs(bodySet, rule.head, maxPcaBodySize, injectiveMapping, isPCA)
       //}
       /*val pcaBodySize = headInstances.foldLeft(0) { (pcaBodySize, variableMap) =>
         println(variableMap)

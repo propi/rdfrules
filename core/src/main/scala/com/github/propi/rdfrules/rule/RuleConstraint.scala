@@ -66,6 +66,12 @@ object RuleConstraint {
 
   }
 
+  case class InjectiveMapping() extends RuleConstraint {
+    def companion: InjectiveMapping.type = InjectiveMapping
+  }
+
+  implicit object InjectiveMapping extends Key[InjectiveMapping]
+
   case class WithoutDuplicatePredicates() extends RuleConstraint {
     def companion: WithoutDuplicatePredicates.type = WithoutDuplicatePredicates
   }

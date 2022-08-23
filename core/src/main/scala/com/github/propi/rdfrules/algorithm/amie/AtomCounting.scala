@@ -183,14 +183,15 @@ trait AtomCounting {
   /**
     * For input atoms count all instantiated distinct pairs (or sequence) for input variables in the head atom
     *
-    * @param atoms      all atoms
-    * @param head       variables to be instantiated in the head
-    * @param maxCount   a threshold for stopping counting
-    * @param pairFilter additional filter for each found pair - suitable for PCA confidence
+    * @param atoms            all atoms
+    * @param head             variables to be instantiated in the head
+    * @param maxCount         a threshold for stopping counting
+    * @param injectiveMapping injective mapping
+    * @param pairFilter       additional filter for each found pair - suitable for PCA confidence
     * @return number of distinct pairs for variables which have covered all atoms
     */
-  def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double, pairFilter: Seq[Atom.Constant] => Boolean = _ => true): Int = {
-    countDistinctPairs(atoms, head, maxCount, VariableMap(true), pairFilter)
+  def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double, injectiveMapping: Boolean, pairFilter: Seq[Atom.Constant] => Boolean = _ => true): Int = {
+    countDistinctPairs(atoms, head, maxCount, VariableMap(injectiveMapping), pairFilter)
   }
 
   /**

@@ -1,13 +1,13 @@
 package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.algorithm.amie.RuleFilter.{MinSupportRuleFilter, NoDuplicitRuleFilter, QuasiBindingFilter, RuleConstraints, RulePatternFilter}
+import com.github.propi.rdfrules.algorithm.amie.RuleHeadsValidation.PimpedExpandingRule
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
-import com.github.propi.rdfrules.index.TripleIndex
 import com.github.propi.rdfrules.rule.ExpandingRule.{ClosedRule, DanglingRule}
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule._
-import com.github.propi.rdfrules.utils.{Debugger, IncrementalInt, TypedKeyMap}
+import com.github.propi.rdfrules.utils.{Debugger, MutableRanges, TypedKeyMap}
 
 import scala.collection.mutable
 import scala.language.implicitConversions
@@ -15,7 +15,7 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 23. 6. 2017.
   */
-trait RuleRefinement extends AtomCounting with RuleExpansion {
+trait RuleRefinement2 extends AtomCounting with RuleExpansion {
 
   val rule: ExpandingRule
   val settings: AmieSettings
@@ -49,73 +49,6 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
     map
   }
 
-  /**
-    * This function returns true if the fresh atom is valid and should be added for other refining
-    *
-    * param instantiated if true we want to create instantiated fresh atom
-    * param freshAtom    fresh atom to be checked
-    * param predicate    check for this predicate
-    * return true = fresh atom is valid (count it), false = fresh atom is not valid - is totally abandoned or is counted within fast support calculation for duplicit predicates (DONT COUNT IT!)
-    */
-  /*private def isValidFreshAtom(freshAtom: FreshAtom, predicate: Int, instantiated: Boolean): Boolean = {
-    lazy val predicateIndex = tripleIndex.predicates(predicate)
-    lazy val isFunctional = predicateIndex.isFunction
-    lazy val isInverseFunctional = predicateIndex.isInverseFunction
-    lazy val freshIsValidForDuplicitAtom: collection.Map[TripleItemPosition[Atom.Item], Seq[Atom.Item]] => Boolean = (freshAtom.subject, freshAtom.`object`) match {
-      case (_, `dangling`) =>
-        if (instantiated && !isFunctional) {
-          //if we instantiate this atom and the predicate is not function then COUNT IT
-          //because for (?a p C) => (?a p ?b) the C can be different for instantiated ?b
-          _ => true
-        } else {
-          //otherwise we COUNT IT only if there is no (?a p ?) where (?a p ?) is the fresh atom
-          //we DONT COUNT IT for any redundant atom since:
-          //for !instantiated - is counted within fast support calculation for duplicit predicates: (?a p ?c) => (?a p ?b)
-          //for instantiated - this should not be counted because p is function, therefore it would be redundant atom (?a p C) => (?a p ?b)
-          predicateMap => !predicateMap.contains(freshAtom.subjectPosition.asInstanceOf[TripleItemPosition[Atom.Item]])
-        }
-      case (`dangling`, _) =>
-        //same as above but for object
-        if (instantiated && !isInverseFunctional) {
-          _ => true
-        } else {
-          predicateMap => !predicateMap.contains(freshAtom.objectPosition.asInstanceOf[TripleItemPosition[Atom.Item]])
-        }
-      case _ =>
-        if (isFunctional) {
-          //we DONT COUNT redundant atoms if p is function: (?a p ?c) ^ (?b p ?c) => (?a p ?b)
-          //atom (?a p ?c) is not considered, because during binding there are always duplicit triples.
-          predicateMap => !predicateMap.contains(freshAtom.subjectPosition.asInstanceOf[TripleItemPosition[Atom.Item]])
-        } else if (isInverseFunctional) {
-          //we DONT COUNT redundant atoms if p is inverse function: (?c p ?a) ^ (?c p ?b) => (?a p ?b)
-          //atom (?c p ?b) is not considered, because during binding there are always duplicit triples.
-          predicateMap => !predicateMap.contains(freshAtom.objectPosition.asInstanceOf[TripleItemPosition[Atom.Item]])
-        } else {
-          //if p is not function or inverse function then it is always COUNTED unless there is an duplicit atom
-          //(?a p ?c) ^ (?b p ?c) => (?a p ?b) - now it is valid because ?c can be different from ?b after binding
-          //(?a p ?b) ^ (?b p ?a) => (?a p ?b) - duplicates are disabled
-          predicateMap => !predicateMap.get(freshAtom.subjectPosition.asInstanceOf[TripleItemPosition[Atom.Item]]).exists(_.contains(freshAtom.`object`))
-        }
-    }
-    //first we check whether the predicate is allowed.
-    //if yes, then for each duplicit predicate in the rule we check whether there is no duplicity and redundancy withing refining
-    isValidPredicate(predicate) && testAtomSize.forall(_ (predicateIndex.size)) && rulePredicates.get(predicate).forall { predicateMap =>
-      withDuplicitPredicates && freshIsValidForDuplicitAtom(predicateMap)
-    }
-  }*/
-
-  /**
-    * Check if a fresh atom is counted for both variable items and dangling constant item.
-    * If fresh atom is counted for both variables and dangling constant, then it is counted, otherwise COUNT IT!
-    *
-    * param freshAtom fresh atom
-    * param predicate checking for the predicate
-    * return true = is counted, false = it is not counted
-    */
-  /*private def isValidFreshAtom(freshAtom: FreshAtom, predicate: Int): Boolean = {
-    isValidFreshAtom(freshAtom, predicate, false) && (!isWithInstances || isValidFreshAtom(freshAtom, predicate, true))
-  }*/
-
   private def isUniquePredicate(predicate: Int): Boolean = !rulePredicates.contains(predicate)
 
   private def isDuplicateAtom(freshAtom: FreshAtom, predicate: Int): Boolean = {
@@ -143,7 +76,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       //if all paterns must be exact and are completely matched then we will not expand this rule
       Iterator.empty
     } else {
-      implicit val projections: mutable.HashMap[Atom, IncrementalInt] = mutable.HashMap.empty
+      implicit val projections: mutable.HashMap[Atom, MutableRanges] = mutable.HashMap.empty
       //first we get all possible fresh atoms for the current rule (with one dangling variable or with two exising variables as closed rule)
       //we separate fresh atoms to two parts: countable and others (possible)
       //countable fresh atoms are atoms for which we know all existing variables (we needn't know dangling variable)
@@ -172,30 +105,32 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       lazy val resolvedRule = ResolvedRule(rule.body.map(ResolvedAtom(_)), rule.head)(TypedKeyMap(Measure.HeadSize(rule.headSize), Measure.Support(rule.support), Measure.HeadCoverage(rule.headCoverage)))
       var lastDumpDuration = currentDuration
       //howLong("Rule expansion - count projections", true) {
-      rule.headTriples.zipWithIndex.takeWhile { x =>
-        //if max support + remaining steps is lower than min support we can finish "count projection" process
-        //example 1: head size is 10, min support is 5. Only 4 steps are remaining and there are no projection found then we can stop "count projection"
-        // - because no projection can have support greater or equal 5
-        //example 2: head size is 10, min support is 5, remaining steps 2, projection with maximal support has value 2: 2 + 2 = 4 it is less than 5 - we can stop counting
-        val remains = headSize - x._2
-        maxSupport + remains >= minCurrentSupport
-      }.foreach { case ((_subject, _object), i) =>
-        //for each triple covering head of this rule, find and count all possible projections for all possible fresh atoms
-        val selectedAtoms = /*howLong("Rule expansion - bind projections", true)(*/ bindProjections(bodySet, possibleFreshAtoms, countableFreshAtoms, specifyHeadVariableMapWithAtom(_subject, _object)) //)
-        for (atom <- selectedAtoms) {
-          //for each found projection increase support by 1 and find max support
-          maxSupport = math.max(projections.getOrElseUpdate(atom, IncrementalInt()).++.getValue, maxSupport)
-        }
-        val miningDuration = currentDuration
-        if (miningDuration - lastDumpDuration > 30000) {
-          debugger.logger.info(s"Long refining of rule $resolvedRule. Projections size: ${projections.size}. Step: $i of $headSize")
-          lastDumpDuration = miningDuration
-          if (timeout.exists(miningDuration >= _) || debugger.isInterrupted) {
-            maxSupport = Int.MinValue
-            projections.clear()
+      rule.headValidator { validator =>
+        rule.headTriples.zipWithIndex.filter(x => validator.isValid(x._2)).takeWhile { x =>
+          //if max support + remaining steps is lower than min support we can finish "count projection" process
+          //example 1: head size is 10, min support is 5. Only 4 steps are remaining and there are no projection found then we can stop "count projection"
+          // - because no projection can have support greater or equal 5
+          //example 2: head size is 10, min support is 5, remaining steps 2, projection with maximal support has value 2: 2 + 2 = 4 it is less than 5 - we can stop counting
+          val remains = headSize - x._2
+          maxSupport + remains >= minCurrentSupport
+        }.foreach { case ((_subject, _object), i) =>
+          //for each triple covering head of this rule, find and count all possible projections for all possible fresh atoms
+          val selectedAtoms = /*howLong("Rule expansion - bind projections", true)(*/ bindProjections(bodySet, possibleFreshAtoms, countableFreshAtoms, specifyHeadVariableMapWithAtom(_subject, _object)) //)
+          for (atom <- selectedAtoms) {
+            //for each found projection increase support by 1 and find max support
+            maxSupport = math.max((projections.getOrElseUpdate(atom, MutableRanges()) += i).size, maxSupport)
           }
+          val miningDuration = currentDuration
+          if (miningDuration - lastDumpDuration > 30000) {
+            debugger.logger.info(s"Long refining of rule $resolvedRule. Projections size: ${projections.size}. Step: $i of $headSize")
+            lastDumpDuration = miningDuration
+            if (timeout.exists(miningDuration >= _) || debugger.isInterrupted) {
+              maxSupport = Int.MinValue
+              projections.clear()
+            }
+          }
+          //ad.done()
         }
-        //ad.done()
       }
       //}
       // }
@@ -209,11 +144,11 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       projections.iterator
         .map { x =>
           //projections -= x._1
-          x -> ruleFilter(x._1, x._2.getValue)
+          x -> ruleFilter(x._1, x._2.size)
         }.filter(_._2._1)
         .map { case ((atom, support), (_, f)) =>
-          val newRule = expand(atom, support.getValue)
-          f.map(_ (newRule)).getOrElse(newRule)
+          val newRule = expand(atom, support.size)
+          f.map(_ (newRule)).getOrElse(newRule).withSupportedRanges(support, rule)
         }
     }
   }
@@ -428,27 +363,23 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
   }
 
   private def isDuplicateInstantiatedAtom(p: Int, v: TripleItemPosition[Atom.Item], rest: Set[Atom], variableMap: VariableMap): (Atom.Constant, Atom.Constant) => Boolean = {
-    if (withDuplicitPredicates) {
-      val items = rulePredicates.get(p).flatMap(_.get(v)).getOrElse(Nil)
-      val f = (s: Atom.Constant, o: Atom.Constant, x: Atom.Constant) => items.exists {
-        //(?a p C) ^ (?a p C) => (?a p1 X) - DUPLICATE!
-        case Atom.Constant(c) => x.value == c
-        case y: Atom.Variable if variableMap.injectiveMapping =>
-          variableMap.get(y) match {
-            //(?a p C) ^ (?a p ?b) => (?a p1 ?b) - VariableMap(?b -> C) - DUPLICATE!
-            case Some(Atom.Constant(c)) => x.value == c
-            //(?a p C) ^ (?a p ?b) => (?a p1 ?b) - VariableMap(?b -> NONE) - EXISTS(VariableMap(?b -> C)) - DUPLICATE!
-            case None => !exists(rest, variableMap + (s, p, o)) //IF NOT exists any other binding, e.g., (?a p C) ^ (?a p D), THEN it is DUPLICATE!
-          }
-        case _ => false
-      }
-      if (v.isInstanceOf[TripleItemPosition.Subject[Atom.Item]]) {
-        (s, o) => f(s, o, o)
-      } else {
-        (s, o) => f(s, o, s)
-      }
+    val items = rulePredicates.get(p).flatMap(_.get(v)).getOrElse(Nil)
+    val f = (s: Atom.Constant, o: Atom.Constant, x: Atom.Constant) => items.exists {
+      //(?a p C) ^ (?a p C) => (?a p1 X) - DUPLICATE!
+      case Atom.Constant(c) => x.value == c
+      case y: Atom.Variable if variableMap.injectiveMapping =>
+        variableMap.get(y) match {
+          //(?a p C) ^ (?a p ?b) => (?a p1 ?b) - VariableMap(?b -> C) - DUPLICATE!
+          case Some(Atom.Constant(c)) => x.value == c
+          //(?a p C) ^ (?a p ?b) => (?a p1 ?b) - VariableMap(?b -> NONE) - EXISTS(VariableMap(?b -> C)) - DUPLICATE!
+          case None => !exists(rest, variableMap + (s, p, o)) //IF NOT exists any other binding, e.g., (?a p C) ^ (?a p D), THEN it is DUPLICATE!
+        }
+      case _ => false
+    }
+    if (v.isInstanceOf[TripleItemPosition.Subject[Atom.Item]]) {
+      (s, o) => f(s, o, o)
     } else {
-      (_, _) => false
+      (s, o) => f(s, o, s)
     }
   }
 
@@ -516,18 +447,3 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
 
 }
 
-object RuleRefinement {
-
-  implicit class PimpedRule(extendedRule: ExpandingRule)(implicit tripleHashIndex: TripleIndex[Int], settings: AmieSettings, _debugger: Debugger) {
-    def refine: Iterator[ExpandingRule] = {
-      val _settings = settings
-      new RuleRefinement {
-        val rule: ExpandingRule = extendedRule
-        val settings: AmieSettings = _settings
-        val tripleIndex: TripleIndex[Int] = implicitly[TripleIndex[Int]]
-        protected val debugger: Debugger = _debugger
-      }.refine
-    }
-  }
-
-}
