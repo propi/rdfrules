@@ -8,9 +8,7 @@ import com.github.propi.rdfrules.rule.ResolvedAtom.ResolvedItem
 /**
   * Created by Vaclav Zeman on 2. 1. 2018.
   */
-trait ResolvedAtomPatternMatcher[T] extends PatternMatcher[T, AtomPattern] {
-  def matchPattern(x: T, pattern: AtomPattern): Option[Aliases]
-}
+trait ResolvedAtomPatternMatcher[T] extends PatternMatcher[T, AtomPattern]
 
 object ResolvedAtomPatternMatcher {
 
@@ -51,13 +49,15 @@ object ResolvedAtomPatternMatcher {
     case _ => Some(aliases)
   }
 
-  implicit def forResolvedAtom(implicit aliases: Aliases): ResolvedAtomPatternMatcher[ResolvedAtom] = (x: ResolvedAtom, pattern: AtomPattern) => {
-    matchAtomItemPattern(x.subject, pattern.subject).flatMap { implicit aliases =>
-      matchAtomItemPattern(ResolvedItem.Constant(x.predicate), pattern.predicate)
-    }.flatMap { implicit aliases =>
-      matchAtomItemPattern(x.`object`, pattern.`object`)
-    }.flatMap { implicit aliases =>
-      matchGraphPattern(x, pattern.graph)
+  implicit val forResolvedAtom: ResolvedAtomPatternMatcher[ResolvedAtom] = new ResolvedAtomPatternMatcher[ResolvedAtom] {
+    def matchPattern(x: ResolvedAtom, pattern: AtomPattern)(implicit aliases: Aliases): Option[Aliases] = {
+      matchAtomItemPattern(x.subject, pattern.subject).flatMap { implicit aliases =>
+        matchAtomItemPattern(ResolvedItem.Constant(x.predicate), pattern.predicate)
+      }.flatMap { implicit aliases =>
+        matchAtomItemPattern(x.`object`, pattern.`object`)
+      }.flatMap { implicit aliases =>
+        matchGraphPattern(x, pattern.graph)
+      }
     }
   }
 

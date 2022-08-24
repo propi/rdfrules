@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.rule
 
 import com.github.propi.rdfrules.index.TripleIndex
 import com.github.propi.rdfrules.rule.AtomPattern.AtomItemPattern
+import com.github.propi.rdfrules.rule.PatternMatcher.Aliases
 
 /**
   * Created by Vaclav Zeman on 2. 1. 2018.
@@ -10,35 +11,40 @@ trait MappedAtomPatternMatcher[T] extends PatternMatcher[T, AtomPattern.Mapped]
 
 object MappedAtomPatternMatcher {
 
-  def matchAtomItemPattern(item: Atom.Item, pattern: AtomItemPattern.Mapped): Boolean = pattern match {
-    case AtomItemPattern.Any => true
-    case AtomItemPattern.AnyVariable => item.isInstanceOf[Atom.Variable]
-    case AtomItemPattern.AnyConstant => item.isInstanceOf[Atom.Constant]
+  def matchAtomItemPattern(item: Atom.Item, pattern: AtomItemPattern.Mapped)(implicit aliases: Aliases): Option[Aliases] = pattern match {
+    case AtomItemPattern.Any => Some(aliases)
+    case AtomItemPattern.AnyVariable => if (item.isInstanceOf[Atom.Variable]) Some(aliases) else None
+    case AtomItemPattern.AnyConstant => if (item.isInstanceOf[Atom.Constant]) Some(aliases) else None
     case AtomItemPattern.Variable(x) => item match {
-      case Atom.Variable(y) => x.index == y
-      case _ => false
+      case y: Atom.Variable =>
+        aliases.get(y) match {
+          case Some(y) if y.index == x.index => Some(aliases)
+          case None => Some(aliases + (y, x))
+          case _ => None
+        }
+      case _ => None
     }
     case AtomItemPattern.Mapped.Constant(x) => item match {
-      case Atom.Constant(y) => x.value == y
-      case _ => false
+      case Atom.Constant(y) if x.value == y => Some(aliases)
+      case _ => None
     }
-    case AtomItemPattern.Mapped.OneOf(x) => x.exists(matchAtomItemPattern(item, _))
-    case AtomItemPattern.Mapped.NoneOf(x) => !x.exists(matchAtomItemPattern(item, _))
+    case AtomItemPattern.Mapped.OneOf(x) => x.view.flatMap(matchAtomItemPattern(item, _)).headOption
+    case AtomItemPattern.Mapped.NoneOf(x) => if (x.view.flatMap(matchAtomItemPattern(item, _)).isEmpty) Some(aliases) else None
   }
 
-  def matchGraphPattern(atom: Atom.GraphAware, graphPattern: AtomItemPattern.Mapped): Boolean = graphPattern match {
-    case AtomItemPattern.Mapped.Constant(x) => atom.containsGraph(x.value)
-    case AtomItemPattern.Mapped.OneOf(x) => x.exists(matchGraphPattern(atom, _))
-    case AtomItemPattern.Mapped.NoneOf(x) => !x.exists(matchGraphPattern(atom, _))
-    case _ => true
+  def matchGraphPattern(atom: Atom.GraphAware, graphPattern: AtomItemPattern.Mapped)(implicit aliases: Aliases): Option[Aliases] = graphPattern match {
+    case AtomItemPattern.Mapped.Constant(x) => if (atom.containsGraph(x.value)) Some(aliases) else None
+    case AtomItemPattern.Mapped.OneOf(x) => x.view.flatMap(matchGraphPattern(atom, _)).headOption
+    case AtomItemPattern.Mapped.NoneOf(x) => if (x.view.flatMap(matchGraphPattern(atom, _)).isEmpty) Some(aliases) else None
+    case _ => Some(aliases)
   }
 
-  def matchGraphPattern(atom: Atom, graphPattern: AtomItemPattern.Mapped)(implicit thi: TripleIndex.Builder[Int]): Boolean = graphPattern match {
+  def matchGraphPattern(atom: Atom, graphPattern: AtomItemPattern.Mapped)(implicit thi: TripleIndex.Builder[Int], aliases: Aliases): Option[Aliases] = graphPattern match {
     case _: AtomItemPattern.Mapped.Constant | _: AtomItemPattern.Mapped.OneOf | _: AtomItemPattern.Mapped.NoneOf => atom match {
       case atom: Atom.GraphAware => matchGraphPattern(atom, graphPattern)
       case _ => matchGraphPattern(atom.toGraphAwareAtom, graphPattern)
     }
-    case _ => true
+    case _ => Some(aliases)
   }
 
   private def mayBeConstant(pattern: AtomItemPattern.Mapped): Boolean = pattern match {
@@ -48,16 +54,32 @@ object MappedAtomPatternMatcher {
   }
 
   //TODO: support variables for predicates and graphs
-  implicit def forAtom(implicit thi: TripleIndex.Builder[Int]): MappedAtomPatternMatcher[Atom] = (x: Atom, pattern: AtomPattern.Mapped) => {
-    matchAtomItemPattern(Atom.Constant(x.predicate), pattern.predicate) &&
-      matchAtomItemPattern(x.subject, pattern.subject) &&
-      matchAtomItemPattern(x.`object`, pattern.`object`) &&
-      matchGraphPattern(x, pattern.graph)
+  implicit def forAtom(implicit thi: TripleIndex.Builder[Int]): MappedAtomPatternMatcher[Atom] = new MappedAtomPatternMatcher[Atom] {
+    def matchPattern(x: Atom, pattern: AtomPattern.Mapped)(implicit aliases: Aliases): Option[Aliases] = {
+      matchAtomItemPattern(Atom.Constant(x.predicate), pattern.predicate).flatMap { implicit aliases =>
+        matchAtomItemPattern(x.subject, pattern.subject)
+      }.flatMap { implicit aliases =>
+        matchAtomItemPattern(x.`object`, pattern.`object`)
+      }.flatMap { implicit aliases =>
+        matchGraphPattern(x, pattern.graph)
+      }
+    }
   }
 
-  implicit val forFreshAtom: MappedAtomPatternMatcher[FreshAtom] = (x: FreshAtom, pattern: AtomPattern.Mapped) => {
-    (mayBeConstant(pattern.subject) || matchAtomItemPattern(x.subject, pattern.subject)) &&
-      (mayBeConstant(pattern.`object`) || matchAtomItemPattern(x.`object`, pattern.`object`))
+  implicit val forFreshAtom: MappedAtomPatternMatcher[FreshAtom] = new MappedAtomPatternMatcher[FreshAtom] {
+    def matchPattern(x: FreshAtom, pattern: AtomPattern.Mapped)(implicit aliases: Aliases): Option[Aliases] = {
+      (if (mayBeConstant(pattern.subject)) {
+        Some(aliases)
+      } else {
+        matchAtomItemPattern(x.subject, pattern.subject)
+      }).flatMap { implicit aliases =>
+        if (mayBeConstant(pattern.`object`)) {
+          Some(aliases)
+        } else {
+          matchAtomItemPattern(x.`object`, pattern.`object`)
+        }
+      }
+    }
   }
 
 }

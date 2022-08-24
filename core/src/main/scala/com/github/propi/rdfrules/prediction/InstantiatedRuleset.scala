@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.prediction
 
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
 import com.github.propi.rdfrules.index.{Index, TripleIndex, TripleItemIndex}
+import com.github.propi.rdfrules.rule.PatternMatcher.Aliases
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
 import com.github.propi.rdfrules.rule.{InstantiatedRule, PatternMatcher, ResolvedInstantiatedRule, Rule, RulePattern}
 import com.github.propi.rdfrules.serialization.RuleSerialization._
@@ -36,7 +37,7 @@ class InstantiatedRuleset private(val rules: ForEach[InstantiatedRule], val inde
     implicit val thi: TripleIndex[Int] = index.tripleMap
     val rulePatternMatcher = implicitly[PatternMatcher[Rule, RulePattern.Mapped]]
     val mappedPatterns = (pattern +: patterns).map(_.withOrderless().mapped)
-    rules.filter(rule => mappedPatterns.exists(rulePattern => rulePatternMatcher.matchPattern(rule.toRule, rulePattern))).foreach(f)
+    rules.filter(rule => mappedPatterns.exists(rulePattern => rulePatternMatcher.matchPattern(rule.toRule, rulePattern)(Aliases.empty).isDefined)).foreach(f)
   })
 
   def filterResolved(f: ResolvedInstantiatedRule => Boolean): InstantiatedRuleset = transform((f2: InstantiatedRule => Unit) => {

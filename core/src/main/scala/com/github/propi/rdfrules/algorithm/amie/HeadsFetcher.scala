@@ -3,6 +3,7 @@ package com.github.propi.rdfrules.algorithm.amie
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.index.TripleIndex
 import com.github.propi.rdfrules.rule.ExpandingRule.DanglingRule
+import com.github.propi.rdfrules.rule.PatternMatcher.Aliases
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule.{Atom, ExpandingRule, MappedAtomPatternMatcher}
 import com.github.propi.rdfrules.utils.Debugger.ActionDebugger
@@ -42,7 +43,7 @@ trait HeadsFetcher extends AtomCounting {
     }
     //filter all atoms by patterns and join all valid patterns to the atom
     possibleAtoms.filter { atom =>
-      settings.patterns.isEmpty || settings.patterns.exists(rp => rp.head.forall(atomPattern => forAtomMatcher.matchPattern(atom, atomPattern).isDefined))
+      settings.patterns.isEmpty || settings.patterns.exists(rp => rp.head.forall(atomPattern => forAtomMatcher.matchPattern(atom, atomPattern)(Aliases.empty).isDefined))
     }.flatMap { atom =>
       //convert all atoms to rules and filter it by min support
       val tm = tripleIndex.predicates(atom.predicate)

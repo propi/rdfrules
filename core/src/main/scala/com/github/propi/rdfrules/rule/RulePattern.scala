@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.rule
 
 import com.github.propi.rdfrules.index.TripleItemIndex
+import com.github.propi.rdfrules.rule.PatternMatcher.Aliases
 
 import scala.language.implicitConversions
 
@@ -42,13 +43,13 @@ case class RulePattern private(body: IndexedSeq[AtomPattern], head: Option[AtomP
     */
   def mapped(implicit mapper: TripleItemIndex): RulePattern.Mapped = RulePattern.Mapped(body.map(_.mapped), head.map(_.mapped), exact, orderless)
 
-  def matchWith[T](x: T)(implicit matcher: PatternMatcher[T, RulePattern]): Boolean = matcher.matchPattern(x, this).isDefined
+  def matchWith[T](x: T)(implicit matcher: PatternMatcher[T, RulePattern]): Boolean = matcher.matchPattern(x, this)(Aliases.empty).isDefined
 }
 
 object RulePattern {
 
   case class Mapped(body: IndexedSeq[AtomPattern.Mapped], head: Option[AtomPattern.Mapped], exact: Boolean, orderless: Boolean) {
-    def matchWith[T](x: T)(implicit matcher: PatternMatcher[T, Mapped]): Boolean = matcher.matchPattern(x, this).isDefined
+    def matchWith[T](x: T)(implicit matcher: PatternMatcher[T, Mapped]): Boolean = matcher.matchPattern(x, this)(Aliases.empty).isDefined
   }
 
   /* {

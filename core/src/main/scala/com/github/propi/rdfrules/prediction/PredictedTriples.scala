@@ -3,6 +3,7 @@ package com.github.propi.rdfrules.prediction
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
 import com.github.propi.rdfrules.data.{Graph, TriplePosition}
 import com.github.propi.rdfrules.index.{AutoIndex, Index, TripleIndex, TripleItemIndex}
+import com.github.propi.rdfrules.rule.PatternMatcher.Aliases
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
 import com.github.propi.rdfrules.rule.{PatternMatcher, Rule, RulePattern}
 import com.github.propi.rdfrules.ruleset.ops.Sortable
@@ -44,7 +45,7 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
     implicit val thi: TripleIndex.Builder[Int] = index
     val rulePatternMatcher = implicitly[PatternMatcher[Rule, RulePattern.Mapped]]
     val mappedPatterns = (pattern +: patterns).map(_.withOrderless().mapped)
-    triples.filter(triple => mappedPatterns.exists(rulePattern => rulePatternMatcher.matchPattern(triple.rule, rulePattern))).foreach(f)
+    triples.filter(triple => mappedPatterns.exists(rulePattern => rulePatternMatcher.matchPattern(triple.rule, rulePattern)(Aliases.empty).isDefined)).foreach(f)
   })
 
   def filterResolved(f: ResolvedPredictedTriple => Boolean): PredictedTriples = transform((f2: PredictedTriple => Unit) => {

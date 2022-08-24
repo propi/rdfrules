@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.algorithm.amie
 
-import com.github.propi.rdfrules.algorithm.amie.RuleRefinement.{PimpedRule, Settings}
+import com.github.propi.rdfrules.algorithm.amie.RuleRefinement.PimpedRule
 import com.github.propi.rdfrules.algorithm.consumer.TopKRuleConsumer
 import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
@@ -43,7 +43,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
     */
   def mine(ruleConsumer: RuleConsumer)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): ForEach[FinalRule] = {
     val logger = debugger.logger
-    implicit val settings: RuleRefinement.Settings = new Settings(this)(/*if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) */ debugger /* else Debugger.EmptyDebugger*/ , mapper)
+    implicit val settings: AmieSettings = new AmieSettings(this)(/*if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) */ debugger /* else Debugger.EmptyDebugger*/ , mapper)
     val observedRuleConsumer = ruleConsumer.withListener {
       case TopKRuleConsumer.MinHeadCoverageUpdatedEvent(minHeadCoverage) =>
         topKActivated = true
@@ -157,7 +157,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
 
   }*/
 
-  private class AmieProcess(ruleConsumer: RuleConsumer)(implicit val tripleIndex: TripleIndex[Int], val settings: RuleRefinement.Settings, val forAtomMatcher: MappedAtomPatternMatcher[Atom]) extends HeadsFetcher {
+  private class AmieProcess(ruleConsumer: RuleConsumer)(implicit val tripleIndex: TripleIndex[Int], val settings: AmieSettings, val forAtomMatcher: MappedAtomPatternMatcher[Atom]) extends HeadsFetcher {
 
     private val foundRules = new AtomicInteger(0)
 

@@ -363,23 +363,27 @@ trait RuleRefinement2 extends AtomCounting with RuleExpansion {
   }
 
   private def isDuplicateInstantiatedAtom(p: Int, v: TripleItemPosition[Atom.Item], rest: Set[Atom], variableMap: VariableMap): (Atom.Constant, Atom.Constant) => Boolean = {
-    val items = rulePredicates.get(p).flatMap(_.get(v)).getOrElse(Nil)
-    val f = (s: Atom.Constant, o: Atom.Constant, x: Atom.Constant) => items.exists {
-      //(?a p C) ^ (?a p C) => (?a p1 X) - DUPLICATE!
-      case Atom.Constant(c) => x.value == c
-      case y: Atom.Variable if variableMap.injectiveMapping =>
-        variableMap.get(y) match {
-          //(?a p C) ^ (?a p ?b) => (?a p1 ?b) - VariableMap(?b -> C) - DUPLICATE!
-          case Some(Atom.Constant(c)) => x.value == c
-          //(?a p C) ^ (?a p ?b) => (?a p1 ?b) - VariableMap(?b -> NONE) - EXISTS(VariableMap(?b -> C)) - DUPLICATE!
-          case None => !exists(rest, variableMap + (s, p, o)) //IF NOT exists any other binding, e.g., (?a p C) ^ (?a p D), THEN it is DUPLICATE!
-        }
-      case _ => false
-    }
-    if (v.isInstanceOf[TripleItemPosition.Subject[Atom.Item]]) {
-      (s, o) => f(s, o, o)
+    if (withDuplicitPredicates) {
+      val items = rulePredicates.get(p).flatMap(_.get(v)).getOrElse(Nil)
+      val f = (s: Atom.Constant, o: Atom.Constant, x: Atom.Constant) => items.exists {
+        //(?a p C) ^ (?a p C) => (?a p1 X) - DUPLICATE!
+        case Atom.Constant(c) => x.value == c
+        case y: Atom.Variable if variableMap.injectiveMapping =>
+          variableMap.get(y) match {
+            //(?a p C) ^ (?a p ?b) => (?a p1 ?b) - VariableMap(?b -> C) - DUPLICATE!
+            case Some(Atom.Constant(c)) => x.value == c
+            //(?a p C) ^ (?a p ?b) => (?a p1 ?b) - VariableMap(?b -> NONE) - EXISTS(VariableMap(?b -> C)) - DUPLICATE!
+            case None => !exists(rest, variableMap + (s, p, o)) //IF NOT exists any other binding, e.g., (?a p C) ^ (?a p D), THEN it is DUPLICATE!
+          }
+        case _ => false
+      }
+      if (v.isInstanceOf[TripleItemPosition.Subject[Atom.Item]]) {
+        (s, o) => f(s, o, o)
+      } else {
+        (s, o) => f(s, o, s)
+      }
     } else {
-      (s, o) => f(s, o, s)
+      (_, _) => false
     }
   }
 

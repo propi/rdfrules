@@ -17,8 +17,8 @@ package object rule {
 
   def Any: AtomItemPattern.Any.type = AtomItemPattern.Any
 
-  def OneOf(atomItemPattern: AtomItemPattern, atomItemPatterns: AtomItemPattern*): AtomItemPattern.OneOf = AtomItemPattern.OneOf(atomItemPattern, atomItemPatterns: _*)
+  def OneOf(atomItemPattern: AtomItemPattern.Constant, atomItemPatterns: AtomItemPattern.Constant*): AtomItemPattern.OneOf = AtomItemPattern.OneOf(atomItemPattern, atomItemPatterns: _*)
 
-  def NoneOf(atomItemPattern: AtomItemPattern, atomItemPatterns: AtomItemPattern*): AtomItemPattern.NoneOf = AtomItemPattern.NoneOf(atomItemPattern, atomItemPatterns: _*)
+  def NoneOf(atomItemPattern: AtomItemPattern.Constant, atomItemPatterns: AtomItemPattern.Constant*): AtomItemPattern.NoneOf = AtomItemPattern.NoneOf(atomItemPattern, atomItemPatterns: _*)
 
 }
