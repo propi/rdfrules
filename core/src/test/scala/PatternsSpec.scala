@@ -24,7 +24,7 @@ class PatternsSpec extends AnyFlatSpec with Matchers with Inside with CancelAfte
   private def amie(implicit debugger: Debugger) = Amie()
     .addThreshold(Threshold.MinHeadCoverage(0.01))
     .addConstraint(RuleConstraint.WithoutDuplicatePredicates())
-    .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LeastFunctionalVariable))
+    .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LowerCardinalitySide))
 
   "Amie" should "should mine with gradual partial pattern" in {
     Debugger() { implicit debugger =>

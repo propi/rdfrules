@@ -12,8 +12,8 @@ class ComputeConfidence(confidenceType: ConfidenceType)(implicit debugger: Debug
   val companion: TaskDefinition = ComputeConfidence
 
   def execute(input: Ruleset): Ruleset = confidenceType match {
-    case ConfidenceType.StandardConfidence(min, topK) => input.computeConfidence(min, topK)
-    case ConfidenceType.PcaConfidence(min, topK) => input.computeConfidence(min, topK)
+    case ConfidenceType.StandardConfidence(min, topK) => input.computeConfidence(min, true, topK)
+    case ConfidenceType.PcaConfidence(min, topK) => input.computeConfidence(min, true, topK)
     case ConfidenceType.Lift(min) => input.computeLift(min)
   }
 }

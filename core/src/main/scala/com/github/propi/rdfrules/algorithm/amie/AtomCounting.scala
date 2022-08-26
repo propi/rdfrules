@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.index.TripleIndex
-import com.github.propi.rdfrules.rule.{Atom, FreshAtom}
+import com.github.propi.rdfrules.rule.{Atom, FreshAtom, InstantiatedAtom}
 import com.typesafe.scalalogging.Logger
 
 /**
@@ -262,10 +262,10 @@ trait AtomCounting {
     * @param atom atom to be specified
     * @return function which return variableMap from specified atom which specifies unspecified atom
     */
-  def specifyVariableMapForAtom(atom: Atom): (Atom, VariableMap) => VariableMap = (atom.subject, atom.`object`) match {
-    case (s: Atom.Variable, o: Atom.Variable) => (specifiedAtom, variableMap) => variableMap + (s -> specifiedAtom.subject.asInstanceOf[Atom.Constant], atom.predicate, o -> specifiedAtom.`object`.asInstanceOf[Atom.Constant])
-    case (s: Atom.Variable, o: Atom.Constant) => (specifiedAtom, variableMap) => variableMap + (s -> specifiedAtom.subject.asInstanceOf[Atom.Constant], atom.predicate, o)
-    case (s: Atom.Constant, o: Atom.Variable) => (specifiedAtom, variableMap) => variableMap + (s, atom.predicate, o -> specifiedAtom.`object`.asInstanceOf[Atom.Constant])
+  def specifyVariableMapForAtom(atom: Atom): (InstantiatedAtom, VariableMap) => VariableMap = (atom.subject, atom.`object`) match {
+    case (s: Atom.Variable, o: Atom.Variable) => (specifiedAtom, variableMap) => variableMap + (s -> Atom.Constant(specifiedAtom.subject), atom.predicate, o -> Atom.Constant(specifiedAtom.`object`))
+    case (s: Atom.Variable, o: Atom.Constant) => (specifiedAtom, variableMap) => variableMap + (s -> Atom.Constant(specifiedAtom.subject), atom.predicate, o)
+    case (s: Atom.Constant, o: Atom.Variable) => (specifiedAtom, variableMap) => variableMap + (s, atom.predicate, o -> Atom.Constant(specifiedAtom.`object`))
     case _ => (_, variableMap) => variableMap
   }
 
@@ -295,38 +295,38 @@ trait AtomCounting {
     * @param variableMap constants which will be mapped to variables
     * @return iterator of all projections
     */
-  def specifyAtom(atom: Atom, variableMap: VariableMap): Iterator[Atom] = {
+  def specifyAtom(atom: Atom, variableMap: VariableMap): Iterator[InstantiatedAtom] = {
     val tm = tripleIndex.predicates(atom.predicate)
     (variableMap.specifyItem(atom.subject), variableMap.specifyItem(atom.`object`)) match {
       case (_: Atom.Variable, _: Atom.Variable) =>
         tm.subjects.pairIterator.flatMap(x => x._2.iterator.flatMap { y =>
-          val mappedAtom = Atom(Atom.Constant(x._1), atom.predicate, Atom.Constant(y))
+          val mappedAtom = InstantiatedAtom(x._1, atom.predicate, y)
           if (variableMap.injectiveMapping && (variableMap.containsConstant(x._1) || variableMap.containsConstant(y) || variableMap.containsAtom(mappedAtom))) {
             None
           } else {
             Some(mappedAtom)
           }
         })
-      case (_: Atom.Variable, ov@Atom.Constant(oc)) =>
+      case (_: Atom.Variable, Atom.Constant(oc)) =>
         tm.objects.get(oc).iterator.flatMap(_.iterator).flatMap { subject =>
-          val mappedAtom = Atom(Atom.Constant(subject), atom.predicate, ov)
+          val mappedAtom = InstantiatedAtom(subject, atom.predicate, oc)
           if (variableMap.injectiveMapping && (variableMap.containsConstant(subject) || variableMap.containsAtom(mappedAtom))) {
             None
           } else {
             Some(mappedAtom)
           }
         }
-      case (sv@Atom.Constant(sc), _: Atom.Variable) =>
+      case (Atom.Constant(sc), _: Atom.Variable) =>
         tm.subjects.get(sc).iterator.flatMap(_.iterator).flatMap { `object` =>
-          val mappedAtom = Atom(sv, atom.predicate, Atom.Constant(`object`))
+          val mappedAtom = InstantiatedAtom(sc, atom.predicate, `object`)
           if (variableMap.injectiveMapping && (variableMap.containsConstant(`object`) || variableMap.containsAtom(mappedAtom))) {
             None
           } else {
             Some(mappedAtom)
           }
         }
-      case (sv@Atom.Constant(sc), ov@Atom.Constant(oc)) =>
-        val instantiatedAtom = Atom(sv, atom.predicate, ov)
+      case (Atom.Constant(sc), Atom.Constant(oc)) =>
+        val instantiatedAtom = InstantiatedAtom(sc, atom.predicate, oc)
         if (tm.subjects.get(sc).exists(x => x.contains(oc)) && !variableMap.containsAtom(instantiatedAtom)) Iterator(instantiatedAtom) else Iterator.empty
     }
   }

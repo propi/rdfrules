@@ -18,7 +18,8 @@ import scala.language.postfixOps
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
-class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
+class Amie private(experiments: Boolean,
+                   _parallelism: Int = Runtime.getRuntime.availableProcessors(),
                    _thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
                    _constraints: TypedKeyMap[RuleConstraint] = TypedKeyMap(),
                    _patterns: List[RulePattern] = Nil)
@@ -31,7 +32,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
   protected def transform(thresholds: TypedKeyMap[Threshold],
                           constraints: TypedKeyMap[RuleConstraint],
                           patterns: List[RulePattern],
-                          parallelism: Int): RulesMining = new Amie(parallelism, thresholds, constraints, patterns)
+                          parallelism: Int): RulesMining = new Amie(experiments, parallelism, thresholds, constraints, patterns)
 
   /**
     * Mine all closed rules from tripleIndex by defined thresholds (hc, support, rule length), optional rule pattern and constraints
@@ -188,7 +189,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
               //if rule length is lower than max rule length we can expand this rule with one atom (in this refine phase it always applies)
               //if we use the topK approach the minHeadCoverage may change during mining; therefore we need to check minHC threshold for the current rule
               //refine the rule and add all expanded variants into the queue
-              for (rule <- rule.refine) {
+              for (rule <- rule.refine(experiments)) {
                 val ruleIsAdded = nextQueue.add(rule)
                 if (ruleIsAdded && rule.isInstanceOf[ClosedRule] && (settings.patterns.isEmpty || settings.patterns.exists(_.matchWith[Rule](rule)))) {
                   ruleConsumer.send(rule)
@@ -245,6 +246,6 @@ object Amie {
     * @param debugger debugger
     * @return
     */
-  def apply()(implicit debugger: Debugger): RulesMining = new Amie()
+  def apply(experiments: Boolean = false)(implicit debugger: Debugger): RulesMining = new Amie(experiments)
 
 }

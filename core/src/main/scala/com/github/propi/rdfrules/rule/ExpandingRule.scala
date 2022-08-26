@@ -11,8 +11,6 @@ import scala.ref.SoftReference
 sealed trait ExpandingRule extends Rule {
   val maxVariable: Atom.Variable
 
-  def parent: Option[ExpandingRule]
-
   def supportedRanges: Option[MutableRanges]
 
   final def measures: TypedKeyMap.Immutable[Measure] = throw new UnsupportedOperationException
@@ -28,6 +26,8 @@ sealed trait ExpandingRule extends Rule {
     case (_: Atom.Variable, Atom.Constant(o)) => thi.predicates(head.predicate).objects(o).iterator.map(_ -> o)
     case (Atom.Constant(s), Atom.Constant(o)) => Iterator(s -> o)
   }
+
+  override def toString: String = s"${body.mkString(" ^ ")} => $head"
 }
 
 object ExpandingRule {
@@ -142,6 +142,7 @@ object ExpandingRule {
       case _ => false
     }
 
+    //TODO check whether it is faster than Rule hashCode
     override def hashCode(): Int = body.hashCode() * 31 + head.hashCode()
 
     val variables: List[Atom.Variable]
@@ -150,7 +151,7 @@ object ExpandingRule {
   object ClosedRule {
     def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, variables: List[Atom.Variable], maxVariable: Atom.Variable): ClosedRule = new BasicClosedRule(body, head, support, headSize, variables, maxVariable)
 
-    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, variables: List[Atom.Variable], maxVariable: Atom.Variable, supportedRanges: MutableRanges, parent: ExpandingRule): ClosedRule = new CachedClosedRule(body, head, support, headSize, variables, maxVariable, SoftReference(parent), SoftReference(supportedRanges))
+    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, variables: List[Atom.Variable], maxVariable: Atom.Variable, supportedRanges: MutableRanges): ClosedRule = new CachedClosedRule(body, head, support, headSize, variables, maxVariable, SoftReference(supportedRanges))
   }
 
   private class BasicClosedRule(val body: IndexedSeq[Atom],
@@ -160,8 +161,6 @@ object ExpandingRule {
                                 val variables: List[Atom.Variable],
                                 val maxVariable: Atom.Variable,
                                ) extends ClosedRule {
-    def parent: Option[ExpandingRule] = None
-
     def supportedRanges: Option[MutableRanges] = None
   }
 
@@ -171,11 +170,8 @@ object ExpandingRule {
                                  val headSize: Int,
                                  val variables: List[Atom.Variable],
                                  val maxVariable: Atom.Variable,
-                                 _parent: SoftReference[ExpandingRule],
                                  _supportedRanges: SoftReference[MutableRanges]
                                 ) extends ClosedRule {
-    def parent: Option[ExpandingRule] = _parent.get
-
     def supportedRanges: Option[MutableRanges] = _supportedRanges.get
   }
 
@@ -188,6 +184,7 @@ object ExpandingRule {
       case _ => false
     }
 
+    //TODO check whether it is faster than Rule hashCode
     override def hashCode(): Int = (1 + body.hashCode()) * 31 + head.hashCode()
 
     val variables: DanglingVariables
@@ -196,7 +193,7 @@ object ExpandingRule {
   object DanglingRule {
     def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, variables: DanglingVariables, maxVariable: Atom.Variable): DanglingRule = new BasicDanglingRule(body, head, support, headSize, variables, maxVariable)
 
-    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, variables: DanglingVariables, maxVariable: Atom.Variable, supportedRanges: MutableRanges, parent: ExpandingRule): DanglingRule = new CachedDanglingRule(body, head, support, headSize, variables, maxVariable, SoftReference(parent), SoftReference(supportedRanges))
+    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, variables: DanglingVariables, maxVariable: Atom.Variable, supportedRanges: MutableRanges): DanglingRule = new CachedDanglingRule(body, head, support, headSize, variables, maxVariable, SoftReference(supportedRanges))
   }
 
   private class BasicDanglingRule(val body: IndexedSeq[Atom],
@@ -205,8 +202,6 @@ object ExpandingRule {
                                   val headSize: Int,
                                   val variables: DanglingVariables,
                                   val maxVariable: Atom.Variable) extends DanglingRule {
-    def parent: Option[ExpandingRule] = None
-
     def supportedRanges: Option[MutableRanges] = None
   }
 
@@ -216,11 +211,8 @@ object ExpandingRule {
                                    val headSize: Int,
                                    val variables: DanglingVariables,
                                    val maxVariable: Atom.Variable,
-                                   _parent: SoftReference[ExpandingRule],
                                    _supportedRanges: SoftReference[MutableRanges]
                                   ) extends DanglingRule {
-    def parent: Option[ExpandingRule] = _parent.get
-
     def supportedRanges: Option[MutableRanges] = _supportedRanges.get
   }
 

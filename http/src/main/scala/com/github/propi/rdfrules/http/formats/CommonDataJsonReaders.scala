@@ -150,8 +150,8 @@ object CommonDataJsonReaders {
       case "AnyVariable" => AtomPattern.AtomItemPattern.AnyVariable
       case "Constant" => AtomPattern.AtomItemPattern(fields("value").convertTo[TripleItem])
       case "Variable" => AtomPattern.AtomItemPattern(fields("value").convertTo[Char])
-      case "OneOf" => AtomPattern.AtomItemPattern.OneOf(fields("value").convertTo[JsArray].elements.map(_.convertTo[AtomPattern.AtomItemPattern]))
-      case "NoneOf" => AtomPattern.AtomItemPattern.NoneOf(fields("value").convertTo[JsArray].elements.map(_.convertTo[AtomPattern.AtomItemPattern]))
+      case "OneOf" => AtomPattern.AtomItemPattern.OneOf(fields("value").convertTo[JsArray].elements.map(x => AtomPattern.AtomItemPattern.Constant(x.convertTo[TripleItem])))
+      case "NoneOf" => AtomPattern.AtomItemPattern.NoneOf(fields("value").convertTo[JsArray].elements.map(x => AtomPattern.AtomItemPattern.Constant(x.convertTo[TripleItem])))
       case x => deserializationError(s"Invalid atom item pattern name: $x")
     }
   }
@@ -184,7 +184,7 @@ object CommonDataJsonReaders {
       case "WithoutConstants" => RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere)
       case "OnlyObjectConstants" => RuleConstraint.ConstantsAtPosition(ConstantsPosition.Object)
       case "OnlySubjectConstants" => RuleConstraint.ConstantsAtPosition(ConstantsPosition.Subject)
-      case "OnlyLeastFunctionalConstants" => RuleConstraint.ConstantsAtPosition(ConstantsPosition.LeastFunctionalVariable)
+      case "OnlyLeastFunctionalConstants" => RuleConstraint.ConstantsAtPosition(ConstantsPosition.LowerCardinalitySide)
       case "WithoutDuplicitPredicates" => RuleConstraint.WithoutDuplicatePredicates()
       case "OnlyPredicates" => RuleConstraint.OnlyPredicates(fields("values").convertTo[JsArray].elements.map(_.convertTo[TripleItem.Uri]).toSet)
       case "WithoutPredicates" => RuleConstraint.WithoutPredicates(fields("values").convertTo[JsArray].elements.map(_.convertTo[TripleItem.Uri]).toSet)

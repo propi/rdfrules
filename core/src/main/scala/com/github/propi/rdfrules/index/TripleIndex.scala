@@ -37,11 +37,15 @@ trait TripleIndex[T] {
 
     def size: Int
 
+    final lazy val subjectRelativeCardinality: Double = subjects.size.toDouble / size
+
+    final lazy val objectRelativeCardinality: Double = objects.size.toDouble / size
+
     /**
       * (C hasCitizen ?a), or (?a isCitizenOf C)
       * For this example C is the least functional variable
       */
-    final def lowerCardinalitySide: ConceptPosition = if (subjectRelativeCardinality >= objectRelativeCardinality) {
+    final lazy val lowerCardinalitySide: ConceptPosition = if (subjectRelativeCardinality >= objectRelativeCardinality) {
       TriplePosition.Object
     } else {
       TriplePosition.Subject
@@ -51,19 +55,17 @@ trait TripleIndex[T] {
       * (?a hasCitizen C), or (C isCitizenOf ?a)
       * For this example C is the most functional variable
       */
-    def higherCardinalitySide: ConceptPosition = if (lowerCardinalitySide == TriplePosition.Subject) {
+    final lazy val higherCardinalitySide: ConceptPosition = if (lowerCardinalitySide == TriplePosition.Subject) {
       TriplePosition.Object
     } else {
       TriplePosition.Subject
     }
 
-    final def subjectRelativeCardinality: Double = subjects.size.toDouble / size
-
     final def isFunction: Boolean = subjectRelativeCardinality == 1.0
 
     final def isInverseFunction: Boolean = objectRelativeCardinality == 1.0
 
-    final def objectRelativeCardinality: Double = objects.size.toDouble / size
+
   }
 
   trait SubjectIndex {

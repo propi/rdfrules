@@ -14,7 +14,7 @@ class MutableRanges private(ranges: util.LinkedList[MutableRanges.Item], var i: 
 
   def copy(): MutableRanges = new MutableRanges(ranges.clone().asInstanceOf[util.LinkedList[MutableRanges.Item]], i)
 
-  def validator: MutableRanges.Validator = new MutableRanges.Validator(ranges.iterator().asScala)
+  def validator: MutableRanges.Validator = new MutableRanges.BasicValidator(ranges.iterator().asScala)
 
   def +=(x: Int): this.type = {
     ranges.iterator()
@@ -44,7 +44,15 @@ class MutableRanges private(ranges: util.LinkedList[MutableRanges.Item], var i: 
 
 object MutableRanges {
 
-  class Validator private[MutableRanges](it: Iterator[MutableRanges.Item]) {
+  sealed trait Validator {
+    def isInRange(x: Int): Boolean
+  }
+
+  object AlwaysTrueValidator extends Validator {
+    def isInRange(x: Int): Boolean = true
+  }
+
+  private class BasicValidator(it: Iterator[MutableRanges.Item]) extends Validator {
     private var _current = Option.empty[MutableRanges.Item]
 
     private def next(): Unit = if (it.hasNext) _current = Some(it.next()) else _current = None

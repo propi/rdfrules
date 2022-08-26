@@ -176,10 +176,6 @@ object PipelineJsonReaders {
 
   implicit def mineReader(implicit debugger: Debugger): RootJsonReader[index.Mine] = (json: JsValue) => {
     val selector = json.toSelector
-    val hoho = selector("ruleConsumers").toTypedIterable[RuleConsumer.Invoker[Ruleset]]
-    println(selector("ruleConsumers").jsValue)
-    println(hoho.size)
-    hoho.foreach(println)
     new index.Mine(json.convertTo[RulesMining], selector("ruleConsumers").toTypedIterable[RuleConsumer.Invoker[Ruleset]].reduceOption(_ ~> _).getOrElse(RuleConsumer(InMemoryRuleConsumer())))
   }
 

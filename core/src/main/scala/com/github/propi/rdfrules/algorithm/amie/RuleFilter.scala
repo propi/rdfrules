@@ -32,20 +32,12 @@ trait RuleFilter {
 
 object RuleFilter {
 
-  type FilterResult = (Boolean, Option[ExpandingRule => ExpandingRule])
+  type FilterResult = Boolean
 
-  private implicit def booleanToFilterResult(bool: Boolean): FilterResult = bool -> None
+  //private implicit def booleanToFilterResult(bool: Boolean): FilterResult = bool -> None
 
   class And(ruleFilter1: RuleFilter, ruleFilter2: RuleFilter) extends RuleFilter {
-    def apply(newAtom: Atom, support: Int): FilterResult = {
-      val rf1 = ruleFilter1(newAtom, support)
-      val rf2 = ruleFilter2(newAtom, support)
-      val f = (rf1._2, rf2._2) match {
-        case (Some(f), Some(g)) => Some(f.andThen(g))
-        case (x, y) => x.orElse(y)
-      }
-      (rf1._1 && rf2._1) -> f
-    }
+    def apply(newAtom: Atom, support: Int): FilterResult = ruleFilter1(newAtom, support) && ruleFilter2(newAtom, support)
   }
 
   class RuleConstraints(rule: Rule, constraints: Seq[RuleConstraint.MappedFilter]) extends RuleFilter {
@@ -315,9 +307,9 @@ object RuleFilter {
   class NoDuplicitRuleFilter(head: Atom, body: Set[Atom]) extends RuleFilter {
     def apply(newAtom: Atom, support: Int): FilterResult = {
       val res = newAtom != head && !body(newAtom)
-      if (!res) {
+      /*if (!res) {
         println(s"$newAtom : $body => $head")
-      }
+      }*/
       res
       //val x = newAtom != head && !body(newAtom)
       //if (!x) println(s"atom: $newAtom, rule $body -> $head")

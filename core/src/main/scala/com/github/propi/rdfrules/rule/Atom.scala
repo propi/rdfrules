@@ -65,7 +65,7 @@ object Atom {
 
   def apply(subject: Atom.Item, predicate: Int, `object`: Atom.Item, graphs: HashSet[Int]): GraphAware = GraphAwareBasic(subject, predicate, `object`)(graphs)
 
-  sealed trait Item
+  sealed trait Item extends Any
 
   object Item {
     implicit def apply(tripleItem: TripleItem)(implicit mapper: TripleItemIndex): Constant = Constant(mapper.getIndex(tripleItem))
@@ -75,8 +75,7 @@ object Atom {
     implicit def apply(string: String): Variable = apply(string.stripPrefix("?").headOption.getOrElse('a'))
   }
 
-  //TODO extends AnyVal
-  case class Variable(index: Int) extends Item {
+  case class Variable(index: Int) extends AnyVal with Item {
     def value: String = {
       val doubleVal = math.abs(index).toDouble
       val sValue = Iterator.iterate(math.floor(doubleVal / 26) -> (doubleVal % 26))(x => math.floor(x._1 / 26) -> ((x._1 % 26) - 1)).takeWhile(_._2 >= 0).map(x => (97 + x._2).toChar).foldLeft("")((x, y) => s"$y$x")
@@ -90,8 +89,7 @@ object Atom {
     override def toString: String = value
   }
 
-  //TODO extends AnyVal
-  case class Constant(value: Int) extends Item
+  case class Constant(value: Int) extends AnyVal with Item
 
   implicit val variableOrdering: Ordering[Variable] = Ordering.by[Variable, Int](_.index)
 

@@ -3,6 +3,7 @@ package com.github.propi.rdfrules.http.task.index
 import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.rule.RuleConstraint
 import com.github.propi.rdfrules.ruleset.Ruleset
 
 /**
@@ -11,7 +12,7 @@ import com.github.propi.rdfrules.ruleset.Ruleset
 class Mine(rulesMining: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset]) extends Task[Index, Ruleset] {
   val companion: TaskDefinition = Mine
 
-  def execute(input: Index): Ruleset = input.mine(rulesMining, ruleConsumer).setParallelism(rulesMining.parallelism)
+  def execute(input: Index): Ruleset = input.mine(rulesMining.addConstraint(RuleConstraint.InjectiveMapping()), ruleConsumer).setParallelism(rulesMining.parallelism)
 }
 
 object Mine extends TaskDefinition {
