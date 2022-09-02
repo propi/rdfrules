@@ -18,6 +18,10 @@ case class ResolvedRule private(body: IndexedSeq[ResolvedAtom], head: ResolvedAt
     body.map(_.toAtom)
   )(measures)
 
+  def toRuleOpt(implicit tripleItemIndex: TripleItemIndex): Option[FinalRule] = for (h <- head.toAtomOpt) yield {
+    Rule(h, body.flatMap(_.toAtomOpt))(measures)
+  }
+
   override def toString: String = Stringifier(this)
 }
 

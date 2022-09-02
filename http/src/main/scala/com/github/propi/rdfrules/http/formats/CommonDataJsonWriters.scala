@@ -76,7 +76,7 @@ object CommonDataJsonWriters {
     "head" -> obj.head.toJson,
     "body" -> JsArray(obj.body.iterator.map(_.toJson).toVector),
     "source" -> obj.source.toJson,
-    "predictedResult" -> obj.predictionResult.toJson
+    "predictedResult" -> obj.predictedResult.toJson
   )
 
   implicit val propertyStatsWriter: RootJsonWriter[PropertyStats] = (obj: PropertyStats) => obj.iterator.map(x => JsObject("name" -> x._1.toJson, "amount" -> x._2.toJson)).toSeq.toJson

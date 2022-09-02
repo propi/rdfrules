@@ -23,8 +23,7 @@ trait Buildable {
     def next(): T = it.next()
   }
 
-  protected implicit val indexCollectionBuilder: TripleHashIndex.CollectionsBuilder[Int] = new TripleHashIndex.CollectionsBuilder[Int] {
-    def emptySet: TripleHashIndex.MutableHashSet[Int] = new TripleHashIndex.MutableHashSet[Int] {
+  private class FastMutableHashSet extends TripleHashIndex.MutableHashSet[Int] {
       private val hset = new IntOpenHashSet()
 
       def +=(x: Int): Unit = hset.add(x)
@@ -40,47 +39,60 @@ trait Buildable {
       def trim(): Unit = hset.trim()
 
       def isEmpty: Boolean = hset.isEmpty
+  }
+
+  private class FastMutableHashMap[V] extends TripleHashIndex.MutableHashMap[Int, V] {
+    private val hmap = new Int2ReferenceOpenHashMap[V]()
+
+    def getOrElseUpdate(key: Int, default: => V): V = {
+      var v = hmap.get(key)
+      if (v == null) {
+        v = default
+        hmap.put(key, v)
+      }
+      v
     }
 
-    def emptyHashMap[V]: TripleHashIndex.MutableHashMap[Int, V] = new TripleHashIndex.MutableHashMap[Int, V] {
-      private val hmap = new Int2ReferenceOpenHashMap[V]()
+    def remove(key: Int): Unit = hmap.remove(key)
 
-      def getOrElseUpdate(key: Int, default: => V): V = {
-        var v = hmap.get(key)
-        if (v == null) {
-          v = default
-          hmap.put(key, v)
-        }
-        v
-      }
+    def put(key: Int, value: V): Unit = hmap.put(key, value)
 
-      def remove(key: Int): Unit = hmap.remove(key)
+    def clear(): Unit = hmap.clear()
 
-      def put(key: Int, value: V): Unit = hmap.put(key, value)
-
-      def clear(): Unit = hmap.clear()
-
-      def apply(key: Int): V = {
-        val v = hmap.get(key)
-        if (v == null) throw new NoSuchElementException else v
-      }
-
-      def get(key: Int): Option[V] = Option(hmap.get(key))
-
-      def iterator: Iterator[Int] = hmap.keySet().iterator()
-
-      def valuesIterator: Iterator[V] = hmap.values().iterator()
-
-      def pairIterator: Iterator[(Int, V)] = hmap.int2ReferenceEntrySet().iterator().map(x => x.getIntKey -> x.getValue)
-
-      def size: Int = hmap.size()
-
-      def isEmpty: Boolean = hmap.isEmpty
-
-      def contains(key: Int): Boolean = hmap.containsKey(key)
-
-      def trim(): Unit = hmap.trim()
+    def apply(key: Int): V = {
+      val v = hmap.get(key)
+      if (v == null) throw new NoSuchElementException else v
     }
+
+    def get(key: Int): Option[V] = Option(hmap.get(key))
+
+    def iterator: Iterator[Int] = hmap.keySet().iterator()
+
+    def valuesIterator: Iterator[V] = hmap.values().iterator()
+
+    def pairIterator: Iterator[(Int, V)] = hmap.int2ReferenceEntrySet().iterator().map(x => x.getIntKey -> x.getValue)
+
+    def size: Int = hmap.size()
+
+    def isEmpty: Boolean = hmap.isEmpty
+
+    def contains(key: Int): Boolean = hmap.containsKey(key)
+
+    def trim(): Unit = hmap.trim()
+  }
+
+  protected implicit val indexCollectionBuilder: TripleHashIndex.CollectionsBuilder[Int] = new TripleHashIndex.CollectionsBuilder[Int] {
+    def emptySet: TripleHashIndex.MutableHashSet[Int] = new FastMutableHashSet
+
+    def emptyHashMap[V]: TripleHashIndex.MutableHashMap[Int, V] = new FastMutableHashMap[V]
+
+    def emptySetReflexiveable: TripleHashIndex.MutableHashSet[Int] with TripleHashIndex.MutableReflexivable = new FastMutableHashSet with TripleHashIndex.MutableReflexivable
+
+    def emptyMapReflexiveable[V]: TripleHashIndex.MutableHashMap[Int, V] with TripleHashIndex.MutableReflexivable = new FastMutableHashMap[V] with TripleHashIndex.MutableReflexivable
+
+    def emptySetNonReflexive: TripleHashIndex.MutableHashSet[Int] with TripleHashIndex.NonReflexive = new FastMutableHashSet with TripleHashIndex.NonReflexive
+
+    def emptySetReflexive: TripleHashIndex.MutableHashSet[Int] with TripleHashIndex.Reflexive = new FastMutableHashSet with TripleHashIndex.Reflexive
   }
 
   protected def buildTripleIndex: TripleIndex[Int]

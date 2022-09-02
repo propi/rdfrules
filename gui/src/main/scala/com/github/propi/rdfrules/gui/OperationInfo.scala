@@ -12,6 +12,10 @@ sealed trait OperationInfo {
   val name: String
   val title: String
 
+  def isHidden: Boolean = false
+
+  def subname: Option[String] = None
+
   def `type`: Operation.Type
 
   def sourceStructure: OperationStructure
@@ -76,6 +80,8 @@ object OperationInfo {
       IndexTransformation.IndexToDataset,
       IndexTransformation.Mine,
       IndexTransformation.LoadRuleset,
+      IndexTransformation.LoadRulesetWithRules,
+      PropertiesCardinalities,
       CacheIndexAction,
     )
   }
@@ -94,7 +100,8 @@ object OperationInfo {
       CacheRulesetAction,
       ExportRules,
       GetRules,
-      RulesetSize
+      RulesetSize,
+      Instantiate
     )
   }
 
@@ -346,7 +353,21 @@ object OperationInfo {
     }
 
     object LoadRuleset extends OperationInfo.LoadRuleset with RulesetTransformation {
+      override val subname: Option[String] = Some("FromFile")
+
       def buildOperation(from: Operation): Operation = new operations.LoadRuleset(from, this)
+
+      def sourceStructure: OperationStructure = OperationStructure.Index
+
+      def targetStructure: OperationStructure = OperationStructure.Ruleset
+    }
+
+    object LoadRulesetWithRules extends OperationInfo.LoadRuleset with RulesetTransformation {
+      override val subname: Option[String] = Some("FromRules")
+
+      override def isHidden: Boolean = true
+
+      def buildOperation(from: Operation): Operation = new operations.LoadRuleset.WithRules(from, this)
 
       def sourceStructure: OperationStructure = OperationStructure.Index
 
@@ -415,6 +436,8 @@ object OperationInfo {
   object Instantiate extends Action {
     val name: String = "Instantiate"
     val title: String = "Instantiate"
+
+    override def isHidden: Boolean = true
 
     def sourceStructure: OperationStructure = OperationStructure.Ruleset
 
@@ -506,6 +529,15 @@ object OperationInfo {
     def buildOperation(from: Operation): Operation = new actions.DatasetSize(from)
   }
 
+  object PropertiesCardinalities extends Action {
+    val name: String = "PropertiesCardinalities"
+    val title: String = "Properties cardinality"
+
+    def sourceStructure: OperationStructure = OperationStructure.Index
+
+    def buildOperation(from: Operation): Operation = new actions.PropertiesCardinalities(from)
+  }
+
   object Properties extends Action {
     val name: String = "Properties"
     val title: String = "Properties"
@@ -557,57 +589,8 @@ object OperationInfo {
 
   def apply(op: js.Dynamic, parent: Operation): Option[OperationInfo] = {
     val name = op.name.asInstanceOf[String]
-    val ops = (parent.info match {
-      case Root => Iterator(
-        Loading.LoadGraph,
-        Loading.LoadDataset,
-        Loading.LoadIndex
-      )
-      case _: DatasetTransformation => Iterator(
-        DatasetTransformation.MergeDatasets,
-        DatasetTransformation.AddPrefixes,
-        DatasetTransformation.MapQuads,
-        DatasetTransformation.FilterQuads,
-        DatasetTransformation.Discretize,
-        DatasetTransformation.ShrinkQuads,
-        DatasetTransformation.CacheDataset,
-        DatasetTransformation.Index,
-        DatasetTransformation.LoadGraph,
-        DatasetTransformation.LoadDataset,
-      )
-      case _: RulesetTransformation => Iterator(
-        RulesetTransformation.FilterRules,
-        RulesetTransformation.ShrinkRules,
-        RulesetTransformation.Sort,
-        RulesetTransformation.ComputeConfidence,
-        RulesetTransformation.MakeClusters,
-        RulesetTransformation.GraphAwareRules,
-        RulesetTransformation.CacheRuleset,
-        RulesetTransformation.Predict,
-        RulesetTransformation.Prune
-      )
-      case _: IndexTransformation => Iterator(
-        IndexTransformation.CacheIndex,
-        IndexTransformation.Mine,
-        IndexTransformation.IndexToDataset,
-        IndexTransformation.LoadRuleset
-      )
-      case _ => Iterator()
-    }) ++ Iterator(
-      CacheDatasetAction,
-      CacheIndexAction,
-      CacheRulesetAction,
-      ExportQuads,
-      GetQuads,
-      Prefixes,
-      Properties,
-      Histogram,
-      ExportRules,
-      GetRules,
-      DatasetSize,
-      RulesetSize
-    )
-    ops.find(_.name == name)
+    val subname = op.subname.asInstanceOf[js.UndefOr[String]].toOption
+    parent.info.followingOperations.value.find(x => x.name == name && x.subname == subname)
   }
 
 }

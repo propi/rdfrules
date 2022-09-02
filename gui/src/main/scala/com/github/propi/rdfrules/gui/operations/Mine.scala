@@ -144,7 +144,7 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
         context.use("OnlyPredicates or WithoutPredicates")(implicit context => ArrayElement("values", "Values")(implicit context => new OptionalText[String]("value", "Value", validator = RegExp("<.*>|\\w+:.*"))))
       ))
       Constants(
-        new Select("name", "Name", Constants("WithoutConstants" -> "Without constants", "OnlyObjectConstants" -> "With constants at the object position", "OnlySubjectConstants" -> "With constants at the subject position", "OnlyLeastFunctionalConstants" -> "With constants at the least functional position", "WithoutDuplicitPredicates" -> "Without duplicit predicates", "OnlyPredicates" -> "Only predicates", "WithoutPredicates" -> "Without predicates"), onSelect = {
+        new Select("name", "Name", Constants("WithoutConstants" -> "Without constants", "OnlyObjectConstants" -> "With constants at the object position", "OnlySubjectConstants" -> "With constants at the subject position", "OnlyLowerCardinalitySideConstants" -> "With constants at the lower cardinality side", "WithoutDuplicitPredicates" -> "Without duplicit predicates", "OnlyPredicates" -> "Only predicates", "WithoutPredicates" -> "Without predicates"), onSelect = {
           case "OnlyPredicates" | "WithoutPredicates" => value.setElement(0)
           case _ => value.setElement(-1)
         }, summaryTitle = SummaryTitle.NoTitle),

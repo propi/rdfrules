@@ -5,34 +5,32 @@ import com.github.propi.rdfrules.gui.Property.SummaryTitle
 import com.github.propi.rdfrules.gui.results.Rules
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding
 import com.thoughtworks.binding.Binding
-import com.thoughtworks.binding.Binding.Var
+import com.thoughtworks.binding.Binding.{Var, Vars}
 import org.lrng.binding.html
 import org.lrng.binding.html.NodeBinding
 import org.scalajs.dom.html.{Div, Span}
 
 import scala.scalajs.js
+import scala.scalajs.js.JSConverters.JSRichIterableOnce
 
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
 class Rule extends Property {
 
-  private val rule: Var[Option[Rules.Rule]] = Var(None)
+  private val rules: Vars[Rules.Rule] = Vars.empty
 
-  val name: String = "rule"
-  val title: String = "Rule"
+  val name: String = "rules"
+  val title: String = "Rules"
   val descriptionVar: Var[String] = Var("")
   val summaryTitle: SummaryTitle = SummaryTitle.Empty
 
   def summaryContentView: Binding[Span] = ReactiveBinding.emptySpan
 
-  def setRule(rule: Rules.Rule): Unit = this.rule.value = Some(rule)
-
   @html
-  def valueView: NodeBinding[Div] =
-    <div class="rule">
-      {rule.bind match {
-      case Some(rule) =>
+  def valueView: NodeBinding[Div] = <div class="rules-property">
+    {for (rule <- rules) yield
+      <div class="rule">
         <div class="text">
           <span>
             {rule.body.map(Rules.viewAtom).mkString(" ^ ")}
@@ -44,21 +42,16 @@ class Rule extends Property {
             {Rules.viewAtom(rule.head)}
           </span>
         </div>
-      case None => <div class="text"></div>
-    }}
-    </div>
+      </div>}
+  </div>
 
-  def validate(): Option[String] = {
-    if (rule.value.isEmpty) {
-      Some("No rule selected.")
-    } else {
-      None
-    }
-  }
+
+  def validate(): Option[String] = None
 
   def setValue(data: js.Dynamic): Unit = {
-    rule.value = Some(data.asInstanceOf[Rules.Rule])
+    rules.value.clear()
+    rules.value.addAll(data.asInstanceOf[js.Array[Rules.Rule]])
   }
 
-  def toJson: js.Any = rule.value.orNull
+  def toJson: js.Any = rules.value.toJSArray
 }

@@ -6,9 +6,9 @@ object LocalStorage {
 
   private val storage = window.localStorage
 
-  def put[T](key: String, value: T)(implicit f: T => String): Unit = storage.setItem(key, f(value))
+  def put(key: String, value: String): Unit = storage.setItem(key, value)
 
-  def get[T](key: String)(implicit f: String => Option[T]): Option[T] = Option(storage.getItem(key)).flatMap(f)
+  def get(key: String): Option[String] = Option(storage.getItem(key))
 
   def remove(key: String): Unit = storage.removeItem(key)
 

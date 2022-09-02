@@ -77,6 +77,14 @@ class Canvas {
 
   def getOperations: collection.Seq[Operation] = operations.value
 
+  def addOperation(info: OperationInfo, data: js.Dynamic): Unit = {
+    if (operations.value.last.info.followingOperations.value.contains(info)) {
+      val newOps = operations.value.last.appendOperation(info)
+      newOps.setValue(data)
+      operations.value += newOps
+    }
+  }
+
   def addOperation(operation: Operation): Unit = {
     if (operation.getNextOperation.isEmpty) {
       operations.value += operation
@@ -148,5 +156,8 @@ class Canvas {
 object Canvas {
 
   val newWindowTaskKey = "task"
+  val loadRulesKey = "rules"
+  val instantiationKey = "instantiation"
+  val removingCachesKey = "removing-caches"
 
 }

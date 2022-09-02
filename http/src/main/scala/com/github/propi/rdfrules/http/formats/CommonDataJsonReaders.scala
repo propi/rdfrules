@@ -7,16 +7,15 @@ import com.github.propi.rdfrules.algorithm.dbscan.{DbScan, SimilarityCounting}
 import com.github.propi.rdfrules.algorithm.{Clustering, RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.data.{DiscretizationTask, Prefix, RdfSource, TripleItem}
 import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
+import com.github.propi.rdfrules.http.task._
 import com.github.propi.rdfrules.http.task.ruleset.ComputeConfidence.ConfidenceType
 import com.github.propi.rdfrules.http.task.ruleset.Prune.PruningStrategy
-import com.github.propi.rdfrules.http.task._
 import com.github.propi.rdfrules.http.util.Conf
 import com.github.propi.rdfrules.http.util.JsonSelector.PimpedJsValue
 import com.github.propi.rdfrules.http.{Main, Workspace}
-import com.github.propi.rdfrules.rule.ResolvedAtom.ResolvedItem
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
-import com.github.propi.rdfrules.rule.{AtomPattern, Measure, ResolvedAtom, ResolvedRule, Rule, RuleConstraint, RulePattern, Threshold}
+import com.github.propi.rdfrules.rule.{AtomPattern, Measure, Rule, RuleConstraint, RulePattern, Threshold}
 import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
 import org.apache.jena.riot.RDFFormat
@@ -184,7 +183,7 @@ object CommonDataJsonReaders {
       case "WithoutConstants" => RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere)
       case "OnlyObjectConstants" => RuleConstraint.ConstantsAtPosition(ConstantsPosition.Object)
       case "OnlySubjectConstants" => RuleConstraint.ConstantsAtPosition(ConstantsPosition.Subject)
-      case "OnlyLeastFunctionalConstants" => RuleConstraint.ConstantsAtPosition(ConstantsPosition.LowerCardinalitySide)
+      case "OnlyLowerCardinalitySideConstants" => RuleConstraint.ConstantsAtPosition(ConstantsPosition.LowerCardinalitySide)
       case "WithoutDuplicitPredicates" => RuleConstraint.WithoutDuplicatePredicates()
       case "OnlyPredicates" => RuleConstraint.OnlyPredicates(fields("values").convertTo[JsArray].elements.map(_.convertTo[TripleItem.Uri]).toSet)
       case "WithoutPredicates" => RuleConstraint.WithoutPredicates(fields("values").convertTo[JsArray].elements.map(_.convertTo[TripleItem.Uri]).toSet)
@@ -272,7 +271,7 @@ object CommonDataJsonReaders {
     )(fields.get("features").map(_.convertTo[SimilarityCounting[Rule]]).getOrElse(implicitly[SimilarityCounting[Rule]]), debugger)
   }
 
-  implicit val resolvedRuleAtomItemReader: RootJsonReader[ResolvedItem] = {
+  /*implicit val resolvedRuleAtomItemReader: RootJsonReader[ResolvedItem] = {
     case JsObject(fields) => fields("type").convertTo[String] match {
       case "variable" => ResolvedItem(fields("value").convertTo[String])
       case "constant" => ResolvedItem(fields("value").convertTo[TripleItem])
@@ -313,7 +312,7 @@ object CommonDataJsonReaders {
       fields("body").convertTo[JsArray].elements.map(_.convertTo[ResolvedAtom]),
       fields("head").convertTo[ResolvedAtom]
     )(TypedKeyMap(fields.get("measures").iterator.flatMap(_.convertTo[JsArray].elements).map(_.convertTo[Measure])))
-  }
+  }*/
 
   implicit val rulesetSourceReader: RootJsonReader[RulesetSource] = (json: JsValue) => json.convertTo[String] match {
     case "txt" => RulesetSource.Text

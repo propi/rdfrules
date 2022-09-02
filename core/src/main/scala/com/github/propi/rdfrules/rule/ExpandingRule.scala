@@ -17,17 +17,15 @@ sealed trait ExpandingRule extends Rule {
 
   final def headCoverage: Double = support.toDouble / headSize
 
-  def headTriples(implicit thi: TripleIndex[Int]): Iterator[(Int, Int)] = (head.subject, head.`object`) match {
+  def headTriples(injectiveMapping: Boolean)(implicit thi: TripleIndex[Int]): Iterator[(Int, Int)] = (head.subject, head.`object`) match {
     case (_: Atom.Variable, _: Atom.Variable) =>
       thi.predicates(head.predicate).subjects.pairIterator.flatMap {
-        case (s, oi) => oi.iterator.map(s -> _)
+        case (s, oi) => oi.iterator.filter(o => !injectiveMapping || s != o).map(s -> _)
       }
-    case (Atom.Constant(s), _: Atom.Variable) => thi.predicates(head.predicate).subjects(s).iterator.map(s -> _)
-    case (_: Atom.Variable, Atom.Constant(o)) => thi.predicates(head.predicate).objects(o).iterator.map(_ -> o)
-    case (Atom.Constant(s), Atom.Constant(o)) => Iterator(s -> o)
+    case (Atom.Constant(s), _: Atom.Variable) => thi.predicates(head.predicate).subjects(s).iterator.filter(o => !injectiveMapping || s != o).map(s -> _)
+    case (_: Atom.Variable, Atom.Constant(o)) => thi.predicates(head.predicate).objects(o).iterator.filter(s => !injectiveMapping || s != o).map(_ -> o)
+    case (Atom.Constant(s), Atom.Constant(o)) => if (injectiveMapping && s == o) Iterator.empty else Iterator(s -> o)
   }
-
-  override def toString: String = s"${body.mkString(" ^ ")} => $head"
 }
 
 object ExpandingRule {
@@ -143,7 +141,7 @@ object ExpandingRule {
     }
 
     //TODO check whether it is faster than Rule hashCode
-    override def hashCode(): Int = body.hashCode() * 31 + head.hashCode()
+    //override def hashCode(): Int = body.hashCode() * 31 + head.hashCode()
 
     val variables: List[Atom.Variable]
   }
@@ -185,7 +183,7 @@ object ExpandingRule {
     }
 
     //TODO check whether it is faster than Rule hashCode
-    override def hashCode(): Int = (1 + body.hashCode()) * 31 + head.hashCode()
+    //override def hashCode(): Int = (1 + body.hashCode()) * 31 + head.hashCode()
 
     val variables: DanglingVariables
   }

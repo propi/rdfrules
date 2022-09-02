@@ -16,6 +16,8 @@ sealed trait ResolvedAtom {
 
   def toAtom(implicit tripleItemIndex: TripleItemIndex): Atom
 
+  def toAtomOpt(implicit tripleItemIndex: TripleItemIndex): Option[Atom]
+
   override def equals(obj: scala.Any): Boolean = obj match {
     case x: ResolvedAtom => (this eq x) || (subject == x.subject && predicate == x.predicate && `object` == x.`object`)
     case _ => false
@@ -30,6 +32,8 @@ object ResolvedAtom {
 
   sealed trait ResolvedItem {
     def toItem(implicit tripleItemIndex: TripleItemIndex): Atom.Item
+
+    def toItemOpt(implicit tripleItemIndex: TripleItemIndex): Option[Atom.Item]
   }
 
   object ResolvedItem {
@@ -38,10 +42,14 @@ object ResolvedAtom {
       def toVariable: Atom.Variable = Atom.Item(value)
 
       def toItem(implicit tripleItemIndex: TripleItemIndex): Atom.Variable = toVariable
+
+      def toItemOpt(implicit tripleItemIndex: TripleItemIndex): Option[Atom.Item] = Some(toVariable)
     }
 
     case class Constant private(tripleItem: TripleItem) extends ResolvedItem {
       def toItem(implicit tripleItemIndex: TripleItemIndex): Atom.Constant = Atom.Item(tripleItem)
+
+      def toItemOpt(implicit tripleItemIndex: TripleItemIndex): Option[Atom.Item] = tripleItemIndex.getIndexOpt(tripleItem).map(Atom.Constant)
     }
 
     def apply(char: Char): ResolvedItem = Variable("?" + char)
@@ -57,10 +65,26 @@ object ResolvedAtom {
   }
 
   private case class Basic private(subject: ResolvedItem, predicate: TripleItem.Uri, `object`: ResolvedItem) extends ResolvedAtom {
+    def toAtomOpt(implicit tripleItemIndex: TripleItemIndex): Option[Atom] = for {
+      s <- subject.toItemOpt
+      p <- tripleItemIndex.getIndexOpt(predicate)
+      o <- `object`.toItemOpt
+    } yield {
+      rule.Atom(s, p, o)
+    }
+
     def toAtom(implicit tripleItemIndex: TripleItemIndex): Atom = rule.Atom(subject.toItem, tripleItemIndex.getIndex(predicate), `object`.toItem)
   }
 
   private case class GraphAwareBasic private(subject: ResolvedItem, predicate: TripleItem.Uri, `object`: ResolvedItem)(val graphs: Set[TripleItem.Uri]) extends GraphAware {
+    def toAtomOpt(implicit tripleItemIndex: TripleItemIndex): Option[Atom] = for {
+      s <- subject.toItemOpt
+      p <- tripleItemIndex.getIndexOpt(predicate)
+      o <- `object`.toItemOpt
+    } yield {
+      rule.Atom(s, p, o, graphs.flatMap(tripleItemIndex.getIndexOpt))
+    }
+
     def toAtom(implicit tripleItemIndex: TripleItemIndex): Atom = rule.Atom(subject.toItem, tripleItemIndex.getIndex(predicate), `object`.toItem, graphs.map(tripleItemIndex.getIndex))
   }
 

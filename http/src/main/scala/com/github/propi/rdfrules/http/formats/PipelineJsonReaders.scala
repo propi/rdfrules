@@ -12,12 +12,13 @@ import com.github.propi.rdfrules.http.task.Task.MergeDatasets
 import com.github.propi.rdfrules.http.task._
 import com.github.propi.rdfrules.http.task.prediction.{GetPrediction, LoadPredictionWithoutIndex}
 import com.github.propi.rdfrules.http.task.ruleset.ComputeConfidence.ConfidenceType
-import com.github.propi.rdfrules.http.task.ruleset.LoadRulesetWithoutIndex
+import com.github.propi.rdfrules.http.task.ruleset.{LoadRuleset, LoadRulesetWithoutIndex}
 import com.github.propi.rdfrules.http.util.JsonSelector.PimpedJsValue
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.prediction.{PredictedResult, PredictedTriples}
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.{Measure, ResolvedRule, Rule, RulePattern}
+import com.github.propi.rdfrules.ruleset.formats.Json.resolvedRuleJsonFormat
 import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
 import org.apache.jena.riot.RDFFormat
@@ -119,9 +120,9 @@ object PipelineJsonReaders {
     new data.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
   }
 
-  implicit def indexReader(implicit debugger: Debugger): RootJsonReader[data.Index] = (json: JsValue) => {
+  implicit def indexReader(implicit debugger: Debugger): RootJsonReader[data.Index] = (_: JsValue) => {
     //val fields = json.asJsObject.fields
-    new data.Index//(fields("prefixedUris").convertTo[Boolean])
+    new data.Index //(fields("prefixedUris").convertTo[Boolean])
   }
 
   implicit val exportQuadsReader: RootJsonReader[data.ExportQuads] = (json: JsValue) => {
@@ -181,11 +182,20 @@ object PipelineJsonReaders {
 
   implicit def loadRulesetReader(implicit debugger: Debugger): RootJsonReader[ruleset.LoadRuleset] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    val format = fields.get("format").flatMap {
-      case JsString("cache") => None
-      case x => Some(x.convertTo[RulesetSource])
+    val source = fields.get("rules") match {
+      case Some(rules) =>
+        LoadRuleset.RulesetSource.Rules(rules.convertTo[Iterable[ResolvedRule]])
+      case None =>
+        LoadRuleset.RulesetSource.File(
+          fields("path").convertTo[String],
+          fields.get("format").flatMap {
+            case JsString("cache") => None
+            case x => Some(x.convertTo[RulesetSource])
+          }
+        )
     }
-    new ruleset.LoadRuleset(fields("path").convertTo[String], format, fields.get("parallelism").map(_.convertTo[Int]))
+
+    new ruleset.LoadRuleset(source, fields.get("parallelism").map(_.convertTo[Int]))
   }
 
   implicit def loadPredictionReader(implicit debugger: Debugger): RootJsonReader[prediction.LoadPrediction] = (json: JsValue) => {
@@ -308,6 +318,11 @@ object PipelineJsonReaders {
     )
   }
 
+  implicit val propertiesCardinalitiesReader: RootJsonReader[index.PropertiesCardinalities] = (json: JsValue) => {
+    val selector = json.toSelector
+    new index.PropertiesCardinalities(selector("filter").toTypedIterable[TripleItem.Uri].toSet)
+  }
+
   implicit val getRulesReader: RootJsonReader[ruleset.GetRules] = (_: JsValue) => {
     new ruleset.GetRules()
   }
@@ -393,6 +408,7 @@ object PipelineJsonReaders {
           case index.Cache.name | s"${index.Cache.name}Action" => addTaskFromIndex(pipeline ~> params.convertTo[index.Cache], tail)
           case index.Mine.name => addTaskFromRuleset(pipeline ~> params.convertTo[index.Mine], tail)
           case index.ToDataset.name => addTaskFromDataset(pipeline ~> params.convertTo[index.ToDataset], tail)
+          case index.PropertiesCardinalities.name => pipeline ~> params.convertTo[index.PropertiesCardinalities] ~> ToJsonTask.FromPropertiesCardinalities
           case ruleset.LoadRuleset.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.LoadRuleset], tail)
           case prediction.LoadPrediction.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.LoadPrediction], tail)
           case x => throw deserializationError(s"Invalid task '$x' can not be bound to Index")

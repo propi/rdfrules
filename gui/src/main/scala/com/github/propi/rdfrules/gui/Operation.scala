@@ -7,6 +7,9 @@ import org.lrng.binding.html
 import org.scalajs.dom.html.{Anchor, Div}
 import org.scalajs.dom.{Event, MouseEvent, window}
 
+import scala.scalajs.js.JSConverters.JSRichOption
+//import scala.scalajs.js.JSConverters._
+
 import scala.annotation.tailrec
 import scala.concurrent.Future
 import scala.scalajs.js
@@ -82,7 +85,7 @@ trait Operation {
       val json = js.Array(toJson(Nil): _*)
       LocalStorage.put(Canvas.newWindowTaskKey, JSON.stringify(json))
       AutoCaching.saveCache()
-      window.open(s"./?new=1")
+      window.open(s"./?${Canvas.newWindowTaskKey}=1")
     }
   }
 
@@ -109,8 +112,8 @@ trait Operation {
   final def toJson(list: List[js.Any])(implicit autoCaching: AutoCachingSession = AutoCaching.Noop): List[js.Any] = {
     previousOperation.value match {
       case Some(op) =>
-        val json = autoCaching.tryRevalidate(this)(op => js.Dynamic.literal(name = op.info.name, parameters = op.propertiesToJson))
-        val jsonCache = autoCaching.tryCache(this).map(cache => js.Dynamic.literal(name = cache.info.name, parameters = cache.propertiesToJson))
+        val json = autoCaching.tryRevalidate(this)(op => js.Dynamic.literal(name = op.info.name, subname = op.info.subname.orUndefined, parameters = op.propertiesToJson))
+        val jsonCache = autoCaching.tryCache(this).map(cache => js.Dynamic.literal(name = cache.info.name, subname = op.info.subname.orUndefined, parameters = cache.propertiesToJson))
         op.toJson(Function.chain[List[js.Any]](List(
           list => jsonCache.map(_ :: list).getOrElse(list),
           json :: _,
@@ -128,6 +131,18 @@ trait Operation {
       buildActionProgress(jsonTask.flatMap(jsonTask => Task.sendTask(js.Array(jsonTask: _*)))).foreach(x => actionProgress.value = Some(x))
     }
     isValid
+  }
+
+  final def launch(): Boolean = {
+    if (info.`type` == Operation.Type.Action) {
+      val isLaunched = launchAction()
+      if (isLaunched) {
+        Main.canvas.openModal(viewActionProgress)
+      }
+      isLaunched
+    } else {
+      false
+    }
   }
 
   private class LaunchButton {
@@ -245,11 +260,11 @@ trait Operation {
     <div class="following-operations">
       <h3>Transformations</h3>
       <div class="transformations">
-        {for (operationInfo <- Constants(info.followingOperations.value.filter(x => (x.`type` == Operation.Type.Transformation || x.`type` == Operation.Type.Loading) && nextOperation.value.forall(y => x.followingOperations.value.contains(y.info))).toList: _*)) yield viewOperationInfo(operationInfo).bind}
+        {for (operationInfo <- Constants(info.followingOperations.value.filter(x => (x.`type` == Operation.Type.Transformation || x.`type` == Operation.Type.Loading) && !x.isHidden && nextOperation.value.forall(y => x.followingOperations.value.contains(y.info))).toList: _*)) yield viewOperationInfo(operationInfo).bind}
       </div>
       <h3 class={if (info.followingOperations.value.exists(_.`type` == Operation.Type.Action)) "" else "hidden"}>Actions</h3>
       <div class="actions">
-        {for (operationInfo <- Constants(info.followingOperations.value.filter(x => x.`type` == Operation.Type.Action && nextOperation.value.forall(y => x.followingOperations.value.contains(y.info))).toList: _*)) yield viewOperationInfo(operationInfo).bind}
+        {for (operationInfo <- Constants(info.followingOperations.value.filter(x => x.`type` == Operation.Type.Action && !x.isHidden && nextOperation.value.forall(y => x.followingOperations.value.contains(y.info))).toList: _*)) yield viewOperationInfo(operationInfo).bind}
       </div>
     </div>
   }

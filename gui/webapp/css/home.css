@@ -520,10 +520,10 @@ main {
 .action-progress .result {
   margin-bottom: 1em;
 }
-.action-progress .result .rules-tools a,
-.action-progress .result .rules-tools select,
-.action-progress .result .rules-tools input {
-  display: inline-block;
+.action-progress .result .rules-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
 }
 .action-progress .result .rules-tools a {
   margin-right: 0.3em;
@@ -552,7 +552,13 @@ main {
   height: 1.5em;
   font-size: 0.8em;
   width: 15em;
-  margin-left: 0.5em;
+}
+.action-progress .result .rules-tools .multiselect select {
+  height: 1.5em;
+  font-size: 0.8em;
+}
+.action-progress .result .rules-body .predicted-result {
+  cursor: default;
 }
 .action-progress .result .records {
   margin: 1em 0;
@@ -745,5 +751,26 @@ main {
 }
 .memory-info .auto-caching-state {
   font-weight: bold;
+}
+.multiselect {
+  display: inline-block;
+  position: relative;
+}
+.multiselect .options {
+  position: absolute;
+  margin-top: 0.1em;
+  padding: 0 0.2em;
+  background-color: white;
+  border: 1px solid #8c8c8c;
+}
+.multiselect .options.hidden {
+  display: none;
+}
+.multiselect .options label {
+  display: block;
+  padding: 0.1em;
+}
+.multiselect .options label input {
+  margin-right: 0.3em;
 }
 /*# sourceMappingURL=home.css.map */

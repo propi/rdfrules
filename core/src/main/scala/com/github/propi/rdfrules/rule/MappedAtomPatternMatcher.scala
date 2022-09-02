@@ -19,7 +19,7 @@ object MappedAtomPatternMatcher {
       case y: Atom.Variable =>
         aliases.get(y) match {
           case Some(y) if y.index == x.index => Some(aliases)
-          case None => Some(aliases + (y, x))
+          case None => aliases + (y, x)
           case _ => None
         }
       case _ => None

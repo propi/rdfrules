@@ -261,6 +261,14 @@ Serialize loaded index into a file in the workspace at the server side for later
 
 - **Path**: A relative path to a file related to the workspace where the serialized dataset should be saved.
 
+#### Properties cardinality
+
+Get properties cardinalities (size, domain, range)
+
+##### Properties
+
+- **Filter**: A list of properties to be analyzed. The empty list means all properties.
+
 ## Ruleset
 
 ### Transformations

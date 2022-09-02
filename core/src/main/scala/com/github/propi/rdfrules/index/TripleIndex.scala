@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.index
 
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
-import com.github.propi.rdfrules.index.TripleIndex.{HashMap, HashSet}
+import com.github.propi.rdfrules.index.TripleIndex.{HashMap, HashSet, Reflexiveable}
 import com.github.propi.rdfrules.rule.TripleItemPosition
 
 import scala.language.implicitConversions
@@ -18,7 +18,7 @@ trait TripleIndex[T] {
 
   def getGraphs(subject: T, predicate: T, `object`: T): HashSet[T]
 
-  def size: Int
+  def size(nonReflexive: Boolean): Int
 
   def predicates: HashMap[T, PredicateIndex]
 
@@ -31,15 +31,15 @@ trait TripleIndex[T] {
   def evaluateAllLazyVals(): Unit
 
   trait PredicateIndex {
-    def subjects: HashMap[T, HashSet[T]]
+    def subjects: HashMap[T, HashSet[T] with Reflexiveable]
 
-    def objects: HashMap[T, HashSet[T]]
+    def objects: HashMap[T, HashSet[T] with Reflexiveable]
 
-    def size: Int
+    def size(nonReflexive: Boolean): Int
 
-    final lazy val subjectRelativeCardinality: Double = subjects.size.toDouble / size
+    final lazy val subjectRelativeCardinality: Double = subjects.size.toDouble / size(false)
 
-    final lazy val objectRelativeCardinality: Double = objects.size.toDouble / size
+    final lazy val objectRelativeCardinality: Double = objects.size.toDouble / size(false)
 
     /**
       * (C hasCitizen ?a), or (?a isCitizenOf C)
@@ -64,22 +64,20 @@ trait TripleIndex[T] {
     final def isFunction: Boolean = subjectRelativeCardinality == 1.0
 
     final def isInverseFunction: Boolean = objectRelativeCardinality == 1.0
-
-
   }
 
   trait SubjectIndex {
     def predicates: HashSet[T]
 
-    def objects: HashMap[T, HashSet[T]]
+    def objects: HashMap[T, HashSet[T] with Reflexiveable]
 
-    def size: Int
+    def size(nonReflexive: Boolean): Int
   }
 
   trait ObjectIndex {
     def predicates: HashSet[T]
 
-    def size: Int
+    def size(nonReflexive: Boolean): Int
   }
 
 }
@@ -104,6 +102,14 @@ object TripleIndex {
     def valuesIterator: Iterator[V]
 
     def pairIterator: Iterator[(K, V)]
+  }
+
+  trait Reflexiveable {
+    def hasReflexiveRecord: Boolean
+
+    def size: Int
+
+    final def size(nonReflexive: Boolean): Int = if (nonReflexive && hasReflexiveRecord) size - 1 else size
   }
 
   trait Builder[T] {

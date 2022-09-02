@@ -3,12 +3,13 @@ package com.github.propi.rdfrules.gui
 import com.github.propi.rdfrules.gui.operations.common.CommonCache
 import com.thoughtworks.binding.Binding.Var
 import org.scalajs.dom.raw.FormData
+import org.scalajs.dom.{BeforeUnloadEvent, window}
 
 import java.util.UUID
 import scala.concurrent.{Future, Promise}
 import scala.scalajs.concurrent.JSExecutionContext.Implicits._
 import scala.scalajs.js
-import scala.scalajs.js.JSConverters.JSRichMap
+import scala.scalajs.js.JSConverters.{JSRichIterableOnce, JSRichMap}
 import scala.scalajs.js.JSON
 import scala.util.{Failure, Success}
 
@@ -17,11 +18,11 @@ object AutoCaching {
   private val localStorageOnOffKey = "auto-caching"
   private val localStorageCacheKey = "auto-caches"
 
-  val isOn: Var[Boolean] = Var(LocalStorage.get[Boolean](localStorageOnOffKey)(_.toBooleanOption).getOrElse(true))
+  val isOn: Var[Boolean] = Var(LocalStorage.get(localStorageOnOffKey).flatMap(_.toBooleanOption).getOrElse(true))
 
   def toggle(): Unit = {
     val newValue = !isOn.value
-    LocalStorage.put[Boolean](localStorageOnOffKey, newValue)(_.toString)
+    LocalStorage.put(localStorageOnOffKey, newValue.toString)
     isOn.value = newValue
   }
 
@@ -145,7 +146,9 @@ object AutoCaching {
     autoCaching.clearUnusedCaches().map(_ => res)
   }
 
-  def saveCache(): Unit = LocalStorage.put(localStorageCacheKey, JSON.stringify(lastCaches.toJSDictionary))
+  def saveCache(): Unit = if (isOn.value && lastCaches.nonEmpty) {
+    LocalStorage.put(localStorageCacheKey, JSON.stringify(lastCaches.toJSDictionary))
+  }
 
   private def saveAlias(id: String): Future[String] = {
     val alias = UUID.randomUUID().toString
@@ -162,22 +165,56 @@ object AutoCaching {
     result.future
   }
 
-  def loadCache(): Unit = LocalStorage.get[String](localStorageCacheKey)(Some(_))
-    .map(JSON.parse(_))
-    .filter(js.typeOf(_) == "object")
-    .iterator
-    .flatMap(_.asInstanceOf[js.Dictionary[String]])
-    .foldLeft(Future.successful(List.empty[(String, String)])) { case (result, (content, id)) =>
-      result.flatMap(list => saveAlias(id).map(alias => (content -> alias) :: list).recover {
-        case th: NoSuchElementException =>
-          th.printStackTrace()
-          list
-      })
-    }.onComplete {
-    case Success(list) => lastCaches ++= list
-    case Failure(th) => th.printStackTrace()
+  def loadCache(): Future[Boolean] = if (isOn.value) {
+    LocalStorage.get(localStorageCacheKey)
+      .map(JSON.parse(_))
+      .filter(js.typeOf(_) == "object")
+      .iterator
+      .flatMap(_.asInstanceOf[js.Dictionary[String]])
+      .foldLeft(Future.successful(List.empty[(String, String)])) { case (result, (content, id)) =>
+        result.flatMap(list => saveAlias(id).map(alias => (content -> alias) :: list).recover {
+          case th: NoSuchElementException =>
+            th.printStackTrace()
+            list
+        })
+      }.transform {
+      case Success(list) =>
+        LocalStorage.remove(localStorageCacheKey)
+        lastCaches ++= list
+        Success(true)
+      case Failure(th) =>
+        LocalStorage.remove(localStorageCacheKey)
+        th.printStackTrace()
+        Success(false)
+    }
+  } else {
+    Future.successful(true)
   }
 
   private val lastCaches = collection.mutable.Map.empty[String, String]
+
+  private def fetchRemovingCaches(): Set[String] = LocalStorage.get(Canvas.removingCachesKey).map(JSON.parse(_).asInstanceOf[js.Array[String]]).iterator.flatten.toSet
+
+  window.addEventListener("beforeunload", (_: BeforeUnloadEvent) => {
+    if (isOn.value && lastCaches.nonEmpty) {
+      val newRemovingCaches = fetchRemovingCaches() ++ lastCaches.valuesIterator
+      LocalStorage.put(Canvas.removingCachesKey, JSON.stringify(newRemovingCaches.toJSArray))
+    }
+  })
+
+  window.setInterval(() => {
+    val removingCaches = fetchRemovingCaches()
+    for (removedCaches <- Future.traverse(removingCaches)(x => Endpoint.removeCache(x).filter(x => x).map(_ => x))) {
+      if (removedCaches.nonEmpty) {
+        val newRemovingCaches = removingCaches -- removedCaches
+        if (newRemovingCaches.isEmpty) {
+          LocalStorage.remove(Canvas.removingCachesKey)
+        } else {
+          LocalStorage.put(Canvas.removingCachesKey, JSON.stringify(newRemovingCaches.toJSArray))
+        }
+        println(s"removed caches: ${removedCaches.mkString(", ")}")
+      }
+    }
+  }, 10000)
 
 }

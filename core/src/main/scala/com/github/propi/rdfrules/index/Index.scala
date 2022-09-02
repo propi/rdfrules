@@ -26,7 +26,11 @@ trait Index {
 
   def cache(file: File): Index
 
-  def cache(file: String): Index = cache(new File(file))
+  final def cache(file: String): Index = cache(new File(file))
+
+  final def properties: Iterator[PropertyCardinalities.Mapped] = tripleMap.predicates.iterator.map(x => PropertyCardinalities(x, tripleMap.predicates(x)))
+
+  final def properties(filter: Set[Int]): Iterator[PropertyCardinalities.Mapped] = filter.iterator.flatMap(x => tripleMap.predicates.get(x).map(PropertyCardinalities(x, _)))
 
   def withDebugger(implicit debugger: Debugger): Index
 

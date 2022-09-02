@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.index
 
 import com.github.propi.rdfrules.index.TripleHashIndex._
-import com.github.propi.rdfrules.index.TripleIndex.{HashMap, HashSet}
+import com.github.propi.rdfrules.index.TripleIndex.{HashMap, HashSet, Reflexiveable}
 import com.github.propi.rdfrules.rule.TripleItemPosition
 import com.github.propi.rdfrules.utils.{Debugger, ForEach}
 
@@ -12,9 +12,10 @@ import scala.language.implicitConversions
   */
 class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder[T]) extends TripleIndex[T] {
 
-  private type ItemMap = MutableHashMap[T, MutableHashSet[T]]
-  private type ItemMapWithGraphsAndSet = MutableHashMap[T, GraphsHashSet[MutableHashSet[T]]]
-  private type ItemMapWithGraphsAndMap = MutableHashMap[T, GraphsHashSet[ItemMap]]
+  private type ItemMap = MutableHashMap[T, MutableHashSet[T] with Reflexiveable]
+  private type ItemMapReflexiveable = MutableHashMap[T, MutableHashSet[T]] with MutableReflexivable
+  private type ItemMapWithGraphsAndSet = MutableHashMap[T, GraphsHashSet[MutableHashSet[T] with MutableReflexivable]]
+  private type ItemMapWithGraphsAndMap = MutableHashMap[T, GraphsHashSet[ItemMapReflexiveable]]
 
   private val _predicates: MutableHashMap[T, TriplePredicateIndex] = collectionsBuilder.emptyHashMap
   private val _subjects: MutableHashMap[T, TripleSubjectIndex] = collectionsBuilder.emptyHashMap
@@ -25,8 +26,9 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
   private var severalGraphs: Boolean = false
 
   @volatile private var _size: Int = -1
+  @volatile private var _nonReflexiveSize: Int = -1
 
-  private class GraphsHashSet[C <: HashSet[T]](val value: C, val graphs: MutableHashSet[T]) extends HashSet[T] {
+  private class GraphsHashSet[C <: HashSet[T] with Reflexiveable](val value: C, val graphs: MutableHashSet[T]) extends HashSet[T] with Reflexiveable {
     def addGraph(g: T): Unit = graphs += g
 
     def iterator: Iterator[T] = value.iterator
@@ -36,23 +38,33 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
     def size: Int = value.size
 
     def isEmpty: Boolean = value.isEmpty
+
+    def hasReflexiveRecord: Boolean = value.hasReflexiveRecord
   }
 
   private class TriplePredicateIndex(val subjects: ItemMapWithGraphsAndMap, val objects: ItemMapWithGraphsAndSet)(implicit collectionsBuilder: CollectionsBuilder[T]) extends PredicateIndex {
     @volatile private var _size: Int = -1
+    @volatile private var _nonReflexiveSize: Int = -1
     @volatile private var _graphs: Option[HashSet[T]] = None
 
-    def size: Int = {
-      if (_size == -1) {
-        _size = subjects.valuesIterator.map(_.size).sum
+    def size(nonReflexive: Boolean): Int = {
+      if (nonReflexive) {
+        if (_nonReflexiveSize == -1) {
+          _nonReflexiveSize = subjects.valuesIterator.map(_.size(true)).sum
+        }
+        _nonReflexiveSize
+      } else {
+        if (_size == -1) {
+          _size = subjects.valuesIterator.map(_.size).sum
+        }
+        _size
       }
-      _size
     }
 
-    def reset(): Unit = {
+    /*def reset(): Unit = {
       _size = -1
       _graphs = None
-    }
+    }*/
 
     //add all graphs to this predicate index - it is suitable for atom p(a, b) to enumerate all graphs
     //it is contructed from all predicate-subject graphs
@@ -69,27 +81,46 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
 
   private class TripleSubjectIndex(val objects: ItemMap, val predicates: MutableHashSet[T]) extends SubjectIndex {
     @volatile private var _size: Int = -1
+    @volatile private var _nonReflexiveSize: Int = -1
 
-    def reset(): Unit = _size = -1
+    /*def reset(): Unit = {
+      _size = -1
+      _sizeInjective = -1
+    }*/
 
-    def size: Int = {
-      if (_size == -1) {
-        _size = objects.valuesIterator.map(_.size).sum
+    def size(nonReflexive: Boolean): Int = {
+      if (nonReflexive) {
+        if (_nonReflexiveSize == -1) {
+          _nonReflexiveSize = objects.valuesIterator.map(_.size(true)).sum
+        }
+        _nonReflexiveSize
+      } else {
+        if (_size == -1) {
+          _size = objects.valuesIterator.map(_.size).sum
+        }
+        _size
       }
-      _size
     }
   }
 
-  private class TripleObjectIndex(val predicates: MutableHashSet[T], computePredicateObjectSize: T => Int) extends ObjectIndex {
+  private class TripleObjectIndex(val predicates: MutableHashSet[T], computePredicateObjectSize: (T, Boolean) => Int) extends ObjectIndex {
     @volatile private var _size: Int = -1
+    @volatile private var _nonReflexiveSize: Int = -1
 
-    def reset(): Unit = _size = -1
+    //def reset(): Unit = _size = -1
 
-    def size: Int = {
-      if (_size == -1) {
-        _size = predicates.iterator.map(computePredicateObjectSize(_)).sum
+    def size(nonReflexive: Boolean): Int = {
+      if (nonReflexive) {
+        if (_nonReflexiveSize == -1) {
+          _nonReflexiveSize = predicates.iterator.map(computePredicateObjectSize(_, true)).sum
+        }
+        _nonReflexiveSize
+      } else {
+        if (_size == -1) {
+          _size = predicates.iterator.map(computePredicateObjectSize(_, false)).sum
+        }
+        _size
       }
-      _size
     }
   }
 
@@ -110,35 +141,49 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
     }
   }
 
-  def size: Int = {
-    if (_size == -1) {
-      _size = _predicates.valuesIterator.map(_.size).sum
+
+  def size(nonReflexive: Boolean): Int = {
+    if (nonReflexive) {
+      if (_nonReflexiveSize == -1) {
+        _nonReflexiveSize = _predicates.valuesIterator.map(_.size(true)).sum
+      }
+      _nonReflexiveSize
+    } else {
+      if (_size == -1) {
+        _size = _predicates.valuesIterator.map(_.size(false)).sum
+      }
+      _size
     }
-    _size
   }
 
-  def reset(): Unit = {
+  /*def reset(): Unit = {
     _size = -1
     _subjects.valuesIterator.foreach(_.reset())
     _predicates.valuesIterator.foreach(_.reset())
     _objects.valuesIterator.foreach(_.reset())
-  }
+  }*/
 
   private def addQuadToSubjects(quad: IndexItem.Quad[T]): Unit = {
     val si = _subjects.getOrElseUpdate(quad.s, new TripleSubjectIndex(collectionsBuilder.emptyHashMap, collectionsBuilder.emptySet))
     si.predicates += quad.p
-    si.objects.getOrElseUpdate(quad.o, collectionsBuilder.emptySet) += quad.p
+    si.objects.getOrElseUpdate(quad.o, if (quad.s == quad.o) collectionsBuilder.emptySetReflexive else collectionsBuilder.emptySetNonReflexive) += quad.p
   }
 
   private def addQuadToObjects(quad: IndexItem.Quad[T]): Unit = {
-    val oi = _objects.getOrElseUpdate(quad.o, new TripleObjectIndex(collectionsBuilder.emptySet, p => _predicates(p).objects(quad.o).value.size))
+    val oi = _objects.getOrElseUpdate(quad.o, new TripleObjectIndex(collectionsBuilder.emptySet, (p, nonReflexive) => {
+      val po = _predicates(p).objects(quad.o).value
+      po.size(nonReflexive)
+    }))
     oi.predicates += quad.p
   }
 
   def evaluateAllLazyVals(): Unit = {
-    size
-    _subjects.valuesIterator.foreach(_.size)
-    _objects.valuesIterator.foreach(_.size)
+    size(true)
+    size(false)
+    _subjects.valuesIterator.foreach(_.size(true))
+    _objects.valuesIterator.foreach(_.size(true))
+    _subjects.valuesIterator.foreach(_.size(false))
+    _objects.valuesIterator.foreach(_.size(false))
     if (graph.isEmpty) {
       _predicates.valuesIterator.foreach(_.graphs)
     }
@@ -173,9 +218,9 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
     _predicates(predicate).subjects(subject).value.apply(`object`)
   }
 
-  private def emptyMapWithGraphs = new GraphsHashSet[ItemMap](collectionsBuilder.emptyHashMap, collectionsBuilder.emptySet)
+  private def emptyMapWithGraphs = new GraphsHashSet[ItemMapReflexiveable](collectionsBuilder.emptyMapReflexiveable, collectionsBuilder.emptySet)
 
-  private def emptySetWithGraphs = new GraphsHashSet[MutableHashSet[T]](collectionsBuilder.emptySet, collectionsBuilder.emptySet)
+  private def emptySetWithGraphs = new GraphsHashSet[MutableHashSet[T] with MutableReflexivable](collectionsBuilder.emptySetReflexiveable, collectionsBuilder.emptySet)
 
   private def addGraph(quad: IndexItem.Quad[T]): Unit = {
     //get predicate index by a specific predicate
@@ -188,6 +233,7 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
     // - it is suitable for enumerate all quads with graphs
     // - then construct Dataset from Index
     psi.value.getOrElseUpdate(quad.o, collectionsBuilder.emptySet) += quad.g
+    if (quad.s == quad.o) psi.value.setReflexivity()
     //get predicate-object index by a specific object and add the graph - it is suitable for atom p(a, B) to enumerate all graphs
     pi.objects.getOrElseUpdate(quad.o, emptySetWithGraphs).addGraph(quad.g)
   }
@@ -270,9 +316,11 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
     if (!severalGraphs) {
       pi.subjects
         .getOrElseUpdate(quad.s, emptyMapWithGraphs).value
-        .getOrElseUpdate(quad.o, collectionsBuilder.emptySet)
+        .getOrElseUpdate(quad.o, if (quad.s == quad.o) collectionsBuilder.emptySetReflexive else collectionsBuilder.emptySetNonReflexive)
     }
-    pi.objects.getOrElseUpdate(quad.o, emptySetWithGraphs).value += quad.s
+    val poi = pi.objects.getOrElseUpdate(quad.o, emptySetWithGraphs).value
+    poi += quad.s
+    if (quad.s == quad.o) poi.setReflexivity()
   }
 
   private def trimSubjects(): Unit = {
@@ -332,10 +380,34 @@ object TripleHashIndex {
     def trim(): Unit
   }
 
+  trait Reflexive extends Reflexiveable {
+    def hasReflexiveRecord: Boolean = true
+  }
+
+  trait NonReflexive extends Reflexiveable {
+    def hasReflexiveRecord: Boolean = false
+  }
+
+  trait MutableReflexivable extends Reflexiveable {
+    @volatile private var _isReflexive: Boolean = false
+
+    final def hasReflexiveRecord: Boolean = _isReflexive
+
+    final def setReflexivity(): Unit = _isReflexive = true
+  }
+
   trait CollectionsBuilder[T] {
     def emptySet: MutableHashSet[T]
 
     def emptyHashMap[V]: MutableHashMap[T, V]
+
+    def emptySetReflexiveable: MutableHashSet[T] with MutableReflexivable
+
+    def emptyMapReflexiveable[V]: MutableHashMap[T, V] with MutableReflexivable
+
+    def emptySetNonReflexive: MutableHashSet[T] with NonReflexive
+
+    def emptySetReflexive: MutableHashSet[T] with Reflexive
   }
 
   def addQuads[T](quads: ForEach[IndexItem[T]])(implicit thi: TripleHashIndex[T], debugger: Debugger): Unit = {

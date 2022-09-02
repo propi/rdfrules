@@ -1,5 +1,11 @@
 package com.github.propi.rdfrules.gui
 
+import com.github.propi.rdfrules.gui.OperationInfo.IndexTransformation.LoadRulesetWithRules
+import com.github.propi.rdfrules.gui.OperationInfo.Instantiate
+import scala.scalajs.concurrent.JSExecutionContext.Implicits._
+
+import scala.scalajs.js
+import scala.scalajs.js.JSON
 import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
 
 /**
@@ -16,11 +22,30 @@ object Main {
   def main(args: Array[String]): Unit = {
     Documentation.init()
     canvas.render()
-    Option(Globals.getParameterByName("new"))
+    Option(Globals.getParameterByName(Canvas.newWindowTaskKey))
       .filter(_ == "1")
-      .flatMap(_ => LocalStorage.get[String](Canvas.newWindowTaskKey)(Some(_)))
-      .foreach(canvas.loadTask)
-    AutoCaching.loadCache()
+      .flatMap(_ => LocalStorage.get(Canvas.newWindowTaskKey))
+      .foreach { x =>
+        canvas.loadTask(x)
+        LocalStorage.remove(Canvas.newWindowTaskKey)
+      }
+    Option(Globals.getParameterByName(Canvas.loadRulesKey))
+      .filter(_ == "1")
+      .flatMap(_ => LocalStorage.get(Canvas.loadRulesKey))
+      .foreach { x =>
+        canvas.addOperation(LoadRulesetWithRules, js.Dynamic.literal(rules = JSON.parse(x)))
+        LocalStorage.remove(Canvas.loadRulesKey)
+      }
+    for (_ <- AutoCaching.loadCache()) {
+      Option(Globals.getParameterByName(Canvas.instantiationKey))
+        .filter(_ == "1")
+        .flatMap(_ => LocalStorage.get(Canvas.instantiationKey))
+        .foreach { x =>
+          canvas.addOperation(Instantiate, js.Dynamic.literal(rules = js.Array(JSON.parse(x))))
+          LocalStorage.remove(Canvas.instantiationKey)
+          canvas.getOperations.last.launch()
+        }
+    }
     /*for {
       taskId <- Option(Globals.getParameterByName("pickup")).map(_.trim).filter(_.nonEmpty)
       task <- LocalStorage.get[String](taskId)(Some(_))

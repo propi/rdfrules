@@ -58,7 +58,7 @@ trait RuleRefinement2 extends AtomCounting with RuleExpansion {
   private def isValidFreshPredicate(freshAtom: FreshAtom, predicate: Int): Boolean = {
     lazy val predicateIndex = tripleIndex.predicates(predicate)
     isValidPredicate(predicate) &&
-      testAtomSize.forall(_ (predicateIndex.size)) &&
+      testAtomSize.forall(_ (predicateIndex.size(injectiveMapping))) &&
       (if (withDuplicitPredicates) !isDuplicateAtom(freshAtom, predicate) else isUniquePredicate(predicate))
   }
 
@@ -106,7 +106,7 @@ trait RuleRefinement2 extends AtomCounting with RuleExpansion {
       var lastDumpDuration = currentDuration
       //howLong("Rule expansion - count projections", true) {
       rule.headValidator { validator =>
-        rule.headTriples.zipWithIndex.filter(x => validator.isInRange(x._2)).takeWhile { x =>
+        rule.headTriples(injectiveMapping).zipWithIndex.filter(x => validator.isInRange(x._2)).takeWhile { x =>
           //if max support + remaining steps is lower than min support we can finish "count projection" process
           //example 1: head size is 10, min support is 5. Only 4 steps are remaining and there are no projection found then we can stop "count projection"
           // - because no projection can have support greater or equal 5
@@ -334,8 +334,8 @@ trait RuleRefinement2 extends AtomCounting with RuleExpansion {
           //then we add new atom projection to atoms set
           //if onlyObjectInstances is true we do not project instance atom in the subject position
           val ip = instantiatedPosition(atom.predicate)
-          if (freshAtom.subject == dangling && ip.forall(_ == TriplePosition.Subject) && testAtomSize.forall(_ (tripleIndex.predicates(atom.predicate).subjects(atom.subject).size))) projections += Atom(Atom.Constant(atom.subject), atom.predicate, freshAtom.`object`)
-          else if (freshAtom.`object` == dangling && ip.forall(_ == TriplePosition.Object) && testAtomSize.forall(_ (tripleIndex.predicates(atom.predicate).objects(atom.`object`).size))) projections += Atom(freshAtom.subject, atom.predicate, Atom.Constant(atom.subject))
+          if (freshAtom.subject == dangling && ip.forall(_ == TriplePosition.Subject) && testAtomSize.forall(_ (tripleIndex.predicates(atom.predicate).subjects(atom.subject).size(injectiveMapping)))) projections += Atom(Atom.Constant(atom.subject), atom.predicate, freshAtom.`object`)
+          else if (freshAtom.`object` == dangling && ip.forall(_ == TriplePosition.Object) && testAtomSize.forall(_ (tripleIndex.predicates(atom.predicate).objects(atom.`object`).size(injectiveMapping)))) projections += Atom(freshAtom.subject, atom.predicate, Atom.Constant(atom.subject))
         }
         //if we may to create variable atoms for this predicate and fresh atom (not already counted)
         //then we add new atom projection to atoms set
@@ -417,7 +417,7 @@ trait RuleRefinement2 extends AtomCounting with RuleExpansion {
           // - then we dont use this fresh atom for this predicate because p(a, B) -> p(a, b) is not allowed for functions (redundant and noisy rule)
           if (isWithInstances && instantiatedPosition(predicate).forall(_ == TriplePosition.Subject)) {
             val isDup = isDuplicateInstantiatedAtom(predicate, atom.objectPosition, rest, variableMap)
-            for (subject <- tripleIndex.predicates(predicate).objects(oc).iterator.map(Atom.Constant) if !isDup(subject, o) && testAtomSize.forall(_ (tripleIndex.predicates(predicate).subjects(subject.value).size))) projections += Atom(subject, predicate, atom.`object`)
+            for (subject <- tripleIndex.predicates(predicate).objects(oc).iterator.map(Atom.Constant) if !isDup(subject, o) && testAtomSize.forall(_ (tripleIndex.predicates(predicate).subjects(subject.value).size(injectiveMapping)))) projections += Atom(subject, predicate, atom.`object`)
           }
           //we dont count fresh atom only with variables if there exists atom in rule which has same predicate and object variable
           // - because for p(a, c) -> p(a, b) it is counted AND for p(a, c) -> p(a, B) it is forbidden combination for functions (redundant and noisy rule)
@@ -430,7 +430,7 @@ trait RuleRefinement2 extends AtomCounting with RuleExpansion {
         for (predicate <- tripleIndex.subjects.get(sc).iterator.flatMap(_.predicates.iterator) if isValidFreshPredicate(atom, predicate)) {
           if (isWithInstances && instantiatedPosition(predicate).forall(_ == TriplePosition.Object)) {
             val isDup = isDuplicateInstantiatedAtom(predicate, atom.subjectPosition, rest, variableMap)
-            for (_object <- tripleIndex.predicates(predicate).subjects(sc).iterator.map(Atom.Constant) if !isDup(s, _object) && testAtomSize.forall(_ (tripleIndex.predicates(predicate).objects(_object.value).size))) projections += Atom(atom.subject, predicate, _object)
+            for (_object <- tripleIndex.predicates(predicate).subjects(sc).iterator.map(Atom.Constant) if !isDup(s, _object) && testAtomSize.forall(_ (tripleIndex.predicates(predicate).objects(_object.value).size(injectiveMapping)))) projections += Atom(atom.subject, predicate, _object)
           }
           projections += Atom(atom.subject, predicate, ov)
         }

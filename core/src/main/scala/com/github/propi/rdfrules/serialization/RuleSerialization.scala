@@ -271,7 +271,7 @@ object RuleSerialization {
   }
 
   implicit val resolvedInstantiatedRuleSerializer: Serializer[ResolvedInstantiatedRule] = (v: ResolvedInstantiatedRule) => {
-    Serializer.serialize(((v.head +: v.body).iterator, v.source, v.predictionResult))
+    Serializer.serialize(((v.head +: v.body).iterator, v.source, v.predictedResult))
   }
 
   implicit val resolvedInstantiatedRuleDeserializer: Deserializer[ResolvedInstantiatedRule] = (v: Array[Byte]) => {

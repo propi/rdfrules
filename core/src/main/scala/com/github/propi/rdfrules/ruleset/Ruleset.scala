@@ -136,7 +136,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
 
     val rulesWithConfidence = rules.parMap(parallelism) { rule =>
       rule.withConfidence(threshold, injectiveMapping)
-    }.withDebugger("Confidence computing")
+    }.filter(_.measures.get[Measure.Confidence].exists(_.value >= minConfidence)).withDebugger("Confidence computing")
 
     val resColl = if (topK > 0) {
       //if we use topK approach then the final ruleset will have size lower than or equals to the original size
@@ -156,7 +156,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
 
     val rulesWithConfidence = rules.parMap(parallelism) { rule =>
       rule.withPcaConfidence(threshold, injectiveMapping)
-    }.withDebugger("Confidence computing")
+    }.filter(_.measures.get[Measure.PcaConfidence].exists(_.value >= minPcaConfidence)).withDebugger("Confidence computing")
 
     val resColl = if (topK > 0) {
       //if we use topK approach then the final ruleset will have size lower than or equals to the original size
@@ -248,7 +248,7 @@ object Ruleset {
 
   def apply(index: Index, rules: ForEach[FinalRule]): Ruleset = new Ruleset(rules, index, Runtime.getRuntime.availableProcessors())
 
-  def apply(index: Index, rules: ForEach[ResolvedRule])(implicit i1: DummyImplicit): Ruleset = apply(index, rules.map(_.toRule(index.tripleItemMap)))
+  def apply(index: Index, rules: ForEach[ResolvedRule])(implicit i1: DummyImplicit): Ruleset = apply(index, rules.flatMap(_.toRuleOpt(index.tripleItemMap)))
 
   def apply(index: Index, file: File)(implicit reader: RulesetReader): Ruleset = apply(index, reader.fromFile(file))
 
@@ -267,7 +267,7 @@ object Ruleset {
   def fromCache(index: Index, is: => InputStream): Ruleset = apply(
     index,
     (f: FinalRule => Unit) => Deserializer.deserializeFromInputStream[ResolvedRule, Unit](is) { reader =>
-      Iterator.continually(reader.read()).takeWhile(_.isDefined).map(_.get).map(_.toRule(index.tripleItemMap)).foreach(f)
+      Iterator.continually(reader.read()).takeWhile(_.isDefined).map(_.get).flatMap(_.toRuleOpt(index.tripleItemMap)).foreach(f)
     }
   )
 

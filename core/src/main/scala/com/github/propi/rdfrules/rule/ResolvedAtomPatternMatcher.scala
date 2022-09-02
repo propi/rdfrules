@@ -21,7 +21,7 @@ object ResolvedAtomPatternMatcher {
         val yVar = y.toVariable
         aliases.get(yVar) match {
           case Some(y) if y.index == x.index => Some(aliases)
-          case None => Some(aliases + (yVar, x))
+          case None => aliases + (yVar, x)
           case _ => None
         }
       case _ => None

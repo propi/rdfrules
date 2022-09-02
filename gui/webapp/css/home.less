@@ -578,9 +578,9 @@ main {
     margin-bottom: 1em;
 
     .rules-tools {
-      a, select, input {
-        display: inline-block;
-      }
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5em;
 
       a {
         margin-right: 0.3em;
@@ -602,7 +602,19 @@ main {
         height: 1.5em;
         font-size: 0.8em;
         width: 15em;
-        margin-left: 0.5em;
+      }
+
+      .multiselect {
+        select {
+          height: 1.5em;
+          font-size: 0.8em;
+        }
+      }
+    }
+
+    .rules-body {
+      .predicted-result {
+        cursor: default;
       }
     }
 
@@ -823,5 +835,27 @@ main {
 
   .auto-caching-state {
     font-weight: bold;
+  }
+}
+
+.multiselect {
+  display: inline-block;
+  position: relative;
+  .options {
+    position: absolute;
+    margin-top: 0.1em;
+    padding: 0 0.2em;
+    background-color: white;
+    border: 1px solid #8c8c8c;
+    &.hidden {
+      display: none;
+    }
+    label {
+      display: block;
+      padding: 0.1em;
+      input {
+        margin-right: 0.3em;
+      }
+    }
   }
 }

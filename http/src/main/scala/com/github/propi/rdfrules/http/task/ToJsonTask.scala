@@ -8,6 +8,7 @@ import com.github.propi.rdfrules.data.{Histogram, Prefix, TripleItem}
 import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.formats.CommonDataJsonWriters._
 import com.github.propi.rdfrules.http.util.TraversablePublisher._
+import com.github.propi.rdfrules.index.PropertyCardinalities
 import com.github.propi.rdfrules.prediction.EvaluationResult
 import com.github.propi.rdfrules.rule.{ResolvedInstantiatedRule, ResolvedRule}
 import com.github.propi.rdfrules.ruleset.formats.Json._
@@ -51,6 +52,10 @@ object ToJsonTask extends TaskDefinition {
 
   object FromRules extends ToJsonTask[Seq[ResolvedRule]] {
     def execute(input: Seq[ResolvedRule]): Source[JsValue, NotUsed] = Source.fromPublisher(input.view.map(_.toJson))
+  }
+
+  object FromPropertiesCardinalities extends ToJsonTask[Seq[PropertyCardinalities.Resolved]] {
+    def execute(input: Seq[PropertyCardinalities.Resolved]): Source[JsValue, NotUsed] = Source.fromIterator(() => input.iterator.map(_.toJson))
   }
 
   object FromTypes extends ToJsonTask[Seq[(TripleItem.Uri, PropertyStats)]] {

@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.ruleset.formats
 
 import java.io.{BufferedInputStream, OutputStreamWriter, PrintWriter}
 import com.github.propi.rdfrules.data.{Prefix, TripleItem}
+import com.github.propi.rdfrules.index.PropertyCardinalities
 import com.github.propi.rdfrules.rule.{Measure, ResolvedRule}
 import com.github.propi.rdfrules.rule.ResolvedAtom
 import com.github.propi.rdfrules.rule.ResolvedAtom.ResolvedItem
@@ -148,8 +149,14 @@ object Json {
       val fields = json.asJsObject.fields
       ResolvedRule(fields("body").convertTo[IndexedSeq[ResolvedAtom]], fields("head").convertTo[ResolvedAtom])(TypedKeyMap(fields("measures").convertTo[Seq[Measure]]))
     }
-
   }
+
+  implicit val propertyCardinalitiesWriter: JsonWriter[PropertyCardinalities.Resolved] = (obj: PropertyCardinalities.Resolved) => JsObject(
+    "property" -> obj.property.toJson,
+    "size" -> obj.size.toJson,
+    "domain" -> obj.domain.toJson,
+    "range" -> obj.range.toJson
+  )
 
   implicit def jsonRulesetWriter(source: RulesetSource.Json.type): RulesetWriter = (rules: ForEach[ResolvedRule], outputStreamBuilder: OutputStreamBuilder) => {
     val writer = new PrintWriter(new OutputStreamWriter(outputStreamBuilder.build, "UTF-8"))

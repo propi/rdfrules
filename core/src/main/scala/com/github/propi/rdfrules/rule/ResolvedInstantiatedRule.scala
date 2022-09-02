@@ -10,7 +10,7 @@ sealed trait ResolvedInstantiatedRule {
 
   def head: ResolvedInstantiatedAtom
 
-  def predictionResult: PredictedResult
+  def predictedResult: PredictedResult
 
   def source: ResolvedRule
 
@@ -23,11 +23,11 @@ object ResolvedInstantiatedRule {
 
   private case class Basic(head: ResolvedInstantiatedAtom,
                            body: IndexedSeq[ResolvedInstantiatedAtom],
-                           predictionResult: PredictedResult,
+                           predictedResult: PredictedResult,
                            source: ResolvedRule) extends ResolvedInstantiatedRule {
     def toResolvedRule: ResolvedRule = ResolvedRule(body.map(_.toResolvedAtom), head.toResolvedAtom)
 
-    def toInstantiatedRule(implicit tripleItemIndex: TripleItemIndex): InstantiatedRule = InstantiatedRule(head.toInstantiatedAtom, body.map(_.toInstantiatedAtom), predictionResult, source.toRule)
+    def toInstantiatedRule(implicit tripleItemIndex: TripleItemIndex): InstantiatedRule = InstantiatedRule(head.toInstantiatedAtom, body.map(_.toInstantiatedAtom), predictedResult, source.toRule)
   }
 
   def apply(head: ResolvedInstantiatedAtom,

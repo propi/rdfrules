@@ -26,49 +26,28 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
   private var lastCluster: Option[Int] = None
   private var lastResult: Option[IndexedSeq[js.Dynamic]] = None
 
-  /*@dom
-  private def viewAtom(atom: Atom): Binding[Div] = <div class="atom">
-    <span class="symbol">(</span>
-    <span class={"subject " + atom.subject.`type`}>
-      {atom.subject.value.toString}
-    </span>
-    <span class="predicate">
-      {atom.predicate}
-    </span>
-    <span class={"object " + atom.`object`.`type`}>
-      {atom.`object`.value.toString}
-    </span>{atom.graphs.toOption match {
-      case Some(graphs) if graphs.length > 0 =>
-        if (graphs.length == 1) {
-          <span class="graph">
-            {graphs.head}
-          </span>
-        } else {
-          <span class="graph">
-            [
-            {graphs.mkString(", ")}
-            ]
-          </span>
-        }
-      case None => <span class="graph"></span>
-    }}<span class="symbol">)</span>
-  </div>*/
-
-  /*
-        {val span = <span></span>.asInstanceOf[Span]
-    span.innerHTML = record.body.map(viewAtom).mkString(" ^ ") + " &rArr; " + viewAtom(record.head)
-    span}
-   */
-
   private def exportJson(rules: Seq[js.Dynamic]): Unit = {
     Downloader.download("rules.json", js.Array(rules: _*))
   }
 
   private def exportText(rules: Seq[js.Dynamic]): Unit = {
     val textRules = rules.view.map(_.asInstanceOf[Rule]).map { rule =>
-      rule.body.map(viewAtom).mkString(" ^ ") + " => " + viewAtom(rule.head) + " | " + rule.measures.view.map(x => s"${x.name}: ${x.value}").mkString(", ")
+      s"${rule.body.map(viewAtom).mkString(" ^ ")} => ${viewAtom(rule.head)} | ${rule.measures.view.map(x => s"${x.name}: ${x.value}").mkString(", ")}"
     }
     Downloader.download("rules.txt", textRules)
+  }
+
+  private def filterRulesByFulltext(rules: Iterable[js.Dynamic], text: String): Iterable[js.Dynamic] = if (text.isEmpty) {
+    rules
+  } else {
+    val normFulltext = Globals.stripText(text).toLowerCase
+    rules.view.filter { x =>
+      val rule = x.asInstanceOf[Rule]
+      (rule.body.iterator ++ Iterator(rule.head))
+        .flatMap(x => Iterator(viewAtomItem(x.subject), viewAtomItem(x.predicate), viewAtomItem(x.`object`)) ++ x.graphs.toOption.iterator.flatten.map(viewAtomItem))
+        .map(Globals.stripText(_).toLowerCase)
+        .exists(_.contains(normFulltext))
+    }
   }
 
   private def filteredRules(rules: Iterable[js.Dynamic], fulltext: String, cluster: Option[Int]): IndexedSeq[js.Dynamic] = {
@@ -76,7 +55,7 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
     lastResult match {
       case Some(x) => x
       case None =>
-        val _lastResult = getRulesByFulltext(getRulesByCluster(rules, cluster), fulltext).toVector
+        val _lastResult = filterRulesByFulltext(getRulesByCluster(rules, cluster), fulltext).toVector
         lastResult = Some(_lastResult)
         lastFulltext = fulltext
         lastCluster = cluster
@@ -100,16 +79,14 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
     case None => rules
   }
 
-  private def getRulesByFulltext(rules: Iterable[js.Dynamic], text: String): Iterable[js.Dynamic] = if (text.isEmpty) {
-    rules
-  } else {
-    val normFulltext = Globals.stripText(text).toLowerCase
-    rules.view.filter { x =>
-      val rule = x.asInstanceOf[Rule]
-      (rule.body.iterator ++ Iterator(rule.head))
-        .flatMap(x => Iterator(viewAtomItem(x.subject), viewAtomItem(x.predicate), viewAtomItem(x.`object`)) ++ x.graphs.toOption.iterator.flatten.map(viewAtomItem))
-        .map(Globals.stripText(_).toLowerCase)
-        .exists(_.contains(normFulltext))
+  private def instantiate(event: Event, rule: Rule): Unit = {
+    event.preventDefault()
+    for (op <- Main.canvas.getOperations.reverseIterator.find(_.info.targetStructure == OperationStructure.Index)) {
+      LocalStorage.put(Canvas.newWindowTaskKey, JSON.stringify(js.Array(op.toJson(Nil): _*)))
+      LocalStorage.put(Canvas.loadRulesKey, JSON.stringify(js.Array(rule)))
+      LocalStorage.put(Canvas.instantiationKey, JSON.stringify(rule))
+      AutoCaching.saveCache()
+      window.open(s"./?${Canvas.newWindowTaskKey}=1&${Canvas.loadRulesKey}=1&${Canvas.instantiationKey}=1")
     }
   }
 
@@ -132,21 +109,8 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
     <div class="measures">
       {record._1.measures.map(x => s"${x.name}: ${x.value}").mkString(", ")}
     </div>
-    <div class={"rule-tools" + (if (record._1.isInstantiated) " hidden" else "")}>
-      <a href="#" onclick={e: Event =>
-        e.preventDefault()
-        val time = System.currentTimeMillis()
-        val op = Main.canvas.getOperations.last
-        LocalStorage.put(time.toString, js.Array(op.toJson(Nil): _*))(JSON.stringify(_))
-        LocalStorage.put(time.toString + "-rule", record._1)(JSON.stringify(_))
-        window.open(s"./?pickup=$time")
-        /*Main.canvas.getOperations.last.delete()
-        val op0 = Main.canvas.getOperations.last
-        val op1 = op0.appendOperation(OperationInfo.RulesetTransformation.Instantiate)
-        op1.asInstanceOf[Instantiate].setRule(record._1)
-        Main.canvas.addOperation(op1)
-        Main.canvas.addOperation(op1.appendOperation(OperationInfo.GetRules))
-        op1.openModal()*/}>Instantiate</a>
+    <div class="rule-tools">
+      <a href="#" onclick={e: Event => instantiate(e, record._1)}>Instantiate</a>
     </div>
   </div>
 
@@ -235,10 +199,6 @@ object Rules {
 
   implicit class PimpedAtomItem(val atomItem: AtomItem) extends AnyVal {
     def isConstant: Boolean = atomItem.`type` == "constant"
-  }
-
-  implicit class PimpedRule(val rule: Rule) extends AnyVal {
-    def isInstantiated: Boolean = (rule.head :: rule.body.toList).forall(x => x.subject.isConstant && x.`object`.isConstant)
   }
 
 }
