@@ -105,6 +105,19 @@ object OperationInfo {
     )
   }
 
+  sealed trait PredictionTransformation extends Transformation {
+    val followingOperations: Constants[OperationInfo] = Constants(
+      PredictionTransformation.FilterPrediction,
+      PredictionTransformation.ShrinkPrediction,
+      PredictionTransformation.Sort,
+      PredictionTransformation.PredictionToDataset,
+      PredictionTransformation.CachePrediction,
+      CachePredictionAction,
+      GetPrediction,
+      PredictionSize
+    )
+  }
+
   sealed trait DatasetToDataset extends Transformation {
     def sourceStructure: OperationStructure = OperationStructure.Dataset
 
@@ -115,6 +128,12 @@ object OperationInfo {
     def sourceStructure: OperationStructure = OperationStructure.Ruleset
 
     def targetStructure: OperationStructure = OperationStructure.Ruleset
+  }
+
+  sealed trait PredictionToPrediction extends Transformation {
+    def sourceStructure: OperationStructure = OperationStructure.Prediction
+
+    def targetStructure: OperationStructure = OperationStructure.Prediction
   }
 
   object Root extends Transformation {
@@ -193,13 +212,28 @@ object OperationInfo {
     val title: String = "To dataset"
   }
 
+  sealed trait PredictionToDataset extends Transformation {
+    val name: String = "PredictionToDataset"
+    val title: String = "To dataset"
+  }
+
   sealed trait FilterRules extends Transformation {
     val name: String = "FilterRules"
     val title: String = "Filter"
   }
 
+  sealed trait FilterPrediction extends Transformation {
+    val name: String = "FilterPrediction"
+    val title: String = "Filter"
+  }
+
   sealed trait ShrinkRules extends Transformation {
-    val name: String = "ShrinkRules"
+    val name: String = "ShrinkRuleset"
+    val title: String = "Shrink"
+  }
+
+  sealed trait ShrinkPrediction extends Transformation {
+    val name: String = "ShrinkPrediction"
     val title: String = "Shrink"
   }
 
@@ -208,8 +242,18 @@ object OperationInfo {
     val title: String = "Sort"
   }
 
+  sealed trait SortPrediction extends Transformation {
+    val name: String = "SortPrediction"
+    val title: String = "Sort"
+  }
+
   sealed trait CacheRuleset extends Transformation {
     val name: String = "CacheRuleset"
+    val title: String = "Cache"
+  }
+
+  sealed trait CachePrediction extends Transformation {
+    val name: String = "CachePrediction"
     val title: String = "Cache"
   }
 
@@ -376,6 +420,38 @@ object OperationInfo {
 
   }
 
+  object PredictionTransformation {
+
+    object FilterPrediction extends OperationInfo.FilterPrediction with PredictionTransformation with PredictionToPrediction {
+      def buildOperation(from: Operation): Operation = new operations.FilterPrediction(from, this)
+    }
+
+    object ShrinkPrediction extends OperationInfo.ShrinkPrediction with PredictionTransformation with PredictionToPrediction {
+      def buildOperation(from: Operation): Operation = new operations.ShrinkPrediction(from, this)
+    }
+
+    object Sort extends OperationInfo.SortPrediction with PredictionTransformation with PredictionToPrediction {
+      def buildOperation(from: Operation): Operation = new operations.SortPrediction(from, this)
+    }
+
+    object CachePrediction extends OperationInfo.CachePrediction with PredictionTransformation with PredictionToPrediction {
+      def buildOperation(from: Operation): Operation = buildOperation(from, None)
+
+      def buildOperation(from: Operation, id: Option[String]): Operation = new operations.CachePrediction(from, this, id)
+
+      override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
+    }
+
+    object PredictionToDataset extends OperationInfo.PredictionToDataset with DatasetTransformation {
+      def buildOperation(from: Operation): Operation = new operations.PredictionToDataset(from, this)
+
+      def sourceStructure: OperationStructure = OperationStructure.Prediction
+
+      def targetStructure: OperationStructure = OperationStructure.Dataset
+    }
+
+  }
+
   object RulesetTransformation {
 
     object FilterRules extends OperationInfo.FilterRules with RulesetTransformation with RulesetToRuleset {
@@ -398,8 +474,8 @@ object OperationInfo {
       override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
     }
 
-    object Predict extends OperationInfo.Predict with DatasetTransformation {
-      def buildOperation(from: Operation): Operation = new operations.Predict(from, this, false)
+    object Predict extends OperationInfo.Predict with PredictionTransformation {
+      def buildOperation(from: Operation): Operation = new operations.Predict(from, this)
 
       def sourceStructure: OperationStructure = OperationStructure.Ruleset
 
@@ -455,6 +531,17 @@ object OperationInfo {
     def buildOperation(from: Operation): Operation = new actions.CacheRuleset(from)
   }
 
+  object CachePredictionAction extends Action {
+    val name: String = "CachePredictionAction"
+    val title: String = "Cache"
+
+    def sourceStructure: OperationStructure = OperationStructure.Prediction
+
+    override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
+
+    def buildOperation(from: Operation): Operation = new actions.CachePrediction(from)
+  }
+
   object ExportRules extends Action {
     val name: String = "ExportRules"
     val title: String = "Export"
@@ -464,6 +551,15 @@ object OperationInfo {
     def buildOperation(from: Operation): Operation = new actions.ExportRules(from)
   }
 
+  object GetPrediction extends Action {
+    val name: String = "GetPrediction"
+    val title: String = "Get predicted triples"
+
+    def sourceStructure: OperationStructure = OperationStructure.Prediction
+
+    def buildOperation(from: Operation): Operation = new actions.GetPrediction(from)
+  }
+
   object GetRules extends Action {
     val name: String = "GetRules"
     val title: String = "Get rules"
@@ -471,6 +567,15 @@ object OperationInfo {
     def sourceStructure: OperationStructure = OperationStructure.Ruleset
 
     def buildOperation(from: Operation): Operation = new actions.GetRules(from)
+  }
+
+  object PredictionSize extends Action {
+    val name: String = "PredictionSize"
+    val title: String = "Size"
+
+    def sourceStructure: OperationStructure = OperationStructure.Prediction
+
+    def buildOperation(from: Operation): Operation = new actions.PredictionSize(from)
   }
 
   object RulesetSize extends Action {

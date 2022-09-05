@@ -203,14 +203,13 @@ object PipelineJsonReaders {
     new prediction.LoadPrediction(fields("path").convertTo[String])
   }
 
-  implicit val predictReader: RootJsonReader[ruleset.Predict] = (json: JsValue) => {
+  implicit def predictReader(implicit debugger: Debugger): RootJsonReader[ruleset.Predict] = (json: JsValue) => {
     val selector = json.toSelector
     new ruleset.Predict(selector("predictedResults").toTypedIterable[PredictedResult].toSet, selector("injectiveMapping").to[Boolean].get)
   }
 
-  implicit val pruneReader: RootJsonReader[ruleset.Prune] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new ruleset.Prune(fields("strategy").convertTo[ruleset.Prune.PruningStrategy])
+  implicit def pruneReader(implicit debugger: Debugger): RootJsonReader[ruleset.Prune] = (json: JsValue) => {
+    new ruleset.Prune(json.convertTo[ruleset.Prune.PruningStrategy])
   }
 
   implicit val filterRulesReader: RootJsonReader[ruleset.FilterRules] = (json: JsValue) => {

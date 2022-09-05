@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.gui.operations
 
 import com.github.propi.rdfrules.gui.Property.SummaryTitle
 import com.github.propi.rdfrules.gui.properties._
+import com.github.propi.rdfrules.gui.results.PredictedResult
 import com.github.propi.rdfrules.gui.utils.CommonValidators.RegExp
 import com.github.propi.rdfrules.gui.{Operation, OperationInfo, Property}
 import com.thoughtworks.binding.Binding.{Constants, Var}
@@ -9,9 +10,26 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
-class FilterRules(fromOperation: Operation, val info: OperationInfo) extends Operation {
+class FilterPrediction(fromOperation: Operation, val info: OperationInfo) extends Operation {
   //val info: OperationInfo = OperationInfo.FilterRules
   val properties: Constants[Property] = Constants(
+    ArrayElement("predictedResults", "Predicted triple constraints", Property.SummaryTitle.NoTitle) { implicit context =>
+      new Select("value", "Constraint", Constants(
+        PredictedResult.Positive.toString -> PredictedResult.Positive.label,
+        PredictedResult.Negative.toString -> PredictedResult.Negative.label,
+        PredictedResult.PcaPositive.toString -> PredictedResult.PcaPositive.label
+      ), summaryTitle = Property.SummaryTitle.NoTitle)
+    },
+    new Checkbox("distinctPrediction", "Distinct predictions", summaryTitle = "distinct"),
+    new Checkbox("onlyFunctionalPredictions", "Functions only", summaryTitle = "functions"),
+    DynamicGroup("tripleMatchers", "Triple filter", "triple filter") { implicit context =>
+      Constants(
+        new OptionalText[String]("subject", "Subject", validator = RegExp("<.*>|.*:.*", true), summaryTitle = "subject"),
+        new OptionalText[String]("predicate", "Predicate", validator = RegExp("<.*>|.*:.*", true), summaryTitle = "predicate"),
+        new OptionalText[String]("object", "Object", summaryTitle = "object"),
+        new Checkbox("inverse", "Negation", summaryTitle = "negated")
+      )
+    },
     Pattern("patterns", "Patterns", true),
     DynamicGroup("measures", "Measures", "measures") { implicit context =>
       val summaryTitle = Var("")
@@ -26,8 +44,7 @@ class FilterRules(fromOperation: Operation, val info: OperationInfo) extends Ope
           "PcaConfidence" -> "PCA confidence",
           "PcaBodySize" -> "PCA body size",
           "HeadConfidence" -> "Head confidence",
-          "Lift" -> "Lift",
-          "Cluster" -> "Cluster"
+          "Lift" -> "Lift"
         ), onSelect = (_, value) => summaryTitle.value = value),
         new FixedText[String]("value", "Value", validator = RegExp("\\d+(\\.\\d+)?|[><]=? \\d+(\\.\\d+)?|[\\[\\(]\\d+(\\.\\d+)?;\\d+(\\.\\d+)?[\\]\\)]"), summaryTitle = SummaryTitle.Variable(summaryTitle))
       )

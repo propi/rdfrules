@@ -4,12 +4,13 @@ import com.github.propi.rdfrules.http.task.ruleset.Prune.PruningStrategy
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 import com.github.propi.rdfrules.rule.Measure
 import com.github.propi.rdfrules.ruleset.Ruleset
+import com.github.propi.rdfrules.utils.Debugger
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 
 /**
   * Created by Vaclav Zeman on 10. 8. 2018.
   */
-class Prune(strategy: PruningStrategy) extends Task[Ruleset, Ruleset] {
+class Prune(strategy: PruningStrategy)(implicit debugger: Debugger) extends Task[Ruleset, Ruleset] {
   val companion: TaskDefinition = Prune
 
   def execute(input: Ruleset): Ruleset = strategy match {

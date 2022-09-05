@@ -33,8 +33,8 @@ abstract class CommonShrink(fromOperation: Operation, val info: OperationInfo) e
         Constants("Take" -> "Take", "Drop" -> "Drop", "Slice" -> "Slice"),
         Some("Take"),
         {
-          case "Slice" => activeStrategy(false, false, true)
-          case "Drop" => activeStrategy(false, true, false)
+          case ("Slice", _) => activeStrategy(false, false, true)
+          case ("Drop", _) => activeStrategy(false, true, false)
           case _ => activeStrategy(true, false, false)
         }
       ),

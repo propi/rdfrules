@@ -331,7 +331,7 @@ object CommonDataJsonReaders {
   implicit val pruningStrategyReader: RootJsonReader[PruningStrategy] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     val selector = json.toSelector
-    selector("name").to[String].map {
+    selector("strategy").to[String].map {
       case "DataCoveragePruning" => json.convertTo[PruningStrategy.DataCoveragePruning]
       case "Maximal" => PruningStrategy.Maximal
       case "Closed" => PruningStrategy.Closed(fields("measure").convertTo[TypedKeyMap.Key[Measure]])

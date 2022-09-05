@@ -34,7 +34,7 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
       val k = new DynamicElement(Constants(new FixedText[Double]("k", "k-value", validator = GreaterThanOrEqualsTo[Int](1), summaryTitle = "top")), hidden = true)
       val allowOverflow = new DynamicElement(Constants(new Checkbox("allowOverflow", "Allow overflow")), hidden = true)
       val file = new DynamicElement(Constants(new ChooseFileFromWorkspace(Workspace.loadFiles, true, "file", "Export path", validator = NonEmpty)), hidden = true)
-      val format = new DynamicElement(Constants(new Select("format", "Export rules format", Constants("txt" -> "Text (unparsable)", "ndjson" -> "streaming NDJSON (as model - parsable)"), Some(selectedFormat), selectedFormat = _)), hidden = true)
+      val format = new DynamicElement(Constants(new Select("format", "Export rules format", Constants("txt" -> "Text (unparsable)", "ndjson" -> "streaming NDJSON (as model - parsable)"), Some(selectedFormat), (value, _) => selectedFormat = value)), hidden = true)
       Constants(
         new Checkbox("topk", "Top-k", onChecked = { isChecked =>
           hasTopK = isChecked
@@ -125,8 +125,8 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
           "name",
           "Name",
           Constants("MinHeadSize" -> "Min head size", "MinAtomSize" -> "Min atom size", "MinHeadCoverage" -> "Min head coverage", "MinSupport" -> "Min support", "MaxRuleLength" -> "Max rule length", "Timeout" -> "Timeout"),
-          onSelect = selectedItem => {
-            summaryTitle.title.value = selectedItem
+          onSelect = (selectedItem, selectedValue) => {
+            summaryTitle.title.value = selectedValue
             selectedItem match {
               case "MinHeadCoverage" => value.setElement(0)
               case "MinHeadSize" | "MinSupport" | "Timeout" => value.setElement(1)
@@ -145,7 +145,7 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
       ))
       Constants(
         new Select("name", "Name", Constants("WithoutConstants" -> "Without constants", "OnlyObjectConstants" -> "With constants at the object position", "OnlySubjectConstants" -> "With constants at the subject position", "OnlyLowerCardinalitySideConstants" -> "With constants at the lower cardinality side", "WithoutDuplicitPredicates" -> "Without duplicit predicates", "OnlyPredicates" -> "Only predicates", "WithoutPredicates" -> "Without predicates"), onSelect = {
-          case "OnlyPredicates" | "WithoutPredicates" => value.setElement(0)
+          case ("OnlyPredicates", _) | ("WithoutPredicates", _) => value.setElement(0)
           case _ => value.setElement(-1)
         }, summaryTitle = SummaryTitle.NoTitle),
         value
@@ -161,7 +161,7 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
     Constants(
       thresholds,
       RuleConsumers,
-      Pattern("patterns", "Patterns"),
+      Pattern("patterns", "Patterns", false),
       constraints,
       new FixedText[Int]("parallelism", "Parallelism", "0", GreaterThanOrEqualsTo[Int](0))
     )

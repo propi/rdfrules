@@ -25,13 +25,18 @@ class DbScan[T] private(minNeighbours: Int, minSimilarity: Double, parallelism: 
   } else if (nonCluster.isEmpty) {
     (cluster ++ remainingPoints, nonCluster)
   } else {
-    ad.done()
-    val point = remainingPoints.head
-    val (nonClusterReachable, nonClusterOthers) = searchReachables(point, nonCluster)
-    if (nonClusterReachable.size >= minNeighbours || (searchReachables(point, cluster ++ remainingPoints.tail)._1.size + nonClusterReachable.size) >= minNeighbours) {
-      makeCluster(remainingPoints.tail ++ nonClusterReachable, point +: cluster, nonClusterOthers.seq)
+    if (debugger.isInterrupted) {
+      (remainingPoints.iterator ++ nonCluster.iterator).foreach(_ => ad.done())
+      (cluster ++ remainingPoints ++ nonCluster, Nil)
     } else {
-      makeCluster(remainingPoints.tail, point +: cluster, nonCluster)
+      ad.done()
+      val point = remainingPoints.head
+      val (nonClusterReachable, nonClusterOthers) = searchReachables(point, nonCluster)
+      if (nonClusterReachable.size >= minNeighbours || (searchReachables(point, cluster ++ remainingPoints.tail)._1.size + nonClusterReachable.size) >= minNeighbours) {
+        makeCluster(remainingPoints.tail ++ nonClusterReachable, point +: cluster, nonClusterOthers.seq)
+      } else {
+        makeCluster(remainingPoints.tail, point +: cluster, nonCluster)
+      }
     }
   }
 

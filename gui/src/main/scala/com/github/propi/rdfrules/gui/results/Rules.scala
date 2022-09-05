@@ -90,6 +90,17 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
     }
   }
 
+  private def predict(event: Event, rule: Rule): Unit = {
+    event.preventDefault()
+    for (op <- Main.canvas.getOperations.reverseIterator.find(_.info.targetStructure == OperationStructure.Index)) {
+      LocalStorage.put(Canvas.newWindowTaskKey, JSON.stringify(js.Array(op.toJson(Nil): _*)))
+      LocalStorage.put(Canvas.loadRulesKey, JSON.stringify(js.Array(rule)))
+      LocalStorage.put(Canvas.predictionKey, JSON.stringify(rule))
+      AutoCaching.saveCache()
+      window.open(s"./?${Canvas.newWindowTaskKey}=1&${Canvas.loadRulesKey}=1&${Canvas.predictionKey}=1")
+    }
+  }
+
   @html
   def viewRecord(record: (Rule, Int)): Binding[Div] = <div class="rule">
     <div class="text">
@@ -111,6 +122,7 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
     </div>
     <div class="rule-tools">
       <a href="#" onclick={e: Event => instantiate(e, record._1)}>Instantiate</a>
+      <a href="#" onclick={e: Event => predict(e, record._1)}>Predict</a>
     </div>
   </div>
 

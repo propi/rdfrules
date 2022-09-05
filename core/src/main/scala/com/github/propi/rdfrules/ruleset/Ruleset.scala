@@ -105,7 +105,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     *                                 this parameter to false.
     * @return pruned ruleset
     */
-  def pruned(onlyExistingTriples: Boolean = true, onlyFunctionalProperties: Boolean = true, injectiveMapping: Boolean = true): Ruleset = {
+  def pruned(onlyExistingTriples: Boolean = true, onlyFunctionalProperties: Boolean = true, injectiveMapping: Boolean = true)(implicit debugger: Debugger): Ruleset = {
     transform((f: FinalRule => Unit) => {
       implicit val mapper: TripleItemIndex = index.tripleItemMap
       val predictedResults: Set[PredictedResult] = if (onlyExistingTriples) Set(PredictedResult.Positive) else Set.empty
@@ -186,8 +186,8 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     InstantiatedRuleset(index, Instantiation(rules, index, predictionResults, injectiveMapping))
   }
 
-  def predict(predictedResults: Set[PredictedResult] = Set.empty, injectiveMapping: Boolean = true): PredictedTriples = {
-    PredictedTriples(index, Prediction(rules, index, predictedResults, injectiveMapping))
+  def predict(predictedResults: Set[PredictedResult] = Set.empty, injectiveMapping: Boolean = true)(implicit debugger: Debugger): PredictedTriples = {
+    PredictedTriples(index, Prediction(rules.withDebugger("Predicted rules"), index, predictedResults, injectiveMapping))
   }
 
   def makeClusters(clustering: Clustering[FinalRule]): Ruleset = transform((f: FinalRule => Unit) => clustering.clusters(rules.toIndexedSeq).view.zipWithIndex.flatMap { case (cluster, index) =>

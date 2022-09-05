@@ -35,8 +35,8 @@ class Discretize(fromOperation: Operation, val info: OperationInfo) extends Oper
             Constants("EquidistanceDiscretizationTask" -> "Equidistance", "EquifrequencyDiscretizationTask" -> "Equifrequency", "EquisizeDiscretizationTask" -> "Equisize"),
             Some("EquidistanceDiscretizationTask"),
             {
-              case "EquisizeDiscretizationTask" => activeStrategy(false, true)
-              case "EquidistanceDiscretizationTask" | "EquifrequencyDiscretizationTask" => activeStrategy(true, false)
+              case ("EquisizeDiscretizationTask", _) => activeStrategy(false, true)
+              case ("EquidistanceDiscretizationTask", _) | ("EquifrequencyDiscretizationTask", _) => activeStrategy(true, false)
               case _ => activeStrategy(false, false)
             },
             SummaryTitle.NoTitle,

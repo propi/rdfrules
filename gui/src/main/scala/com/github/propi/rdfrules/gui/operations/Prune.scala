@@ -10,8 +10,8 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 class Prune(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = {
     val (cba1, cba2) = context.use("Data coverage pruning") { implicit context =>
-      new DynamicElement(Constants(new Checkbox("onlyFunctionalProperties", "Only functional properties", true))) ->
-        new DynamicElement(Constants(new Checkbox("onlyExistingTriples", "Only existing triples", true)))
+      new DynamicElement(Constants(new Checkbox("onlyFunctionalProperties", "Only functional properties", true)), true) ->
+        new DynamicElement(Constants(new Checkbox("onlyExistingTriples", "Only existing triples", true)), true)
     }
     val measure = context.use("Closed or OnlyBetterDescendant")(implicit context => new DynamicElement(Constants(new Select("measure", "Measure", Constants(
       "RuleLength" -> "Rule length",
@@ -24,7 +24,7 @@ class Prune(fromOperation: Operation, val info: OperationInfo) extends Operation
       "PcaBodySize" -> "PCA body size",
       "HeadConfidence" -> "Head confidence",
       "Lift" -> "Lift"
-    ), Some("HeadCoverage")))))
+    ), Some("HeadCoverage"))), true))
 
     def activeStrategy(cba: Boolean, hasMeasure: Boolean): Unit = {
       if (cba) {
@@ -40,18 +40,20 @@ class Prune(fromOperation: Operation, val info: OperationInfo) extends Operation
     activeStrategy(true, false)
 
     Constants(
-      new Select("name", "Strategy",
+      new Select("strategy", "Strategy",
         Constants("DataCoveragePruning" -> "Data coverage pruning", "Maximal" -> "Maximal", "Closed" -> "Close", "OnlyBetterDescendant" -> "Only better descendant"),
         Some("DataCoveragePruning"),
         {
-          case "DataCoveragePruning" => activeStrategy(true, false)
-          case "Closed" | "OnlyBetterDescendant" => activeStrategy(false, true)
+          case ("DataCoveragePruning", _) => activeStrategy(true, false)
+          case ("Closed", _) | ("OnlyBetterDescendant", _) => activeStrategy(false, true)
           case _ => activeStrategy(false, false)
-        }
+        },
+        Property.SummaryTitle.NoTitle
       ),
       cba1,
       cba2,
-      measure
+      measure,
+      new Hidden[Boolean]("injectiveMapping", "true")(_.toBoolean, x => x)
     )
   }
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))

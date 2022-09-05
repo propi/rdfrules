@@ -13,7 +13,7 @@ class ComputeConfidence(confidenceType: ConfidenceType)(implicit debugger: Debug
 
   def execute(input: Ruleset): Ruleset = confidenceType match {
     case ConfidenceType.StandardConfidence(min, topK) => input.computeConfidence(min, true, topK)
-    case ConfidenceType.PcaConfidence(min, topK) => input.computeConfidence(min, true, topK)
+    case ConfidenceType.PcaConfidence(min, topK) => input.computePcaConfidence(min, true, topK)
     case ConfidenceType.Lift(min) => input.computeLift(min)
   }
 }

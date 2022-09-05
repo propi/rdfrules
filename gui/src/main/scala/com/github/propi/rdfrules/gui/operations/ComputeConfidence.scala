@@ -12,12 +12,12 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 class ComputeConfidence(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = {
     val min = new DynamicElement(Constants(
-      context.use("CWA confidence")(implicit context => new FixedText[Double]("min", "Min confidence", "0.5", RegExp("1(\\.0+)?|0\\.00[1-9]\\d*|0\\.0?[1-9]\\d*"))),
-      context.use("PCA confidence")(implicit context => new FixedText[Double]("min", "Min PCA confidence", "0.5", RegExp("1(\\.0+)?|0\\.00[1-9]\\d*|0\\.0?[1-9]\\d*"))),
-      context.use("Lift")(implicit context => new FixedText[Double]("min", "Min confidence", "0.5", RegExp("1(\\.0+)?|0\\.00[1-9]\\d*|0\\.0?[1-9]\\d*")))
+      context.use("CWA confidence")(implicit context => new FixedText[Double]("min", "Min confidence", "0.5", RegExp("1(\\.0+)?|0\\.00[1-9]\\d*|0\\.0?[1-9]\\d*"), "min")),
+      context.use("PCA confidence")(implicit context => new FixedText[Double]("min", "Min PCA confidence", "0.5", RegExp("1(\\.0+)?|0\\.00[1-9]\\d*|0\\.0?[1-9]\\d*"), "min")),
+      context.use("Lift")(implicit context => new FixedText[Double]("min", "Min confidence", "0.5", RegExp("1(\\.0+)?|0\\.00[1-9]\\d*|0\\.0?[1-9]\\d*"), "min"))
     ))
     val topK = new DynamicElement(Constants(
-      new OptionalText[Int]("topk", "Top-k", validator = GreaterThanOrEqualsTo[Int](1))
+      new OptionalText[Int]("topk", "Top-k", validator = GreaterThanOrEqualsTo[Int](1), summaryTitle = "top")
     ))
 
     def activeStrategy(minIndex: Int, hasTopK: Boolean): Unit = {
@@ -30,10 +30,11 @@ class ComputeConfidence(fromOperation: Operation, val info: OperationInfo) exten
         Constants("StandardConfidence" -> "CWA confidence", "PcaConfidence" -> "PCA confidence", "Lift" -> "Lift"),
         Some("StandardConfidence"),
         {
-          case "Lift" => activeStrategy(2, false)
-          case "PcaConfidence" => activeStrategy(1, true)
+          case ("Lift", _) => activeStrategy(2, false)
+          case ("PcaConfidence", _) => activeStrategy(1, true)
           case _ => activeStrategy(0, true)
-        }
+        },
+        Property.SummaryTitle.NoTitle
       ),
       min,
       topK

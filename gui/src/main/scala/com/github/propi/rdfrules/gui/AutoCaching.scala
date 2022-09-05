@@ -26,6 +26,16 @@ object AutoCaching {
     isOn.value = newValue
   }
 
+  private sealed trait CacheId
+
+  private case class AutoCacheId(id: String) extends CacheId {
+    override def toString: String = id
+  }
+
+  private case class FixedCacheId(id: String) extends CacheId {
+    override def toString: String = id
+  }
+
   sealed trait AutoCachingSession {
 
     def tryCache(operation: Operation): Option[Operation]
@@ -38,7 +48,7 @@ object AutoCaching {
 
   private class AutoCachingImpl extends AutoCachingSession {
 
-    private val caches = collection.mutable.ArrayBuffer.empty[(String, String)]
+    private val caches = collection.mutable.ArrayBuffer.empty[(String, CacheId)]
     private var hasIndex = false
 
     private def stringifyOperation(operation: Operation): String = JSON.stringify(js.Array(operation.toJson(Nil): _*))
@@ -57,7 +67,7 @@ object AutoCaching {
       operation match {
         case cache: CommonCache =>
           val pipelineContent = stringifyOperation(cache)
-          caches.addOne(pipelineContent -> cache.getId.getOrElse(""))
+          caches.addOne(pipelineContent -> FixedCacheId(cache.getId.getOrElse("")))
           if (lastCaches.contains(pipelineContent)) {
             lastCaches.remove(pipelineContent)
             f(cache)
@@ -92,7 +102,7 @@ object AutoCaching {
           } else {*/
             //any other saved cache is reused
             lastCaches.remove(pipelineContent)
-            cacheOperation(operation, id).map(_ -> id)
+            cacheOperation(operation, id.toString).map(_ -> id)
           //}
           case None =>
             if (
@@ -111,7 +121,7 @@ object AutoCaching {
             ))*/
             ) {
               val id = UUID.randomUUID().toString
-              cacheOperation(operation, id).map(_ -> id)
+              cacheOperation(operation, id).map(_ -> AutoCacheId(id))
             } else {
               None
             }
@@ -122,7 +132,7 @@ object AutoCaching {
     }
 
     private[AutoCaching] def clearUnusedCaches(): Future[Boolean] = {
-      Future.traverse(lastCaches.valuesIterator)(id => if (id.isEmpty) Future.successful(true) else Endpoint.removeCache(id)).map { it =>
+      Future.traverse(lastCaches.valuesIterator.filter(_.isInstanceOf[AutoCacheId]))(id => if (id.toString.isEmpty) Future.successful(true) else Endpoint.removeCache(id.toString)).map { it =>
         lastCaches.clear()
         lastCaches.addAll(caches)
         caches.clear()
@@ -147,7 +157,7 @@ object AutoCaching {
   }
 
   def saveCache(): Unit = if (isOn.value && lastCaches.nonEmpty) {
-    LocalStorage.put(localStorageCacheKey, JSON.stringify(lastCaches.toJSDictionary))
+    LocalStorage.put(localStorageCacheKey, JSON.stringify(lastCaches.view.filter(_._2.isInstanceOf[AutoCacheId]).mapValues(_.toString).toMap.toJSDictionary))
   }
 
   private def saveAlias(id: String): Future[String] = {
@@ -171,8 +181,8 @@ object AutoCaching {
       .filter(js.typeOf(_) == "object")
       .iterator
       .flatMap(_.asInstanceOf[js.Dictionary[String]])
-      .foldLeft(Future.successful(List.empty[(String, String)])) { case (result, (content, id)) =>
-        result.flatMap(list => saveAlias(id).map(alias => (content -> alias) :: list).recover {
+      .foldLeft(Future.successful(List.empty[(String, CacheId)])) { case (result, (content, id)) =>
+        result.flatMap(list => saveAlias(id).map(alias => (content -> AutoCacheId(alias)) :: list).recover {
           case th: NoSuchElementException =>
             th.printStackTrace()
             list
@@ -191,13 +201,15 @@ object AutoCaching {
     Future.successful(true)
   }
 
-  private val lastCaches = collection.mutable.Map.empty[String, String]
+  private val lastCaches = collection.mutable.Map.empty[String, CacheId]
 
   private def fetchRemovingCaches(): Set[String] = LocalStorage.get(Canvas.removingCachesKey).map(JSON.parse(_).asInstanceOf[js.Array[String]]).iterator.flatten.toSet
 
   window.addEventListener("beforeunload", (_: BeforeUnloadEvent) => {
     if (isOn.value && lastCaches.nonEmpty) {
-      val newRemovingCaches = fetchRemovingCaches() ++ lastCaches.valuesIterator
+      val newRemovingCaches = fetchRemovingCaches() ++ lastCaches.valuesIterator.collect {
+        case AutoCacheId(id) => id
+      }
       LocalStorage.put(Canvas.removingCachesKey, JSON.stringify(newRemovingCaches.toJSArray))
     }
   })

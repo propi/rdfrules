@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.gui.operations
 
+import com.github.propi.rdfrules.gui.Property.SummaryTitle
 import com.github.propi.rdfrules.gui.properties._
 import com.github.propi.rdfrules.gui.{Operation, OperationInfo, Property}
 import com.thoughtworks.binding.Binding.{Constants, Var}
@@ -9,7 +10,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
   */
 class Sort(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
-    DynamicGroup("by", "Sort by")(_ => Constants(
+    DynamicGroup("by", "Sort by", "by")(_ => Constants(
       new Select("measure", "Measure", Constants(
         "RuleLength" -> "Rule length",
         "HeadSize" -> "Head size",
@@ -22,7 +23,7 @@ class Sort(fromOperation: Operation, val info: OperationInfo) extends Operation 
         "HeadConfidence" -> "Head confidence",
         "Lift" -> "Lift",
         "Cluster" -> "Cluster"
-      )),
+      ), summaryTitle = SummaryTitle.NoTitle),
       new Checkbox("reversed", "Reversed")
     ))
   )

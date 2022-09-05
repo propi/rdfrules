@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.gui.properties
 
 import com.github.propi.rdfrules.gui.Documentation.Context
 import com.github.propi.rdfrules.gui.Property
+import com.github.propi.rdfrules.gui.Property.SummaryTitle
 import com.github.propi.rdfrules.gui.utils.Validate
 import com.github.propi.rdfrules.gui.utils.Validate.ValidationException
 
@@ -309,6 +310,7 @@ object Pattern {
         case Right(x) => Right(x)
       }
       case '=' if !nextAtom => if (it.hasNext && it.next() == '>') parseHead(it, rule) else Right("Invalid implication character.")
+      case '⇒' if !nextAtom => parseHead(it, rule)
       case x if x.isSpaceChar => parseBody(it, rule, isStart, nextAtom)
       case x => Right(s"Invalid character '$x' occured during body parsing.")
     }
@@ -325,7 +327,7 @@ object Pattern {
     def validate(x: String): Try[String] = parseRule(x).map(_ => x)
   }
 
-  private class PatternInput(implicit context: Context) extends Text("pattern", "Pattern", "", RuleValidator, "") {
+  private class PatternInput(summary: Boolean)(implicit context: Context) extends Text("pattern", "Pattern", "", RuleValidator, if (summary) SummaryTitle.NoTitle else SummaryTitle.Empty) {
     def toJson: js.Any = parseRule(getText).map(_.toJson).getOrElse(js.undefined)
 
     override def setValue(data: js.Dynamic): Unit = {
@@ -337,8 +339,8 @@ object Pattern {
     }
   }
 
-  def apply(name: String, title: String)(implicit context: Context): Property = ArrayElement(name, title) { implicit context =>
-    new PatternInput
+  def apply(name: String, title: String, summary: Boolean)(implicit context: Context): Property = ArrayElement(name, title, if (summary) "patterns" else SummaryTitle.Empty) { implicit context =>
+    new PatternInput(summary)
   }
 
   /*private def variableText: Property = new FixedText[String]("value", "Value", description = "In this position there must be a specified variable. The variable is just one character from a to z.", validator = RegExp("[a-z]"))

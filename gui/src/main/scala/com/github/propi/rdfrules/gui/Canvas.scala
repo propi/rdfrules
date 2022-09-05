@@ -158,6 +158,7 @@ object Canvas {
   val newWindowTaskKey = "task"
   val loadRulesKey = "rules"
   val instantiationKey = "instantiation"
+  val predictionKey = "predict"
   val removingCachesKey = "removing-caches"
 
 }
