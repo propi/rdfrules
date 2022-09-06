@@ -243,7 +243,7 @@ trait ForEach[+T] {
 
   def reduce[A >: T](f: (A, A) => A): A = reduceOption(f).get
 
-  def reduceOption[A >: T](f: (A, A) => A): Option[A] = foldLeft(Option.empty[A])((x, y) => x.map(f(y, _)).orElse(Some(y)))
+  def reduceOption[A >: T](f: (A, A) => A): Option[A] = foldLeft(Option.empty[A])((x, y) => x.map(f(_, y)).orElse(Some(y)))
 
   def map[A](g: T => A): ForEach[A] = {
     val col = new ForEach[A] {

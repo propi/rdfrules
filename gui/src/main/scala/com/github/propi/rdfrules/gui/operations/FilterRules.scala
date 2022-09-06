@@ -13,7 +13,7 @@ class FilterRules(fromOperation: Operation, val info: OperationInfo) extends Ope
   //val info: OperationInfo = OperationInfo.FilterRules
   val properties: Constants[Property] = Constants(
     Pattern("patterns", "Patterns", true),
-    DynamicGroup("measures", "Measures", "measures") { implicit context =>
+    DynamicGroup("measures", "Measures", SummaryTitle.NoTitle) { implicit context =>
       val summaryTitle = Var("")
       Constants(
         new Select("name", "Name", Constants(

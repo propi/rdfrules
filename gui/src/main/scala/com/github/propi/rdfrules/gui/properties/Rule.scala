@@ -25,6 +25,8 @@ class Rule extends Property {
   val descriptionVar: Var[String] = Var("")
   val summaryTitle: SummaryTitle = SummaryTitle.Empty
 
+  isHidden.value = true
+
   def summaryContentView: Binding[Span] = ReactiveBinding.emptySpan
 
   @html
@@ -51,6 +53,9 @@ class Rule extends Property {
   def setValue(data: js.Dynamic): Unit = {
     rules.value.clear()
     rules.value.addAll(data.asInstanceOf[js.Array[Rules.Rule]])
+    if (rules.value.nonEmpty) {
+      isHidden.value = false
+    }
   }
 
   def toJson: js.Any = rules.value.toJSArray

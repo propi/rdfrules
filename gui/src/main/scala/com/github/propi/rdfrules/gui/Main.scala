@@ -1,9 +1,10 @@
 package com.github.propi.rdfrules.gui
 
 import com.github.propi.rdfrules.gui.OperationInfo.IndexTransformation.LoadRulesetWithRules
-import com.github.propi.rdfrules.gui.OperationInfo.Instantiate
-import scala.scalajs.concurrent.JSExecutionContext.Implicits._
+import com.github.propi.rdfrules.gui.OperationInfo.{GetPrediction, Instantiate}
+import com.github.propi.rdfrules.gui.OperationInfo.RulesetTransformation.Predict
 
+import scala.scalajs.concurrent.JSExecutionContext.Implicits._
 import scala.scalajs.js
 import scala.scalajs.js.JSON
 import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
@@ -43,6 +44,15 @@ object Main {
         .foreach { x =>
           canvas.addOperation(Instantiate, js.Dynamic.literal(rules = js.Array(JSON.parse(x))))
           LocalStorage.remove(Canvas.instantiationKey)
+          canvas.getOperations.last.launch()
+        }
+      Option(Globals.getParameterByName(Canvas.predictionKey))
+        .filter(_ == "1")
+        .flatMap(_ => LocalStorage.get(Canvas.predictionKey))
+        .foreach { x =>
+          canvas.addOperation(Predict, js.Dynamic.literal(rules = js.Array(JSON.parse(x))))
+          canvas.addOperation(GetPrediction, js.Dynamic.literal(showRules = false))
+          LocalStorage.remove(Canvas.predictionKey)
           canvas.getOperations.last.launch()
         }
     }

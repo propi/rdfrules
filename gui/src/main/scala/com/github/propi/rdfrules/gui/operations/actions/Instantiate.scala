@@ -1,12 +1,11 @@
 package com.github.propi.rdfrules.gui.operations.actions
 
 import com.github.propi.rdfrules.gui._
-import com.github.propi.rdfrules.gui.properties.{Checkbox, Hidden, Rule}
+import com.github.propi.rdfrules.gui.properties.{Checkbox, MultiSelect, Rule}
 import com.github.propi.rdfrules.gui.results.PredictedResult
 import com.thoughtworks.binding.Binding.{Constants, Var}
 
 import scala.concurrent.Future
-import scala.scalajs.js.JSConverters.JSRichIterableOnce
 
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
@@ -15,17 +14,17 @@ class Instantiate(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.Instantiate
 
   val properties: Constants[Property] = {
-    /*val predictedResults = ArrayElement("predictedResults", "Instantiated head constraints") { implicit context =>
-      new Select("value", "Constraint", Constants(
-        PredictedResult.Positive.toString -> PredictedResult.Positive.label,
-        PredictedResult.Negative.toString -> PredictedResult.Negative.label,
-        PredictedResult.PcaPositive.toString -> PredictedResult.PcaPositive.label
-      ))
-    }
-    predictedResults.setValue(js.Array(PredictedResult.Positive.toString).asInstanceOf[js.Dynamic])*/
     Constants(
       new Rule(),
-      new Hidden[Seq[String]]("predictedResults", PredictedResult.Positive.toString)(List(_), _.toJSArray),
+      new MultiSelect(
+        "predictedResults",
+        "Instantiated head constraints",
+        Constants(
+          PredictedResult.Positive.toString -> PredictedResult.Positive.label,
+          PredictedResult.Negative.toString -> PredictedResult.Negative.label,
+          PredictedResult.PcaPositive.toString -> PredictedResult.PcaPositive.label
+        ),
+        summaryTitle = Property.SummaryTitle.NoTitle),
       new Checkbox("injectiveMapping", "Injective mapping", true) /*
     new Select("part", "Part", Constants(
       "Whole" -> "Whole rule (correct predictions)",

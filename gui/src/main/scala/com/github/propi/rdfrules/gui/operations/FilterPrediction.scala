@@ -13,16 +13,18 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 class FilterPrediction(fromOperation: Operation, val info: OperationInfo) extends Operation {
   //val info: OperationInfo = OperationInfo.FilterRules
   val properties: Constants[Property] = Constants(
-    ArrayElement("predictedResults", "Predicted triple constraints", Property.SummaryTitle.NoTitle) { implicit context =>
-      new Select("value", "Constraint", Constants(
+    new MultiSelect(
+      "predictedResults",
+      "Predicted triple constraints",
+      Constants(
         PredictedResult.Positive.toString -> PredictedResult.Positive.label,
         PredictedResult.Negative.toString -> PredictedResult.Negative.label,
         PredictedResult.PcaPositive.toString -> PredictedResult.PcaPositive.label
-      ), summaryTitle = Property.SummaryTitle.NoTitle)
-    },
+      ),
+      summaryTitle = Property.SummaryTitle.NoTitle),
     new Checkbox("distinctPrediction", "Distinct predictions", summaryTitle = "distinct"),
     new Checkbox("onlyFunctionalPredictions", "Functions only", summaryTitle = "functions"),
-    DynamicGroup("tripleMatchers", "Triple filter", "triple filter") { implicit context =>
+    DynamicGroup("tripleMatchers", "Triple filter", SummaryTitle.NoTitle) { implicit context =>
       Constants(
         new OptionalText[String]("subject", "Subject", validator = RegExp("<.*>|.*:.*", true), summaryTitle = "subject"),
         new OptionalText[String]("predicate", "Predicate", validator = RegExp("<.*>|.*:.*", true), summaryTitle = "predicate"),
@@ -31,7 +33,7 @@ class FilterPrediction(fromOperation: Operation, val info: OperationInfo) extend
       )
     },
     Pattern("patterns", "Patterns", true),
-    DynamicGroup("measures", "Measures", "measures") { implicit context =>
+    DynamicGroup("measures", "Measures", SummaryTitle.NoTitle) { implicit context =>
       val summaryTitle = Var("")
       Constants(
         new Select("name", "Name", Constants(

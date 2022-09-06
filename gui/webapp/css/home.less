@@ -371,10 +371,41 @@ main {
   }
 }
 
+.multiselect {
+  display: inline-block;
+  position: relative;
+
+  .options {
+    position: absolute;
+    margin-top: 0.1em;
+    padding: 0 0.2em;
+    background-color: white;
+    border: 1px solid #8c8c8c;
+
+    &.hidden {
+      display: none;
+    }
+
+    label {
+      display: block;
+      padding: 0.1em;
+
+      input {
+        all: revert;
+        margin-right: 0.3em;
+      }
+    }
+  }
+}
+
 .properties {
   .persist-size;
   padding-top: 4em;
   padding-bottom: 2em;
+
+  .multiselect {
+    display: block;
+  }
 
   table {
     border: 2px solid black;
@@ -577,10 +608,24 @@ main {
   .result {
     margin-bottom: 1em;
 
+    .predicted-triples {
+      .rules {
+        font-size: 0.8em;
+        padding-left: 2em;
+      }
+      .more {
+        list-style: none;
+      }
+    }
+
     .rules-tools {
       display: flex;
       flex-wrap: wrap;
       gap: 0.5em;
+
+      .hidden {
+        display: none;
+      }
 
       a {
         margin-right: 0.3em;
@@ -657,6 +702,18 @@ main {
       }
     }
 
+    .predicted-triple {
+      margin-bottom: 0.5em;
+
+      .record {
+        display: flex;
+
+        .num, .predicted-result {
+          margin-right: 0.2em;
+        }
+      }
+    }
+
     .type {
       margin-bottom: 0.5em;
 
@@ -703,8 +760,6 @@ main {
     }
 
     .rule {
-      margin-bottom: 0.5em;
-
       &:after {
         content: '';
         clear: both;
@@ -726,11 +781,17 @@ main {
       .rule-tools {
         float: left;
         font-size: 0.8em;
+        display: flex;
+        gap: 1em;
 
         &.hidden {
           display: none;
         }
       }
+    }
+
+    div.rule {
+      margin-bottom: 0.5em;
     }
 
     .model {
@@ -835,27 +896,5 @@ main {
 
   .auto-caching-state {
     font-weight: bold;
-  }
-}
-
-.multiselect {
-  display: inline-block;
-  position: relative;
-  .options {
-    position: absolute;
-    margin-top: 0.1em;
-    padding: 0 0.2em;
-    background-color: white;
-    border: 1px solid #8c8c8c;
-    &.hidden {
-      display: none;
-    }
-    label {
-      display: block;
-      padding: 0.1em;
-      input {
-        margin-right: 0.3em;
-      }
-    }
   }
 }

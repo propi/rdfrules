@@ -10,16 +10,17 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
   */
 class Predict(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = {
-    val predictedResults = ArrayElement("predictedResults", "Predicted triple constraints", Property.SummaryTitle.NoTitle) { implicit context =>
-      new Select("value", "Constraint", Constants(
-        PredictedResult.Positive.toString -> PredictedResult.Positive.label,
-        PredictedResult.Negative.toString -> PredictedResult.Negative.label,
-        PredictedResult.PcaPositive.toString -> PredictedResult.PcaPositive.label
-      ), summaryTitle = Property.SummaryTitle.NoTitle)
-    }
     Constants(
       new Rule(),
-      predictedResults,
+      new MultiSelect(
+        "predictedResults",
+        "Predicted triple constraints",
+        Constants(
+          PredictedResult.Positive.toString -> PredictedResult.Positive.label,
+          PredictedResult.Negative.toString -> PredictedResult.Negative.label,
+          PredictedResult.PcaPositive.toString -> PredictedResult.PcaPositive.label
+        ),
+        summaryTitle = Property.SummaryTitle.NoTitle),
       new Checkbox("injectiveMapping", "Injective mapping", true)
     )
   }

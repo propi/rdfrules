@@ -40,5 +40,7 @@ class Hidden[T](val name: String, value: String)(implicit f: String => T, g: T =
     _value = data.toString
   }
 
+  def getValue: T = f(_value)
+
   def toJson: js.Any = f(_value)
 }

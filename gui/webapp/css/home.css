@@ -340,6 +340,28 @@ main {
   cursor: help;
   color: #7e7e7e;
 }
+.multiselect {
+  display: inline-block;
+  position: relative;
+}
+.multiselect .options {
+  position: absolute;
+  margin-top: 0.1em;
+  padding: 0 0.2em;
+  background-color: white;
+  border: 1px solid #8c8c8c;
+}
+.multiselect .options.hidden {
+  display: none;
+}
+.multiselect .options label {
+  display: block;
+  padding: 0.1em;
+}
+.multiselect .options label input {
+  all: revert;
+  margin-right: 0.3em;
+}
 .properties {
   -webkit-box-sizing: border-box;
   /* Safari/Chrome, other WebKit */
@@ -349,6 +371,9 @@ main {
   /* Opera/IE 8+ */
   padding-top: 4em;
   padding-bottom: 2em;
+}
+.properties .multiselect {
+  display: block;
 }
 .properties table {
   border: 2px solid black;
@@ -520,10 +545,20 @@ main {
 .action-progress .result {
   margin-bottom: 1em;
 }
+.action-progress .result .predicted-triples .rules {
+  font-size: 0.8em;
+  padding-left: 2em;
+}
+.action-progress .result .predicted-triples .more {
+  list-style: none;
+}
 .action-progress .result .rules-tools {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5em;
+}
+.action-progress .result .rules-tools .hidden {
+  display: none;
 }
 .action-progress .result .rules-tools a {
   margin-right: 0.3em;
@@ -598,6 +633,16 @@ main {
 .action-progress .result .quad:after {
   content: '.';
 }
+.action-progress .result .predicted-triple {
+  margin-bottom: 0.5em;
+}
+.action-progress .result .predicted-triple .record {
+  display: flex;
+}
+.action-progress .result .predicted-triple .record .num,
+.action-progress .result .predicted-triple .record .predicted-result {
+  margin-right: 0.2em;
+}
 .action-progress .result .type {
   margin-bottom: 0.5em;
 }
@@ -634,9 +679,6 @@ main {
   text-align: right;
   border-radius: 0 5px 5px 0;
 }
-.action-progress .result .rule {
-  margin-bottom: 0.5em;
-}
 .action-progress .result .rule:after {
   content: '';
   clear: both;
@@ -655,9 +697,14 @@ main {
 .action-progress .result .rule .rule-tools {
   float: left;
   font-size: 0.8em;
+  display: flex;
+  gap: 1em;
 }
 .action-progress .result .rule .rule-tools.hidden {
   display: none;
+}
+.action-progress .result div.rule {
+  margin-bottom: 0.5em;
 }
 .action-progress .result .model {
   margin-top: 1.5em;
@@ -751,26 +798,5 @@ main {
 }
 .memory-info .auto-caching-state {
   font-weight: bold;
-}
-.multiselect {
-  display: inline-block;
-  position: relative;
-}
-.multiselect .options {
-  position: absolute;
-  margin-top: 0.1em;
-  padding: 0 0.2em;
-  background-color: white;
-  border: 1px solid #8c8c8c;
-}
-.multiselect .options.hidden {
-  display: none;
-}
-.multiselect .options label {
-  display: block;
-  padding: 0.1em;
-}
-.multiselect .options label input {
-  margin-right: 0.3em;
 }
 /*# sourceMappingURL=home.css.map */
