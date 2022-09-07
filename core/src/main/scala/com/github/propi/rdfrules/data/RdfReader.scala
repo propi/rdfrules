@@ -22,10 +22,12 @@ object RdfReader {
     def fromInputStream(inputStreamBuilder: InputStreamBuilder): QuadTraversableView = throw new IllegalStateException("No specified RdfReader.")
   }
 
-  def apply(file: File): RdfReader = {
+  def apply(file: File): RdfReader = apply(file.getName)
+
+  def apply(path: String): RdfReader = {
     val Ext2 = ".+[.](.+)[.](.+)".r
     val Ext1 = ".+[.](.+)".r
-    file.getName.toLowerCase match {
+    path.toLowerCase match {
       case Ext2(ext1, ext2) => Try(Compression(ext2)).toOption match {
         case Some(compression) => RdfSource(ext1).compressedBy(compression)
         case None => RdfSource(ext2)

@@ -28,9 +28,16 @@ object Deserializer {
       val readBytes = new Array[Byte](serializationSize.size)
       if (serializationSize.size == 0) {
         deserializer.deserialize(readBytes)
-      } else if (is.read(readBytes) == -1) {
-        throw new EOFException()
       } else {
+        var bytesRead = 0
+        //we need to read bytes incrementally since, e.g., for GZipInputStream all bytes are not red into an array when we use read(array) method
+        while (bytesRead < readBytes.length) {
+          val currentBytesRead = is.read(readBytes, bytesRead, readBytes.length - bytesRead)
+          if (currentBytesRead == -1) {
+            throw new EOFException()
+          }
+          bytesRead += currentBytesRead
+        }
         deserializer.deserialize(readBytes)
       }
     } else {

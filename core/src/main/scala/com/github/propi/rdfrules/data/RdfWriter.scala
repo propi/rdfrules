@@ -20,10 +20,10 @@ object RdfWriter {
     def writeToOutputStream(col: PrefixesOps[_], outputStreamBuilder: OutputStreamBuilder): Unit = throw new IllegalStateException("No specified RdfWriter.")
   }
 
-  private def restrictedRdfSource(extension: String): RdfSource = extension match {
+  private def restrictedRdfSource(extension: String): RdfSource = RdfSource(extension) /*extension match {
     case "nt" | "nq" | "ttl" | "trig" | "trix" | "tsv" => RdfSource(extension)
     case x => throw new IllegalArgumentException(s"Unsupported RDF format for streaming writing: $x")
-  }
+  }*/
 
   def apply(file: File): RdfWriter = {
     val Ext2 = ".+[.](.+)[.](.+)".r

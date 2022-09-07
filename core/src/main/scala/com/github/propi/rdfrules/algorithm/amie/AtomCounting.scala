@@ -25,9 +25,9 @@ trait AtomCounting {
   def scoreAtom(atom: Atom, variableMap: VariableMap): Int = {
     val tm = tripleIndex.predicates(atom.predicate)
     (variableMap.specifyItem(atom.subject), variableMap.specifyItem(atom.`object`)) match {
-      case (_: Atom.Variable, _: Atom.Variable) => tm.size
-      case (_: Atom.Variable, Atom.Constant(oc)) => tm.objects.get(oc).map(_.size).getOrElse(0)
-      case (Atom.Constant(sc), _: Atom.Variable) => tm.subjects.get(sc).map(_.size).getOrElse(0)
+      case (_: Atom.Variable, _: Atom.Variable) => tm.size(variableMap.injectiveMapping)
+      case (_: Atom.Variable, Atom.Constant(oc)) => tm.objects.get(oc).map(_.size(variableMap.injectiveMapping)).getOrElse(0)
+      case (Atom.Constant(sc), _: Atom.Variable) => tm.subjects.get(sc).map(_.size(variableMap.injectiveMapping)).getOrElse(0)
       case (_: Atom.Constant, _: Atom.Constant) => 1
     }
   }
@@ -43,10 +43,10 @@ trait AtomCounting {
     * @return score (number of triples)
     */
   def scoreAtom(freshAtom: FreshAtom, variableMap: VariableMap): Int = (variableMap.getOrElse(freshAtom.subject, freshAtom.subject), variableMap.getOrElse(freshAtom.`object`, freshAtom.`object`)) match {
-    case (_: Atom.Variable, Atom.Constant(oc)) => tripleIndex.objects.get(oc).map(_.size).getOrElse(0)
-    case (Atom.Constant(sc), _: Atom.Variable) => tripleIndex.subjects.get(sc).map(_.size).getOrElse(0)
-    case (Atom.Constant(sc), Atom.Constant(oc)) => tripleIndex.subjects.get(sc).flatMap(_.objects.get(oc).map(_.size)).getOrElse(0)
-    case (_: Atom.Variable, _: Atom.Variable) => tripleIndex.size
+    case (_: Atom.Variable, Atom.Constant(oc)) => tripleIndex.objects.get(oc).map(_.size(variableMap.injectiveMapping)).getOrElse(0)
+    case (Atom.Constant(sc), _: Atom.Variable) => tripleIndex.subjects.get(sc).map(_.size(variableMap.injectiveMapping)).getOrElse(0)
+    case (Atom.Constant(sc), Atom.Constant(oc)) => tripleIndex.subjects.get(sc).flatMap(_.objects.get(oc).map(_.size(variableMap.injectiveMapping))).getOrElse(0)
+    case (_: Atom.Variable, _: Atom.Variable) => tripleIndex.size(variableMap.injectiveMapping)
   }
 
   /**
@@ -301,7 +301,7 @@ trait AtomCounting {
       case (_: Atom.Variable, _: Atom.Variable) =>
         tm.subjects.pairIterator.flatMap(x => x._2.iterator.flatMap { y =>
           val mappedAtom = InstantiatedAtom(x._1, atom.predicate, y)
-          if (variableMap.injectiveMapping && (variableMap.containsConstant(x._1) || variableMap.containsConstant(y) || variableMap.containsAtom(mappedAtom))) {
+          if (variableMap.injectiveMapping && (x._1 == y || variableMap.containsConstant(x._1) || variableMap.containsConstant(y) || variableMap.containsAtom(mappedAtom))) {
             None
           } else {
             Some(mappedAtom)
@@ -358,7 +358,7 @@ trait AtomCounting {
     * @param atom atom to be specified
     * @return iterator of all triples for this atom
     */
-  def getAtomTriples(atom: Atom): Iterator[(Int, Int)] = specifyAtom(atom, VariableMap(false))
+  def getAtomTriples(atom: Atom, injectiveMapping: Boolean): Iterator[(Int, Int)] = specifyAtom(atom, VariableMap(injectiveMapping))
     .map(x => x.subject.asInstanceOf[Atom.Constant].value -> x.`object`.asInstanceOf[Atom.Constant].value)
 
 }

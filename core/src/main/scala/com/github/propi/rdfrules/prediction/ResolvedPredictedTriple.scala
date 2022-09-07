@@ -3,6 +3,8 @@ package com.github.propi.rdfrules.prediction
 import com.github.propi.rdfrules.data.{Triple, TripleItem}
 import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.rule.ResolvedRule
+import com.github.propi.rdfrules.utils.JsonSelector.PimpedJsValue
+import spray.json._
 
 import scala.language.implicitConversions
 
@@ -40,5 +42,25 @@ object ResolvedPredictedTriple {
     predictedTriple.predictedResult,
     ResolvedRule(predictedTriple.rule)
   )
+
+  implicit val resolvedPredictedTripleJsonFormat: RootJsonFormat[ResolvedPredictedTriple] = new RootJsonFormat[ResolvedPredictedTriple] {
+    def write(obj: ResolvedPredictedTriple): JsValue = JsObject(
+      "triple" -> obj.triple.toJson,
+      "rule" -> obj.rule.toJson,
+      "predictedResult" -> obj.predictedResult.toJson
+    )
+
+    def read(json: JsValue): ResolvedPredictedTriple = {
+      val selector = json.toSelector
+      val res = for {
+        triple <- selector("triple").to[Triple]
+        rule <- selector("rule").to[ResolvedRule]
+        predictedResult <- selector("predictedResult").to[PredictedResult]
+      } yield {
+        ResolvedPredictedTriple(triple, predictedResult, rule)
+      }
+      res.getOrElse(deserializationError("Unparsable resolved predicted triple."))
+    }
+  }
 
 }

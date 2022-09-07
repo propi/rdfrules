@@ -2,6 +2,8 @@ package com.github.propi.rdfrules.rule
 
 import com.github.propi.rdfrules.utils.{Stringifier, TypedKeyMap}
 import com.github.propi.rdfrules.utils.TypedKeyMap.{Key, Value}
+import spray.json.DefaultJsonProtocol._
+import spray.json._
 
 import scala.language.implicitConversions
 
@@ -128,6 +130,39 @@ object Measure {
     case Measure.BodySize(v) => s"bodySize: $v"
     case Measure.PcaBodySize(v) => s"pcaBodySize: $v"
     case Measure.Cluster(v) => s"cluster: $v"
+  }
+
+  implicit val measureJsonFormat: RootJsonFormat[Measure] = new RootJsonFormat[Measure] {
+    def write(obj: Measure): JsValue = obj match {
+      case Measure.BodySize(x) => JsObject("name" -> JsString("BodySize"), "value" -> JsNumber(x))
+      case Measure.Confidence(x) => JsObject("name" -> JsString("Confidence"), "value" -> JsNumber(x))
+      case Measure.HeadConfidence(x) => JsObject("name" -> JsString("HeadConfidence"), "value" -> JsNumber(x))
+      case Measure.HeadCoverage(x) => JsObject("name" -> JsString("HeadCoverage"), "value" -> JsNumber(x))
+      case Measure.HeadSize(x) => JsObject("name" -> JsString("HeadSize"), "value" -> JsNumber(x))
+      case Measure.Lift(x) => JsObject("name" -> JsString("Lift"), "value" -> JsNumber(x))
+      case Measure.PcaBodySize(x) => JsObject("name" -> JsString("PcaBodySize"), "value" -> JsNumber(x))
+      case Measure.PcaConfidence(x) => JsObject("name" -> JsString("PcaConfidence"), "value" -> JsNumber(x))
+      case Measure.Support(x) => JsObject("name" -> JsString("Support"), "value" -> JsNumber(x))
+      case Measure.Cluster(x) => JsObject("name" -> JsString("Cluster"), "value" -> JsNumber(x))
+    }
+
+    def read(json: JsValue): Measure = {
+      val fields = json.asJsObject.fields
+      val value = fields("value")
+      fields("name").convertTo[String] match {
+        case "BodySize" => Measure.BodySize(value.convertTo[Int])
+        case "Confidence" => Measure.Confidence(value.convertTo[Double])
+        case "HeadConfidence" => Measure.HeadConfidence(value.convertTo[Double])
+        case "HeadCoverage" => Measure.HeadCoverage(value.convertTo[Double])
+        case "HeadSize" => Measure.HeadSize(value.convertTo[Int])
+        case "Lift" => Measure.Lift(value.convertTo[Double])
+        case "PcaBodySize" => Measure.PcaBodySize(value.convertTo[Int])
+        case "PcaConfidence" => Measure.PcaConfidence(value.convertTo[Double])
+        case "Support" => Measure.Support(value.convertTo[Int])
+        case "Cluster" => Measure.Cluster(value.convertTo[Int])
+        case x => deserializationError(s"Invalid measure of significance: $x")
+      }
+    }
   }
 
 }

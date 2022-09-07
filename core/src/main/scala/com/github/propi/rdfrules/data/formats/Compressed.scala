@@ -4,6 +4,8 @@ import java.io.{BufferedInputStream, BufferedOutputStream}
 import com.github.propi.rdfrules.data.RdfSource.{CompressedRdfSource, PimpedRdfFormat}
 import com.github.propi.rdfrules.data.ops.PrefixesOps
 import com.github.propi.rdfrules.data.{Compression, RdfReader, RdfSource, RdfWriter, jenaFormatToRdfWriter}
+import com.github.propi.rdfrules.prediction.{PredictionReader, PredictionWriter, ResolvedPredictedTriple}
+import com.github.propi.rdfrules.prediction.PredictionSource.CompressedPredictionSource
 import com.github.propi.rdfrules.rule.ResolvedRule
 import com.github.propi.rdfrules.ruleset.RulesetSource.CompressedRulesetSource
 import com.github.propi.rdfrules.ruleset.{RulesetReader, RulesetWriter}
@@ -17,6 +19,15 @@ import scala.language.implicitConversions
   * Created by Vaclav Zeman on 22. 5. 2019.
   */
 trait Compressed {
+
+  implicit def compressedToPredictionReader(compressedPredictionSource: CompressedPredictionSource): PredictionReader = (inputStreamBuilder: InputStreamBuilder) => compressedPredictionSource match {
+    case CompressedPredictionSource(predictionSource, Compression.BZ2) => predictionSource.fromInputStream(new BZip2CompressorInputStream(new BufferedInputStream(inputStreamBuilder.build)))
+    case CompressedPredictionSource(predictionSource, Compression.GZ) => predictionSource.fromInputStream(new GzipCompressorInputStream(new BufferedInputStream(inputStreamBuilder.build)))
+  }
+
+  implicit def compressedToPredictionWriter(compressedPredictionSource: CompressedPredictionSource): PredictionWriter = (rules: ForEach[ResolvedPredictedTriple], outputStreamBuilder: OutputStreamBuilder) => {
+    compressedPredictionSource.predictionSource.writeToOutputStream(rules, compressedOutputStreamBuilder(outputStreamBuilder, compressedPredictionSource.compression))
+  }
 
   implicit def compressedToRulesetReader(compressedRulesetSource: CompressedRulesetSource): RulesetReader = (inputStreamBuilder: InputStreamBuilder) => compressedRulesetSource match {
     case CompressedRulesetSource(rulesetSource, Compression.BZ2) => rulesetSource.fromInputStream(new BZip2CompressorInputStream(new BufferedInputStream(inputStreamBuilder.build)))
@@ -43,6 +54,7 @@ trait Compressed {
       case x: RdfSource.JenaLang => compressedToRdfWriter(x.toRDFFormat.compressedBy(compression)).writeToOutputStream(col, outputStreamBuilder)
       case RdfSource.Tsv => RdfSource.Tsv.writeToOutputStream(col, compressedOutputStreamBuilder(outputStreamBuilder, compression))
       case RdfSource.Sql => RdfSource.Sql.writeToOutputStream(col, compressedOutputStreamBuilder(outputStreamBuilder, compression))
+      case RdfSource.Cache => RdfSource.Cache.writeToOutputStream(col, compressedOutputStreamBuilder(outputStreamBuilder, compression))
     }
     case CompressedRdfSource.RdfFormat(format, compression) => format.writeToOutputStream(col, compressedOutputStreamBuilder(outputStreamBuilder, compression))
   }

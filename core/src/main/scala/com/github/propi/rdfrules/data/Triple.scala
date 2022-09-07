@@ -4,13 +4,16 @@ import com.github.propi.rdfrules.index.IndexItem.IntTriple
 import com.github.propi.rdfrules.index.{IndexItem, TripleItemIndex}
 import com.github.propi.rdfrules.utils.{ForEach, Stringifier}
 import org.apache.jena.graph
+import spray.json.RootJsonFormat
+import spray.json._
+import DefaultJsonProtocol._
 
 import scala.language.implicitConversions
 
 /**
   * Created by propan on 16. 4. 2017.
   */
-case class Triple private(subject: TripleItem.Uri, predicate: TripleItem.Uri, `object`: TripleItem) {
+case class Triple(subject: TripleItem.Uri, predicate: TripleItem.Uri, `object`: TripleItem) {
   def toQuad: Quad = Quad(this)
 
   def toQuad(graph: TripleItem.Uri): Quad = Quad(this, graph)
@@ -26,12 +29,12 @@ case class Triple private(subject: TripleItem.Uri, predicate: TripleItem.Uri, `o
 
 object Triple {
 
-  def apply(subject: TripleItem.Uri, predicate: TripleItem.Uri, `object`: TripleItem): Triple = new Triple(subject, predicate, `object`)
-
   type TripleTraversableView = ForEach[Triple]
 
   implicit def tripleToJenaTriple(triple: Triple): graph.Triple = new graph.Triple(triple.subject, triple.predicate, triple.`object`)
 
   implicit val tripleStringifier: Stringifier[Triple] = (v: Triple) => s"${v.subject}  ${v.predicate}  ${v.`object`}"
+
+  implicit val tripleJsonFormat: RootJsonFormat[Triple] = jsonFormat3(Triple.apply)
 
 }

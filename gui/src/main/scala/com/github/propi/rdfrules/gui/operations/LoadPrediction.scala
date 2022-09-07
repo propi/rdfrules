@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.gui.operations
 
-import com.github.propi.rdfrules.gui.properties.ChooseFileFromWorkspace
+import com.github.propi.rdfrules.gui.properties.{ChooseFileFromWorkspace, Select}
 import com.github.propi.rdfrules.gui.utils.CommonValidators.NonEmpty
 import com.github.propi.rdfrules.gui.{Operation, OperationInfo, Property, Workspace}
 import com.thoughtworks.binding.Binding.{Constants, Var}
@@ -10,7 +10,8 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
   */
 class LoadPrediction(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
-    new ChooseFileFromWorkspace(Workspace.loadFiles, false, "path", validator = NonEmpty)
+    new ChooseFileFromWorkspace(Workspace.loadFiles, false, "path", validator = NonEmpty),
+    new Select("format", "Rules format", Constants("ndjson" -> "NDJSON", "cache" -> "Cache (internal binary format)"))
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 }

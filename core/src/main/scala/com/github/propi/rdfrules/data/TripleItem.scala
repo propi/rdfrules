@@ -5,8 +5,10 @@ import eu.easyminer.discretization.impl.{IntervalBound, Interval => Discretizati
 import org.apache.jena.datatypes.RDFDatatype
 import org.apache.jena.datatypes.xsd.XSDDatatype
 import org.apache.jena.graph.{Node, NodeFactory}
+import spray.json.DefaultJsonProtocol._
+import spray.json._
 
-import scala.language.implicitConversions
+import scala.language.{implicitConversions, reflectiveCalls}
 
 /**
   * Created by Vaclav Zeman on 3. 10. 2017.
@@ -195,6 +197,51 @@ object TripleItem {
     case number: Number[_] => NodeFactory.createLiteral(number.toString, number: RDFDatatype)
     case boolean: BooleanValue => NodeFactory.createLiteral(boolean.toString, XSDDatatype.XSDboolean)
     case interval: Interval => NodeFactory.createLiteral(interval.toString)
+  }
+
+  implicit val tripleItemUriJsonFormat: RootJsonFormat[TripleItem.Uri] = new RootJsonFormat[TripleItem.Uri] {
+    def write(obj: TripleItem.Uri): JsValue = obj match {
+      case x: TripleItem.LongUri => x.toString.toJson
+      case x: TripleItem.PrefixedUri => JsObject("prefix" -> x.prefix.prefix.toJson, "nameSpace" -> x.prefix.nameSpace.toJson, "localName" -> x.localName.toJson)
+      case x: TripleItem.BlankNode => x.toString.toJson
+    }
+
+    def read(json: JsValue): TripleItem.Uri = {
+      val LongUriPattern = "<(.*)>".r
+      val BlankNodePattern = "_:(.+)".r
+      json match {
+        case JsString(LongUriPattern(uri)) => TripleItem.LongUri(uri)
+        case JsString(BlankNodePattern(x)) => TripleItem.BlankNode(x)
+        case JsObject(fields) if List("prefix", "nameSpace", "localName").forall(fields.contains) =>
+          val shortPrefix = fields("prefix").convertTo[String]
+          val prefix = if (shortPrefix.isEmpty) Prefix(fields("nameSpace").convertTo[String]) else Prefix(shortPrefix, fields("nameSpace").convertTo[String])
+          TripleItem.PrefixedUri(prefix, fields("localName").convertTo[String])
+        case x => deserializationError(s"Invalid triple item value: $x")
+      }
+    }
+  }
+
+  implicit val tripleItemJsonFormat: RootJsonFormat[TripleItem] = new RootJsonFormat[TripleItem] {
+    def write(obj: TripleItem): JsValue = obj match {
+      case TripleItem.NumberDouble(x) => JsNumber(x)
+      case TripleItem.BooleanValue(x) => JsBoolean(x)
+      case x: TripleItem.Uri => x.toJson
+      case x: TripleItem => JsString(x.toString)
+    }
+
+    def read(json: JsValue): TripleItem = {
+      val TextPattern = "\"(.*)\"".r
+      val IntervalMatcher = new {
+        def unapply(arg: String): Option[TripleItem.Interval] = TripleItem.Interval(arg)
+      }
+      json match {
+        case JsNumber(x) => TripleItem.Number(x)
+        case JsBoolean(x) => TripleItem.BooleanValue(x)
+        case JsString(TextPattern(x)) => TripleItem.Text(x)
+        case JsString(IntervalMatcher(x)) => x
+        case x => x.convertTo[TripleItem.Uri]
+      }
+    }
   }
 
 }

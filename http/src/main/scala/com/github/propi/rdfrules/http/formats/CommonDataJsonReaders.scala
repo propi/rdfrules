@@ -5,18 +5,19 @@ import com.github.propi.rdfrules.algorithm.consumer.{InMemoryRuleConsumer, OnDis
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting.{Comb, WeightedSimilarityCounting}
 import com.github.propi.rdfrules.algorithm.dbscan.{DbScan, SimilarityCounting}
 import com.github.propi.rdfrules.algorithm.{Clustering, RuleConsumer, RulesMining}
-import com.github.propi.rdfrules.data.{DiscretizationTask, Prefix, RdfSource, TripleItem}
+import com.github.propi.rdfrules.data.{Compression, DiscretizationTask, Prefix, RdfSource, TripleItem}
 import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.task._
 import com.github.propi.rdfrules.http.task.ruleset.ComputeConfidence.ConfidenceType
 import com.github.propi.rdfrules.http.task.ruleset.Prune.PruningStrategy
 import com.github.propi.rdfrules.http.util.Conf
-import com.github.propi.rdfrules.http.util.JsonSelector.PimpedJsValue
 import com.github.propi.rdfrules.http.{Main, Workspace}
+import com.github.propi.rdfrules.prediction.PredictionSource
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule.{AtomPattern, Measure, Rule, RuleConstraint, RulePattern, Threshold}
 import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
+import com.github.propi.rdfrules.utils.JsonSelector.PimpedJsValue
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
 import org.apache.jena.riot.RDFFormat
 import spray.json.DefaultJsonProtocol._
@@ -58,6 +59,12 @@ object CommonDataJsonReaders {
   implicit val urlReader: RootJsonReader[URL] = {
     case JsString(x) => new URL(x)
     case json => deserializationError(s"Json value '$json' can not be deserialized as the URL.")
+  }
+
+  implicit val compressionReader: RootJsonReader[Compression] = {
+    case JsString("gz") => Compression.GZ
+    case JsString("bz2") => Compression.BZ2
+    case json => deserializationError(s"Json value '$json' can not be deserialized as the compression type.")
   }
 
   implicit val rdfSourceReader: RootJsonReader[RdfSource] = {
@@ -313,6 +320,11 @@ object CommonDataJsonReaders {
       fields("head").convertTo[ResolvedAtom]
     )(TypedKeyMap(fields.get("measures").iterator.flatMap(_.convertTo[JsArray].elements).map(_.convertTo[Measure])))
   }*/
+
+  implicit val predictionSourceReader: RootJsonReader[PredictionSource] = (json: JsValue) => json.convertTo[String] match {
+    case "json" | "ndjson" => PredictionSource.NDJson
+    case x => deserializationError(s"Invalid prediction format name: $x")
+  }
 
   implicit val rulesetSourceReader: RootJsonReader[RulesetSource] = (json: JsValue) => json.convertTo[String] match {
     case "txt" => RulesetSource.Text

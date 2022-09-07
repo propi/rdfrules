@@ -13,7 +13,7 @@ class LoadRuleset(fromOperation: Operation, val info: OperationInfo) extends Ope
   val properties: Constants[Property] = {
     Constants(
       new ChooseFileFromWorkspace(Workspace.loadFiles, false, "path", validator = NonEmpty),
-      new Select("format", "Rules format", Constants("cache" -> "Ruleset cache", "json" -> "JSON", "ndjson" -> "NDJSON")),
+      new Select("format", "Rules format", Constants("json" -> "JSON", "ndjson" -> "NDJSON", "cache" -> "Cache (internal binary format)")),
       new FixedText[Int]("parallelism", "Parallelism", "0", GreaterThanOrEqualsTo[Int](0))
     )
   }

@@ -5,6 +5,9 @@ import com.github.propi.rdfrules.rule.ResolvedAtom.ResolvedItem
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.utils.{Stringifier, TypedKeyMap}
 
+import spray.json.DefaultJsonProtocol._
+import spray.json._
+
 import scala.language.implicitConversions
 
 /**
@@ -84,5 +87,18 @@ object ResolvedRule {
     v.measures.iterator.toList.sortBy(_.companion).iterator.map(x => Stringifier(x)).mkString(", ")
 
   implicit val resolvedRuleOrdering: Ordering[ResolvedRule] = Ordering.by[ResolvedRule, TypedKeyMap.Immutable[Measure]](_.measures)
+
+  implicit val resolvedRuleJsonFormat: RootJsonFormat[ResolvedRule] = new RootJsonFormat[ResolvedRule] {
+    def write(obj: ResolvedRule): JsValue = JsObject(
+      "head" -> obj.head.toJson,
+      "body" -> JsArray(obj.body.iterator.map(_.toJson).toVector),
+      "measures" -> JsArray(obj.measures.iterator.map(_.toJson).toVector)
+    )
+
+    def read(json: JsValue): ResolvedRule = {
+      val fields = json.asJsObject.fields
+      ResolvedRule(fields("body").convertTo[IndexedSeq[ResolvedAtom]], fields("head").convertTo[ResolvedAtom])(TypedKeyMap(fields("measures").convertTo[Seq[Measure]]))
+    }
+  }
 
 }

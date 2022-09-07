@@ -2,6 +2,9 @@ package com.github.propi.rdfrules.index
 
 import com.github.propi.rdfrules.data.TripleItem
 
+import spray.json.DefaultJsonProtocol._
+import spray.json._
+
 sealed trait PropertyCardinalities {
   def size: Int
 
@@ -29,4 +32,11 @@ object PropertyCardinalities {
   def apply(property: Int, index: TripleIndex[Int]#PredicateIndex): PropertyCardinalities.Mapped = {
     MappedBasic(property, index.size(false), index.subjects.size, index.objects.size)
   }
+
+  implicit val propertyCardinalitiesWriter: JsonWriter[PropertyCardinalities.Resolved] = (obj: PropertyCardinalities.Resolved) => JsObject(
+    "property" -> obj.property.toJson,
+    "size" -> obj.size.toJson,
+    "domain" -> obj.domain.toJson,
+    "range" -> obj.range.toJson
+  )
 }

@@ -1,4 +1,4 @@
-package com.github.propi.rdfrules.http.util
+package com.github.propi.rdfrules.utils
 
 import spray.json.{JsArray, JsBoolean, JsNull, JsNumber, JsObject, JsString, JsValue, JsonReader}
 

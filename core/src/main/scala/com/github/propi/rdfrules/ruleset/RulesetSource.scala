@@ -27,10 +27,13 @@ object RulesetSource {
 
   case object NDJson extends RulesetSource
 
+  case object Cache extends RulesetSource
+
   def apply(extension: String): RulesetSource = extension.toLowerCase match {
     case "txt" => Text
     case "json" | "rules" => Json
     case "ndjson" => NDJson
+    case "cache" => Cache
     case x => throw new IllegalArgumentException(s"Unsupported Ruleset format: $x")
   }
 
@@ -38,12 +41,14 @@ object RulesetSource {
     case Text => throw DeserializationException("The 'text' rules format is not parseable. Use the JSON rules format.")
     case Json => Json
     case NDJson => NDJson
+    case Cache => Cache
   }
 
   implicit def rulesetSourceToRulesetWriter(rulesetSource: RulesetSource): RulesetWriter = rulesetSource match {
     case Text => Text
     case Json => Json
     case NDJson => NDJson
+    case Cache => Cache
   }
 
   implicit def rulesetSourceToRuleIOBuilder(rulesetSource: RulesetSource)(implicit mapper: TripleItemIndex, stringifier: Stringifier[ResolvedRule]): File => RuleIO = rulesetSource match {

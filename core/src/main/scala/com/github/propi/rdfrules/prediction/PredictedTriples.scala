@@ -11,7 +11,7 @@ import com.github.propi.rdfrules.serialization.TripleSerialization._
 import com.github.propi.rdfrules.utils.ForEach
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 
-import java.io.{File, FileInputStream, InputStream}
+import java.io.{File, FileInputStream, FileOutputStream, InputStream, OutputStream}
 
 /**
   * Created by Vaclav Zeman on 6. 10. 2017.
@@ -64,7 +64,7 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
 
   def foreach(f: ResolvedPredictedTriple => Unit): Unit = resolvedTriples.foreach(f)
 
-   def +(predictedTriples: PredictedTriples): PredictedTriples = transform(triples.concat(predictedTriples.triples), isDistinct && predictedTriples.isDistinct)
+  def +(predictedTriples: PredictedTriples): PredictedTriples = transform(triples.concat(predictedTriples.triples), isDistinct && predictedTriples.isDistinct)
 
   def headResolved: ResolvedPredictedTriple = resolvedTriples.head
 
@@ -87,14 +87,36 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
 
   def toGraph: Graph = Graph((if (isDistinct) distinctPredictions else this).resolvedTriples.map(_.triple))
 
+  def `export`(os: => OutputStream)(implicit writer: PredictionWriter): Unit = writer.writeToOutputStream(this, os)
+
+  def `export`(file: File)(implicit writer: PredictionWriter): Unit = {
+    val newWriter = if (writer == PredictionWriter.NoWriter) PredictionWriter(file) else writer
+    `export`(new FileOutputStream(file))(newWriter)
+  }
+
+  def `export`(file: String)(implicit writer: PredictionWriter): Unit = `export`(new File(file))
 }
 
 object PredictedTriples {
+  private def resolvedReader(file: File)(implicit reader: PredictionReader): PredictionReader = if (reader == PredictionReader.NoReader) PredictionReader(file) else reader
+
   def apply(index: Index, triples: ForEach[PredictedTriple]): PredictedTriples = new PredictedTriples(triples, index, false)
 
   def apply(index: Index, triples: ForEach[ResolvedPredictedTriple])(implicit i1: DummyImplicit): PredictedTriples = apply(index, triples.map(_.toPredictedTriple(index.tripleItemMap)))
 
   def apply(triples: ForEach[ResolvedPredictedTriple]): PredictedTriples = apply(AutoIndex(), triples)
+
+  def apply(index: Index, file: File)(implicit reader: PredictionReader): PredictedTriples = apply(index, resolvedReader(file).fromFile(file))
+
+  def apply(index: Index, file: String)(implicit reader: PredictionReader): PredictedTriples = apply(index, new File(file))
+
+  def apply(index: Index, is: => InputStream)(implicit reader: PredictionReader): PredictedTriples = apply(index, reader.fromInputStream(is))
+
+  def apply(file: File)(implicit reader: PredictionReader): PredictedTriples = apply(resolvedReader(file).fromFile(file))
+
+  def apply(file: String)(implicit reader: PredictionReader): PredictedTriples = apply(new File(file))
+
+  def apply(is: => InputStream)(implicit reader: PredictionReader): PredictedTriples = apply(reader.fromInputStream(is))
 
   def fromCache(index: Index, is: => InputStream): PredictedTriples = apply(
     index,

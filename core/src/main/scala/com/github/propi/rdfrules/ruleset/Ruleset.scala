@@ -246,11 +246,13 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
 
 object Ruleset {
 
+  private def resolvedReader(file: File)(implicit reader: RulesetReader): RulesetReader = if (reader == RulesetReader.NoReader) RulesetReader(file) else reader
+
   def apply(index: Index, rules: ForEach[FinalRule]): Ruleset = new Ruleset(rules, index, Runtime.getRuntime.availableProcessors())
 
   def apply(index: Index, rules: ForEach[ResolvedRule])(implicit i1: DummyImplicit): Ruleset = apply(index, rules.flatMap(_.toRuleOpt(index.tripleItemMap)))
 
-  def apply(index: Index, file: File)(implicit reader: RulesetReader): Ruleset = apply(index, reader.fromFile(file))
+  def apply(index: Index, file: File)(implicit reader: RulesetReader): Ruleset = apply(index, resolvedReader(file).fromFile(file))
 
   def apply(index: Index, file: String)(implicit reader: RulesetReader): Ruleset = apply(index, new File(file))
 
@@ -258,7 +260,7 @@ object Ruleset {
 
   def apply(rules: ForEach[ResolvedRule]): Ruleset = apply(AutoIndex(), rules)
 
-  def apply(file: File)(implicit reader: RulesetReader): Ruleset = apply(reader.fromFile(file))
+  def apply(file: File)(implicit reader: RulesetReader): Ruleset = apply(resolvedReader(file).fromFile(file))
 
   def apply(file: String)(implicit reader: RulesetReader): Ruleset = apply(new File(file))
 

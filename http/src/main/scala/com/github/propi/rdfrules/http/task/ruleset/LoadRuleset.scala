@@ -4,7 +4,6 @@ import com.github.propi.rdfrules.http.Workspace
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.rule.ResolvedRule
-import com.github.propi.rdfrules.ruleset
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.Debugger
 
@@ -28,10 +27,11 @@ object LoadRuleset extends TaskDefinition {
   }
 
   object RulesetSource {
-    case class File(path: String, format: Option[ruleset.RulesetSource]) extends RulesetSource {
+    case class File(path: String, format: Option[ExportRules.Format]) extends RulesetSource {
       def load(index: Index): Ruleset = format match {
-        case Some(source) => Ruleset(index, Workspace.path(path))(source)
-        case None => Ruleset.fromCache(index, Workspace.path(path))
+        case Some(ExportRules.Format.NonBinary(source)) => Ruleset(index, Workspace.path(path))(source)
+        case Some(ExportRules.Format.Cache) => Ruleset.fromCache(index, Workspace.path(path))
+        case None => Ruleset(index, Workspace.path(path))
       }
     }
 

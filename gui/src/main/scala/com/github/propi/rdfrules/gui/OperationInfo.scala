@@ -64,7 +64,6 @@ object OperationInfo {
       DatasetTransformation.Discretize,
       DatasetTransformation.CacheDataset,
       DatasetTransformation.Index,
-      CacheDatasetAction,
       ExportQuads,
       GetQuads,
       Prefixes,
@@ -81,8 +80,9 @@ object OperationInfo {
       IndexTransformation.Mine,
       IndexTransformation.LoadRuleset,
       IndexTransformation.LoadRulesetWithRules,
+      IndexTransformation.LoadPrediction,
       PropertiesCardinalities,
-      CacheIndexAction,
+      ExportIndex,
     )
   }
 
@@ -97,7 +97,6 @@ object OperationInfo {
       RulesetTransformation.CacheRuleset,
       RulesetTransformation.Predict,
       RulesetTransformation.Prune,
-      CacheRulesetAction,
       ExportRules,
       GetRules,
       RulesetSize,
@@ -112,7 +111,7 @@ object OperationInfo {
       PredictionTransformation.Sort,
       PredictionTransformation.PredictionToDataset,
       PredictionTransformation.CachePrediction,
-      CachePredictionAction,
+      ExportPrediction,
       GetPrediction,
       PredictionSize
     )
@@ -142,7 +141,9 @@ object OperationInfo {
     val followingOperations: Constants[OperationInfo] = Constants(
       Loading.LoadGraph,
       Loading.LoadDataset,
-      Loading.LoadIndex
+      Loading.LoadIndex,
+      Loading.LoadRulesetWithoutIndex,
+      Loading.LoadPredictionWithoutIndex
     )
 
     def sourceStructure: OperationStructure = OperationStructure.Empty
@@ -170,6 +171,21 @@ object OperationInfo {
   sealed trait LoadRuleset extends Transformation {
     val name: String = "LoadRuleset"
     val title: String = "Load ruleset"
+  }
+
+  sealed trait LoadRulesetWithoutIndex extends Transformation {
+    val name: String = "LoadRulesetWithoutIndex"
+    val title: String = "Load ruleset"
+  }
+
+  sealed trait LoadPrediction extends Transformation {
+    val name: String = "LoadPrediction"
+    val title: String = "Load prediction"
+  }
+
+  sealed trait LoadPredictionWithoutIndex extends Transformation {
+    val name: String = "LoadPredictionWithoutIndex"
+    val title: String = "Load prediction"
   }
 
   sealed trait AddPrefixes extends Transformation {
@@ -312,6 +328,26 @@ object OperationInfo {
 
       def targetStructure: OperationStructure = OperationStructure.Index
     }
+
+    object LoadPredictionWithoutIndex extends OperationInfo.LoadPredictionWithoutIndex with RulesetTransformation {
+      override def `type`: Operation.Type = Operation.Type.Loading
+
+      def buildOperation(from: Operation): Operation = new operations.LoadPrediction(from, this)
+
+      def sourceStructure: OperationStructure = OperationStructure.Empty
+
+      def targetStructure: OperationStructure = OperationStructure.Ruleset
+    }
+
+    object LoadRulesetWithoutIndex extends OperationInfo.LoadRulesetWithoutIndex with RulesetTransformation {
+      override def `type`: Operation.Type = Operation.Type.Loading
+
+      def buildOperation(from: Operation): Operation = new operations.LoadRuleset(from, this)
+
+      def sourceStructure: OperationStructure = OperationStructure.Empty
+
+      def targetStructure: OperationStructure = OperationStructure.Ruleset
+    }
   }
 
   object DatasetTransformation {
@@ -394,6 +430,14 @@ object OperationInfo {
       def sourceStructure: OperationStructure = OperationStructure.Index
 
       def targetStructure: OperationStructure = OperationStructure.Dataset
+    }
+
+    object LoadPrediction extends OperationInfo.LoadPrediction with RulesetTransformation {
+      def buildOperation(from: Operation): Operation = new operations.LoadPrediction(from, this)
+
+      def sourceStructure: OperationStructure = OperationStructure.Index
+
+      def targetStructure: OperationStructure = OperationStructure.Prediction
     }
 
     object LoadRuleset extends OperationInfo.LoadRuleset with RulesetTransformation {
@@ -520,26 +564,15 @@ object OperationInfo {
     def buildOperation(from: Operation): Operation = new actions.Instantiate(from)
   }
 
-  object CacheRulesetAction extends Action {
-    val name: String = "CacheRulesetAction"
-    val title: String = "Cache"
-
-    def sourceStructure: OperationStructure = OperationStructure.Ruleset
-
-    override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
-
-    def buildOperation(from: Operation): Operation = new actions.CacheRuleset(from)
-  }
-
-  object CachePredictionAction extends Action {
-    val name: String = "CachePredictionAction"
-    val title: String = "Cache"
+  object ExportPrediction extends Action {
+    val name: String = "ExportPrediction"
+    val title: String = "Export"
 
     def sourceStructure: OperationStructure = OperationStructure.Prediction
 
     override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
 
-    def buildOperation(from: Operation): Operation = new actions.CachePrediction(from)
+    def buildOperation(from: Operation): Operation = new actions.ExportPrediction(from)
   }
 
   object ExportRules extends Action {
@@ -547,6 +580,8 @@ object OperationInfo {
     val title: String = "Export"
 
     def sourceStructure: OperationStructure = OperationStructure.Ruleset
+
+    override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
 
     def buildOperation(from: Operation): Operation = new actions.ExportRules(from)
   }
@@ -587,22 +622,13 @@ object OperationInfo {
     def buildOperation(from: Operation): Operation = new actions.RulesetSize(from)
   }
 
-  object CacheDatasetAction extends Action {
-    val name: String = "CacheDatasetAction"
-    val title: String = "Cache"
-
-    def sourceStructure: OperationStructure = OperationStructure.Dataset
-
-    override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
-
-    def buildOperation(from: Operation): Operation = new actions.CacheDataset(from)
-  }
-
   object ExportQuads extends Action {
     val name: String = "ExportQuads"
     val title: String = "Export"
 
     def sourceStructure: OperationStructure = OperationStructure.Dataset
+
+    override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
 
     def buildOperation(from: Operation): Operation = new actions.ExportQuads(from)
   }
@@ -661,15 +687,15 @@ object OperationInfo {
     def buildOperation(from: Operation): Operation = new actions.Histogram(from)
   }
 
-  object CacheIndexAction extends Action {
-    val name: String = "CacheIndexAction"
-    val title: String = "Cache"
+  object ExportIndex extends Action {
+    val name: String = "ExportIndex"
+    val title: String = "Export"
 
     def sourceStructure: OperationStructure = OperationStructure.Index
 
     override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
 
-    def buildOperation(from: Operation): Operation = new actions.CacheIndex(from)
+    def buildOperation(from: Operation): Operation = new actions.ExportIndex(from)
   }
 
   /*object EvaluateIndex extends Action {
