@@ -322,7 +322,9 @@ object CommonDataJsonReaders {
   }*/
 
   implicit val predictionSourceReader: RootJsonReader[PredictionSource] = (json: JsValue) => json.convertTo[String] match {
-    case "json" | "ndjson" => PredictionSource.NDJson
+    case "ndjson" => PredictionSource.NDJson
+    case "json" => PredictionSource.Json
+    case "cache" => PredictionSource.Cache
     case x => deserializationError(s"Invalid prediction format name: $x")
   }
 
@@ -330,6 +332,7 @@ object CommonDataJsonReaders {
     case "txt" => RulesetSource.Text
     case "json" => RulesetSource.Json
     case "ndjson" => RulesetSource.NDJson
+    case "cache" => RulesetSource.Cache
     case x => deserializationError(s"Invalid ruleset format name: $x")
   }
 

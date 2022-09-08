@@ -11,6 +11,7 @@ import spray.json.DeserializationException
 import com.github.propi.rdfrules.ruleset.formats.Json._
 import com.github.propi.rdfrules.ruleset.formats.Text._
 import com.github.propi.rdfrules.ruleset.formats.NDJson._
+import com.github.propi.rdfrules.ruleset.formats.Cache._
 
 import scala.language.implicitConversions
 

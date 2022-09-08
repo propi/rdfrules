@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.http.task.prediction
 
+import com.github.propi.rdfrules.data.Compression
 import com.github.propi.rdfrules.http.Workspace
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 import com.github.propi.rdfrules.http.util.BasicExceptions.ValidationException
@@ -8,7 +9,7 @@ import com.github.propi.rdfrules.prediction.{PredictedTriples, PredictionSource}
 /**
   * Created by Vaclav Zeman on 9. 8. 2018.
   */
-class ExportPrediction(path: String, format: Option[ExportPrediction.Format]) extends Task[PredictedTriples, Unit] with Task.Prevalidate {
+class ExportPrediction(path: String, format: PredictionSource) extends Task[PredictedTriples, Unit] with Task.Prevalidate {
   val companion: TaskDefinition = ExportPrediction
 
   def validate(): Option[ValidationException] = if (!Workspace.filePathIsWritable(path)) {
@@ -17,22 +18,13 @@ class ExportPrediction(path: String, format: Option[ExportPrediction.Format]) ex
     None
   }
 
-  def execute(input: PredictedTriples): Unit = format match {
-    case Some(ExportPrediction.Format.NonBinary(x)) => input.export(Workspace.path(path))(x)
-    case Some(ExportPrediction.Format.Cache) => input.cache(Workspace.path(path))
-    case None => input.export(Workspace.path(path))
-  }
+  def execute(input: PredictedTriples): Unit = input.export(Workspace.path(path))(Compression.fromPath(path) match {
+    case Some(compression) => format.compressedBy(compression)
+    case None => format
+  })
 }
 
 object ExportPrediction extends TaskDefinition {
   val name: String = "ExportPrediction"
-
-  sealed trait Format
-
-  object Format {
-    case class NonBinary(source: PredictionSource) extends Format
-
-    case object Cache extends Format
-  }
 }
 

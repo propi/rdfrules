@@ -15,7 +15,7 @@ class ExportRules(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.ExportRules
   val properties: Constants[Property] = Constants(
     new ChooseFileFromWorkspace(Workspace.loadFiles, true, "path", "Path", validator = NonEmpty, "file"),
-    new Select("format", "Rules format", Constants("txt" -> "Text (unparsable)", "json" -> "JSON (as model - parsable)", "ndjson" -> "NDJSON (as model - parsable and streaming)", "cache" -> "Cache (internal binary format)"))
+    new Select("format", "Rules format", Constants("ndjson" -> "NDJSON (as model - parsable and streaming)", "json" -> "JSON (as model - parsable)", "txt" -> "Text (unparsable)", "cache" -> "Cache (internal binary format)"), Some("ndjson"))
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 

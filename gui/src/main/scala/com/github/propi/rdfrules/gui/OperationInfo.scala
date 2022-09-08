@@ -329,14 +329,14 @@ object OperationInfo {
       def targetStructure: OperationStructure = OperationStructure.Index
     }
 
-    object LoadPredictionWithoutIndex extends OperationInfo.LoadPredictionWithoutIndex with RulesetTransformation {
+    object LoadPredictionWithoutIndex extends OperationInfo.LoadPredictionWithoutIndex with PredictionTransformation {
       override def `type`: Operation.Type = Operation.Type.Loading
 
       def buildOperation(from: Operation): Operation = new operations.LoadPrediction(from, this)
 
       def sourceStructure: OperationStructure = OperationStructure.Empty
 
-      def targetStructure: OperationStructure = OperationStructure.Ruleset
+      def targetStructure: OperationStructure = OperationStructure.Prediction
     }
 
     object LoadRulesetWithoutIndex extends OperationInfo.LoadRulesetWithoutIndex with RulesetTransformation {
@@ -432,7 +432,7 @@ object OperationInfo {
       def targetStructure: OperationStructure = OperationStructure.Dataset
     }
 
-    object LoadPrediction extends OperationInfo.LoadPrediction with RulesetTransformation {
+    object LoadPrediction extends OperationInfo.LoadPrediction with PredictionTransformation {
       def buildOperation(from: Operation): Operation = new operations.LoadPrediction(from, this)
 
       def sourceStructure: OperationStructure = OperationStructure.Index
@@ -570,8 +570,6 @@ object OperationInfo {
 
     def sourceStructure: OperationStructure = OperationStructure.Prediction
 
-    override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
-
     def buildOperation(from: Operation): Operation = new actions.ExportPrediction(from)
   }
 
@@ -580,8 +578,6 @@ object OperationInfo {
     val title: String = "Export"
 
     def sourceStructure: OperationStructure = OperationStructure.Ruleset
-
-    override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
 
     def buildOperation(from: Operation): Operation = new actions.ExportRules(from)
   }
@@ -627,8 +623,6 @@ object OperationInfo {
     val title: String = "Export"
 
     def sourceStructure: OperationStructure = OperationStructure.Dataset
-
-    override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
 
     def buildOperation(from: Operation): Operation = new actions.ExportQuads(from)
   }
@@ -692,8 +686,6 @@ object OperationInfo {
     val title: String = "Export"
 
     def sourceStructure: OperationStructure = OperationStructure.Index
-
-    override def groups: Set[OperationGroup] = super.groups &+ OperationGroup.Caching
 
     def buildOperation(from: Operation): Operation = new actions.ExportIndex(from)
   }

@@ -63,4 +63,16 @@ object ResolvedPredictedTriple {
     }
   }
 
+  implicit val resolvedPredictedTriplesJsonReader: RootJsonReader[IndexedSeq[ResolvedPredictedTriple]] = (json: JsValue) => {
+    val selector = json.toSelector
+    val res = for {
+      triple <- selector("triple").to[Triple].iterator
+      predictedResult <- selector("predictedResult").to[PredictedResult].iterator
+      rule <- selector("rule").to[ResolvedRule].map(Iterator(_)).orElse(Some(selector("rules").toTypedIterable[ResolvedRule].iterator)).get
+    } yield {
+      ResolvedPredictedTriple(triple, predictedResult, rule)
+    }
+    res.toIndexedSeq
+  }
+
 }

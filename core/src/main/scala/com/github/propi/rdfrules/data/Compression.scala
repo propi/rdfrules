@@ -1,5 +1,7 @@
 package com.github.propi.rdfrules.data
 
+import scala.util.Try
+
 /**
   * Created by Vaclav Zeman on 22. 5. 2019.
   */
@@ -16,5 +18,7 @@ object Compression {
     case "gz" => GZ
     case x => throw new IllegalArgumentException(s"Unsupported compression extension: $x")
   }
+
+  def fromPath(path: String): Option[Compression] = Try(apply(path.replaceFirst(".+[.](.+)$", "$1"))).toOption
 
 }

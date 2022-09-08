@@ -5,14 +5,14 @@ import akka.stream.scaladsl.Source
 import com.github.propi.rdfrules.algorithm.consumer.InMemoryRuleConsumer
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
 import com.github.propi.rdfrules.algorithm.{Clustering, RuleConsumer, RulesMining}
-import com.github.propi.rdfrules.data.{Dataset, DiscretizationTask, Prefix, RdfSource, TripleItem}
+import com.github.propi.rdfrules.data.{Dataset, DiscretizationTask, Prefix, TripleItem}
 import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.formats.CommonDataJsonReaders._
 import com.github.propi.rdfrules.http.task.Task.MergeDatasets
 import com.github.propi.rdfrules.http.task._
-import com.github.propi.rdfrules.http.task.prediction.{ExportPrediction, GetPrediction, LoadPredictionWithoutIndex}
+import com.github.propi.rdfrules.http.task.prediction.{GetPrediction, LoadPredictionWithoutIndex}
 import com.github.propi.rdfrules.http.task.ruleset.ComputeConfidence.ConfidenceType
-import com.github.propi.rdfrules.http.task.ruleset.{ExportRules, LoadRuleset, LoadRulesetWithoutIndex}
+import com.github.propi.rdfrules.http.task.ruleset.{LoadRuleset, LoadRulesetWithoutIndex}
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.prediction.{PredictedResult, PredictedTriples, PredictionSource}
 import com.github.propi.rdfrules.rule.Rule.FinalRule
@@ -49,10 +49,7 @@ object PipelineJsonReaders {
 
   implicit def loadRulesetWithoutIndexReader(implicit debugger: Debugger): RootJsonReader[ruleset.LoadRulesetWithoutIndex] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    val format = fields.get("format").map {
-      case JsString("cache") => ExportRules.Format.Cache
-      case x => ExportRules.Format.NonBinary(x.convertTo[RulesetSource])
-    }
+    val format = fields("format").convertTo[RulesetSource]
     new LoadRulesetWithoutIndex(fields("path").convertTo[String], format, fields.get("parallelism").map(_.convertTo[Int]))
   }
 
@@ -60,10 +57,7 @@ object PipelineJsonReaders {
     val fields = json.asJsObject.fields
     new LoadPredictionWithoutIndex(
       fields("path").convertTo[String],
-      fields.get("format").map {
-        case JsString("cache") => ExportPrediction.Format.Cache
-        case x => ExportPrediction.Format.NonBinary(x.convertTo[PredictionSource])
-      }
+      fields("format").convertTo[PredictionSource]
     )
   }
 
@@ -135,10 +129,7 @@ object PipelineJsonReaders {
     val fields = json.asJsObject.fields
     new prediction.ExportPrediction(
       fields("path").convertTo[String],
-      fields.get("format").map {
-        case JsString("cache") => ExportPrediction.Format.Cache
-        case x => ExportPrediction.Format.NonBinary(x.convertTo[PredictionSource])
-      }
+      fields("format").convertTo[PredictionSource]
     )
   }
 
@@ -194,10 +185,7 @@ object PipelineJsonReaders {
       case None =>
         LoadRuleset.RulesetSource.File(
           fields("path").convertTo[String],
-          fields.get("format").map {
-            case JsString("cache") => ExportRules.Format.Cache
-            case x => ExportRules.Format.NonBinary(x.convertTo[RulesetSource])
-          }
+          fields("format").convertTo[RulesetSource]
         )
     }
 
@@ -206,10 +194,7 @@ object PipelineJsonReaders {
 
   implicit def loadPredictionReader(implicit debugger: Debugger): RootJsonReader[prediction.LoadPrediction] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new prediction.LoadPrediction(fields("path").convertTo[String], fields.get("format").map {
-      case JsString("cache") => ExportPrediction.Format.Cache
-      case x => ExportPrediction.Format.NonBinary(x.convertTo[PredictionSource])
-    })
+    new prediction.LoadPrediction(fields("path").convertTo[String], fields("format").convertTo[PredictionSource])
   }
 
   implicit def predictReader(implicit debugger: Debugger): RootJsonReader[ruleset.Predict] = (json: JsValue) => {
@@ -322,10 +307,7 @@ object PipelineJsonReaders {
     val fields = json.asJsObject.fields
     new ruleset.ExportRules(
       fields("path").convertTo[String],
-      fields.get("format").map {
-        case JsString("cache") => ExportRules.Format.Cache
-        case x => ExportRules.Format.NonBinary(x.convertTo[RulesetSource])
-      }
+      fields("format").convertTo[RulesetSource]
     )
   }
 
@@ -406,7 +388,7 @@ object PipelineJsonReaders {
           case prediction.ExportPrediction.name => pipeline ~> params.convertTo[prediction.ExportPrediction] ~> ToJsonTask.FromUnit
           case prediction.Shrink.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Shrink], tail)
           case prediction.Sort.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Sort], tail)
-          case x => throw deserializationError(s"Invalid task '$x' can not be bound to Model")
+          case x => throw deserializationError(s"Invalid task '$x' can not be bound to Prediction")
         }
       case _ => pipeline ~> new ToJsonTask.From[PredictedTriples]
     }

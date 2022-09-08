@@ -91,7 +91,9 @@ abstract class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleIt
         .map(i => i -> Option(hmap.get(i)))
         .find(_._2.forall(_ == resolved))
         .flatMap(x => x._2.map(_ => x._1))
-    )
+    ).orElse {
+      Some(addTripleItem(resolved))
+    }
   }
 
   def getTripleItemOpt(x: Int): Option[TripleItem] = Option(hmap.get(x))

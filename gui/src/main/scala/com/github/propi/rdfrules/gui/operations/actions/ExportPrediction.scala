@@ -15,7 +15,7 @@ class ExportPrediction(fromOperation: Operation) extends Operation {
   val info: OperationInfo = OperationInfo.ExportPrediction
   val properties: Constants[Property] = Constants(
     new ChooseFileFromWorkspace(Workspace.loadFiles, true, "path", "Path", validator = NonEmpty, "file"),
-    new Select("format", "Prediction format", Constants("ndjson" -> "NDJSON", "cache" -> "Cache (internal binary format)"))
+    new Select("format", "Prediction format", Constants("ndjson" -> "NDJSON", "cache" -> "Cache (internal binary format)"), Some("ndjson"))
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 

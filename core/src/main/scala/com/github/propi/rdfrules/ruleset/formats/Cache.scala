@@ -2,11 +2,9 @@ package com.github.propi.rdfrules.ruleset.formats
 
 import com.github.propi.rdfrules.rule.ResolvedRule
 import com.github.propi.rdfrules.ruleset.{RulesetReader, RulesetSource, RulesetWriter}
-import com.github.propi.rdfrules.serialization.RuleSerialization.resolvedRuleDeserializer
-import com.github.propi.rdfrules.utils.serialization.Deserializer
+import com.github.propi.rdfrules.serialization.RuleSerialization.{resolvedRuleDeserializer, resolvedRuleSerializer}
+import com.github.propi.rdfrules.utils.serialization.{Deserializer, Serializer}
 import com.github.propi.rdfrules.utils.{ForEach, InputStreamBuilder, OutputStreamBuilder}
-import spray.json.DefaultJsonProtocol._
-import spray.json._
 
 import scala.language.{implicitConversions, reflectiveCalls}
 
@@ -16,7 +14,9 @@ import scala.language.{implicitConversions, reflectiveCalls}
 object Cache {
 
   implicit def cacheRulesetWriter(source: RulesetSource.Cache.type): RulesetWriter = (rules: ForEach[ResolvedRule], outputStreamBuilder: OutputStreamBuilder) => {
-
+    Serializer.serializeToOutputStream[ResolvedRule](outputStreamBuilder.build) { writer =>
+      rules.foreach(writer.write)
+    }
   }
 
   implicit def cacheRulesetReader(source: RulesetSource.Cache.type): RulesetReader = (inputStreamBuilder: InputStreamBuilder) => (f: ResolvedRule => Unit) => {

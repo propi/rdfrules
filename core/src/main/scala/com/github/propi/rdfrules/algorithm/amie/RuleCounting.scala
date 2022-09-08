@@ -42,7 +42,7 @@ trait RuleCounting extends AtomCounting {
         countDistinctPairs(rule.body.toSet, rule.head, (support / minConfidence) + 1, injectiveMapping)
       }
       //confidence is number of head triples which are connected to other atoms in the rule DIVIDED number of all possible paths from body
-      val confidence = support.toDouble / bodySize
+      val confidence = if (bodySize == 0) 0.0 else support.toDouble / bodySize
       if (confidence >= minConfidence) {
         rule.withMeasures(TypedKeyMap(Measure.BodySize(bodySize), Measure.Confidence(confidence)) ++= rule.measures)
       } else {
@@ -179,7 +179,7 @@ trait RuleCounting extends AtomCounting {
         }
         pcaBodySize + countForInstance
       }*/
-      val pcaConfidence = support.toDouble / pcaBodySize
+      val pcaConfidence = if (pcaBodySize == 0) 0.0 else support.toDouble / pcaBodySize
       if (pcaConfidence >= minPcaConfidence) {
         rule.withMeasures(TypedKeyMap(Measure.PcaBodySize(pcaBodySize), Measure.PcaConfidence(pcaConfidence)) ++= rule.measures)
       } else {
