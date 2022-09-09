@@ -58,7 +58,7 @@ object Markdown {
     case x: js.Array[_] => parseText(x.asInstanceOf[js.Array[SimpleMarkdown.Token]])
   }).getOrElse(Text(""))
 
-  private def parseText(token: SimpleMarkdown.Text): Text = Text(Globals.escapeHTML(token.content).trim)
+  private def parseText(token: SimpleMarkdown.Text): Text = Text(Globals.escapeHTML(token.content))
 
   private def parseText(token: SimpleMarkdown.Em): Text = Text(s"<em>${parseText(token.content)}</em>")
 
@@ -66,7 +66,7 @@ object Markdown {
 
   private def parseText(token: SimpleMarkdown.Strong): Text = Text(s"<strong>${parseText(token.content)}</strong>")
 
-  private def parseText(token: SimpleMarkdown.InlineCode): Text = Text(s"<code>${Globals.escapeHTML(token.content).trim}</code>")
+  private def parseText(token: SimpleMarkdown.InlineCode): Text = Text(s"<code>${Globals.escapeHTML(token.content)}</code>")
 
   private def parseText(token: SimpleMarkdown.Link): Text = Text(s"""<a href="${token.target}" target="_blank">${parseText(token.content)}</a>""")
 

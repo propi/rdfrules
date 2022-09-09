@@ -1,15 +1,13 @@
 package com.github.propi.rdfrules.prediction
 
-import com.github.propi.rdfrules.rule.ResolvedRule
-
 /**
   * Created by Vaclav Zeman on 15. 10. 2019.
   */
-case class EvaluationResult(tp: Int, fp: Int, fn: Int, model: Seq[ResolvedRule]) {
+case class EvaluationResult(tp: Int, fp: Int, fn: Int, tn: Int) {
 
   def accuracy: Double = {
-    val d = tp + fp + fn
-    if (d > 0) tp.toDouble / d else 0
+    val d = tp + fp + fn + tn
+    if (d > 0) (tp + tn).toDouble / d else 0
   }
 
   def precision: Double = {
@@ -28,6 +26,6 @@ case class EvaluationResult(tp: Int, fp: Int, fn: Int, model: Seq[ResolvedRule])
     if (p + r > 0) (2 * p * r) / (p + r) else 0
   }
 
-  override def toString: String = s"accuracy: $accuracy, precision: $precision, recall: $recall, f-measure: $fscore (TP: $tp, FP: $fp, FN: $fn)"
+  override def toString: String = s"accuracy: $accuracy, precision: $precision, recall: $recall, f-measure: $fscore (TP: $tp, FP: $fp, FN: $fn, TN: $tn)"
 
 }

@@ -37,6 +37,24 @@ trait TripleIndex[T] {
 
     def size(nonReflexive: Boolean): Int
 
+    final lazy val pcaNegatives: Int = higherCardinalitySide match {
+      case TriplePosition.Subject =>
+        val valuesCount = objects.size
+        subjects.valuesIterator.map(x => valuesCount - x.size).sum
+      case TriplePosition.Object =>
+        val valuesCount = subjects.size
+        objects.valuesIterator.map(x => valuesCount - x.size).sum
+    }
+
+    final lazy val pcaNonReflexiveNegatives: Int = higherCardinalitySide match {
+      case TriplePosition.Subject =>
+        val valuesCount = objects.size
+        subjects.valuesIterator.map(x => valuesCount - x.size(true)).sum
+      case TriplePosition.Object =>
+        val valuesCount = subjects.size
+        objects.valuesIterator.map(x => valuesCount - x.size(true)).sum
+    }
+
     final lazy val subjectRelativeCardinality: Double = subjects.size.toDouble / size(false)
 
     final lazy val objectRelativeCardinality: Double = objects.size.toDouble / size(false)

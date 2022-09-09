@@ -18,7 +18,7 @@ class ComputeConfidence(fromOperation: Operation, val info: OperationInfo) exten
     ))
     val topK = new DynamicElement(Constants(
       new OptionalText[Int]("topk", "Top-k", validator = GreaterThanOrEqualsTo[Int](1), summaryTitle = "top")
-    ))
+    ), true)
 
     def activeStrategy(minIndex: Int, hasTopK: Boolean): Unit = {
       min.setElement(minIndex)

@@ -11,7 +11,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 class LoadPrediction(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
     new ChooseFileFromWorkspace(Workspace.loadFiles, false, "path", validator = NonEmpty, summaryTitle = "file"),
-    new Select("format", "Rules format", Constants("ndjson" -> "NDJSON", "json" -> "JSON", "cache" -> "Cache (internal binary format)"), Some("ndjson"))
+    new Select("format", "Prediction format", Constants("ndjson" -> "NDJSON", "json" -> "JSON", "cache" -> "Cache (internal binary format)"), Some("ndjson"))
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 }

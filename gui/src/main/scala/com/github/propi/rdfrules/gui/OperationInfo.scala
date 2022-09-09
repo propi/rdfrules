@@ -113,6 +113,7 @@ object OperationInfo {
       PredictionTransformation.CachePrediction,
       ExportPrediction,
       GetPrediction,
+      Evaluate,
       PredictionSize
     )
   }
@@ -275,7 +276,7 @@ object OperationInfo {
 
   sealed trait Mine extends Transformation {
     val name: String = "Mine"
-    val title: String = "Mine"
+    val title: String = "Mine rules"
   }
 
   sealed trait Index extends Transformation {
@@ -690,25 +691,14 @@ object OperationInfo {
     def buildOperation(from: Operation): Operation = new actions.ExportIndex(from)
   }
 
-  /*object EvaluateIndex extends Action {
+  object Evaluate extends Action {
     val name: String = "Evaluate"
-    val title: String = "Evaluate model"
-    val description: String = "Evaluate a rules model based on the loaded dataset as the test set."
+    val title: String = "Evaluate"
 
-    def groups: Set[OperationGroup] = OperationGroup.Structure.Index
+    def sourceStructure: OperationStructure = OperationStructure.Prediction
 
-    def buildOperation(from: Operation): Operation = new actions.Evaluate(from, this, true)
-  }*/
-
-  /*object EvaluateRuleset extends Action {
-    val name: String = "Evaluate"
-    val title: String = "Evaluate model"
-    val description: String = "Evaluate a rules model based on the loaded index as the test set."
-
-    def groups: Set[OperationGroup] = OperationGroup.Structure.Ruleset
-
-    def buildOperation(from: Operation): Operation = new actions.Evaluate(from, this, false)
-  }*/
+    def buildOperation(from: Operation): Operation = new actions.Evaluate(from)
+  }
 
   def apply(op: js.Dynamic, parent: Operation): Option[OperationInfo] = {
     val name = op.name.asInstanceOf[String]

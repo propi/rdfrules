@@ -2,16 +2,17 @@ package com.github.propi.rdfrules.prediction
 
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
 import com.github.propi.rdfrules.data.{Graph, TriplePosition}
+import com.github.propi.rdfrules.index.IndexItem.IntTriple
 import com.github.propi.rdfrules.index.{AutoIndex, Index, TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.PatternMatcher.Aliases
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
-import com.github.propi.rdfrules.rule.{PatternMatcher, Rule, RulePattern}
+import com.github.propi.rdfrules.rule.{Atom, PatternMatcher, Rule, RulePattern}
 import com.github.propi.rdfrules.ruleset.ops.Sortable
 import com.github.propi.rdfrules.serialization.TripleSerialization._
-import com.github.propi.rdfrules.utils.ForEach
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
+import com.github.propi.rdfrules.utils.{ForEach, IncrementalInt}
 
-import java.io.{File, FileInputStream, FileOutputStream, InputStream, OutputStream}
+import java.io._
 
 /**
   * Created by Vaclav Zeman on 6. 10. 2017.
@@ -83,6 +84,40 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
       }
       higherCardinalityConstant -> x.triple.p
     }, true)
+  }
+
+  def evaluate(pca: Boolean, injectiveMapping: Boolean): EvaluationResult = {
+    var tp, fp = 0
+    val predictedProperties = collection.mutable.HashMap.empty[Int, (Int, IncrementalInt)]
+    val predictedTriples = collection.mutable.HashSet.empty[IntTriple]
+    for (triple <- triples) {
+      val max = index.tripleMap.predicates.get(triple.triple.p).map { p =>
+        (triple.rule.head.subject, triple.rule.head.`object`) match {
+          case (_: Atom.Variable, _: Atom.Variable) => p.size(injectiveMapping)
+          case (Atom.Constant(x), _: Atom.Variable) => p.subjects.get(x).map(_.size(injectiveMapping)).getOrElse(0)
+          case (_: Atom.Variable, Atom.Constant(x)) => p.objects.get(x).map(_.size(injectiveMapping)).getOrElse(0)
+          case (Atom.Constant(s), Atom.Constant(o)) => if (injectiveMapping && s == o || !p.subjects.get(s).exists(_.contains(o))) 0 else 1
+        }
+      }.getOrElse(0)
+      val (pmax, pcounter) = predictedProperties.getOrElseUpdate(
+        triple.triple.p,
+        max -> IncrementalInt()
+      )
+      if (pmax < max) predictedProperties.update(triple.triple.p, max -> pcounter)
+      if (!predictedTriples(triple.triple)) {
+        predictedTriples += triple.triple
+        triple.predictedResult match {
+          case PredictedResult.Positive =>
+            tp += 1
+            pcounter += 1
+          case PredictedResult.Negative =>
+            fp += 1
+          case PredictedResult.PcaPositive =>
+            if (!pca) fp += 1
+        }
+      }
+    }
+    EvaluationResult(tp, fp, math.max(0, predictedProperties.valuesIterator.map(x => x._1 - x._2.getValue).sum), 0)
   }
 
   def toGraph: Graph = Graph((if (isDistinct) distinctPredictions else this).resolvedTriples.map(_.triple))

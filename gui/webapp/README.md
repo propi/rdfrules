@@ -6,24 +6,22 @@
 
 #### Load graph
 
-Load graph (set of triples) from a file in the workspace or from a remote file available via URL. The source is in some RDF format or serialized format and is supposed as a single graph.
+Load graph (set of triples) from a file in the workspace or from a remote file available via URL. The source is in some RDF or relational SQL format and is supposed as a single graph.
 
 ##### Properties
 
-- **Choose a file from the workspace**: It is possible to load a file from the workspace on the server side (just click onto a file name), or you can load any remote file from URL (see below).
+- **Choose a file from the workspace**: It is possible to load a file from the workspace on the server side (just click onto a file name or upload a new one), or you can load any remote file from URL (see below). The dataset format is detected automatically by the file extension. Supported extensions are .ttl (turtle), .nt (n-triples), .nq (n-quads), .json | .jsonld (JSON-LD), .xml | .rdf | .owl (RDF/XML), .trig (TriG), .trix (TriX), .tsv, .sql, .cache (internal binary format). All formats can be compressed by GZIP or BZ2 (e.g. data.ttl.gz).
 - **URL**: A URL to a remote file to be loaded. If this is specified then the workspace file is ommited.
-- **RDF format**: The RDF format is automatically detected from the file extension. But, you can specify the format explicitly.
 - **Graph name**: Name for this loaded graph. It must have the URI notation in angle brackets, e.g., <dbpedia> or `<http://dbpedia.org>`.
 
 #### Load dataset
 
-Load dataset (set of quads) from a file in the workspace or from a remote file available via URL. The source is in some RDF format or serialized format and can involve several graphs.
+Load dataset (set of quads) from a file in the workspace or from a remote file available via URL. The source is in some RDF or relational SQL format and can involve several graphs.
 
 ##### Properties
 
-- **Choose a file from the workspace**: It is possible to load a file from the workspace on the server side (just click onto a file name), or you can load any remote file from URL (see below).
+- **Choose a file from the workspace**: It is possible to load a file from the workspace on the server side (just click onto a file name or upload a new one), or you can load any remote file from URL (see below). The dataset format is detected automatically by the file extension. Supported extensions are .ttl (turtle), .nt (n-triples), .nq (n-quads), .json | .jsonld (JSON-LD), .xml | .rdf | .owl (RDF/XML), .trig (TriG), .trix (TriX), .tsv, .sql, .cache (internal binary format). All formats can be compressed by GZIP or BZ2 (e.g. data.ttl.gz).
 - **URL**: A URL to a remote file to be loaded. If this is specified then the workspace file is ommited.
-- **RDF format**: The RDF format is automatically detected from the file extension. But, you can specify the format explicitly.
 
 ### Transformations
 
@@ -63,7 +61,11 @@ Map/Replace selected quads and their parts by user-defined filters and replaceme
 
 #### Shrink
 
-Slice the dataset (set of quads) with a specified window.
+Shrink the dataset (set of quads) with a specified window.
+
+##### Properties
+
+- **Strategy**: Take (take first n records), Drop (drop first n records), Slice (slice a window)
 
 #### Discretize
 
@@ -76,8 +78,7 @@ Discretize all numeric literals related to filtered quads by a selected discreti
 - **Object**: Discretize all numeric literals which are matching this object. If this field is empty then no filter is applied here. The object must be a numeric comparison, e.g, '> 10' or '(10;80]'.
 - **Graph**: Discretize all numeric literals which are related to this specifed graph. If this field is empty then no filter is applied here. The graph must be written in URI format in angle brackets, e.g, `<http://dbpedia.org>`.
 - **Negation**: If this field is checked then all defined filters (above) are negated (logical NOT is applied before all filters).
-- **Strategy**:
-  - **Name**:
+- **Strategy**: Equidistance - all numbers are grouped into n bins, where each bin has same interval length. Equifrequency - the algorithm tries to make n intervals where all intervals are as similar in size (cardinality) to each other as possible. Equisize - it is similar to the Equifrequency strategy, but the main threshold is the max relative interval support (size, cardinality) which each interval should reach.
   - **Equidistance or Equifrequency**:
     - **Number of bins**: Number of intervals to be created.
   - **Equisize**:
@@ -85,7 +86,7 @@ Discretize all numeric literals related to filtered quads by a selected discreti
 
 #### Cache
 
-Serialize loaded dataset into a file in the workspace at the server side for later use.
+Cache loaded dataset into memory or a file in the workspace at the server side for later use.
 
 ##### Properties
 
@@ -131,21 +132,9 @@ Load dataset (set of quads) from a file in the workspace or from a remote file a
 
 #### Index
 
-Save dataset into the memory index.
-
-##### Properties
-
-- **Use URI prefixes**: 
+Build an in-memory fact index from the loaded dataset. This operation may consume lots of memory depending on the dataset size.
 
 ### Actions
-
-#### Cache
-
-Serialize loaded dataset into a file in the workspace at the server side for later use.
-
-##### Properties
-
-- **Path**: A relative path to a file related to the workspace where the serialized dataset should be saved.
 
 #### Export
 
@@ -153,12 +142,11 @@ Export the loaded and transformed dataset into a file in the workspace in an RDF
 
 ##### Properties
 
-- **Path**: A relative path to a file related to the workspace where the exported dataset should be saved.
-- **RDF format**: The RDF format is automatically detected from the file extension. But, you can specify the format explicitly.
+- **Path**: Choose a file in the workspace (or create a new one) where the exported dataset should be saved. The dataset format is detected automatically by the file extension. Supported extensions are .ttl (turtle), .nt (n-triples), .nq (n-quads), .trig (TriG), .trix (TriX), .tsv, .cache (internal binary format). All formats can be compressed by GZIP or BZ2 (e.g. data.ttl.gz).
 
 #### Get quads
 
-Get first 10000 quads from the loaded dataset.
+Get and show first 10000 quads from the loaded dataset.
 
 #### Get prefixes
 
@@ -188,7 +176,7 @@ Aggregate triples by their parts and show the histogram.
 
 #### Load index
 
-Load serialized index from a file in the workspace.
+Load a serialized fact index from a file in the workspace.
 
 ##### Properties
 
@@ -201,13 +189,13 @@ Load serialized index from a file in the workspace.
 
 Convert the memory index back to the dataset.
 
-#### Mine
+#### Mine rules
 
-Mine rules from the indexed dataset with user-defined threshold, patterns and constraints. Default mining parameters are MinHeadSize=100, MinHeadCoverage=0.01, MaxRuleLength=3, no patterns, no constraints (only logical rules without constants).
+Mine rules from the indexed dataset with user-defined threshold, patterns and constraints.
 
 ##### Properties
 
-- **Thresholds**: Mining thresholds. For one mining task you can specify several thresholds. All mined rules must reach defined thresholds. This greatly affects the mining time. Default thresholds are MinHeadSize=100 (if MinHeadSize is not defined), MinSupport=1 (if MinSupport and MinHeadCovarage are not defined), MaxRuleLength=3 (if MaxRuleLength is not defined).
+- **Thresholds**: Mining thresholds. For one mining task you can specify several thresholds. All mined rules must reach defined thresholds. This greatly affects the mining time. 
   - **MinHeadCoverage**:
     - **Value**: The minimal value is 0.001 and maximal value is 1.
   - **MinHeadSize or MinSupport or Timeout**:
@@ -216,14 +204,14 @@ Mine rules from the indexed dataset with user-defined threshold, patterns and co
     - **Value**: The minimal value is 2.
   - **MinAtomSize**:
     - **Value**: If negative value, the minimal atom size is same as the current minimal support threshold.
-- **Rule consumers**:
-  - **Top-k**:
+- **Rule consumer**: Settings of the rule consumer to which all mined closed rules are saved.
+  - **Top-k**: This activates the top-k approach, where top k rules with the highest support are mined. This approach can rapidly speed up the mining time.
     - **k-value**: A k value for the top-k approach. The minimal value is 1.
     - **Allow overflow**: If there are multiple rules with the lowest head coverage in the priority queue, then all of them may not be saved into the queue since the k value can not be exceeded. For this case the ordering of such rules is not deterministic and same task can return different results due to the long tail of rules with a same head coverage. If you check this, the overflowed long tail will be also returned but you can get much more rules on the output than the k value.
-  - **On-disk**:
+  - **On disk**: If this is checked all mined rules are gradually saving on disk instead of memory.
     - **Export path**: A relative path to a file where the rules will be continuously saved in a pretty printed format.
     - **Export rules format**: 
-- **Patterns**: In this property, you can define several rule patterns. During the mining phase, each rule must match at least one of the defined patterns.
+- **Patterns**: In this property, you can define several rule patterns. During the mining phase, each rule must match at least one of the defined patterns. Rule pattern has the following grammar: (? ? ?) ^ (? ? ?) => (? ? ?), ? is any atom item, ?V is any variable, ?C is any constant, ?a is the particular variable. You can also specify any constant instead of a variable. Symbol * matches any remaining body atoms, e.g, * ^ (? ? ?) => (? ? ?).
 - **Constraints**: Within constraints you can specify whether to mine rules without constants or you can include only chosen predicates into the mining phase.
   - **OnlyPredicates or WithoutPredicates**:
     - **Values**: List of predicates. You can use prefixed URI or full URI in angle brackets.
@@ -236,12 +224,22 @@ Load serialized ruleset from a file in the workspace.
 ##### Properties
 
 - **Choose a file from the workspace**: You can load a serialized ruleset file from the workspace on the server side (just click onto a file name).
-- **Rules format**: The ruleset format. Default is "Ruleset cache".
+- **Rules format**: The ruleset format. Default is "NDJSON".
+- **Parallelism**: If the value is lower than or equal to 0 and greater than 'all available cores' then the parallelism level is set to 'all available cores'.
+
+#### Load prediction
+
+Load serialized predicted triples from a file in the workspace.
+
+##### Properties
+
+- **Choose a file from the workspace**: You can load a serialized prediction file from the workspace on the server side (just click onto a file name).
+- **Prediction format**: The prediction format. Default is "NDJSON".
 - **Parallelism**: If the value is lower than or equal to 0 and greater than 'all available cores' then the parallelism level is set to 'all available cores'.
 
 #### Cache
 
-Serialize loaded index into a file in the workspace at the server side for later use.
+Cache loaded index into memory or a file in the workspace at the server side for later use.
 
 ##### Properties
 
@@ -253,13 +251,13 @@ Serialize loaded index into a file in the workspace at the server side for later
 
 ### Actions
 
-#### Cache
+#### Export
 
-Serialize loaded index into a file in the workspace at the server side for later use.
+Serialize and export loaded index into a file in the workspace at the server side for later use.
 
 ##### Properties
 
-- **Path**: A relative path to a file related to the workspace where the serialized dataset should be saved.
+- **Path**: A relative path to a file related to the workspace where the serialized index should be saved.
 
 #### Properties cardinality
 
@@ -270,6 +268,18 @@ Get properties cardinalities (size, domain, range)
 - **Filter**: A list of properties to be analyzed. The empty list means all properties.
 
 ## Ruleset
+
+### Loading
+
+#### Load ruleset
+
+Load serialized ruleset from a file in the workspace without a fact index. No operations requiring a fact index are not permitted. 
+
+##### Properties
+
+- **Choose a file from the workspace**: You can load a serialized ruleset file from the workspace on the server side (just click onto a file name).
+- **Rules format**: The ruleset format. Default is "NDJSON".
+- **Parallelism**: If the value is lower than or equal to 0 and greater than 'all available cores' then the parallelism level is set to 'all available cores'.
 
 ### Transformations
 
@@ -286,7 +296,11 @@ Filter all rules by patterns or measure conditions.
 
 #### Shrink
 
-Slice the ruleset (set of rules) with a specified window.
+Shrink the ruleset (set of rules) with a specified window.
+
+##### Properties
+
+- **Strategy**: Take (take first n records), Drop (drop first n records), Slice (slice a window)
 
 #### Sort
 
@@ -294,7 +308,7 @@ Sort rules by user-defined rules attributes.
 
 #### Cache
 
-Serialize loaded ruleset into a file in the workspace at the server side for later use.
+Cache loaded ruleset into memory or a file in the workspace at the server side for later use.
 
 ##### Properties
 
@@ -306,15 +320,20 @@ Serialize loaded ruleset into a file in the workspace at the server side for lat
 
 #### Predict
 
-Use a rules model to generate/predict triples from the loaded dataset.
-
-#### Prune
-
-From the list of rules take such rules which cover all genereted triples from the input dataset.
+Use rules in the ruleset to predict triples depending on the loaded fact index.
 
 ##### Properties
 
-- **Strategy**:
+- **Predicted triple constraints**: You can specify which predicted triples should be returned. Positive means all correctly predicted triples which are contained in the KG. Negative means all incorrectly predicted triples which are not contained in the KG. PCA positive means all predicted triples which are not contained in the KG, but within partial-completeness assumption, they can not be regarded as incorrect prediction.
+- **Injective mapping**: Same constant can not be bound with two different variables.
+
+#### Prune
+
+Perform a pruning strategy with all rules in the ruleset
+
+##### Properties
+
+- **Strategy**: Data coverage pruning - from the list of rules we gradually take such rules which cover all generated triples from the input dataset. Closed - we take only rules within closure, it means all sub-rules of a selected rule are less frequent than the selected rule. Maximal - rules which do not have any frequent sub-rules. OnlyBetterDescendant - all rules which have lower selected measure than its parent are pruned.
 - **Data coverage pruning**:
   - **Only functional properties**: Generate only functional properties. That means only one object can be predicted for pair (subject, predicate).
   - **Only existing triples**: If checked, the common CBA strategy will be used. That means we take only such predicted triples, which are contained in the input dataset. This strategy takes maximally as much memory as the number of triples in the input dataset. If false, we take all predicted triples (including triples which are not contained in the input dataset and are newly generated). For deduplication a HashSet is used and therefore the memory may increase unexpectedly because we need to save all unique generated triples into memory..
@@ -323,11 +342,11 @@ From the list of rules take such rules which cover all genereted triples from th
 
 #### Compute confidence
 
-Compute the standard confidence for all rules and filter them by a minimal threshold value.
+Compute the confidence for all rules and filter them by a minimal threshold value.
 
 ##### Properties
 
-- **Name**: CWA, PCA confidence or Lift
+- **Name**: CWA (standard confidence with closed-world assumption), PCA confidence (confidence with partial-completeness assumption) or Lift
 - **CWA confidence**:
   - **Min confidence**: A minimal confidence threshold. This operation counts the standard confidence for all rules and filter them by this minimal threshold. The value range is between 0.001 and 1 included. Default value is set to 0.5.
 - **PCA confidence**:
@@ -355,14 +374,6 @@ Attach information about graphs belonging to output rules.
 
 Instantiate a rule
 
-#### Cache
-
-Serialize loaded ruleset into a file in the workspace at the server side for later use.
-
-##### Properties
-
-- **Path**: A relative path to a file related to the workspace where the serialized dataset should be saved.
-
 #### Export
 
 Export the ruleset into a file in the workspace.
@@ -370,12 +381,105 @@ Export the ruleset into a file in the workspace.
 ##### Properties
 
 - **Path**: A relative path to a file related to the workspace where the exported rules should be saved.
-- **Rules format**: The output format is automatically detected from the file extension (.txt or .json|.rules). But, you can specify the format explicitly. The 'text' format is human readable, but it can not be parsed for other use in RDFRules, e.g. for completion another dataset. If you need to use the ruleset for other purposes, use the 'json' format or the 'cache' process.
+- **Rules format**: The 'text' format is human readable, but it can not be parsed for other use in RDFRules, e.g. for completion another dataset. If you need to use the ruleset for other purposes, use the 'ndjson', 'json' format or the 'cache' process.
 
 #### Get rules
 
-Get first 10000 rules from the ruleset.
+Get and show first 10000 rules from the ruleset.
 
 #### Size
 
 Get number of rules from the ruleset.
+
+## Prediction
+
+### Loading
+
+#### Load prediction
+
+Load serialized predicted triples from a file in the workspace without a fact index. No operations requiring a fact index are not permitted.
+
+##### Properties
+
+- **Choose a file from the workspace**: You can load a serialized prediction file from the workspace on the server side (just click onto a file name).
+- **Prediction format**: The prediction format. Default is "NDJSON".
+- **Parallelism**: If the value is lower than or equal to 0 and greater than 'all available cores' then the parallelism level is set to 'all available cores'.
+
+### Transformations
+
+#### Shrink
+
+Shrink the prediction (set of predicted triples) with a specified window.
+
+##### Properties
+
+- **Strategy**: Take (take first n records), Drop (drop first n records), Slice (slice a window)
+
+#### Filter
+
+Filter all predicted triples by selected conditions.
+
+##### Properties
+
+- **Predicted triple constraints**: You can specify which predicted triples should be returned. Positive means all correctly predicted triples which are contained in the KG. Negative means all incorrectly predicted triples which are not contained in the KG. PCA positive means all predicted triples which are not contained in the KG, but within partial-completeness assumption, they can not be regarded as incorrect prediction.
+- **Distinct predictions**: Each predicted triple can be determined only by one rule. Other rules are skipped.
+- **Functions only**: All predictions are function. It means we can predict only one object for a particular subject and predicate. Other predictions are skipped.
+- **Triple filter**: Defined triple filters. It filters such predicted triples which satisfy defined conditions.
+  - **Subject**: Filter for the subject position. If this field is empty then no filter is applied here. The subject must be written in URI format in angle brackets, e.g, `<http://dbpedia.org/resource/Rule>`, or as a prefixed URI, e.g., dbr:Rule. The content is evaluated as a regular expression.
+  - **Predicate**: Filter for the predicate position. If this field is empty then no filter is applied here. The predicate must be written in URI format in angle brackets, e.g, `<https://www.w3.org/2000/01/rdf-schema#label>`, or as a prefixed URI, e.g., rdfs:label. The content is evaluated as a regular expression.
+  - **Object**: Filter for the object position. If this field is empty then no filter is applied here. The content is evaluated as a regular expression. You can filter resources (with regexp) and literals (with regexp and conditions). Literals can be text, number, boolean or interval. For TEXT, the content must be in double quotation marks. For NUMBER, you can use exact matching or conditions, e.g., '> 10' or intervals [10;80). For BOOLEAN, there are valid only two values true|false. For INTERVAL, you can use only exact matching like this: i[10;50); it must start with 'i' character.
+  - **Negation**: If this field is checked then all defined filters (above) are negated (logical NOT is applied before all filters).
+- **Patterns**: In this property, you can define several rule patterns. During the filtering phase, each rule must match at least one of the defined patterns.
+- **Measures**: Rules filtering by their interest measures values.
+  - **Name**:
+  - **Value**: Some condition for numerical comparison, e.g, '> 0.5' or '(0.8;0.9]' or '1.0'
+
+#### Sort
+
+Sort predicted triples by their rules.
+
+#### To dataset
+
+Transform all predicted triples to the dataset structure.
+
+#### Cache
+
+Cache predicted triples into memory or a file in the workspace at the server side for later use.
+
+##### Properties
+
+- **In-memory**: Choose whether to save all previous transformations into memory or disk.
+  - **Cache ID**: The cache identifier in the memory.
+- **On-disk**:
+  - **Path**: A relative path to a file related to the workspace where the serialized prediction should be saved.
+- **Revalidate**: Check this if you want to re-create the cache from the previous transformations.
+
+### Actions
+
+#### Export
+
+Export predicted triples into a file in the workspace.
+
+##### Properties
+
+- **Path**: A relative path to a file related to the workspace where the exported predicted triples should be saved.
+
+#### Get predicted triples
+
+Get and show first 10000 predicted triples.
+
+##### Properties
+
+- **Group by triples**: Duplicit predicted triples are grouped with a list of all rules predicting such rule.
+
+#### Evaluate
+
+Evaluate predicted triples. It counts all positives, negatives, and possibly PCA positives and evaluate precision, recall, etc.
+
+##### Properties
+
+- **Partial Completeness Assumption (PCA)**: We concern partial-completeness assumption (PCA positives are not evaluated as negatives).
+
+#### Size
+
+Get number of all predicted triples.

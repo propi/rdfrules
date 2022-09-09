@@ -11,7 +11,6 @@ import com.github.propi.rdfrules.http.util.TraversablePublisher._
 import com.github.propi.rdfrules.index.PropertyCardinalities
 import com.github.propi.rdfrules.prediction.EvaluationResult
 import com.github.propi.rdfrules.rule.{ResolvedInstantiatedRule, ResolvedRule}
-import com.github.propi.rdfrules.ruleset.formats.Json._
 import com.github.propi.rdfrules.utils.ForEach
 import spray.json.DefaultJsonProtocol._
 import spray.json._

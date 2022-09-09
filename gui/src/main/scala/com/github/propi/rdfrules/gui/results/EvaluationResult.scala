@@ -27,8 +27,8 @@ class EvaluationResult(val title: String, val id: Future[String]) extends Action
       <table class="confusion-matrix">
         <tr>
           <td></td>
-          <th>Actual: Included</th>
-          <th>Actual: Missing</th>
+          <th>KG: Included</th>
+          <th>KG: Missing</th>
         </tr>
         <tr>
           <th>Predicted: Included</th>
@@ -41,7 +41,6 @@ class EvaluationResult(val title: String, val id: Future[String]) extends Action
           <td>&nbsp;</td>
         </tr>
       </table>
-      <div class="model">{rules.viewResult(Constants(data.model.toList: _*)).bind}</div>
     </div>
   }
 
@@ -57,7 +56,6 @@ object EvaluationResult {
     val recall: Double
     val fscore: Double
     val accuracy: Double
-    val model: js.Array[js.Dynamic]
   }
 
 }

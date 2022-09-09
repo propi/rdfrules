@@ -22,7 +22,7 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
 
   private object RuleConsumers extends Property {
     val name: String = "ruleConsumers"
-    val title: String = "Rule consumers"
+    val title: String = "Rule consumer"
     val descriptionVar: Var[String] = Var(context(title).description)
     val summaryTitle: SummaryTitle = SummaryTitle.Empty
 
@@ -31,10 +31,16 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
     private var selectedFormat: String = "ndjson"
 
     private val properties = context.use(title) { implicit context =>
-      val k = new DynamicElement(Constants(new FixedText[Double]("k", "k-value", validator = GreaterThanOrEqualsTo[Int](1), summaryTitle = "top")), hidden = true)
-      val allowOverflow = new DynamicElement(Constants(new Checkbox("allowOverflow", "Allow overflow")), hidden = true)
-      val file = new DynamicElement(Constants(new ChooseFileFromWorkspace(Workspace.loadFiles, true, "file", "Export path", validator = NonEmpty)), hidden = true)
-      val format = new DynamicElement(Constants(new Select("format", "Export rules format", Constants("txt" -> "Text (unparsable)", "ndjson" -> "streaming NDJSON (as model - parsable)"), Some(selectedFormat), (value, _) => selectedFormat = value)), hidden = true)
+      val (k, allowOverflow) = context.use("Top-k") { implicit context =>
+        val k = new DynamicElement(Constants(new FixedText[Double]("k", "k-value", validator = GreaterThanOrEqualsTo[Int](1), summaryTitle = "top")), hidden = true)
+        val allowOverflow = new DynamicElement(Constants(new Checkbox("allowOverflow", "Allow overflow")), hidden = true)
+        k -> allowOverflow
+      }
+      val (file, format) = context.use("On disk") { implicit context =>
+        val file = new DynamicElement(Constants(new ChooseFileFromWorkspace(Workspace.loadFiles, true, "file", "Export path", validator = NonEmpty)), hidden = true)
+        val format = new DynamicElement(Constants(new Select("format", "Export rules format", Constants("txt" -> "Text (unparsable)", "ndjson" -> "streaming NDJSON (as model - parsable)"), Some(selectedFormat), (value, _) => selectedFormat = value)), hidden = true)
+        file -> format
+      }
       Constants(
         new Checkbox("topk", "Top-k", onChecked = { isChecked =>
           hasTopK = isChecked

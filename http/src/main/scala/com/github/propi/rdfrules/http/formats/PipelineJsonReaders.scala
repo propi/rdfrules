@@ -243,6 +243,11 @@ object PipelineJsonReaders {
     )
   }
 
+  implicit val evaluateReader: RootJsonReader[prediction.Evaluate] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new prediction.Evaluate(fields("pca").convertTo[Boolean], fields("injectiveMapping").convertTo[Boolean])
+  }
+
   implicit val rulesetShrinkReader: RootJsonReader[ruleset.Shrink] = (json: JsValue) => {
     new ruleset.Shrink(json.convertTo[ShrinkSetup])
   }
@@ -383,6 +388,7 @@ object PipelineJsonReaders {
           case prediction.Cache.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Cache], tail)
           case prediction.Filter.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Filter], tail)
           case prediction.GetPrediction.name => pipeline ~> params.convertTo[prediction.GetPrediction] ~> ToJsonTask.FromGroupedPredictedTriple
+          case prediction.Evaluate.name => pipeline ~> params.convertTo[prediction.Evaluate] ~> ToJsonTask.FromEvaluationResult
           case prediction.ToDataset.name => addTaskFromDataset(pipeline ~> params.convertTo[prediction.ToDataset], tail)
           case prediction.Size.name => pipeline ~> params.convertTo[prediction.Size] ~> ToJsonTask.FromInt
           case prediction.ExportPrediction.name => pipeline ~> params.convertTo[prediction.ExportPrediction] ~> ToJsonTask.FromUnit
