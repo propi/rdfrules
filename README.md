@@ -341,7 +341,7 @@ RDFRules is licensed under [GNU General Public License v3.0](http://www.gnu.org/
 ## Publications
 
 - Václav Zeman, Tomáš Kliegr, and Vojtěch Svátek. RDFRules: Making RDF rule
-  mining easier and even more efficient. Semantic Web, 12(4):569–602, 01 2021. [https://doi.org/10.3233/SW-200413](https://doi.org/10.3233/SW-200413), full paper: [http://www.semantic-web-journal.net/system/files/swj_3](http://www.semantic-web-journal.net/system/files/swj_3).
+  mining easier and even more efficient. Semantic Web, 12(4):569–602, 01 2021. [https://doi.org/10.3233/SW-200413](https://doi.org/10.3233/SW-200413), full paper: [http://www.semantic-web-journal.net/system/files/swj_3.](http://www.semantic-web-journal.net/system/files/swj_3.)
 - Václav Zeman, Tomáš Kliegr, and Vojtech Svátek. RdfRules preview: Towards an analytics engine for rule mining in RDF knowledge graphs. In RuleML Challenge, 2018. [https://doi.org/10.29007/nkv7](https://doi.org/10.29007/nkv7).
 
 ## Acknowledgments
