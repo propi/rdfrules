@@ -24,7 +24,7 @@ RDFRules is divided into five main modules. They are:
     - On Windows: ```.\bin\main.bat```
  3. Open GUI via ```http://localhost:8851/``` or ```./webapp/index.html``` in a modern Internet browser.
 
-### Batch processing
+#### Batch processing
 
 If you need to run an RDFRules task as a scheduled job then define a json task (read more about task definitions in the [http](http) submodule), save it to a file and run the process by following command:
 - On Linux: ```sh bin/main task.json```
