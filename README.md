@@ -1,7 +1,6 @@
 # RDFRules
 
-RDFRules is a fast analytics engine for rule mining in RDF knowledge graphs. It offers tools for complex rule mining process including RDF data pre-processing and rules post-processing. The core of RDFRules is written in the Scala language. Besides the Scala API,
-RDFRules also provides a Java API, REST web service and a graphical user interface via a web browser. RDFRules uses the [AMIE+](https://www.mpi-inf.mpg.de/departments/databases-and-information-systems/research/yago-naga/amie/) algorithm with several extensions as a basis for a complete solution for linked data mining.
+RDFRules is a powerful analytical tool for rule mining from RDF knowledge graphs. It offers a complex rule mining solution including RDF data pre-processing, rules post-processing and prediction abilities from rules. The core of RDFRules is written in the Scala language. Besides the Scala API, RDFRules also provides REST web service with graphical user interface via a web browser. RDFRules uses the [AMIE+](https://www.mpi-inf.mpg.de/departments/databases-and-information-systems/research/yago-naga/amie/) algorithm with several extensions as a basis for a complete rule mining solution.
 
 LIVE DEMO: [https://br-dev.lmcloud.vse.cz/rdfrulesgui/](https://br-dev.lmcloud.vse.cz/rdfrulesgui/)
 
@@ -11,36 +10,46 @@ Requirements: Java 8+
 
 RDFRules is divided into five main modules. They are:
  - [Scala API](core): It is sutable for Scala programmers and for use RDFRules as a framework to invoke mining processes from Scala code.
- - [Java API](java): Similar to Scala API but adapted for Java programmers.
- - [Web Service](http): It is suitable for modular web-based applications and remote access via HTTP.
+ - [Web Service or Batch Processing](http): It is suitable for modular web-based applications and remote access via HTTP. Individual tasks can be also started in batch processing mode without any user interactions.
  - [GUI](gui): It is suitable for anyone who wants to use the tool quickly and easily without any needs for further programming.
- - [Experiments](experiments): This module contains some examples using Scala and Java APIs. There is also a script for the complex benchmark comparing RDFRules with the original AMIE+ implementation using several threads and mining modes. Some results of performed experiments are placed in the [results](experiments/results) folder.
+ - [Experiments](experiments): This module contains some examples using Scala API. There is also a script for the complex benchmark comparing RDFRules with the original AMIE+ implementation using several threads and mining modes. Some results of performed experiments are placed in the [results](experiments/results) folder.
  
- Detailed information about these modules with deployment instructions are described in their subfolders...
+ Detailed information about these modules with deployment instructions are described in their subfolders.
  
  ### Quick and easy run of RDFRules
  
- 1. Clone or download this github repository, or download and unpack the latest [release](https://github.com/propi/rdfrules/releases) in the .zip format
- 2. Go to the RDFRules home directory (with /bin, /webapp and /lib folders) and run RDFRules HTTP API
+ 1. Download the latest [release](https://github.com/propi/rdfrules/releases) in the .zip format (currently v1.6.0) and unpack it into a folder.
+ 2. Go to the unpacked RDFRules home folder (with /bin, /webapp and /lib folders) and run RDFRules HTTP API
     - On Linux: ```sh bin/main```
     - On Windows: ```.\bin\main.bat```
- 3. Open ```./webapp/index.html``` in a modern Internet browser
- 
+ 3. Open GUI via ```http://localhost:8851/``` or ```./webapp/index.html``` in a modern Internet browser.
+
+### Batch processing
+
+If you need to run an RDFRules task as a scheduled job then define a json task (read more about task definitions in the [http](http) submodule), save it to a file and run the process by following command:
+- On Linux: ```sh bin/main task.json```
+- On Windows: ```.\bin\main.bat task.json```
+
+A result in the json format is printed into stdout with other logs. If you need to export the json result into a separated file without logs, define a second argument as a file target path.
+- On Linux: ```sh bin/main task.json result.json```
+- On Windows: ```.\bin\main.bat task.json result.json```
+
+
  ## Design and Architecture
  
 ![RDFRules main processes](rdfrules-processes.png)
  
-The architecture of the RDFRules core is composed of four main data abstractions: RdfGraph, RdfDataset, Index and RuleSet. These objects are gradually created during processing of RDF data and rule mining. Each object consists of several operations which either *transform* the current object or perform some *action* to create an output. Hence, these operations are classied as transformations or actions.
+The architecture of the RDFRules core is composed of five main data abstractions: RDFGraph, RDFDataset, Index, Ruleset and Prediction. These objects are gradually created during processing of RDF data and rule mining. Each object consists of several operations which either *transform* the current object or perform some *action* to create an output. Hence, these operations are classied as transformations or actions.
 
 ![RDFRules main processes](rdfrules-abstractions.png)
 
 ### Transformations
-Any transformation is a lazy operation that converts the current data object to another. For example a transformation in the RdfDataset
-object creates either a new RdfDataset or an Index object.
+Any transformation is a lazy operation that converts the current data object to another. For example a transformation in the RDFDataset
+object creates either a new RDFDataset or an Index object.
 
 ### Actions
 
-An action operation applies all pre-dened transformations on the current and previous objects, and processes (transformed) input data to create a desired output such as rules, histograms, triples, statistics etc. Compared to transformations, actions may load data into memory and perform time-consuming operations.
+An action operation applies all pre-defined transformations on the current and previous objects, and processes (transformed) input data to create a desired output such as rules, histograms, triples, statistics etc. Compared to transformations, actions may load data into memory and perform time-consuming operations.
 
 ### Caching
 
@@ -49,115 +58,117 @@ caching of performed transformations. Each data object has the cache method that
 
 ## Main Abstractions
 
-### RdfGraph
+### RDFGraph
 
-The *RdfGraph* object is a container for RDF triples and is built once we load an RDF graph. It can either be a file or a stream of triples or quads in a standard RDF format such as N-Triples, N-Quads, JSON-LD, TriG or TriX. If the input format contains a set of quads (with information about named graphs) all triples are merged to one graph. Alternatively, we can create directly the *RdfDataset* object (see below) from quads and to preserve the distribution of triples in the individual graphs. This object has defined following main operations:
-
-#### Transformations
-
-Operation | Description
------------- | -------------
-map(*func*) | Return a new *RdfGraph* object with mapped triples by a function *func*.
-filter(*func*) | Return a new *RdfGraph* object with filtered triples by a function *func*.
-take(*n*), drop(*n*), slice(*from*, *until*) | Return a new *RdfGraph* object with filtered triples by cutting the triple set.
-discretize(*task*, *func*) | Return a new *RdfGraph* object with discretized numeric literals by a predefined *task*. It processes such triples which satisfy a function *func*.
-
-#### Actions
-
-Operation | Description
------------- | -------------
-foreach(*func*) | Apply a function *func* for each triple.
-histogram(*s*, *p*, *o*) | Return a map where keys are items and values are numbers of aggregated items. Parameters *s*, *p*, *o* represents booleans determining which triple items should be aggregated.
-types() | Return a list of all predicates with their type ranges and frequencies.
-cache(*target*) | Cache this *RdfGraph* object either into memory or into a file on a disk.
-export(*target*, *format*) | Export this *RdfGraph* object into a file in some familiar RDF format.
-
-### RdfDataset
-
-The *RdfDataset* object is a container for RDF quads and is created from one or many *RdfGraph* instances. This data object has the same operations as the *RdfGraph*. The only difference is that operations do not work with triples but with quads.
+The *RDFGraph* object is a container for RDF triples and is built once we load an RDF graph. It can either be a file or a stream of triples or quads in a standard RDF format such as N-Triples, N-Quads, JSON-LD, TriG or TriX. If the input format contains a set of quads (with information about named graphs) all triples are merged to one graph. Alternatively, we can create directly the *RDFDataset* object (see below) from quads and to preserve the distribution of triples in the individual graphs. This object has defined following main operations:
 
 #### Transformations
 
-Operation | Description
------------- | -------------
-map(*func*) | Return a new *RdfDataset* object with mapped quads by a function *func*.
-filter(*func*) | Return a new *RdfDataset* object with filtered quads by a function *func*.
-take(*n*), drop(*n*), slice(*from*, *until*) | Return a new *RdfDataset* object with filtered quads by cutting the quad set.
-discretize(*task*, *func*) | Return a new *RdfDataset* object with discretized numeric literals by a predefined *task*. It processes such quads which satisfy a function *func*.
-addGraph(*graph*) | Return a new *RdfDataset* with added *graph*.
-index(*mode*) | Create an *Index* object from this *RdfDataset* object.
+| Operation  | Description                                                                                           |
+|------------|-------------------------------------------------------------------------------------------------------|
+| map quads  | Return a new *RDFGraph* object with updated triples.                                                  |
+| filter     | Return a new *RDFGraph* object with filtered triples.                                                 |
+| shrink     | Return a new shrinked *RDFGraph* object.                                                              |
+| discretize | Return a new *RDFGraph* object with discretized numeric literals by a predefined *task* and *filter*. |
+| merge      | Merge all loaded graphs into one RDFDataset.                                                          |
 
 #### Actions
 
-Operation | Description
------------- | -------------
-foreach(*func*) | Apply a function *func* for each quad.
-histogram(*s*, *p*, *o*) | Return a map where keys are items and values are numbers of aggregated items. Parameters *s*, *p*, *o* represents booleans determining which triple items should be aggregated.
-types() | Return a list of all predicates with their type ranges and frequencies.
-cache(*target*) | Cache this *RdfDataset* object either into memory or into a file on a disk.
-export(*target*, *format*) | Export this *RdfDataset* object into a file in some familiar RDF format.
+| Operation  | Description                                                |
+|------------|------------------------------------------------------------|
+| get        | Get and show all triples.                                  |
+| histogram  | Return histogram by chosen aggregated triple items.        |
+| properties | Return informations and stats about all properties.        |
+| export     | Export this graph into a file in some familiar RDF format. |
+
+### RDFDataset
+
+The *RDFDataset* object is a container for RDF quads and is created from one or many *RDFGraph* instances. This data object has the same operations as the *RDFGraph*. The only difference is that operations do not work with triples but with quads.
+
+#### Transformations (different from RDFGraph)
+
+| Operation | Description                                                  |
+|-----------|--------------------------------------------------------------|
+| index     | Create an fact *Index* object from this *RDFDataset* object. |
 
 ### Index
 
-The *Index* object can be created from the *RdfDataset* object or loaded from cache. It contains prepared and indexed data in memory and has operations for rule mining with the AMIE+ algorithm.
+The *Index* object can be created from the *RDFDataset* object or loaded from a cache. It contains prepared and indexed data in memory and has operations for rule mining with the RDFRules algorithm.
 
 #### Transformations
 
-Operation | Description
------------- | -------------
-toDataset() | Return a *RdfDataset* object from this *Index* object.
+| Operation | Description                                                                                            |
+|-----------|--------------------------------------------------------------------------------------------------------|
+| mine      | Execute a rule mining *task* with thresholds, constraints and patterns, and return a *Ruleset* object. |
 
 #### Actions
 
-Operation | Description
------------- | -------------
-cache(*target*) | Serialize this *Index* object into a file on a disk.
-mine(*task*) | Execute a rule mining *task* with thresholds, constraints and patterns, and return a *RuleSet* object.
+| Operation              | Description                                                               |
+|------------------------|---------------------------------------------------------------------------|
+| properties cardinality | Get cardinalities from selected properties (such as size, domain, range). |
+| export                 | Serialize and export loaded index into a file for a later use.            |
 
-### RuleSet
 
-The *RuleSet* object is on the output of the RdfRules workflow. It contains all discovered rules conforming to all input restrictions. This final object has multiple operations for rule analysis, counting additional measures of significance, rule filtering and sorting, rule clustering, and finally rule exporting for use in other systems.
+
+### Ruleset
+
+The *Ruleset* object is on the output of the RDFRules workflow. It contains all discovered rules conforming to all input restrictions. This final object has multiple operations for rule analysis, counting additional measures of significance, rule filtering and sorting, rule clustering, prediction from rules, and finally rule exporting for use in other systems.
 
 #### Transformations
 
-Operation | Description
------------- | -------------
-map(*func*) | Return a new *RuleSet* object with mapped rules by a function *func*.  
-filter(*func*) | Return a new *RuleSet* object with filtered rules by a function *func*.  
-take(*n*), drop(*n*), slice(*from*, *until*) | Return a new *RuleSet* object with filtered rules by cutting the rule set.  
-filterByPatterns (*patterns*) | Return a new *RuleSet* object with rules matching at least one of the input rule patterns. 
-sortBy(*measures*) | Return a new *RuleSet* object with sorted rules by selected measures of significance.  
-computeConfidence (*minConf*, *topK?*) | Return a new *RuleSet* object with the computed confidence measure for each rule that must be higher than the *minConf* value.  
-computePcaConfidence (*minPcaConf*, *topK?*) | Return a new *RuleSet* object with the computed PCA confidence measure for each rule that must be higher than the *minPcaConf* value.  
-computeLift(*minConf*) | Return a new *RuleSet* object with the computed lift measure for each rule.  
-makeClusters(*task*) | Return a new *RuleSet* object with clusters computed by a clustering task.   
-findSimilar(*rule*, *n*), findDissimilar(*rule*, *n*) | Return a new *RuleSet* object with top *n* rules, the selected rules will be the most similar (or dissimilar) ones from the input rule.
-pruned(*onlyFunctionalProperties*) | Return a new *RuleSet* object reduced by overlapping rules with the "data coverage pruning" method. There are two modes: *onlyFunctionalProperties* where output rules are not able to cover two or more triples with identical subject and predicate, but with different object. Without functional properties rules can cover triples with same subject-predicate and various objects. 
-
+| Operation          | Description                                                                                                            |
+|--------------------|------------------------------------------------------------------------------------------------------------------------|
+| filter             | Return a new *Ruleset* object with filtered rules by measures of significance or rule patterns.                        |
+| shrink             | Return a new shrinked *Ruleset* object.                                                                                |
+| sort               | Return a new *Ruleset* object with sorted rules by selected measures of significance.                                  |
+| compute confidence | Return a new *Ruleset* object with the computed confidence measure (CWA or PCA) for each rule by a selected threshold. |
+| make clusters      | Return a new *Ruleset* object with clusters computed by a clustering task.                                             |
+| prune              | Return a new *Ruleset* object reduced by a selected pruning strategy.                                                  |
+| predict            | Use all rules in the *Ruleset* for new triples prediction. This operation returns a *Prediction* object.               |
 
 #### Actions
 
-Operation | Description
------------- | -------------
-foreach(*func*) | Apply a function *func* for each rule.  
-cache(*target*) | Cache this *RuleSet* object either into memory or into a file on a disk.  
-export(*target*, *format*) | Export this *RuleSet* object into a file in some selected output format.  
+| Operation    | Description                                                              |
+|--------------|--------------------------------------------------------------------------|
+| get and show | Get and show all mined rules.                                            |
+| export       | Export this *Ruleset* object into a file in some selected output format. |
+
+### Prediction
+
+The *Prediction* object is a container of all predicted triples by a ruleset. It differs positive, negative or PCA positive types of prediction. Each predicted triple has information about all rules which predict that triple.
+
+#### Transformations
+
+| Operation     | Description                                                                                                                                    |
+|---------------|------------------------------------------------------------------------------------------------------------------------------------------------|
+| filter        | Return a new *Prediction* object with filtered predicted triples by measures of significance, rule patterns, triple filters and other options. |
+| shrink        | Return a new shrinked *Prediction* object.                                                                                                     |
+| sort          | Return a new *Prediction* object with sorted predicted triples by their rules and their measures of significance.                              |
+| to dataset    | Transform all predicted triples into the *RDFGraph* object                                                                                     |
+
+#### Actions
+
+| Operation    | Description                                                                                                                                                                     |
+|--------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| get and show | Get and show predicted triples with bound rules.                                                                                                                                |
+| evaluate     | Evaluate this prediction by aggregating of all positives, negatives and PCA positives examples. It return confusion matrix with precision, recall and other evaluation metrics. |
+| export       | Export this *Prediction* object into a file in some selected output format.                                                                                                     |
 
 ## Pre-processing
 
-You can use *RdfGraph* and *RdfDataset* abstractions to analyze and pre-process input RDF data before the mining phase. First you load RDF datasets into the RdfRules system and then you can aggregate data, count occurences or read types of individual triple items. Based on the previous analysis you can define some transformations including triples/quads merging, filtering or replacing. Transformed data can either be saved on a disk into a file in some RDF format or the binary format for later use, or used for indexing and rule mining. Therefore, RdfRules is also suitable for RDF data transformations and is not intended only for rules mining.
+You can use *RDFGraph* and *RDFDataset* abstractions to analyze and pre-process input RDF data before the mining phase. First you load RDF datasets into the RDFRules system, and then you can aggregate data, count occurences or read types of individual triple items. Based on the previous analysis you can define some transformations including triples/quads merging, filtering or replacing. Transformed data can either be saved on a disk into a file in some RDF format or the binary format for later use, or used for indexing and rule mining. Therefore, RDFRules is also suitable for RDF data transformations and is not intended only for rules mining.
 
-RdfRules uses the [EasyMiner-Discretization](https://github.com/KIZI/EasyMiner-Discretization) module which provides some implemented unsupervised discretization algorithms, such as equal-frequency and equal-width. These algorithms can be easily used within the RdfRules tool where they are adapted to work with RDF triple items.
+RDFRules uses the [EasyMiner-Discretization](https://github.com/KIZI/EasyMiner-Discretization) module which provides some implemented unsupervised discretization algorithms, such as equal-frequency and equal-width. These algorithms can be easily used within the RDFRules tool where they are adapted to work with RDF triple items.
 
 ## Indexing
 
-Before mining the input dataset has to be indexed into memory for the fast rules enumeration and measures counting. The AMIE+ algorithm uses six fact indexes that hold data in several hash tables. Hence, it is important to realize that the complete input data are replicated six times and then stored into memory before the mining phase. This index may have two modes: *preserved* and *in-use*. The *preserved* mode keeps data in memory until the existence of the index object, whereas the *in-use* mode loads data into memory only if the index is needed and is released after use.
+Before mining the input dataset has to be indexed into memory for the fast rules enumeration and measures counting. The RDFRules (enhanced AMIE+) algorithm uses fact indices that hold data in several hash tables. Hence, it is important to realize that the complete input data are replicated several times and then stored into memory before the mining phase.
 
 Data are actually stored in memory once the mining process is started. The system automatically resolves all triples with the *owl:sameAs* predicate and replaces all objects by their subjects in these kinds of triples. Thanks to this functionality we can mine across several graphs and link statements by the *owl:sameAs* predicate.
 
 ## Rule Mining
 
-RdfRules uses the [AMIE+](https://www.mpi-inf.mpg.de/departments/databases-and-information-systems/research/yago-naga/amie/) algorithm as the background for rule mining. It mines logical rules in the form of Horn clause with one atom at the head position and with conjunction of atoms at the body position. An atom is a statement (or triple) which is further indivisible and contains a fixed constant at the predicate position and variables or constants at the subject and/or object position, e.g., the atom *livesIn(a, b)* contains variables *a* and *b*, whereas the atom *livesIn(a, Prague)* contains only one variable *a* and the fixed constant *Prague* at the object position.
+RDFRules uses the [AMIE+](https://www.mpi-inf.mpg.de/departments/databases-and-information-systems/research/yago-naga/amie/) algorithm as the background for rule mining. It mines logical rules in the form of Horn clause with one atom at the head position and with conjunction of atoms at the body position. An atom is a statement (or triple) which is further indivisible and contains a fixed constant at the predicate position and variables or constants at the subject and/or object position, e.g., the atom *livesIn(a, b)* contains variables *a* and *b*, whereas the atom *livesIn(a, Prague)* contains only one variable *a* and the fixed constant *Prague* at the object position.
 
 ```
 Horn rules samples:
@@ -169,22 +180,23 @@ Horn rules samples:
 
 The output rule has to fulfill several conditions. First, rule atoms must be *connected* and mutually reachable. That means variables are shared among atoms to form a continuous path. Second, there are allowed only *closed* rules. A rule is *closed* if its atoms involves any variable and each variable appears at least twice in the rule. Finally, atoms must not be reflexive - one atom does not contain two same variables.
 
-There are four parameters that are passing to the rule mining process. They are: indexed data, thresholds, rule patterns and constraints. The relevance of rules is determined by their measures of significance. In RdfRules we use all measures defined in AMIE+ and some new measures such as lift or clusters.
+There are six parameters that are passing to the rule mining process. They are: indexed data, thresholds, rule patterns, constraints, and consumers. The relevance of rules is determined by their measures of significance. In RDFRules we use all measures defined in AMIE+ and some new measures such as lift or QCA confidence.
 
 ### Measures of Significance
 
-Measure | Description
------------- | -------------
-HeadSize | The *head size* of a rule is a measure which indicates a number of triples (or instances) conforming the head of the rule.  
-Support | From all triples matching the head of the rule we count a subset from which we are able to build a path conforming the body of a the rule. With the increasing rule-length the support value is decreasing or unchanged and is always lower or equal to the head size.
-HeadCoverage | This is the relative value of the support measure depending on the head size. ```HC = Support / HeadSize```
-BodySize | The *body size* is a number of all possible paths in an RDF knowledge graph that conform the body of the rule.
-Confidence | The *standard confidence* is a measure compares the body size to the support value and is interpreted as a probability of the head occurrence given the specific body.
-PcaConfidence | This kind of confidence measure is more appropriate for OWA, since a missing fact for a subject variable in the head is not assumed to be a counter-example.
-PcaBodySize | Counted *body size* from which the *PCA confidence* is computed.
-HeadConfidence | Probability of the head occurrence by a random choice across the overall dataset.
-Lift | The ratio between the *standard confidence* and the *head confidence*. With this measure we are able to discover a dependency between the head and the body of the rule.
-Cluster | We can make rule clusters by their similarities. This measure only specifies a number of cluster to which the rule belongs.
+| Measure        | Description                                                                                                                                                              |
+|----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| HeadSize       | The *head size* of a rule is a measure which indicates a number of triples (or instances) for a head property.                                                           |
+| Support        | Number of correctly predicted triples.                                                                                                                                   |
+| HeadCoverage   | This is the relative value of the support measure depending on the head size. ```HC = Support / HeadSize```                                                              |
+| BodySize       | Number of all predicted triples.                                                                                                                                         |
+| Confidence     | The *standard confidence* is a measure comparing the body size to the support value and is interpreted as a probability of the head occurrence given the specific body.  |
+| PcaBodySize    | Number of all predicted triples conforming PCA.                                                                                                                          |
+| PcaConfidence  | This kind of confidence measure is more appropriate for OWA, since a missing fact for a subject variable in the head is not assumed to be a counter-example.             |
+|
+| HeadConfidence | Probability of the head occurrence by a random choice across the overall dataset.                                                                                        |
+| Lift           | The ratio between the *standard confidence* and the *head confidence*. With this measure we are able to discover a dependency between the head and the body of the rule. |
+| Cluster        | We can make rule clusters by their similarities. This measure only specifies a number of cluster to which the rule belongs.                                              |
 
 ![Measures of significance in example](measures.png)
 
@@ -192,66 +204,63 @@ Cluster | We can make rule clusters by their similarities. This measure only spe
 
 There are several main pruning thresholds which influence the speed of the rules enumeration process:
 
-Threshold | Description
------------- | -------------
-MinHeadSize | A minimum number of triples matching the rule head. It must be greater than *zero*.  
-MinHeadCoverage | A minimal head coverage. It must be greater than *zero* and less than or equal to *one*.   
-MaxRuleLength | A maximal length of a rule. It must be greater than *one*.   
-TopK | A maximum number of returned rules sorted by head coverage. It must be greater than *zero*.  
-Timeout | A maximum mining time in minutes.
+| Threshold       | Description                                                  |
+|-----------------|--------------------------------------------------------------|
+| MinHeadSize     | A minimum number of triples matching the rule head.          |
+| MinAtomSize     | A minimum number of triples matching each atom in the rules. |
+| MinHeadCoverage | A minimal head coverage.                                     |
+| MaxRuleLength   | A maximal length of a rule.                                  |
+| TopK            | A maximum number of returned rules sorted by head coverage.  |
+| Timeout         | A maximum mining time in minutes.                            |
 
 ### Rule Patterns
 
 All mined rules must match at least one pattern defined in the rule patterns list. If we have an idea of what atoms mined rules should contain, we can define one or several rule patterns. A rule pattern is either *exact* or *partial*. The number of atoms in any mined rule must be less than or equal to the length of the *exact* rule pattern. For a *partial* mode, if some rule matches the whole pattern then all its extensions also match the pattern.
 
 ```
-AtomItemPattern:
- Any               // Any item
- AnyVar,           // Any variable
- AnyConst,         // Any constant
- Var(x)            // An item must be variable x
- Consts(x)         // An item must be constant x
- OneOf(x[])        // An item must match at least one of the pre-defined atom item patterns x 
- NoneOf(x[])       // An item must not match all of the pre-defined atom item patterns x
+AIP: Atom Item Pattern
+ ?                       // Any item
+ ?V                      // Any variable
+ ?C,                     // Any constant
+ ?a,?b,?c...             // A concrete variable
+ <livesIn>               // A concrete constant
+ [<livesIn>, <diedIn>]   // An item must match at least one of the pre-defined constants
+ ![<livesIn>, <diedIn>]  // An item must not match all of the pre-defined constants
 
-AtomPattern(
- subject: AtomItemPattern,       // A pattern for subject, default is Any
- predicate: AtomItemPattern,     // A pattern for predicate, default is Any
- object: AtomItemPattern,        // A pattern for object, default is Any 
- graph: AtomItemPattern          // A pattern for graph, default is Any
-)
+AP: Atom Pattern
+ (AIP AIP AIP AIP?)  // A triple with three atom item patterns with optional graph atom item pattern as the fourth item
 
-RulePattern(
- body: AtomPattern[]             // Patterns for the body of the rule
- head: AtomPattern               // A pattern for the head of the rule
-)
+RP: Rule Pattern
+ * ^ AP ^ AP => AP  // Partial rule pattern
+     AP ^ AP => AP  // Exact rule pattern
 ```
 
 ### Constraints
 
-Finally, the last mining parameter specifies additional constraints and defines a way of mining. Here is a list of implemented constraints that can be used:
+Here is a list of implemented constraints that can be used:
 
-Constraint | Description
------------- | -------------
-OnlyPredicates(*x*) | Rules must contain only predicates defined in the set *x*.
-WithoutPredicates(*x*) | Rules must not contain predicates defined in the set *x*.
-WithInstances | It allows to mine rules with constants at the subject or object position.
-WithObjectInstances | It allows to mine rules with constants only at the object position.
-WithoutDuplicitPredicates | Disable to mine rules which contain some predicate in more than one atom.
+| Constraint                | Description                                                                                                                        |
+|---------------------------|------------------------------------------------------------------------------------------------------------------------------------|
+| OnlyPredicates(*x*)       | Rules must contain only predicates defined in the set *x*.                                                                         |
+| WithoutPredicates(*x*)    | Rules must not contain predicates defined in the set *x*.                                                                          |
+| WithConstants(*position*) | Mining with constants at a specific atom position. Supported positions are: *both*, *subject*, *object*, *lower cardinality side*. |
+| WithoutDuplicitPredicates | Disable to mine rules which contain some predicate in more than one atom.                                                          |
 
 ## Post-processing
 
-During the mining process the RdfRules count only basic measures of significance: head size, support and head coverage. If you want to compute other measures (like confidences and lift) you can do it explicitly in the post-processing phase. The RdfRules tool also supports rules clustering by the DBScan algorithm. It uses pre-defined similarity functions comparing rule contents and computed measures of significance. We can also use similarity counting to determine top-*k* most similar or dissimilar rules to a selected rule.
+During the mining process the RDFRules count only basic measures of significance: head size, support and head coverage. If you want to compute other measures (like confidences and lift) you can do it explicitly in the post-processing phase. The RDFRules tool also supports rules clustering by the DBScan algorithm. It uses pre-defined similarity functions comparing rule contents and computed measures of significance.
 
 All mined rules can also be filtered or sorted by used-defined functions and finally exported either into a human-readable text format or into a machine-readable JSON format.
 
-```
 Example of the TEXT output format:
+
+```
 (?a <participatedIn> <Turbot_War>) ^ (?a <imports> ?b) -> (?a <exports> ?b) | support: 14, headCoverage: 0.037, confidence: 0.636, pcaConfidence: 0.636, lift: 100.41, headConfidence: 0.0063, headSize: 371, bodySize: 22, pcaBodySize: 22, cluster: 7
 ```
 
+Example of the JSON output format:
+
 ```json
-//Example of the JSON output format:
 [{
   "head": {
     "subject": {
@@ -319,7 +328,7 @@ Example of the TEXT output format:
 }]
 ```
 
-In RdfRules we can also attach information about graph at every atom and then filter rules based on named graphs. This ability is useful to discover new knowledge based on linking multiple graphs.
+In RDFRules we can also attach information about graph at every atom and then filter rules based on named graphs. This ability is useful to discover new knowledge based on linking multiple graphs.
 
 ```
 (?a <hasChild> ?c <yago>) ^ (?c <dbo:parent> ?b <dbpedia>) -> (?a <isMarriedTo> ?b <yago>)
@@ -327,7 +336,13 @@ In RdfRules we can also attach information about graph at every atom and then fi
 
 ## Licence
 
-RdfRules is licensed under [GNU General Public License v3.0](http://www.gnu.org/licenses/gpl-3.0.txt)
+RDFRules is licensed under [GNU General Public License v3.0](http://www.gnu.org/licenses/gpl-3.0.txt)
+
+## Publications
+
+- Václav Zeman, Tomáš Kliegr, and Vojtěch Svátek. RDFRules: Making RDF rule
+  mining easier and even more efficient. Semantic Web, 12(4):569–602, 01 2021. [https://doi.org/10.3233/SW-200413](https://doi.org/10.3233/SW-200413), full paper: [http://www.semantic-web-journal.net/system/files/swj_3](http://www.semantic-web-journal.net/system/files/swj_3).
+- Václav Zeman, Tomáš Kliegr, and Vojtech Svátek. RdfRules preview: Towards an analytics engine for rule mining in RDF knowledge graphs. In RuleML Challenge, 2018. [https://doi.org/10.29007/nkv7](https://doi.org/10.29007/nkv7).
 
 ## Acknowledgments
 
