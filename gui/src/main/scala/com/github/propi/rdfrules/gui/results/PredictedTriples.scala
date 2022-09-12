@@ -165,7 +165,7 @@ class PredictedTriples(val title: String, val id: Future[String], showRules: Boo
         exportRdf(filteredTriples(result.value, fulltext.value, predictedResultsSelection.selectedValues.flatMap(PredictedResult(_)), withRules.value))}>Export as RDF</a>
       <input type="text" class="fulltext" value={fulltext.bind} onkeyup={e: Event =>
         fulltext.value = e.target.asInstanceOf[HTMLInputElement].value
-        setPage(1)}></input>{predictedResultsSelection.view.bind}<label class={if (showRules) "" else "hidden"}>show rules:
+        setPage(1)}></input>{predictedResultsSelection.view.bind}<label>show rules:
       <input type="checkbox" checked={withRules.bind} onchange={e: Event =>
       withRules.value = e.target.asInstanceOf[HTMLInputElement].checked}/>
     </label>

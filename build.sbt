@@ -2,7 +2,7 @@ name := "rdfrules"
 
 val basicSettings = Seq(
   organization := "com.github.propi.rdfrules",
-  version := "1.0.0",
+  version := "1.6.0",
   scalaVersion := "2.13.8",
   scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-encoding", "utf8")
 )

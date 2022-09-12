@@ -16,7 +16,7 @@ import com.github.propi.rdfrules.http.util.{Server, ServerConf}
 import com.github.propi.rdfrules.utils.Debugger
 import spray.json._
 
-import java.io.File
+import java.io.{File, PrintWriter}
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import scala.concurrent.duration._
@@ -70,27 +70,28 @@ object Main extends ServerConf {
     println("RDFRules http server finished.")
   }
 
-  private def runTask(path: String): Unit = {
+  private def runTask(path: String, target: Option[String]): Unit = {
     val file = new File(path)
-    if (file.isFile) {
-      ActorSystem(Behaviors.setup[Done] { context =>
-        implicit val system: ActorSystem[Nothing] = context.system
-        implicit val ec: ExecutionContext = context.executionContext
-        Debugger() { debugger =>
-          val pipeline = Files.readString(file.toPath, StandardCharsets.UTF_8).parseJson.convertTo[Debugger => Pipeline[Source[JsValue, NotUsed]]]
-          pipeline(debugger).execute.runForeach(x => println(x.prettyPrint)).foreach(x => context.self ! x)
+    if (!file.isFile) throw new IllegalArgumentException(s"Path '$path' does not target to a valid task file.")
+    ActorSystem(Behaviors.setup[Done] { context =>
+      implicit val system: ActorSystem[Nothing] = context.system
+      implicit val ec: ExecutionContext = context.executionContext
+      Debugger() { debugger =>
+        val pipeline = Files.readString(file.toPath, StandardCharsets.UTF_8).parseJson.convertTo[Debugger => Pipeline[Source[JsValue, NotUsed]]]
+        val writer = target.map(new File(_)).map(new PrintWriter(_, "UTF-8")).getOrElse(new PrintWriter(System.out, true))
+        pipeline(debugger).execute.runForeach(x => writer.println(x.prettyPrint)).onComplete { res =>
+          res.failed.foreach(_.printStackTrace())
+          writer.close()
+          context.self ! Done
         }
-        Behaviors.receiveMessage(_ => Behaviors.stopped)
-      }, "BatchTask")
-    } else {
-      throw new IllegalArgumentException(s"Path '$path' does not target to a valid task file.")
-    }
-
+      }
+      Behaviors.receiveMessage(_ => Behaviors.stopped)
+    }, "BatchTask")
   }
 
   def main(args: Array[String]): Unit = {
     if (args.nonEmpty) {
-      runTask(args(0))
+      runTask(args(0), args.lift(1))
     } else {
       runHttp()
     }
