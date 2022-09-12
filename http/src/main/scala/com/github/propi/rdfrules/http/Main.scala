@@ -6,12 +6,21 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
+import akka.stream.scaladsl.Source
+import akka.{Done, NotUsed}
+import com.github.propi.rdfrules.http.formats.PipelineJsonReaders.pipelineReader
 import com.github.propi.rdfrules.http.service.Task
+import com.github.propi.rdfrules.http.task.Pipeline
 import com.github.propi.rdfrules.http.util.Server.MainMessage
 import com.github.propi.rdfrules.http.util.{Server, ServerConf}
+import com.github.propi.rdfrules.utils.Debugger
+import spray.json._
 
-import scala.concurrent.{Await, ExecutionContext}
+import java.io.File
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext}
 import scala.io.StdIn
 import scala.language.postfixOps
 
@@ -23,7 +32,7 @@ object Main extends ServerConf {
   val confPrefix = "rdfrules"
   lazy val configServerPrefix = s"$confPrefix.server"
 
-  def main(args: Array[String]): Unit = {
+  private def runHttp(): Unit = {
     val system: ActorSystem[MainMessage] = ActorSystem(Behaviors.setup[MainMessage] { context =>
       implicit val scheduler: Scheduler = context.system.scheduler
       val taskService = context.spawn(Task.taskFactoryActor, "task-service")
@@ -59,6 +68,32 @@ object Main extends ServerConf {
     }
     Await.result(system.whenTerminated, Duration.Inf)
     println("RDFRules http server finished.")
+  }
+
+  private def runTask(path: String): Unit = {
+    val file = new File(path)
+    if (file.isFile) {
+      ActorSystem(Behaviors.setup[Done] { context =>
+        implicit val system: ActorSystem[Nothing] = context.system
+        implicit val ec: ExecutionContext = context.executionContext
+        Debugger() { debugger =>
+          val pipeline = Files.readString(file.toPath, StandardCharsets.UTF_8).parseJson.convertTo[Debugger => Pipeline[Source[JsValue, NotUsed]]]
+          pipeline(debugger).execute.runForeach(x => println(x.prettyPrint)).foreach(x => context.self ! x)
+        }
+        Behaviors.receiveMessage(_ => Behaviors.stopped)
+      }, "BatchTask")
+    } else {
+      throw new IllegalArgumentException(s"Path '$path' does not target to a valid task file.")
+    }
+
+  }
+
+  def main(args: Array[String]): Unit = {
+    if (args.nonEmpty) {
+      runTask(args(0))
+    } else {
+      runHttp()
+    }
   }
 
 }

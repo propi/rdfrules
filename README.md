@@ -333,5 +333,4 @@ RdfRules is licensed under [GNU General Public License v3.0](http://www.gnu.org/
 
 Thanks to these organizations for supporting us:
 
-[![Jetbrains](jetbrains.png)](https://www.jetbrains.com/?from=RDFRules)
 [![VŠE](vselogo.png)](https://www.vse.cz/)

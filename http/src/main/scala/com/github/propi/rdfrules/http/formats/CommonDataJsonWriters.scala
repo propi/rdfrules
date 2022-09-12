@@ -7,7 +7,6 @@ import com.github.propi.rdfrules.http.service.Task.TaskResponse
 import com.github.propi.rdfrules.http.task.GroupedPredictedTriple
 import com.github.propi.rdfrules.prediction.EvaluationResult
 import com.github.propi.rdfrules.rule.{ResolvedInstantiatedAtom, ResolvedInstantiatedRule}
-import com.github.propi.rdfrules.ruleset.formats.Json._
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
@@ -23,8 +22,7 @@ object CommonDataJsonWriters {
     "accuracy" -> obj.accuracy.toJson,
     "precision" -> obj.precision.toJson,
     "recall" -> obj.recall.toJson,
-    "fscore" -> obj.fscore.toJson,
-    "model" -> obj.model.toJson
+    "fscore" -> obj.fscore.toJson
   )
 
   implicit val quadWriter: RootJsonWriter[Quad] = (obj: Quad) => JsObject(
