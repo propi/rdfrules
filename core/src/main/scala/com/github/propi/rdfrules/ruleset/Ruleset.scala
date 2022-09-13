@@ -163,7 +163,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
       //therefore we shrink the original ruleset
       //first we need to define rule ordering for priority queue
       implicit val ord: Ordering[FinalRule] = Ordering.by[FinalRule, (Double, Double)](x => x.measures.get[Measure.PcaConfidence].map(_.value).getOrElse(0.0) -> x.measures.apply[Measure.HeadCoverage].value).reverse
-      rulesWithConfidence.topK(topK)(rule => threshold = rule.measures.apply[Measure.Confidence].value)
+      rulesWithConfidence.topK(topK)(rule => threshold = rule.measures.apply[Measure.PcaConfidence].value)
     } else {
       rulesWithConfidence
     }
