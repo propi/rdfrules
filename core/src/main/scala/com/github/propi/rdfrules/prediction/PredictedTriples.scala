@@ -86,7 +86,7 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
     }, true)
   }
 
-  def evaluate(pca: Boolean, injectiveMapping: Boolean): EvaluationResult = {
+  def evaluate(pca: Boolean, injectiveMapping: Boolean = true): EvaluationResult = {
     var tp, fp = 0
     val predictedProperties = collection.mutable.HashMap.empty[Int, (Int, IncrementalInt)]
     val predictedTriples = collection.mutable.HashSet.empty[IntTriple]
