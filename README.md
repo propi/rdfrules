@@ -2,7 +2,7 @@
 
 RDFRules is a powerful analytical tool for rule mining from RDF knowledge graphs. It offers a complex rule mining solution including RDF data pre-processing, rules post-processing and prediction abilities from rules. The core of RDFRules is written in the Scala language. Besides the Scala API, RDFRules also provides REST web service with graphical user interface via a web browser. RDFRules uses the [AMIE+](https://www.mpi-inf.mpg.de/departments/databases-and-information-systems/research/yago-naga/amie/) algorithm with several extensions as a basis for a complete rule mining solution.
 
-LIVE DEMO: [https://br-dev.lmcloud.vse.cz/rdfrulesgui/](https://br-dev.lmcloud.vse.cz/rdfrulesgui/)
+LIVE DEMO: [https://br-dev.lmcloud.vse.cz/rdfrules/](https://br-dev.lmcloud.vse.cz/rdfrules/)
 
 ## Getting started
 
