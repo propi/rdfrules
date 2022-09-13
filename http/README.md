@@ -279,6 +279,6 @@ Notice that *MergeDatasets* task merges all datasets and graphs to one and all f
 
 ### Others operations
 
-The simplest way to contruct a task pipeline is to use a GUI within the latest packed binary release. Individual operations are [documented](../gui/webapp/README.md) inside the GUI. It is very fast to compose operations (transformations and action) and then to export the designed pipeline into a JSON file.
+The simplest way to contruct a task pipeline is to use the GUI within the latest packed binary release. Individual operations are [documented](../gui/webapp/README.md) inside the GUI. It is very fast to compose operations (transformations and action) and then to export the designed pipeline into a JSON file.
 
 Subsequently, the JSON task file can be sent either via POST method into the HTTP service to process the task (in the GUI or by your own call), or within launching the HTTP module as the first argument if you need to process the task in the batching mode. See more in the [getting started section](../README.md). 
