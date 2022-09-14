@@ -6,7 +6,7 @@ import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.Constan
 import com.github.propi.rdfrules.rule.{Atom, ExpandingRule, RuleConstraint, RulePattern, Threshold}
 import com.github.propi.rdfrules.utils.Debugger
 
-class AmieSettings(rulesMining: RulesMining)(implicit val debugger: Debugger, val mapper: TripleItemIndex) {
+class AmieSettings(rulesMining: RulesMining)(implicit debugger: Debugger, mapper: TripleItemIndex) {
   @volatile private var _minHeadCoverage: Double = rulesMining.thresholds.get[Threshold.MinHeadCoverage].map(_.value).getOrElse(0.0)
 
   val parallelism: Int = rulesMining.parallelism

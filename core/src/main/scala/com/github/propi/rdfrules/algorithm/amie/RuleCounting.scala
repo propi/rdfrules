@@ -1,10 +1,10 @@
 package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.data.TriplePosition
-import com.github.propi.rdfrules.index.TripleIndex
+import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.{Atom, Measure}
-import com.github.propi.rdfrules.utils.TypedKeyMap
+import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
 
 /**
   * Created by Vaclav Zeman on 11. 7. 2017.
@@ -20,7 +20,7 @@ trait RuleCounting extends AtomCounting {
     *                      rule with confidence lower than minConfidence will have confidence = minConfidence - 1
     * @return New rule with counted confidence
     */
-  def withConfidence(minConfidence: Double, injectiveMapping: Boolean, allPaths: Boolean = false): FinalRule = {
+  def withConfidence(minConfidence: Double, injectiveMapping: Boolean, allPaths: Boolean = false)(implicit debugger: Debugger): FinalRule = {
     /*TODO: Check confidence counting - it may be wrong, e.g.: p(c, b) & p(c, a) => p(a, b)
     A -> C1 -> B
     A -> C2 -> B
@@ -107,7 +107,7 @@ trait RuleCounting extends AtomCounting {
     *                         rule with pca confidence lower than minPcaConfidence will have confidence = minPcaConfidence - 1
     * @return New rule with counted pca confidence
     */
-  def withPcaConfidence(minPcaConfidence: Double, injectiveMapping: Boolean, allPaths: Boolean = false): FinalRule = {
+  def withPcaConfidence(minPcaConfidence: Double, injectiveMapping: Boolean, allPaths: Boolean = false)(implicit debugger: Debugger): FinalRule = {
     //minimal allowed confidence is 0.1%
     if (minPcaConfidence < 0.001) {
       withPcaConfidence(0.001, allPaths)
@@ -192,6 +192,6 @@ trait RuleCounting extends AtomCounting {
 
 object RuleCounting {
 
-  implicit class PimpedClosedRule(val rule: FinalRule)(implicit val tripleIndex: TripleIndex[Int]) extends RuleCounting
+  implicit class PimpedClosedRule(val rule: FinalRule)(implicit val tripleIndex: TripleIndex[Int], val tripleItemIndex: TripleItemIndex) extends RuleCounting
 
 }

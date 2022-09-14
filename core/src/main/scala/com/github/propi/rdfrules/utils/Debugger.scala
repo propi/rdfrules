@@ -18,7 +18,7 @@ trait Debugger {
 
   @volatile private var interrupted: Boolean = false
 
-  def debug[T](name: String, num: Int = 0)(f: ActionDebugger => T): T
+  def debug[T](name: String, num: Int = 0, forced: Boolean = false)(f: ActionDebugger => T): T
 
   def interrupt(): Unit = interrupted = true
 
@@ -35,21 +35,22 @@ object Debugger {
   implicit object EmptyDebugger extends Debugger {
     val logger: Logger = Logger[Debugger]
 
-    def debug[T](name: String, num: Int = 0)(f: ActionDebugger => T): T = f(EmptyActionDebugger)
+    def debug[T](name: String, num: Int = 0, forced: Boolean = false)(f: ActionDebugger => T): T = f(EmptyActionDebugger)
   }
 
   class LoggerDebugger(val logger: Logger) extends Debugger {
-    def debug[T](name: String, num: Int = 0)(f: ActionDebugger => T): T = f(EmptyActionDebugger)
+    def debug[T](name: String, num: Int = 0, forced: Boolean = false)(f: ActionDebugger => T): T = f(EmptyActionDebugger)
   }
 
   private class ActorDebugger(val logger: Logger) extends Debugger {
     @volatile private var isActive = false
 
-    def debug[T](name: String, num: Int = 0)(f: ActionDebugger => T): T = {
-      if (isActive) {
+    def debug[T](name: String, num: Int = 0, forced: Boolean = false)(f: ActionDebugger => T): T = {
+      if (isActive && !forced) {
         f(EmptyActionDebugger)
       } else {
         val ad = new ActorActionDebugger(name, num)
+        val lastIsActive = isActive
         try {
           isActive = true
           val actor = new DebuggerActor(logger, ad)
@@ -62,7 +63,7 @@ object Debugger {
           }
         } finally {
           logger.info(ad.takeSnapshot.toString + " -- ended")
-          isActive = false
+          isActive = lastIsActive
         }
       }
     }

@@ -33,7 +33,7 @@ class HeadsMiner private(_parallelism: Int = Runtime.getRuntime.availableProcess
     ruleConsumer.result
   }
 
-  private class AmieProcess(implicit val tripleIndex: TripleIndex[Int], val settings: AmieSettings, val forAtomMatcher: MappedAtomPatternMatcher[Atom]) extends HeadsFetcher
+  private class AmieProcess(implicit val tripleIndex: TripleIndex[Int], val tripleItemIndex: TripleItemIndex, val settings: AmieSettings, val forAtomMatcher: MappedAtomPatternMatcher[Atom]) extends HeadsFetcher
 
 }
 

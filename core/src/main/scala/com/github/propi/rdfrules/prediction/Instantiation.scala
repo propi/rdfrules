@@ -69,8 +69,7 @@ object Instantiation {
   }
 
   def apply(rules: ForEach[FinalRule], index: Index, predictionResults: Set[PredictedResult], injectiveMapping: Boolean): ForEach[InstantiatedRule] = (f: InstantiatedRule => Unit) => {
-    implicit val thi: TripleIndex[Int] = index.tripleMap
-    implicit val atomCounting: AtomCounting = AtomCounting()
+    implicit val atomCounting: AtomCounting = AtomCounting()(index.tripleMap, index.tripleItemMap)
     for {
       rule <- rules
       iRule <- instantiateRule(rule, injectiveMapping)

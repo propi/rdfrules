@@ -1,7 +1,6 @@
 package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.data.TriplePosition
-import com.github.propi.rdfrules.index.TripleIndex
 import com.github.propi.rdfrules.rule.ExpandingRule.DanglingRule
 import com.github.propi.rdfrules.rule.PatternMatcher.Aliases
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
@@ -18,7 +17,6 @@ import scala.collection.parallel.ForkJoinTaskSupport
   */
 trait HeadsFetcher extends AtomCounting {
 
-  implicit val tripleIndex: TripleIndex[Int]
   implicit val settings: AmieSettings
   implicit val forAtomMatcher: MappedAtomPatternMatcher[Atom]
 

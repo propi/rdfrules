@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.algorithm.amie
 import com.github.propi.rdfrules.algorithm.amie.RuleFilter.{MinSupportRuleFilter, QuasiBindingFilter, RuleConstraints, RulePatternFilter}
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
-import com.github.propi.rdfrules.index.TripleIndex
+import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.ExpandingRule.{ClosedRule, DanglingRule}
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule._
@@ -514,7 +514,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
 
 object RuleRefinement {
 
-  implicit class PimpedRule(extendedRule: ExpandingRule)(implicit tripleHashIndex: TripleIndex[Int], settings: AmieSettings, _debugger: Debugger) {
+  implicit class PimpedRule(extendedRule: ExpandingRule)(implicit ti: TripleIndex[Int], tii: TripleItemIndex, settings: AmieSettings, _debugger: Debugger) {
     def refine(experiments: Boolean): Iterator[ExpandingRule] = {
       val _settings = settings
       if (experiments) {
@@ -522,6 +522,7 @@ object RuleRefinement {
           val rule: ExpandingRule = extendedRule
           val settings: AmieSettings = _settings
           val tripleIndex: TripleIndex[Int] = implicitly[TripleIndex[Int]]
+          val tripleItemIndex: TripleItemIndex = implicitly[TripleItemIndex]
           protected val debugger: Debugger = _debugger
         }.refine
       } else {
@@ -529,6 +530,7 @@ object RuleRefinement {
           val rule: ExpandingRule = extendedRule
           val settings: AmieSettings = _settings
           val tripleIndex: TripleIndex[Int] = implicitly[TripleIndex[Int]]
+          val tripleItemIndex: TripleItemIndex = implicitly[TripleItemIndex]
           protected val debugger: Debugger = _debugger
         }.refine
       }

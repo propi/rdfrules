@@ -246,7 +246,7 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
 
   private def resolveSameAs(implicit debugger: Debugger): Unit = {
     if (_sameAs.nonEmpty) {
-      debugger.debug("SameAs resolving") { ad =>
+      debugger.debug("SameAs resolving", forced = true) { ad =>
         for {
           (p, pi) <- _predicates.pairIterator
           (replace, replacement) <- _sameAs.iterator
@@ -427,7 +427,7 @@ object TripleHashIndex {
 
   def apply[T](quads: ForEach[IndexItem[T]])(implicit debugger: Debugger, collectionsBuilder: CollectionsBuilder[T]): TripleHashIndex[T] = {
     val index = new TripleHashIndex[T]
-    debugger.debug("Dataset indexing") { ad =>
+    debugger.debug("Dataset indexing", forced = true) { ad =>
       for (quad <- quads.takeWhile(_ => !debugger.isInterrupted)) {
         quad match {
           case quad: IndexItem.Quad[T] => index.addQuad(quad)

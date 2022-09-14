@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.prediction
 
 import com.github.propi.rdfrules.algorithm.amie.{AtomCounting, VariableMap}
-import com.github.propi.rdfrules.index.{Index, IndexItem, TripleIndex}
+import com.github.propi.rdfrules.index.{Index, IndexItem, TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.Atom
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.utils.ForEach
@@ -11,6 +11,7 @@ object Prediction {
   def apply(rules: ForEach[FinalRule], index: Index, predictionResults: Set[PredictedResult], injectiveMapping: Boolean): ForEach[PredictedTriple] = {
     (f: PredictedTriple => Unit) => {
       implicit val thi: TripleIndex[Int] = index.tripleMap
+      implicit val tii: TripleItemIndex = index.tripleItemMap
       val atomCounting = AtomCounting()
 
       val res = rules.flatMap { rule =>

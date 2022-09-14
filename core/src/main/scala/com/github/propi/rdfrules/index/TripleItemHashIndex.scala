@@ -137,7 +137,7 @@ object TripleItemHashIndex {
         pmap.trim()
       }
     }
-    debugger.debug("Triple items indexing") { ad =>
+    debugger.debug("Triple items indexing", forced = true) { ad =>
       for (kv <- col) {
         tihi.addPrefix(kv._2)
         hmap.put(kv._1, kv._2)
@@ -191,7 +191,7 @@ object TripleItemHashIndex {
   }
 
   def apply(col: ForEach[Quad])(implicit debugger: Debugger): TripleItemHashIndex = {
-    debugger.debug("Triple items indexing") { ad =>
+    debugger.debug("Triple items indexing", forced = true) { ad =>
       val (tihi, _) = mapQuads(col.takeWhile(_ => !debugger.isInterrupted)) { col =>
         col.foreach(_ => ad.done())
       }

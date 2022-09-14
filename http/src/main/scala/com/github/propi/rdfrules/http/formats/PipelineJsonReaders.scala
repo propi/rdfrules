@@ -105,7 +105,7 @@ object PipelineJsonReaders {
     )
   }
 
-  implicit val cacheDatasetReader: RootJsonReader[data.Cache] = (json: JsValue) => {
+  implicit def cacheDatasetReader(implicit debugger: Debugger): RootJsonReader[data.Cache] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new data.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
   }

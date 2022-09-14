@@ -133,6 +133,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
   def computeConfidence(minConfidence: Double, injectiveMapping: Boolean = true, topK: Int = 0)(implicit debugger: Debugger): Ruleset = {
     @volatile var threshold = minConfidence
     implicit val ti: TripleIndex[Int] = index.tripleMap
+    implicit val tii: TripleItemIndex = index.tripleItemMap
 
     val rulesWithConfidence = rules.parMap(parallelism) { rule =>
       rule.withConfidence(threshold, injectiveMapping)
@@ -153,6 +154,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
   def computePcaConfidence(minPcaConfidence: Double, injectiveMapping: Boolean = true, topK: Int = 0)(implicit debugger: Debugger): Ruleset = {
     @volatile var threshold = minPcaConfidence
     implicit val ti: TripleIndex[Int] = index.tripleMap
+    implicit val tii: TripleItemIndex = index.tripleItemMap
 
     val rulesWithConfidence = rules.parMap(parallelism) { rule =>
       rule.withPcaConfidence(threshold, injectiveMapping)
@@ -172,6 +174,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
 
   def computeLift(minConfidence: Double = 0.5, injectiveMapping: Boolean = true)(implicit debugger: Debugger): Ruleset = {
     implicit val ti: TripleIndex[Int] = index.tripleMap
+    implicit val tii: TripleItemIndex = index.tripleItemMap
     val resColl = rules.parMap(parallelism) { rule =>
       Function.chain[FinalRule](List(
         rule => if (rule.measures.exists[Measure.Confidence]) rule else rule.withConfidence(minConfidence, injectiveMapping),

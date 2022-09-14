@@ -158,8 +158,7 @@ class Amie private(experiments: Boolean,
 
   }*/
 
-  private class AmieProcess(ruleConsumer: RuleConsumer)(implicit val tripleIndex: TripleIndex[Int], val settings: AmieSettings, val forAtomMatcher: MappedAtomPatternMatcher[Atom]) extends HeadsFetcher {
-
+  private class AmieProcess(ruleConsumer: RuleConsumer)(implicit val tripleIndex: TripleIndex[Int], val tripleItemIndex: TripleItemIndex, val settings: AmieSettings, val forAtomMatcher: MappedAtomPatternMatcher[Atom]) extends HeadsFetcher {
     private val foundRules = new AtomicInteger(0)
 
     def getFoundRules: Int = foundRules.get()

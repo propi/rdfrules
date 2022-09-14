@@ -1,8 +1,10 @@
 package com.github.propi.rdfrules.algorithm.amie
 
-import com.github.propi.rdfrules.index.TripleIndex
-import com.github.propi.rdfrules.rule.{Atom, FreshAtom, InstantiatedAtom}
+import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
+import com.github.propi.rdfrules.rule.{Atom, FreshAtom, InstantiatedAtom, ResolvedAtom}
+import com.github.propi.rdfrules.utils.{BasicFunctions, Debugger, Stringifier}
 import com.typesafe.scalalogging.Logger
+import com.github.propi.rdfrules.rule.ResolvedRule.atomStringifier
 
 /**
   * Created by Vaclav Zeman on 23. 6. 2017.
@@ -12,6 +14,7 @@ trait AtomCounting {
   val logger: Logger = Logger[AtomCounting]
 
   implicit val tripleIndex: TripleIndex[Int]
+  implicit val tripleItemIndex: TripleItemIndex
 
   /**
     * Score atom. Lower value is better score.
@@ -193,7 +196,7 @@ trait AtomCounting {
     * @param pairFilter       additional filter for each found pair - suitable for PCA confidence
     * @return number of distinct pairs for variables which have covered all atoms
     */
-  def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double, injectiveMapping: Boolean, pairFilter: Seq[Atom.Constant] => Boolean = _ => true): Int = {
+  def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double, injectiveMapping: Boolean, pairFilter: Seq[Atom.Constant] => Boolean = _ => true)(implicit debugger: Debugger): Int = {
     countDistinctPairs(atoms, head, maxCount, VariableMap(injectiveMapping), pairFilter)
   }
 
@@ -207,7 +210,7 @@ trait AtomCounting {
     * @param pairFilter  additional filter for each found pair - suitable for PCA confidence
     * @return number of distinct pairs for variables which have covered all atoms
     */
-  def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double, variableMap: VariableMap, pairFilter: Seq[Atom.Constant] => Boolean): Int = {
+  def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double, variableMap: VariableMap, pairFilter: Seq[Atom.Constant] => Boolean)(implicit debugger: Debugger): Int = {
     val headVars = List(head.subject, head.`object`).collect {
       case x: Atom.Variable => x
     }
@@ -224,15 +227,23 @@ trait AtomCounting {
     * @param pairFilter  additional filter for each found pair - suitable for PCA confidence
     * @return number of distinct pairs for variables which have covered all atoms
     */
-  def countDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], maxCount: Double, variableMap: VariableMap, pairFilter: Seq[Atom.Constant] => Boolean): Int = {
+  def countDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], maxCount: Double, variableMap: VariableMap, pairFilter: Seq[Atom.Constant] => Boolean)(implicit debugger: Debugger): Int = {
     var i = 0
     val it = selectDistinctPairs(atoms, headVars, variableMap, pairFilter)
-    while (it.hasNext && i <= maxCount) {
+    var thresholdTime = System.currentTimeMillis() + 30000
+    lazy val atomString = atoms.iterator.map(ResolvedAtom(_)).map(Stringifier(_)).mkString(" ^ ")
+    while (it.hasNext && i <= maxCount && !debugger.isInterrupted) {
       it.next()
       i += 1
-      if (i % 500 == 0) logger.trace(s"Atom pairs counting, body size: $i (max body size: $maxCount)")
+      if (i % 500 == 0) {
+        logger.trace(s"Atom pairs counting, body size: $i (max body size: $maxCount)")
+        if (thresholdTime < System.currentTimeMillis()) {
+          thresholdTime = System.currentTimeMillis() + 30000
+          debugger.logger.info(s"Long counting of body size for: $atomString --- (${BigDecimal(i).toString}${if (maxCount > 0) s" of ${BigDecimal(maxCount).toString} - ${BasicFunctions.round((i / maxCount) * 100, 2)}%" else ""})")
+        }
+      }
     }
-    i
+    if (debugger.isInterrupted) 0 else i
   }
 
   /**
@@ -371,8 +382,9 @@ trait AtomCounting {
 
 object AtomCounting {
 
-  def apply()(implicit ti: TripleIndex[Int]): AtomCounting = new AtomCounting {
+  def apply()(implicit ti: TripleIndex[Int], tii: TripleItemIndex): AtomCounting = new AtomCounting {
     implicit val tripleIndex: TripleIndex[Int] = ti
+    implicit val tripleItemIndex: TripleItemIndex = tii
   }
 
 }
