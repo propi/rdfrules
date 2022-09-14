@@ -2,7 +2,7 @@ name := "experiments"
 
 organization := "com.github.propi.rdfrules"
 
-version := "1.0.0"
+version := "1.6.1"
 
 scalaVersion := "2.13.8"
 
