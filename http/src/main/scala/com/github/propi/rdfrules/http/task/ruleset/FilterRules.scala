@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.http.task.ruleset
 
 import com.github.propi.rdfrules.data.TripleItem
-import com.github.propi.rdfrules.http.task.{Task, TaskDefinition, TripleItemMatcher}
+import com.github.propi.rdfrules.http.task.{Task, TaskDefinition, TripleItemMatcher, TripleMatcher}
 import com.github.propi.rdfrules.rule.{Measure, RulePattern}
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.TypedKeyMap
@@ -11,6 +11,7 @@ import com.github.propi.rdfrules.utils.TypedKeyMap
   */
 class FilterRules(measures: Seq[(Option[TypedKeyMap.Key[Measure]], TripleItemMatcher.Number)],
                   patterns: Seq[RulePattern],
+                  tripleMatchers: Seq[(TripleMatcher, Boolean)],
                   indices: Set[Int]) extends Task[Ruleset, Ruleset] {
   val companion: TaskDefinition = FilterRules
 
@@ -31,6 +32,13 @@ class FilterRules(measures: Seq[(Option[TypedKeyMap.Key[Measure]], TripleItemMat
     ruleset => patterns match {
       case Seq(head, tail@_*) => ruleset.filter(head, tail: _*)
       case _ => ruleset
+    },
+    ruleset => if (tripleMatchers.isEmpty) ruleset else ruleset.filterResolved { rule =>
+      tripleMatchers.forall { case (tripleMatcher, inverse) =>
+        (rule.body.iterator ++ Iterator(rule.head)).exists { atom =>
+          tripleMatcher.matchAll(atom.toTriple).matched ^ inverse
+        }
+      }
     }
   ))(input)
 }

@@ -208,6 +208,7 @@ object PipelineJsonReaders {
 
   implicit val filterRulesReader: RootJsonReader[ruleset.FilterRules] = (json: JsValue) => {
     val fields = json.asJsObject.fields
+    val selector = json.toSelector
     new ruleset.FilterRules(
       fields.get("measures").iterator.flatMap(_.convertTo[JsArray].elements).map { json =>
         val fields = json.asJsObject.fields
@@ -217,6 +218,9 @@ object PipelineJsonReaders {
         case (measure, TripleItemMatcher.Number(x)) => Some(measure.convertTo[TypedKeyMap.Key[Measure]]) -> x
       }.toSeq,
       fields.get("patterns").map(_.convertTo[JsArray].elements.map(_.convertTo[RulePattern])).getOrElse(Nil),
+      selector("tripleMatchers").toIterable.flatMap { selector =>
+        selector.to[TripleMatcher].zip(selector("inverse").to[Boolean].orElse(Some(false)))
+      }.toSeq,
       fields.get("indices").map(_.convertTo[JsArray].elements.map(_.convertTo[Int]).toSet).getOrElse(Set.empty)
     )
   }

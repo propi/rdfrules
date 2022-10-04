@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.rule
 
-import com.github.propi.rdfrules.data.TripleItem
+import com.github.propi.rdfrules.data.{Triple, TripleItem}
 import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.rule
 import com.github.propi.rdfrules.rule.ResolvedAtom.ResolvedItem
@@ -15,6 +15,12 @@ sealed trait ResolvedAtom {
   def predicate: TripleItem.Uri
 
   def `object`: ResolvedItem
+
+  def toTriple: Triple = Triple(
+    subject.toTripleItem.asInstanceOf[TripleItem.Uri],
+    predicate,
+    `object`.toTripleItem
+  )
 
   def toAtom(implicit tripleItemIndex: TripleItemIndex): Atom
 
@@ -36,6 +42,8 @@ object ResolvedAtom {
     def toItem(implicit tripleItemIndex: TripleItemIndex): Atom.Item
 
     def toItemOpt(implicit tripleItemIndex: TripleItemIndex): Option[Atom.Item]
+
+    def toTripleItem: TripleItem
   }
 
   object ResolvedItem {
@@ -46,12 +54,16 @@ object ResolvedAtom {
       def toItem(implicit tripleItemIndex: TripleItemIndex): Atom.Variable = toVariable
 
       def toItemOpt(implicit tripleItemIndex: TripleItemIndex): Option[Atom.Item] = Some(toVariable)
+
+      def toTripleItem: TripleItem = TripleItem.Uri("")
     }
 
     case class Constant private(tripleItem: TripleItem) extends ResolvedItem {
       def toItem(implicit tripleItemIndex: TripleItemIndex): Atom.Constant = Atom.Item(tripleItem)
 
       def toItemOpt(implicit tripleItemIndex: TripleItemIndex): Option[Atom.Item] = tripleItemIndex.getIndexOpt(tripleItem).map(Atom.Constant)
+
+      def toTripleItem: TripleItem = tripleItem
     }
 
     def apply(char: Char): ResolvedItem = Variable("?" + char)

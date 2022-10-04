@@ -1,7 +1,8 @@
 package com.github.propi.rdfrules.index.ops
 
+import com.github.propi.rdfrules.index
 import com.github.propi.rdfrules.index.{TripleHashIndex, TripleIndex, TripleItemIndex}
-import it.unimi.dsi.fastutil.ints.{Int2ReferenceOpenHashMap, IntIterator, IntOpenHashSet}
+import it.unimi.dsi.fastutil.ints.{Int2IntOpenHashMap, Int2ReferenceOpenHashMap, IntIterator, IntOpenHashSet}
 import it.unimi.dsi.fastutil.objects.ObjectIterator
 
 import scala.language.implicitConversions
@@ -24,21 +25,21 @@ trait Buildable {
   }
 
   private class FastMutableHashSet extends TripleHashIndex.MutableHashSet[Int] {
-      private val hset = new IntOpenHashSet()
+    private val hset = new IntOpenHashSet()
 
-      def +=(x: Int): Unit = hset.add(x)
+    def +=(x: Int): Unit = hset.add(x)
 
-      def -=(x: Int): Unit = hset.remove(x)
+    def -=(x: Int): Unit = hset.remove(x)
 
-      def iterator: Iterator[Int] = hset.iterator()
+    def iterator: Iterator[Int] = hset.iterator()
 
-      def contains(x: Int): Boolean = hset.contains(x)
+    def contains(x: Int): Boolean = hset.contains(x)
 
-      def size: Int = hset.size()
+    def size: Int = hset.size()
 
-      def trim(): Unit = hset.trim()
+    def trim(): Unit = hset.trim()
 
-      def isEmpty: Boolean = hset.isEmpty
+    def isEmpty: Boolean = hset.isEmpty
   }
 
   private class FastMutableHashMap[V] extends TripleHashIndex.MutableHashMap[Int, V] {
@@ -81,7 +82,34 @@ trait Buildable {
     def trim(): Unit = hmap.trim()
   }
 
+  private class FastIntHashMap(from: IterableOnce[(Int, Int)]) extends index.TripleIndex.HashMap[Int, Int] {
+    private val hmap = new Int2IntOpenHashMap()
+
+    for ((key, value) <- from.iterator) {
+      hmap.put(key, value)
+    }
+    hmap.trim()
+
+    def apply(key: Int): Int = get(key).getOrElse(throw new NoSuchElementException)
+
+    def get(key: Int): Option[Int] = if (contains(key)) Some(hmap.get(key)) else None
+
+    def iterator: Iterator[Int] = hmap.keySet().iterator()
+
+    def valuesIterator: Iterator[Int] = hmap.values().iterator()
+
+    def pairIterator: Iterator[(Int, Int)] = hmap.int2IntEntrySet().iterator().map(x => x.getIntKey -> x.getIntValue)
+
+    def size: Int = hmap.size()
+
+    def isEmpty: Boolean = hmap.isEmpty
+
+    def contains(key: Int): Boolean = hmap.containsKey(key)
+  }
+
   protected implicit val indexCollectionBuilder: TripleHashIndex.CollectionsBuilder[Int] = new TripleHashIndex.CollectionsBuilder[Int] {
+    def intMap(from: IterableOnce[(Int, Int)]): TripleIndex.HashMap[Int, Int] = new FastIntHashMap(from)
+
     def emptySet: TripleHashIndex.MutableHashSet[Int] = new FastMutableHashSet
 
     def emptyHashMap[V]: TripleHashIndex.MutableHashMap[Int, V] = new FastMutableHashMap[V]

@@ -13,6 +13,14 @@ class FilterRules(fromOperation: Operation, val info: OperationInfo) extends Ope
   //val info: OperationInfo = OperationInfo.FilterRules
   val properties: Constants[Property] = Constants(
     Pattern("patterns", "Patterns", true),
+    DynamicGroup("tripleMatchers", "Triple filter", SummaryTitle.NoTitle) { implicit context =>
+      Constants(
+        new OptionalText[String]("subject", "Subject", validator = RegExp("<.*>|.*:.*", true), summaryTitle = "subject"),
+        new OptionalText[String]("predicate", "Predicate", validator = RegExp("<.*>|.*:.*", true), summaryTitle = "predicate"),
+        new OptionalText[String]("object", "Object", summaryTitle = "object"),
+        new Checkbox("inverse", "Negation", summaryTitle = "negated")
+      )
+    },
     DynamicGroup("measures", "Measures", SummaryTitle.NoTitle) { implicit context =>
       val summaryTitle = Var("")
       Constants(

@@ -4,6 +4,7 @@ import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
 import com.github.propi.rdfrules.index.TripleIndex.{HashMap, HashSet, Reflexiveable}
 import com.github.propi.rdfrules.rule.TripleItemPosition
+import com.github.propi.rdfrules.utils.IncrementalInt
 
 import scala.language.implicitConversions
 
@@ -11,6 +12,8 @@ import scala.language.implicitConversions
   * Created by Vaclav Zeman on 3. 9. 2020.
   */
 trait TripleIndex[T] {
+
+  main =>
 
   def getGraphs(predicate: T): HashSet[T]
 
@@ -30,12 +33,53 @@ trait TripleIndex[T] {
 
   def evaluateAllLazyVals(): Unit
 
+  protected def buildFastIntMap(from: Iterator[(T, Int)]): HashMap[T, Int]
+
   trait PredicateIndex {
     def subjects: HashMap[T, HashSet[T] with Reflexiveable]
 
     def objects: HashMap[T, HashSet[T] with Reflexiveable]
 
     def size(nonReflexive: Boolean): Int
+
+    final lazy val (neighboursSS, neighboursSO, neighboursOO, neighboursOS) = {
+      val `sp->sq` = collection.mutable.HashMap.empty[T, IncrementalInt]
+      val `sp->oq` = collection.mutable.HashMap.empty[T, IncrementalInt]
+      val `op->oq` = collection.mutable.HashMap.empty[T, IncrementalInt]
+      val `op->sq` = collection.mutable.HashMap.empty[T, IncrementalInt]
+      for ((s, objects) <- subjects.pairIterator) {
+        for (pNeighbour <- main.subjects(s).predicates.iterator) {
+          val pNeighbourIndex = predicates(pNeighbour)
+          if (pNeighbourIndex == this) {
+            `sp->sq`.getOrElseUpdate(pNeighbour, IncrementalInt()) += (objects.size * (objects.size - 1))
+          } else {
+            `sp->sq`.getOrElseUpdate(pNeighbour, IncrementalInt()) += (objects.size * pNeighbourIndex.subjects(s).size)
+          }
+        }
+        for (pNeighbour <- main.objects(s).predicates.iterator) {
+          `sp->oq`.getOrElseUpdate(pNeighbour, IncrementalInt()) += (objects.size * predicates(pNeighbour).objects(s).size)
+        }
+      }
+      for ((o, subjects) <- objects.pairIterator) {
+        for (pNeighbour <- main.objects(o).predicates.iterator) {
+          val pNeighbourIndex = predicates(pNeighbour)
+          if (pNeighbourIndex == this) {
+            `op->oq`.getOrElseUpdate(pNeighbour, IncrementalInt()) += (subjects.size * (subjects.size - 1))
+          } else {
+            `op->oq`.getOrElseUpdate(pNeighbour, IncrementalInt()) += (subjects.size * pNeighbourIndex.objects(o).size)
+          }
+        }
+        for (pNeighbour <- main.subjects(o).predicates.iterator) {
+          `op->sq`.getOrElseUpdate(pNeighbour, IncrementalInt()) += (subjects.size * predicates(pNeighbour).subjects(o).size)
+        }
+      }
+      (
+        buildFastIntMap(`sp->sq`.view.mapValues(_.getValue).iterator),
+        buildFastIntMap(`sp->oq`.view.mapValues(_.getValue).iterator),
+        buildFastIntMap(`op->oq`.view.mapValues(_.getValue).iterator),
+        buildFastIntMap(`op->sq`.view.mapValues(_.getValue).iterator)
+      )
+    }
 
     final lazy val pcaNegatives: Int = higherCardinalitySide match {
       case TriplePosition.Subject =>

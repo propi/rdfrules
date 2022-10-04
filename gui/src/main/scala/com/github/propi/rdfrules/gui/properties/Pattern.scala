@@ -55,10 +55,18 @@ object Pattern {
       )
 
       override def toString: String = x
+
+      def toForcedConstant: ForcedConstant = ForcedConstant(x)
     }
 
-    case class OneOf(items: IndexedSeq[Constant]) extends AtomItem {
-      def :+(x: Constant): OneOf = OneOf(items :+ x)
+    case class ForcedConstant(x: String) extends AtomItem {
+      def toJson: js.Any = x
+
+      override def toString: String = x
+    }
+
+    case class OneOf(items: IndexedSeq[ForcedConstant]) extends AtomItem {
+      def :+(x: ForcedConstant): OneOf = OneOf(items :+ x)
 
       def toNonOf: NoneOf = NoneOf(items)
 
@@ -67,16 +75,16 @@ object Pattern {
         "value" -> js.Array(items.map(_.toJson): _*)
       )
 
-      override def toString: String = s"{${items.mkString(" | ")}}"
+      override def toString: String = s"{${items.mkString(" , ")}}"
     }
 
-    case class NoneOf(items: IndexedSeq[Constant]) extends AtomItem {
+    case class NoneOf(items: IndexedSeq[ForcedConstant]) extends AtomItem {
       def toJson: js.Any = js.Dictionary(
         "name" -> "NoneOf",
         "value" -> js.Array(items.map(_.toJson): _*)
       )
 
-      override def toString: String = s"!{${items.mkString(" | ")}}"
+      override def toString: String = s"!{${items.mkString(" , ")}}"
     }
 
     def apply(data: js.Dynamic): AtomItem = data.name.toString match {
@@ -84,8 +92,8 @@ object Pattern {
       case "AnyConstant" => AnyConstant
       case "Variable" => Variable(data.value.toString.head)
       case "Constant" => Constant(data.value.toString)
-      case "OneOf" => OneOf(data.value.asInstanceOf[js.Array[js.Dynamic]].iterator.map(data => Constant(data.value.toString)).toIndexedSeq)
-      case "NoneOf" => NoneOf(data.value.asInstanceOf[js.Array[js.Dynamic]].iterator.map(data => Constant(data.value.toString)).toIndexedSeq)
+      case "OneOf" => OneOf(data.value.asInstanceOf[js.Array[js.Dynamic]].iterator.map(data => ForcedConstant(data.toString)).toIndexedSeq)
+      case "NoneOf" => NoneOf(data.value.asInstanceOf[js.Array[js.Dynamic]].iterator.map(data => ForcedConstant(data.toString)).toIndexedSeq)
       case _ => Any
     }
   }
@@ -203,7 +211,7 @@ object Pattern {
   private def parseOtherConstant(it: Iterator[Char], buffer: mutable.StringBuilder): Either[(AtomItem.Constant, Option[Char]), String] = if (it.hasNext) {
     val x = it.next()
     x match {
-      case '}' | '|' | ')' | ' ' if buffer.last != '\\' =>
+      case '}' | ',' | ')' | ' ' if buffer.last != '\\' =>
         val text = buffer.toString()
         if (text == "true" || text == "false" || text.matches("\\d+([.]\\d+)?") || text.matches("_:.+") || text.matches("\\w*:.*")) {
           Left(AtomItem.Constant(buffer.toString()) -> (if (x.isSpaceChar) None else Some(x)))
@@ -234,13 +242,13 @@ object Pattern {
   private def parseOneOf(it: Iterator[Char], oneOf: AtomItem.OneOf): Either[AtomItem.OneOf, String] = if (it.hasNext) {
     it.next() match {
       case '}' => Left(oneOf)
-      case '|' => parseOneOf(it, oneOf)
+      case ',' => parseOneOf(it, oneOf)
       case x if x.isSpaceChar => parseOneOf(it, oneOf)
       case x => parseConstant(Iterator(x) ++ it) match {
         case Left((x, lastChar)) => lastChar match {
-          case Some(lastChar@('}' | '|')) => parseOneOf(Iterator(lastChar) ++ it, oneOf :+ x)
+          case Some(lastChar@('}' | ',')) => parseOneOf(Iterator(lastChar) ++ it, oneOf :+ x.toForcedConstant)
           case Some(x) => Right(s"Invalid character '$x' occured during OneOf parsing.")
-          case None => parseOneOf(it, oneOf :+ x)
+          case None => parseOneOf(it, oneOf :+ x.toForcedConstant)
         }
         case Right(x) => Right(x)
       }

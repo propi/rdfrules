@@ -28,6 +28,8 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
   @volatile private var _size: Int = -1
   @volatile private var _nonReflexiveSize: Int = -1
 
+  protected def buildFastIntMap(from: Iterator[(T, Int)]): HashMap[T, Int] = collectionsBuilder.intMap(from)
+
   private class GraphsHashSet[C <: HashSet[T] with Reflexiveable](val value: C, val graphs: MutableHashSet[T]) extends HashSet[T] with Reflexiveable {
     def addGraph(g: T): Unit = graphs += g
 
@@ -397,6 +399,8 @@ object TripleHashIndex {
   }
 
   trait CollectionsBuilder[T] {
+    def intMap(from: IterableOnce[(T, Int)]): HashMap[T, Int]
+
     def emptySet: MutableHashSet[T]
 
     def emptyHashMap[V]: MutableHashMap[T, V]
