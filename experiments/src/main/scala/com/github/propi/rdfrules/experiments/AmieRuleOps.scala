@@ -2,9 +2,9 @@ package com.github.propi.rdfrules.experiments
 
 import amie.rules.Rule
 import com.github.propi.rdfrules.data.TripleItem
-import com.github.propi.rdfrules.rule.{Measure, ResolvedRule}
+import com.github.propi.rdfrules.rule.{Measure, ResolvedAtom, ResolvedRule}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.language.implicitConversions
 
 /**
@@ -12,15 +12,15 @@ import scala.language.implicitConversions
   */
 object AmieRuleOps {
 
-  implicit def amieAtomItemToItem(x: String): ResolvedRule.Atom.Item = {
+  implicit def amieAtomItemToItem(x: String): ResolvedAtom.ResolvedItem = {
     val UriString = "<(.+)>".r
     val TextString = "\"(.+)\"".r
     val VarString = "([?].)".r
     x match {
-      case UriString(x) => ResolvedRule.Atom.Item(TripleItem.LongUri(x))
-      case TextString(x) => ResolvedRule.Atom.Item(TripleItem.Text(x))
-      case VarString(x) => ResolvedRule.Atom.Item(x)
-      case x => ResolvedRule.Atom.Item(TripleItem.LongUri(x))
+      case UriString(x) => ResolvedAtom.ResolvedItem(TripleItem.LongUri(x))
+      case TextString(x) => ResolvedAtom.ResolvedItem(TripleItem.Text(x))
+      case VarString(x) => ResolvedAtom.ResolvedItem(x)
+      case x => ResolvedAtom.ResolvedItem(TripleItem.LongUri(x))
     }
   }
 
@@ -34,10 +34,10 @@ object AmieRuleOps {
 
   implicit class PimpedAmieRule(amieRule: Rule) {
     def toResolvedRule: ResolvedRule = {
-      val body = amieRule.getBody.asScala.map(x => ResolvedRule.Atom(x(0).toString, x(1).toString, x(2).toString)).toIndexedSeq
+      val body = amieRule.getBody.asScala.map(x => ResolvedAtom(x(0).toString, x(1).toString, x(2).toString)).toIndexedSeq
       val head = {
         val x = amieRule.getHead
-        ResolvedRule.Atom(x(0).toString, x(1).toString, x(2).toString)
+        ResolvedAtom(x(0).toString, x(1).toString, x(2).toString)
       }
       val measures = List(
         Measure.Support(amieRule.getSupport.toInt),

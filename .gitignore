@@ -77,3 +77,9 @@ $RECYCLE.BIN/
 /package-lock.json
 /docs/
 /experiments/results/
+/experiments/data/mappingbased_literals_sample.ttl
+/experiments/data/result_constants.txt
+/experiments/data/result_discretization.txt
+/experiments/data/result_graphs.txt
+/experiments/data/result_logical.txt
+/experiments/data/yago2core_facts.clean.notypes.tsv
