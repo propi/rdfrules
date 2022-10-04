@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.rule
 
+import com.github.propi.rdfrules.index.IndexItem.IntTriple
 import com.github.propi.rdfrules.prediction.PredictedResult
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 
@@ -13,6 +14,8 @@ sealed trait InstantiatedRule {
   def source: FinalRule
 
   def toRule: FinalRule
+
+  final def triples: Iterator[IntTriple] = (body.iterator ++ Iterator(head)).map(_.toTriple)
 }
 
 object InstantiatedRule {

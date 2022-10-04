@@ -3,19 +3,22 @@ package com.github.propi.rdfrules.experiments
 import com.github.propi.rdfrules.data
 import com.github.propi.rdfrules.data.{DiscretizationTask, Quad, TripleItem}
 import com.github.propi.rdfrules.experiments.IndexOps.DiscretizedTree
-import com.github.propi.rdfrules.index.{Index, IndexItem, TripleHashIndex, TripleItemHashIndex}
+import com.github.propi.rdfrules.index._
 import com.github.propi.rdfrules.rule.Threshold.{MinHeadCoverage, MinHeadSize}
-import com.github.propi.rdfrules.utils.Debugger
+import com.github.propi.rdfrules.utils.{Debugger, ForEach}
+import eu.easyminer.discretization.Consumer
 import eu.easyminer.discretization.algorithm.Discretization
-import eu.easyminer.discretization.impl.Interval
-import eu.easyminer.discretization.impl.sorting.SortedInMemoryNumericTraversable
+import eu.easyminer.discretization.impl.sorting.SortedInMemoryNumericProducer
+import eu.easyminer.discretization.impl.{Interval, Producer}
 
 import scala.util.Try
 
 /**
   * Created by Vaclav Zeman on 23. 3. 2020.
   */
-class IndexOps private(implicit mapper: TripleItemHashIndex, thi: TripleHashIndex[Int]) {
+class IndexOps private(implicit mapper: TripleItemIndex, thi: TripleIndex[Int]) {
+
+  private def toProducer[T](x: ForEach[T]): Producer[T] = (consumer: Consumer[T]) => x.foreach(consumer.consume)
 
   private def buildDiscretizedTree(intervals: IndexedSeq[Interval], arity: Int): DiscretizedTree = {
     val levels = ((math.log((arity - 1) * intervals.length + 1) / math.log(arity)) - 1).toInt
@@ -42,24 +45,22 @@ class IndexOps private(implicit mapper: TripleItemHashIndex, thi: TripleHashInde
     buildLevel(levels, Nil)
   }
 
-  def addDiscretizedTreeToIndex(predicate: TripleItem.Uri, minSupportUpper: Int, discretizedTree: DiscretizedTree)(implicit debugger: Debugger): Unit = {
+  def discretizedTreeQuads(predicate: TripleItem.Uri, minSupportUpper: Int, discretizedTree: DiscretizedTree)(implicit debugger: Debugger): ForEach[Quad] = (f: Quad => Unit) => {
     def isCutOff(tree: DiscretizedTree): Boolean = tree match {
       case DiscretizedTree.Node(_, children) => children.nonEmpty && children.forall(_.interval.frequency >= minSupportUpper)
       case _ => false
     }
 
-    val predicateQuads: Traversable[Quad] = {
+    val predicateQuads: ForEach[Quad] = {
       val predicateIndex = mapper.getIndexOpt(predicate).map(x => x -> thi.predicates(x))
-      new Traversable[Quad] {
-        def foreach[U](f: Quad => U): Unit = {
-          for {
-            (p, predicateIndex) <- predicateIndex
-            g = thi.getGraphs(p).iterator.next()
-            (s, objects) <- predicateIndex.subjects.pairIterator
-            o <- objects.iterator
-          } {
-            f(IndexItem.Quad(s, p, o, g).toQuad)
-          }
+      (f: Quad => Unit) => {
+        for {
+          (p, predicateIndex) <- predicateIndex
+          g = thi.getGraphs(p).iterator.next()
+          (s, objects) <- predicateIndex.subjects.pairIterator
+          o <- objects.iterator
+        } {
+          f(IndexItem.Quad(s, p, o, g).toQuad)
         }
       }
     }
@@ -76,16 +77,15 @@ class IndexOps private(implicit mapper: TripleItemHashIndex, thi: TripleHashInde
           val suffix = "_discretized_level_" + level
           val newPredicate = buildPredicate(suffix)
           val cutOffIntervals = intervals.filter(!isCutOff(_))
-          val quads = for {
-            quad <- predicateQuads.view
+          for {
+            quad <- predicateQuads
             objectNumber <- Option(quad.triple.`object`).collect {
               case TripleItem.NumberDouble(value) => value
             }
             interval <- cutOffIntervals.iterator.map(_.interval).find(_.isInInterval(objectNumber))
-          } yield {
-            Quad(data.Triple(quad.triple.subject, newPredicate, TripleItem.Interval(interval)), quad.graph)
+          } {
+            f(Quad(data.Triple(quad.triple.subject, newPredicate, TripleItem.Interval(interval)), quad.graph))
           }
-          TripleHashIndex.addQuads(TripleItemHashIndex.addQuads(quads))
         }
         val allChildren = intervals.iterator.collect {
           case x: DiscretizedTree.Node => x.children
@@ -119,14 +119,14 @@ class IndexOps private(implicit mapper: TripleItemHashIndex, thi: TripleHashInde
       predicateId <- mapper.getIndexOpt(predicate)
       tpi <- thi.predicates.get(predicateId)
     } yield {
-      val col = new Traversable[Double] {
-        def foreach[U](f: Double => U): Unit = {
+      val col = new ForEach[Double] {
+        def foreach(f: Double => Unit): Unit = {
           tpi.objects.iterator.map(mapper.getTripleItem).collect {
             case TripleItem.NumberDouble(value) => value
           }.foreach(f)
         }
       }
-      val tree = buildDiscretizedTree(discretization.discretize(SortedInMemoryNumericTraversable(col, task.buffer)), arity)
+      val tree = buildDiscretizedTree(discretization.discretize(SortedInMemoryNumericProducer(toProducer(col), task.buffer)), arity)
       predicate -> removeDuplicitIntervals(tree)
     }
   }
@@ -138,11 +138,11 @@ class IndexOps private(implicit mapper: TripleItemHashIndex, thi: TripleHashInde
   }
 
   def getMinSupportLower(minHeadSize: MinHeadSize, minHeadCoverage: MinHeadCoverage): Int = {
-    Try(thi.predicates.valuesIterator.map(_.size).filter(_ >= minHeadSize.value).min).toOption.map(x => math.ceil(x * minHeadCoverage.value).toInt).getOrElse(Int.MaxValue)
+    Try(thi.predicates.valuesIterator.map(_.size(true)).filter(_ >= minHeadSize.value).min).toOption.map(x => math.ceil(x * minHeadCoverage.value).toInt).getOrElse(Int.MaxValue)
   }
 
   def getMinSupportUpper(minHeadSize: MinHeadSize, minHeadCoverage: MinHeadCoverage): Int = {
-    Try(thi.predicates.valuesIterator.map(_.size).filter(_ >= minHeadSize.value).max).toOption.map(x => math.ceil(x * minHeadCoverage.value).toInt).getOrElse(Int.MaxValue)
+    Try(thi.predicates.valuesIterator.map(_.size(true)).filter(_ >= minHeadSize.value).max).toOption.map(x => math.ceil(x * minHeadCoverage.value).toInt).getOrElse(Int.MaxValue)
   }
 
 }
@@ -166,10 +166,8 @@ object IndexOps {
   }
 
   implicit class PimpedIndex(val index: Index) extends AnyVal {
-    def useRichOps[T](f: IndexOps => T): T = index.tripleItemMap { mapper =>
-      index.tripleMap { thi =>
-        f(new IndexOps()(mapper.asInstanceOf[TripleItemHashIndex], thi.asInstanceOf[TripleHashIndex[Int]]))
-      }
+    def useRichOps[T](f: IndexOps => T): T = {
+      f(new IndexOps()(index.tripleItemMap, index.tripleMap))
     }
   }
 

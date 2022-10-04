@@ -1,7 +1,5 @@
 package com.github.propi.rdfrules.experiments
 
-import java.io.{File, FileInputStream, FileOutputStream, PrintStream}
-
 import com.github.propi.rdfrules.algorithm.RuleConsumer
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.algorithm.consumer.TopKRuleConsumer
@@ -9,9 +7,8 @@ import com.github.propi.rdfrules.data.{Graph, TripleItem}
 import com.github.propi.rdfrules.experiments.benchmark.Benchmark._
 import com.github.propi.rdfrules.experiments.benchmark.MetricResultProcessor.BasicPrinter
 import com.github.propi.rdfrules.experiments.benchmark.MetricsAggregator.StatsAggregator
-import com.github.propi.rdfrules.experiments.benchmark.{ClusterDistancesTaskPostprocessor, DiscretizedRuleFilter, Metric, NewTriplesPostprocessor, RulesTaskPostprocessor}
 import com.github.propi.rdfrules.experiments.benchmark.tasks._
-import com.github.propi.rdfrules.index.TripleHashIndex
+import com.github.propi.rdfrules.experiments.benchmark._
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule.{AtomPattern, ResolvedRule, RuleConstraint, Threshold}
 import com.github.propi.rdfrules.utils.{Debugger, HowLong}
@@ -20,6 +17,7 @@ import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import org.apache.commons.io.IOUtils
 
+import java.io.{File, FileInputStream, FileOutputStream, PrintStream}
 import scala.language.postfixOps
 
 /**
@@ -132,7 +130,6 @@ object OriginalAmieComparison {
         }*/ else if (cli.hasOption("rundiscretization")) {
           for (minHc <- minHcs) {
             val index = Graph(inputTsvDataset).index()
-            index.tripleMap(thi => thi.asInstanceOf[TripleHashIndex[Int]].reset())
             Once executeTask new MinHcRdfRules[Seq[Metric]](s"RDFRules: mine without discretization, minHc: $minHc", minHc, true, numberOfThreads = numberOfThreads) with NewTriplesPostprocessor {
               override val withConstantsAtTheObjectPosition: Boolean = true
               override val minPcaConfidence: Double = 0.0
@@ -145,7 +142,7 @@ object OriginalAmieComparison {
           lazy val index = {
             val index = Graph(inputTsvDataset).index().withEvaluatedLazyVals
             HowLong.howLong("RDFRules indexing", memUsage = true, forceShow = true) {
-              index.tripleMap(_.size)
+              index.tripleMap.size(true)
             }
             index
           }

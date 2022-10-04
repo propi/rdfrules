@@ -12,7 +12,7 @@ trait MetricsAggregator {
 object MetricsAggregator {
 
   object StatsAggregator extends MetricsAggregator {
-    def aggregateMetrics(metricsSeq: Seq[Seq[Metric]]): Seq[Metric] = metricsSeq.flatten.groupBy(_.name).mapValues { variables =>
+    def aggregateMetrics(metricsSeq: Seq[Seq[Metric]]): Seq[Metric] = metricsSeq.flatten.groupBy(_.name).view.mapValues { variables =>
       val col = variables.collect {
         case x: Metric.Simple => x
       }

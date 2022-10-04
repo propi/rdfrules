@@ -1,5 +1,8 @@
 package com.github.propi.rdfrules.rule
 
+import com.github.propi.rdfrules.index.IndexItem
+import com.github.propi.rdfrules.index.IndexItem.IntTriple
+
 sealed trait InstantiatedAtom {
   def subject: Int
 
@@ -8,6 +11,8 @@ sealed trait InstantiatedAtom {
   def `object`: Int
 
   def toAtom: Atom
+
+  final def toTriple: IntTriple = IndexItem.Triple(subject, predicate, `object`)
 }
 
 object InstantiatedAtom {

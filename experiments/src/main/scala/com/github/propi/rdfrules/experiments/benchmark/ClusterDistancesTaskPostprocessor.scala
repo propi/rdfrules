@@ -3,7 +3,6 @@ package com.github.propi.rdfrules.experiments.benchmark
 import com.github.propi.rdfrules.index.IndexItem
 import com.github.propi.rdfrules.rule.Measure
 import com.github.propi.rdfrules.ruleset.Ruleset
-import com.github.propi.rdfrules.utils.extensions.IterableOnceExtension._
 
 import scala.language.postfixOps
 
@@ -31,11 +30,11 @@ trait ClusterDistancesTaskPostprocessor extends TaskPostProcessor[Ruleset, Seq[M
       val tripleMap = collection.mutable.Map.empty[IndexItem.IntTriple, MutableWeight]
       var maxWeight = 0
       for {
-        coveredPaths <- ruleset.instantiate()
+        coveredPaths <- ruleset.instantiate().rules
       } {
         var i = 0
         val triplesWeights = collection.mutable.ListBuffer.empty[MutableWeight]
-        for (compressedTriple <- coveredPaths.triples(true)) {
+        for (compressedTriple <- (coveredPaths.body.iterator ++ Iterator(coveredPaths.head)).map(_.toTriple)) {
           i += 1
           triplesWeights += tripleMap.getOrElseUpdate(compressedTriple, new MutableWeight)
         }
@@ -78,8 +77,8 @@ trait ClusterDistancesTaskPostprocessor extends TaskPostProcessor[Ruleset, Seq[M
   }
 
   private def computeInterClustersSimilarity(cluster1: Ruleset, cluster2: Ruleset): Double = {
-    val tripleSet = cluster1.instantiate().view.flatMap(_.triples(false)).toSet
-    val (clusterLen2, intersections) = cluster2.instantiate().view.flatMap(_.triples(false)).distinct.foldLeft((0, 0)) { case ((total, intersections), triple) =>
+    val tripleSet = cluster1.instantiate().rules.flatMap(_.triples).toSet
+    val (clusterLen2, intersections) = cluster2.instantiate().rules.flatMap(_.triples).distinct.foldLeft((0, 0)) { case ((total, intersections), triple) =>
       (total + 1) -> (intersections + (if (tripleSet(triple)) 1 else 0))
     }
     /*println("***** INTER BETWEEN")
@@ -94,11 +93,11 @@ trait ClusterDistancesTaskPostprocessor extends TaskPostProcessor[Ruleset, Seq[M
   protected def postProcess(result: Ruleset): Seq[Metric] = {
     //result.sorted.foreach(println)
     val numberOfRules = Metric.Number("rules", result.size)
-    val clusters = result.rules.view.map(_.measures[Measure.Cluster].number).toSet.toIndexedSeq
+    val clusters = result.rules.map(_.measures.apply[Measure.Cluster].number).toSet.toIndexedSeq
     val numberOfClusters = Metric.Number("clusters", clusters.size)
     val interCache = collection.mutable.Map.empty[Set[Int], Double]
     val clustersSimilarities = for (cluster <- clusters) yield {
-      val clusterRuleset = result.filter(_.measures[Measure.Cluster].number == cluster)
+      val clusterRuleset = result.filter(_.measures.apply[Measure.Cluster].number == cluster)
       val intraClusterSimilarity = computeIntraClusterSimilarity(clusterRuleset)
       for (yCluster <- clusters) yield {
         if (cluster == yCluster) {
@@ -106,7 +105,7 @@ trait ClusterDistancesTaskPostprocessor extends TaskPostProcessor[Ruleset, Seq[M
         } else {
           interCache.getOrElseUpdate(
             Set(cluster, yCluster),
-            computeInterClustersSimilarity(clusterRuleset, result.filter(_.measures[Measure.Cluster].number == yCluster))
+            computeInterClustersSimilarity(clusterRuleset, result.filter(_.measures.apply[Measure.Cluster].number == yCluster))
           )
         }
       }

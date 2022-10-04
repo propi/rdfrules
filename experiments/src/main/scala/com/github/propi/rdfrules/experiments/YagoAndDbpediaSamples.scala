@@ -49,6 +49,7 @@ object YagoAndDbpediaSamples {
         RuleConsumer(TopKRuleConsumer(1000))
       ).computePcaConfidence(0.5)
         .computeLift()
+        .filter(_.measures.exists[Measure.Lift])
         .makeClusters(DbScan(minNeighbours = 1))
         .sortBy(Measure.Cluster, Measure.PcaConfidence, Measure.Lift, Measure.HeadCoverage)
         .cache(Example.resultDir + "rules-example3.cache")

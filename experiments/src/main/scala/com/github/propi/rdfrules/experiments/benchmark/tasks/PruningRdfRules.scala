@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.experiments.benchmark.tasks
 
 import com.github.propi.rdfrules.experiments.benchmark.{Metric, Task, TaskPostProcessor, TaskPreProcessor}
-import com.github.propi.rdfrules.model.Model.PredictionType
+import com.github.propi.rdfrules.prediction.PredictedResult
 import com.github.propi.rdfrules.ruleset.Ruleset
 
 /**
@@ -16,8 +16,8 @@ class PruningRdfRules(val name: String) extends Task[Ruleset, Ruleset, (Ruleset,
     List(
       Metric.Number("rules", rules.size),
       Metric.Number("prunedRules", pruned.size),
-      Metric.Number("coveredTriples", rules.predictedTriples(PredictionType.Existing).distinct.triples.size),
-      Metric.Number("prunedCoveredTriples", pruned.predictedTriples(PredictionType.Existing).distinct.triples.size)
+      Metric.Number("coveredTriples", rules.predict(Set(PredictedResult.Positive)).distinctPredictions.triples.size),
+      Metric.Number("prunedCoveredTriples", pruned.predict(Set(PredictedResult.Positive)).distinctPredictions.triples.size)
     )
   }
 

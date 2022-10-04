@@ -105,6 +105,18 @@ object Index {
     def withDebugger(implicit debugger: Debugger): Index = new FromCacheFullyPreservedIndex(is, optIndex)
   }
 
+  private class FromIndicesIndex(tripleMap: TripleIndex[Int], tripleItemMap: TripleItemIndex)(implicit val debugger: Debugger) extends Index with FullyPreservedInMemory with Cacheable {
+    def withDebugger(implicit debugger: Debugger): Index = new FromIndicesIndex(tripleMap, tripleItemMap)
+
+    protected val defaultIndex: Option[(TripleItemIndex, TripleIndex[Int])] = None
+
+    protected def buildTripleIndex: TripleIndex[Int] = tripleMap
+
+    protected def buildTripleItemIndex: TripleItemIndex = tripleItemMap
+
+    protected def buildAll: (TripleItemIndex, TripleIndex[Int]) = tripleItemMap -> tripleMap
+  }
+
   def apply(dataset: Dataset, partially: Boolean)(implicit _debugger: Debugger): Index = {
     if (partially) {
       new FromDatasetPartiallyPreservedIndex(Some(dataset), None, None)
@@ -112,6 +124,8 @@ object Index {
       new FromDatasetFullyPreservedIndex(Some(dataset), None)
     }
   }
+
+  def apply(tripleMap: TripleIndex[Int], tripleItemMap: TripleItemIndex)(implicit debugger: Debugger): Index = new FromIndicesIndex(tripleMap, tripleItemMap)
 
   def fromCache(is: => InputStream, partially: Boolean)(implicit _debugger: Debugger): Index = {
     if (partially) {

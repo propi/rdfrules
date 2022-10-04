@@ -41,7 +41,7 @@ object Metric {
   sealed trait Complex extends Metric
 
   case class Duration(name: String, value: duration.Duration) extends Simple {
-    def doubleValue: Double = value.toNanos
+    def doubleValue: Double = value.toNanos.toDouble
 
     def update(value: Double): Duration = copy(value = duration.Duration.fromNanos(value))
 
@@ -68,11 +68,11 @@ object Metric {
       } else if (absValue >= 1000L) {
         s"${round(value / 1000.0, 4)} kB"
       } else {
-        s"${round(value, 4)} B"
+        s"${round(value.toDouble, 4)} B"
       }
     }
 
-    def doubleValue: Double = value
+    def doubleValue: Double = value.toDouble
 
     def update(value: Double): Simple = copy(value = value.toLong)
 
@@ -191,16 +191,14 @@ object Metric {
   implicit def rulesToMetrics(rules: IndexedSeq[ResolvedRule]): Seq[Metric] = List(Number("rules", rules.length))
 
   implicit def indexToMetrics(index: Index): Seq[Metric] = {
-    index.tripleMap { thi =>
-      index.tripleItemMap { mapper =>
-        val totalDisc = thi.predicates.iterator.map(mapper.getTripleItem).collect {
-          case TripleItem.LongUri(uri) => uri
-          case x: TripleItem.PrefixedUri => x.toLongUri.uri
-        }.count(_.contains("_discretized_level_"))
-        val numPredicates = thi.predicates.valuesIterator.count(_.objects.iterator.exists(mapper.getTripleItem(_).isInstanceOf[TripleItem.Number[_]]))
-        List(Number("predicates", thi.predicates.size), Number("numPredicates", numPredicates), Number("discretized_*", totalDisc), Number("triples", thi.size))
-      }
-    }
+    val thi = index.tripleMap
+    val mapper = index.tripleItemMap
+    val totalDisc = thi.predicates.iterator.map(mapper.getTripleItem).collect {
+      case TripleItem.LongUri(uri) => uri
+      case x: TripleItem.PrefixedUri => x.toLongUri.uri
+    }.count(_.contains("_discretized_level_"))
+    val numPredicates = thi.predicates.valuesIterator.count(_.objects.iterator.exists(mapper.getTripleItem(_).isInstanceOf[TripleItem.Number[_]]))
+    List(Number("predicates", thi.predicates.size), Number("numPredicates", numPredicates), Number("discretized_*", totalDisc), Number("triples", thi.size(false)))
   }
 
   val simpleStringifier: Stringifier[Metric] = (v: Metric) => v.getSimple.prettyValue

@@ -8,7 +8,7 @@ import com.github.propi.rdfrules.experiments.AmieRuleOps._
 import com.github.propi.rdfrules.rule.ResolvedRule
 import com.github.propi.rdfrules.utils.HowLong
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /**
   * Created by Vaclav Zeman on 14. 5. 2019.

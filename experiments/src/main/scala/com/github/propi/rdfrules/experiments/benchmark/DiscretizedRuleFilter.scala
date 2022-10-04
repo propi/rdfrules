@@ -35,14 +35,10 @@ case class DiscretizedRuleFilter(discretizedPredicates: Seq[TripleItem.Uri]) ext
 object DiscretizedRuleFilter extends Key[DiscretizedRuleFilter] {
 
   def apply(index: Index): DiscretizedRuleFilter = {
-    val discretizedPredicates = index.tripleMap { thi =>
-      index.tripleItemMap { mapper =>
-        thi.predicates.iterator.map(mapper.getTripleItem).collect {
-          case x@TripleItem.LongUri(uri) if uri.contains("_discretized_level_") => x
-          case x: TripleItem.PrefixedUri if x.toLongUri.uri.contains("_discretized_level_") => x
-        }.toList
-      }
-    }
+    val discretizedPredicates = index.tripleMap.predicates.iterator.map(index.tripleItemMap.getTripleItem).collect {
+      case x@TripleItem.LongUri(uri) if uri.contains("_discretized_level_") => x
+      case x: TripleItem.PrefixedUri if x.toLongUri.uri.contains("_discretized_level_") => x
+    }.toList
     new DiscretizedRuleFilter(discretizedPredicates)
   }
 

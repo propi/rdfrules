@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.experiments.benchmark
 
-import com.github.propi.rdfrules.model.Model.PredictionType
+import com.github.propi.rdfrules.prediction.PredictedResult
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.Debugger
 
@@ -19,7 +19,7 @@ trait NewTriplesPostprocessor extends TaskPostProcessor[Ruleset, Seq[Metric]] {
     List(
       Metric.Number("rules", rules),
       Metric.Number("rulesConf", crules.size),
-      Metric.Number("newTriples", crules.predictedTriples(PredictionType.Complementary).distinct.triples.size)
+      Metric.Number("newTriples", crules.predict(Set(PredictedResult.PcaPositive)).distinctPredictions.triples.size)
     )
   }
 

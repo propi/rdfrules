@@ -20,8 +20,8 @@ class ConfidenceRdfRules[T](val name: String,
   protected def preProcess(input: Ruleset): Ruleset = input.setParallelism(numberOfThreads)
 
   protected def taskBody(input: Ruleset): Ruleset = Function.chain[Ruleset](List(
-    x => if (minConfidence > 0.0) x.computeConfidence(minConfidence, topK) else x,
-    x => if (minPcaConfidence > 0.0) x.computePcaConfidence(minPcaConfidence, topK) else x,
+    x => if (minConfidence > 0.0) x.computeConfidence(minConfidence, topK = topK) else x,
+    x => if (minPcaConfidence > 0.0) x.computePcaConfidence(minPcaConfidence, topK = topK) else x,
     x => if (countLift && minConfidence > 0.0) x.computeLift(minConfidence) else x
   ))(input).cache
 

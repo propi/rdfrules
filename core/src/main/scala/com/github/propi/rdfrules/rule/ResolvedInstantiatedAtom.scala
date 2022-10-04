@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.rule
 
-import com.github.propi.rdfrules.data.TripleItem
+import com.github.propi.rdfrules.data.{Triple, TripleItem}
 import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.rule.ResolvedAtom.ResolvedItem
 
@@ -16,6 +16,8 @@ sealed trait ResolvedInstantiatedAtom {
   def toResolvedAtom: ResolvedAtom
 
   def toInstantiatedAtom(implicit tripleItemIndex: TripleItemIndex): InstantiatedAtom
+
+  final def toTriple: Triple = Triple(subject, predicate, `object`)
 }
 
 object ResolvedInstantiatedAtom {

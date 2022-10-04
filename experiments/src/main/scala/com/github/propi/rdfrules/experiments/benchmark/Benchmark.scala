@@ -10,7 +10,7 @@ object Benchmark {
   }
 
   class Times(x: Int) {
-    def executeTask[I, O](task: Task[I, _, _, O]): (String, Stream[Task[I, _, _, O]]) = task.name -> Stream.fill(x)(task)
+    def executeTask[I, O](task: Task[I, _, _, O]): (String, LazyList[Task[I, _, _, O]]) = task.name -> LazyList.fill(x)(task)
   }
 
   object Once {
@@ -25,16 +25,16 @@ object Benchmark {
     }
   }
 
-  implicit class PimpedTaskStream[I, O](taskStream: (String, Stream[Task[I, _, _, O]])) {
+  implicit class PimpedTaskStream[I, O](taskStream: (String, LazyList[Task[I, _, _, O]])) {
     def withInput(input: I)
-                 (implicit m2: O => Seq[Metric]): (String, Stream[Seq[Metric]]) = {
+                 (implicit m2: O => Seq[Metric]): (String, LazyList[Seq[Metric]]) = {
       taskStream._1 -> taskStream._2
         .map(_.execute(input))
         .map(x => x._1 ++ m2(x._2))
     }
   }
 
-  implicit class PimpedMetricStream(metricStream: (String, Stream[Seq[Metric]])) {
+  implicit class PimpedMetricStream(metricStream: (String, LazyList[Seq[Metric]])) {
     def andAggregateResultWith(metricsAggregator: MetricsAggregator): (String, Seq[Metric]) = {
       metricStream._1 -> metricsAggregator.aggregateMetrics(metricStream._2)
     }
@@ -44,8 +44,8 @@ object Benchmark {
     def andFinallyProcessResultWith[T](metricResultProcessor: MetricResultProcessor[T]): T = metricResultProcessor.processMetrics(metricResult)
 
     def compareWith(metricResult2: (String, Seq[Metric])): ((String, Seq[Metric]), (String, Seq[Metric])) = {
-      val m1 = metricResult._2.groupBy(_.name).mapValues(_.head)
-      val m2 = metricResult2._2.groupBy(_.name).mapValues(_.head)
+      val m1 = metricResult._2.groupBy(_.name).view.mapValues(_.head)
+      val m2 = metricResult2._2.groupBy(_.name).view.mapValues(_.head)
       val r1 = metricResult._2.flatMap(x => m2.get(x.name).map(y => Metric.Comparison(x, y)))
       val r2 = metricResult2._2.flatMap(x => m1.get(x.name).map(y => Metric.Comparison(x, y)))
       (metricResult._1 -> r1, metricResult2._1 -> r2)
@@ -61,8 +61,8 @@ object Benchmark {
     }
 
     def compareWith(metricResult2: (String, O, Seq[Metric])): ((String, Seq[Metric]), (String, Seq[Metric])) = {
-      val m1 = metricResult._3.groupBy(_.name).mapValues(_.head)
-      val m2 = metricResult2._3.groupBy(_.name).mapValues(_.head)
+      val m1 = metricResult._3.groupBy(_.name).view.mapValues(_.head)
+      val m2 = metricResult2._3.groupBy(_.name).view.mapValues(_.head)
       val r1 = metricResult._3.flatMap(x => m2.get(x.name).map(y => Metric.Comparison(x, y)))
       val r2 = metricResult2._3.flatMap(x => m1.get(x.name).map(y => Metric.Comparison(x, y)))
       (metricResult._1 -> r1, metricResult2._1 -> r2)
