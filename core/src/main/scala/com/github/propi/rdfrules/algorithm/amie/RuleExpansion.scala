@@ -20,13 +20,29 @@ trait RuleExpansion {
     * @return extended rule with new atom
     */
   def expand(atom: Atom, support: Int): ExpandingRule = {
-    (atom.subject, atom.`object`) match {
+    val headDangling = if (atom.subject == dangling || atom.`object` == dangling) List(dangling) else Nil
+    val (secondDanglings, others) = rule match {
+      case rule: ClosedRule => Nil -> rule.variables
+      case rule: DanglingRule =>
+        val (danglings, others) = rule.variables.danglings.partition(x => x != atom.subject && x != atom.`object`)
+        danglings -> (others ::: rule.variables.others)
+    }
+    headDangling ::: secondDanglings match {
+      case List(a, b) => DanglingRule(atom +: rule.body, rule.head, support, rule.headSize, ExpandingRule.TwoDanglings(a, b, others))
+      case List(a) => DanglingRule(atom +: rule.body, rule.head, support, rule.headSize, ExpandingRule.OneDangling(a, others))
+      case _ => ClosedRule(atom +: rule.body, rule.head, support, rule.headSize, others)
+    }
+    /*(atom.subject, atom.`object`) match {
       case (sv: Atom.Variable, ov: Atom.Variable) => if (sv == dangling || ov == dangling) {
         rule match {
           case rule: DanglingRule => rule.variables match {
             case ExpandingRule.OneDangling(originalDangling, others) =>
               //(d, c) | (a, c) (a, b) (a, b) => OneDangling(c) -> OneDangling(d)
-              DanglingRule(atom +: rule.body, rule.head, support, rule.headSize, ExpandingRule.OneDangling(dangling, originalDangling :: others), dangling)
+              if (sv != originalDangling && ov != originalDangling) {
+                DanglingRule(atom +: rule.body, rule.head, support, rule.headSize, ExpandingRule.TwoDanglings(dangling, originalDangling, others), dangling)
+              } else {
+                DanglingRule(atom +: rule.body, rule.head, support, rule.headSize, ExpandingRule.OneDangling(dangling, originalDangling :: others), dangling)
+              }
             case ExpandingRule.TwoDanglings(dangling1, dangling2, others) =>
               //(d, c) | (a, c) (a, b) => TwoDanglings(c, b) -> TwoDanglings(d, b)
               val (pastDangling, secondDangling) = if (sv == dangling1 || ov == dangling1) (dangling1, dangling2) else (dangling2, dangling1)
@@ -43,26 +59,53 @@ trait RuleExpansion {
             ClosedRule(atom +: rule.body, rule.head, support, rule.headSize, rule.variables, rule.maxVariable)
           case rule: DanglingRule =>
             //(c, a) | (c, a) (a, b) (a, b) => OneDangling(c) -> ClosedRule
-            //(c, b) |(a, c) (a, b) => TwoDanglings(c, b) -> ClosedRule
-            ClosedRule(atom +: rule.body, rule.head, support, rule.headSize, rule.variables.danglings ::: rule.variables.others, rule.maxVariable)
+            //(c, b) | (a, c) (a, b) => TwoDanglings(c, b) -> ClosedRule
+            rule.variables match {
+              case ExpandingRule.OneDangling(originalDangling, others) =>
+                //(d, c) | (a, c) (a, b) (a, b) => OneDangling(c) -> OneDangling(d)
+                if (sv != originalDangling && ov != originalDangling) {
+                  DanglingRule(atom +: rule.body, rule.head, support, rule.headSize, ExpandingRule.OneDangling(originalDangling, others), originalDangling)
+                } else {
+                  ClosedRule(atom +: rule.body, rule.head, support, rule.headSize, originalDangling :: rule.variables.others, originalDangling)
+                }
+              case ExpandingRule.TwoDanglings(dangling1, dangling2, others) =>
+                //(d, c) | (a, c) (a, b) => TwoDanglings(c, b) -> TwoDanglings(d, b)
+                val rem = Set(dangling1, dangling2) - sv - ov
+                if (rem.size == 2) {
+                  DanglingRule(atom +: rule.body, rule.head, support, rule.headSize, ExpandingRule.TwoDanglings(dangling1, dangling2, others), dangling1)
+                } else if (rem.size == 1) {
+                  val (pastDangling, dangling) = if (rem(dangling1)) (dangling2, dangling1) else (dangling1, dangling2)
+                  DanglingRule(atom +: rule.body, rule.head, support, rule.headSize, ExpandingRule.OneDangling(dangling, pastDangling :: others), dangling)
+                } else {
+                  ClosedRule(atom +: rule.body, rule.head, support, rule.headSize, dangling1 :: dangling2 :: rule.variables.others, dangling1)
+                }
+            }
         }
       }
-      case (_: Atom.Variable, _: Atom.Constant) | (_: Atom.Constant, _: Atom.Variable) => rule match {
+      case (s, o) => rule match {
         case rule: ClosedRule =>
           //(a, C) | (a, b) (a, b) => ClosedRule -> ClosedRule
           ClosedRule(atom +: rule.body, rule.head, support, rule.headSize, rule.variables, rule.maxVariable)
         case rule: DanglingRule => rule.variables match {
           case ExpandingRule.OneDangling(dangling, others) =>
             //(c, C) | (a, c) (a, b) (a, b) => OneDangling(c) -> ClosedRule
-            ClosedRule(atom +: rule.body, rule.head, support, rule.headSize, dangling :: others, dangling)
+            if (s == dangling || o == dangling) {
+              ClosedRule(atom +: rule.body, rule.head, support, rule.headSize, dangling :: others, dangling)
+            } else {
+              DanglingRule(atom +: rule.body, rule.head, support, rule.headSize, ExpandingRule.OneDangling(dangling, others), dangling)
+            }
           case ExpandingRule.TwoDanglings(dangling1, dangling2, others) =>
             //(c, C) | (a, c) (a, b) => TwoDanglings(c, b) -> OneDangling(b)
-            val (pastDangling, dangling) = if (atom.subject == dangling1 || atom.`object` == dangling1) (dangling1, dangling2) else (dangling2, dangling1)
-            DanglingRule(atom +: rule.body, rule.head, support, rule.headSize, ExpandingRule.OneDangling(dangling, pastDangling :: others), rule.maxVariable)
+            val rem = Set[Atom.Item](dangling1, dangling2) - s - o
+            if (rem.size == 2) {
+              DanglingRule(atom +: rule.body, rule.head, support, rule.headSize, ExpandingRule.TwoDanglings(dangling1, dangling2, others), dangling1)
+            } else {
+              val (pastDangling, dangling) = if (rem(dangling1)) (dangling2, dangling1) else (dangling1, dangling2)
+              DanglingRule(atom +: rule.body, rule.head, support, rule.headSize, ExpandingRule.OneDangling(dangling, pastDangling :: others), dangling)
+            }
         }
       }
-      case _ => throw new IllegalStateException
-    }
+    }*/
   }
 
 }

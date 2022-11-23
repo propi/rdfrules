@@ -149,7 +149,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
       //countable fresh atoms are atoms for which we know all existing variables (we needn't know dangling variable)
       // - then we can count all projections for this fresh atom and then only check existence of rest atoms in the rule
       //for other fresh atoms we need to find instances for unknown variables (not for dangling variable)
-      val (countableFreshAtoms, possibleFreshAtoms) = getPossibleFreshAtoms.filter(x => patternFilter.matchFreshAtom(x)).toArray.partition(freshAtom => List(freshAtom.subject, freshAtom.`object`).forall(x => x == rule.head.subject || x == rule.head.`object` || x == dangling))
+      val (countableFreshAtoms, possibleFreshAtoms) = (if (settings.experiment) getPossibleFreshAtoms3 else getPossibleFreshAtoms).filter(x => patternFilter.matchFreshAtom(x)).toArray.partition(freshAtom => List(freshAtom.subject, freshAtom.`object`).forall(x => x == rule.head.subject || x == rule.head.`object` || x == dangling))
       //val minSupport = minComputedSupport(rule)
       val bodySet = rule.body.toSet
       //maxSupport is variable where the maximal support from all extension rules is saved
@@ -212,6 +212,113 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
         expand(atom, support.getValue)
       }
     }
+  }
+
+  import Atom.variableOrdering.mkOrderingOps
+
+  private def getPossibleFreshAtoms3 = {
+    val head = if (rule.body.isEmpty) rule.head else rule.body.head
+    val (x, y) = (head.subject, head.`object`) match {
+      case (v1: Atom.Variable, v2: Atom.Variable) => v1.min(v2) -> v1.max(v2)
+      case (v1: Atom.Variable, _) => v1 -> dangling
+      case (_, v2: Atom.Variable) => v2 -> dangling
+      case _ => throw new IllegalStateException()
+    }
+    val nextDangling = dangling.++
+    val checkRightDanglings = rule match {
+      case _: ClosedRule => (_: FreshAtom) => true
+      case rule: DanglingRule => rule.variables match {
+        case ExpandingRule.OneDangling(dangling1, _) => (x: FreshAtom) => x.subject <= dangling1 || x.`object` <= dangling1
+        case ExpandingRule.TwoDanglings(dangling1, dangling2, _) => (x: FreshAtom) =>
+          (x.subject <= dangling1 && x.subject <= dangling2 || x.`object` <= dangling1 && x.`object` <= dangling2) &&
+            (x.subject == dangling1 ||
+              x.subject == dangling2 ||
+              x.`object` == dangling1 ||
+              x.`object` == dangling2 ||
+              (x.subject != dangling && x.`object` != dangling))
+      }
+    }
+    val checkLastAtom = if (rule.ruleLength + 1 < maxRuleLength) {
+      (_: FreshAtom) => true
+    } else {
+      rule match {
+        case _: ClosedRule if isWithInstances => (_: FreshAtom) => true
+        case _: ClosedRule => (x: FreshAtom) => x.subject != dangling && x.`object` != dangling
+        case rule: DanglingRule => rule.variables match {
+          case ExpandingRule.OneDangling(dangling1, _) if isWithInstances => (x: FreshAtom) =>
+            x.subject == dangling1 ||
+              x.`object` == dangling1 ||
+              (x.subject != dangling && x.`object` != dangling)
+          case ExpandingRule.OneDangling(dangling1, _) => (x: FreshAtom) =>
+            (x.subject == dangling1 && x.`object` != dangling) ||
+              (x.`object` == dangling1 && x.subject != dangling)
+          case ExpandingRule.TwoDanglings(dangling1, dangling2, _) if isWithInstances => (x: FreshAtom) =>
+            val rem = Set(x.subject, x.`object`) - dangling1 - dangling2
+            rem.isEmpty || (rem.size == 1 && !rem.contains(dangling))
+          case ExpandingRule.TwoDanglings(dangling1, dangling2, _) => (x: FreshAtom) =>
+            (Set(x.subject, x.`object`) - dangling1 - dangling2).isEmpty
+        }
+      }
+    }
+
+    (for {
+      i <- Iterator.iterate(x)(_.++).takeWhile(_ != dangling)
+      j <- Iterator.iterate(y)(_.++).takeWhile(_ != nextDangling) if i < j
+    } yield {
+      Iterator(FreshAtom(i, j), FreshAtom(j, i)).filter(x => checkRightDanglings(x) && checkLastAtom(x))
+    }).flatten
+  }
+
+  private def getPossibleFreshAtoms2 = rule match {
+    case rule: ClosedRule =>
+      //if the rule is closed then we connect all items with a new dangling atom
+      // - result is one dangling rule
+      //or we create new closed atoms which are created from all items combinations within this rule
+      // - result is closed rule
+      //condition for danglings: if not with instances and rule is closed and its lengths equals maxRuleLength - 1 then it should not be refined
+      // - ex: p(b,a) => p(a,b) then p(a,c) ^ p(b,a) => p(a,b) is useless because it always generate dangling rules
+      rule.variables.combinations(2).collect { case List(x, y) => Iterator(FreshAtom(x, y), FreshAtom(y, x)) }.flatten
+    case rule: DanglingRule =>
+      rule.variables match {
+        case ExpandingRule.OneDangling(dangling1, others) =>
+          //if the rule has one dangling item then we create fresh atoms with this item and with a new dangling item
+          // - result is one dangling rule again
+          //or we create fresh atoms with existing dangling item with combination of other items
+          // - result is closed rule
+          //condition for danglings: if not with instances and rule is dangling and its lengths equals maxRuleLength - 1 then it should not be refined
+          val danglings = if (rule.ruleLength + 1 >= maxRuleLength) {
+            if (!isWithInstances) {
+              Iterator.empty
+            } else {
+              constantsPosition match {
+                case Some(ConstantsPosition.Subject) => Iterator(FreshAtom(dangling, dangling1))
+                case Some(ConstantsPosition.Object) => Iterator(FreshAtom(dangling1, dangling))
+                case _ => Iterator(FreshAtom(dangling1, dangling), FreshAtom(dangling, dangling1))
+              }
+            }
+          } else {
+            Iterator(FreshAtom(dangling1, dangling), FreshAtom(dangling, dangling1))
+          }
+          val closed = others.iterator.flatMap(x => Iterator(FreshAtom(dangling1, x), FreshAtom(x, dangling1)))
+          danglings ++ closed
+        case ExpandingRule.TwoDanglings(dangling1, dangling2, _) =>
+          //if the rule has two dangling items then we create fresh atoms with these items and with a new dangling item
+          // - result is two danglings rule again
+          //or we create fresh atoms only with these dangling items
+          // - result is closed rule
+          //condition for danglings: if not with instances and rule is dangling and its lengths equals maxRuleLength - 1 then it should not be refined
+          if (rule.body.isEmpty) {
+            val danglings = rule.variables.danglings.iterator.flatMap(x => Iterator(FreshAtom(dangling, x), FreshAtom(x, dangling)))
+            val closed = Iterator(FreshAtom(dangling1, dangling2), FreshAtom(dangling2, dangling1))
+            danglings ++ closed
+          } else {
+            if (rule.ruleLength + 1 < maxRuleLength) {
+              (rule.variables.all ++ Iterator(dangling)).filter(_ != dangling1).flatMap(x => Iterator(FreshAtom(dangling1, x), FreshAtom(x, dangling1)))
+            } else {
+              Iterator(FreshAtom(dangling1, dangling2), FreshAtom(dangling2, dangling1))
+            }
+          }
+      }
   }
 
   /**
@@ -515,9 +622,9 @@ trait RuleRefinement extends AtomCounting with RuleExpansion {
 object RuleRefinement {
 
   implicit class PimpedRule(extendedRule: ExpandingRule)(implicit ti: TripleIndex[Int], tii: TripleItemIndex, settings: AmieSettings, _debugger: Debugger) {
-    def refine(experiments: Boolean): Iterator[ExpandingRule] = {
+    def refine: Iterator[ExpandingRule] = {
       val _settings = settings
-      if (experiments) {
+      /*if (settings.experiment) {
         new RuleRefinement2 {
           val rule: ExpandingRule = extendedRule
           val settings: AmieSettings = _settings
@@ -525,15 +632,15 @@ object RuleRefinement {
           val tripleItemIndex: TripleItemIndex = implicitly[TripleItemIndex]
           protected val debugger: Debugger = _debugger
         }.refine
-      } else {
-        new RuleRefinement {
-          val rule: ExpandingRule = extendedRule
-          val settings: AmieSettings = _settings
-          val tripleIndex: TripleIndex[Int] = implicitly[TripleIndex[Int]]
-          val tripleItemIndex: TripleItemIndex = implicitly[TripleItemIndex]
-          protected val debugger: Debugger = _debugger
-        }.refine
-      }
+      } else {*/
+      new RuleRefinement {
+        val rule: ExpandingRule = extendedRule
+        val settings: AmieSettings = _settings
+        val tripleIndex: TripleIndex[Int] = implicitly[TripleIndex[Int]]
+        val tripleItemIndex: TripleItemIndex = implicitly[TripleItemIndex]
+        protected val debugger: Debugger = _debugger
+      }.refine
+      //}
     }
   }
 

@@ -28,7 +28,9 @@ trait RdfRulesMiningTask[T] extends Task[Index, Index, Ruleset, T] with TaskPreP
       if (withConstantsAtTheObjectPosition) x.addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Object)) else x.addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LowerCardinalitySide))
     } else {
       x.addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere))
-    }
+    },
+    x => if (experiment) x.withExperiment else x,
+    x => if (withoutDuplicatePredicates) x.addConstraint(RuleConstraint.WithoutDuplicatePredicates()) else x
   ))(Amie())
 
   protected def miningTask(rulesMining: RulesMining): RulesMining = rulesMining

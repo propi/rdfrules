@@ -16,6 +16,8 @@ trait DefaultMiningSettings {
   val minHeadCoverage: Double = 0.01
   val numberOfThreads: Int = Runtime.getRuntime.availableProcessors()
   val ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer())
+  val experiment: Boolean = false
+  val withoutDuplicatePredicates: Boolean = false
 
 }
 

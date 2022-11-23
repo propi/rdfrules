@@ -8,12 +8,13 @@ import com.github.propi.rdfrules.utils.{ForEach, TypedKeyMap}
 /**
   * Created by Vaclav Zeman on 14. 3. 2018.
   */
-abstract class RulesMining(_parallelism: Int, _thresholds: TypedKeyMap[Threshold], _constraints: TypedKeyMap[RuleConstraint], _patterns: List[RulePattern]) {
+abstract class RulesMining(_parallelism: Int, _thresholds: TypedKeyMap[Threshold], _constraints: TypedKeyMap[RuleConstraint], _patterns: List[RulePattern], _experiment: Boolean) {
 
   protected def transform(thresholds: TypedKeyMap[Threshold] = _thresholds,
                           constraints: TypedKeyMap[RuleConstraint] = _constraints,
                           patterns: List[RulePattern] = _patterns,
-                          parallelism: Int = _parallelism): RulesMining
+                          parallelism: Int = _parallelism,
+                          experiment: Boolean = _experiment): RulesMining
 
   final def addThreshold(threshold: Threshold): RulesMining = transform(thresholds = _thresholds + Threshold.validate(threshold))
 
@@ -21,11 +22,15 @@ abstract class RulesMining(_parallelism: Int, _thresholds: TypedKeyMap[Threshold
 
   final def addPattern(rulePattern: RulePattern): RulesMining = transform(patterns = rulePattern :: _patterns)
 
+  final def withExperiment: RulesMining = transform(experiment = true)
+
   final def thresholds: TypedKeyMap.Immutable[Threshold] = _thresholds
 
   final def constraints: TypedKeyMap.Immutable[RuleConstraint] = _constraints
 
   final def patterns: List[RulePattern] = _patterns
+
+  final def experiment: Boolean = _experiment
 
   /**
     * Set a parallelism level for main mining task (number of workers).

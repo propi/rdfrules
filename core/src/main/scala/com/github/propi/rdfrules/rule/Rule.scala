@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.rule
 
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting._
-import com.github.propi.rdfrules.index.TripleItemHashIndex
+import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.utils.{Stringifier, TypedKeyMap}
 
 import scala.language.implicitConversions
@@ -48,6 +48,13 @@ object Rule {
 
   sealed trait FinalRule extends Rule {
     def withMeasures(measure: TypedKeyMap.Immutable[Measure]): FinalRule
+
+    private lazy val bodySet = body.toSet
+
+    override def equals(obj: Any): Boolean = obj match {
+      case that: Rule => ExpandingRule.checkRuleContentsEquality(that.body, bodySet, that.head, head)
+      case _ => false
+    }
   }
 
   private case class Simple(head: Atom, body: IndexedSeq[Atom])(val measures: TypedKeyMap.Immutable[Measure]) extends FinalRule {
@@ -91,7 +98,7 @@ object Rule {
 
   implicit val ruleSimpleOrdering: Ordering[FinalRule] = Ordering.by[FinalRule, Rule](_.asInstanceOf[Rule])
 
-  implicit val ruleSimilarityCounting: SimilarityCounting[Rule] = AtomsSimilarityCounting/*(0.5 * AtomsSimilarityCounting) ~
+  implicit val ruleSimilarityCounting: SimilarityCounting[Rule] = AtomsSimilarityCounting /*(0.5 * AtomsSimilarityCounting) ~
     (0.1 * LengthSimilarityCounting) ~
     (0.15 * SupportSimilarityCounting) ~
     (0.05 * ConfidenceSimilarityCounting) ~
@@ -100,9 +107,10 @@ object Rule {
 
   implicit def ruleStringifier(implicit ruleSimpleStringifier: Stringifier[FinalRule]): Stringifier[Rule] = (v: Rule) => ruleSimpleStringifier.toStringValue(v match {
     case x: Simple => x
+    case x: ExpandingRule => Simple(x.head, x.body)(TypedKeyMap())
     case x => Simple(x.head, x.body)(x.measures)
   })
 
-  implicit def ruleSimpleStringifier(implicit resolvedRuleStringifier: Stringifier[ResolvedRule], mapper: TripleItemHashIndex): Stringifier[FinalRule] = (v: FinalRule) => resolvedRuleStringifier.toStringValue(v)
+  implicit def ruleSimpleStringifier(implicit resolvedRuleStringifier: Stringifier[ResolvedRule], mapper: TripleItemIndex): Stringifier[FinalRule] = (v: FinalRule) => resolvedRuleStringifier.toStringValue(v)
 
 }

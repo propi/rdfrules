@@ -18,12 +18,12 @@ import scala.language.postfixOps
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
-class Amie private(experiments: Boolean,
-                   _parallelism: Int = Runtime.getRuntime.availableProcessors(),
+class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
                    _thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
                    _constraints: TypedKeyMap[RuleConstraint] = TypedKeyMap(),
-                   _patterns: List[RulePattern] = Nil)
-                  (implicit debugger: Debugger) extends RulesMining(_parallelism, _thresholds, _constraints, _patterns) {
+                   _patterns: List[RulePattern] = Nil,
+                   _experiment: Boolean = false)
+                  (implicit debugger: Debugger) extends RulesMining(_parallelism, _thresholds, _constraints, _patterns, _experiment) {
 
   self =>
 
@@ -32,7 +32,8 @@ class Amie private(experiments: Boolean,
   protected def transform(thresholds: TypedKeyMap[Threshold],
                           constraints: TypedKeyMap[RuleConstraint],
                           patterns: List[RulePattern],
-                          parallelism: Int): RulesMining = new Amie(experiments, parallelism, thresholds, constraints, patterns)
+                          parallelism: Int,
+                          experiment: Boolean): RulesMining = new Amie(parallelism, thresholds, constraints, patterns, experiment)
 
   /**
     * Mine all closed rules from tripleIndex by defined thresholds (hc, support, rule length), optional rule pattern and constraints
@@ -176,6 +177,7 @@ class Amie private(experiments: Boolean,
     @tailrec
     private def executeStage(stage: Int, queue: UniqueQueue[ExpandingRule]): Unit = {
       val nextQueue = new UniqueQueue.ThreadSafeUniqueSet[ExpandingRule]
+      val duplicates = new AtomicInteger(0)
       debugger.debug(s"Amie rules mining, stage $stage of ${settings.maxRuleLength - 1}", queue.size) { ad =>
         val activeThreads = new AtomicInteger(parallelism)
         //starts P jobs in parallel where P is number of processors
@@ -188,14 +190,17 @@ class Amie private(experiments: Boolean,
               //if rule length is lower than max rule length we can expand this rule with one atom (in this refine phase it always applies)
               //if we use the topK approach the minHeadCoverage may change during mining; therefore we need to check minHC threshold for the current rule
               //refine the rule and add all expanded variants into the queue
-              for (rule <- rule.refine(experiments)) {
+              for (rule <- rule.refine) {
                 val ruleIsAdded = nextQueue.add(rule)
+                if (!ruleIsAdded) {
+                  duplicates.incrementAndGet()
+                }
                 if (ruleIsAdded && rule.isInstanceOf[ClosedRule] && (settings.patterns.isEmpty || settings.patterns.exists(_.matchWith[Rule](rule)))) {
                   ruleConsumer.send(rule)
                   foundRules.incrementAndGet()
                 }
               }
-              ad.done(s"processed rules, found closed rules: ${foundRules.get()}, activeThreads: ${activeThreads.get()}")
+              ad.done(s"processed rules, found closed rules: ${foundRules.get()}, activeThreads: ${activeThreads.get()}, duplicates: ${duplicates.get()}")
             }
           } finally {
             activeThreads.decrementAndGet()
@@ -209,6 +214,7 @@ class Amie private(experiments: Boolean,
           job.join()
         }
       }
+      println(s"total duplicates: ${duplicates.get()}")
       //stage is completed, go to the next stage
       if (stage + 1 < settings.maxRuleLength && !nextQueue.isEmpty) {
         executeStage(stage + 1, nextQueue)
@@ -245,6 +251,6 @@ object Amie {
     * @param debugger debugger
     * @return
     */
-  def apply(experiments: Boolean = false)(implicit debugger: Debugger): RulesMining = new Amie(experiments)
+  def apply()(implicit debugger: Debugger): RulesMining = new Amie()
 
 }

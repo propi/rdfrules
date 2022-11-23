@@ -14,15 +14,17 @@ import scala.language.postfixOps
 class HeadsMiner private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
                          _thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
                          _constraints: TypedKeyMap[RuleConstraint] = TypedKeyMap(),
-                         _patterns: List[RulePattern] = Nil)
-                        (implicit debugger: Debugger) extends RulesMining(_parallelism, _thresholds, _constraints, _patterns) {
+                         _patterns: List[RulePattern] = Nil,
+                         _experiment: Boolean = false)
+                        (implicit debugger: Debugger) extends RulesMining(_parallelism, _thresholds, _constraints, _patterns, _experiment) {
 
   self =>
 
   protected def transform(thresholds: TypedKeyMap[Threshold],
                           constraints: TypedKeyMap[RuleConstraint],
                           patterns: List[RulePattern],
-                          parallelism: Int): RulesMining = new HeadsMiner(parallelism, thresholds, constraints, patterns)
+                          parallelism: Int,
+                          experiment: Boolean): RulesMining = new HeadsMiner(parallelism, thresholds, constraints, patterns, experiment)
 
   def mine(ruleConsumer: RuleConsumer)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): ForEach[FinalRule] = {
     //val logger = debugger.logger

@@ -44,6 +44,8 @@ class AmieSettings(rulesMining: RulesMining)(implicit debugger: Debugger, mapper
 
   def setMinHeadCoverage(value: Double): Unit = _minHeadCoverage = value
 
+  def experiment: Boolean = rulesMining.experiment
+
   override def toString: String = s"MinHeadSize=$minHeadSize,\n" +
     s"MinHeadCoverage=$minHeadCoverage,\n" +
     s"MinSupport=$minSupport,\n" +
@@ -57,5 +59,6 @@ class AmieSettings(rulesMining: RulesMining)(implicit debugger: Debugger, mapper
     s"InjectiveMapping=$injectiveMapping,\n" +
     s"Patterns=$patterns,\n" +
     s"OnlyPredicates=$onlyPredicates,\n" +
-    s"WithoutPredicates=$withoutPredicates"
+    s"WithoutPredicates=$withoutPredicates\n" +
+    s"Experiment=$experiment"
 }
