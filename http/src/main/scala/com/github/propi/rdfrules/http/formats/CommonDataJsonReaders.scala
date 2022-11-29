@@ -351,6 +351,7 @@ object CommonDataJsonReaders {
       case "Maximal" => PruningStrategy.Maximal
       case "Closed" => PruningStrategy.Closed(fields("measure").convertTo[TypedKeyMap.Key[Measure]])
       case "OnlyBetterDescendant" => PruningStrategy.OnlyBetterDescendant(fields("measure").convertTo[TypedKeyMap.Key[Measure]])
+      case "WithoutQuasiBinding" => PruningStrategy.WithoutQuasiBinding(fields("injectiveMapping").convertTo[Boolean])
       case x => deserializationError(s"Invalid name of pruning strategy: $x")
     }.get
   }

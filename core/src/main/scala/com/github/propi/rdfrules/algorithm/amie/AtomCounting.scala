@@ -128,6 +128,24 @@ trait AtomCounting {
     }
   }
 
+  def hasQuasiBinding(atoms: Set[Atom], injectiveMapping: Boolean): Boolean = {
+    val hmap = collection.mutable.HashMap.empty[Atom, Atom]
+    val allPaths = paths(atoms, VariableMap(injectiveMapping))
+    if (allPaths.hasNext) {
+      val firstPath = allPaths.next()
+      for (atom <- atoms if atom.subject.isInstanceOf[Atom.Constant] || atom.`object`.isInstanceOf[Atom.Constant]) {
+        hmap.put(atom, firstPath.specifyAtom(atom))
+      }
+    }
+    while (allPaths.hasNext && hmap.nonEmpty) {
+      val variableMap = allPaths.next()
+      hmap.filterInPlace { case (atom, lastSpecifiedAtom) =>
+        variableMap.specifyAtom(atom) == lastSpecifiedAtom
+      }
+    }
+    hmap.nonEmpty
+  }
+
   /**
     * For input atoms select all instantiated distinct pairs (or sequence) for input variables (headVars)
     *

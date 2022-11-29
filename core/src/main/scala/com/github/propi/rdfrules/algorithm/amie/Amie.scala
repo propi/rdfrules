@@ -176,7 +176,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
 
     @tailrec
     private def executeStage(stage: Int, queue: UniqueQueue[ExpandingRule]): Unit = {
-      val nextQueue = new UniqueQueue.ThreadSafeUniqueSet[ExpandingRule]
+      val nextQueue = /*if (experiment) new UniqueQueue.ConcurrentLinkedQueueWrapper(new ConcurrentLinkedQueue[ExpandingRule]()) else */ new UniqueQueue.ThreadSafeUniqueSet[ExpandingRule]
       val duplicates = new AtomicInteger(0)
       debugger.debug(s"Amie rules mining, stage $stage of ${settings.maxRuleLength - 1}", queue.size) { ad =>
         val activeThreads = new AtomicInteger(parallelism)
@@ -194,6 +194,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
                 val ruleIsAdded = nextQueue.add(rule)
                 if (!ruleIsAdded) {
                   duplicates.incrementAndGet()
+                  //println(Stringifier(rule.asInstanceOf[Rule]))
                 }
                 if (ruleIsAdded && rule.isInstanceOf[ClosedRule] && (settings.patterns.isEmpty || settings.patterns.exists(_.matchWith[Rule](rule)))) {
                   ruleConsumer.send(rule)
@@ -214,7 +215,8 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
           job.join()
         }
       }
-      println(s"total duplicates: ${duplicates.get()}")
+      logger.info(s"total duplicates in stage $stage: ${duplicates.get()}")
+      //println(s"total duplicates: ${duplicates.get()}")
       //stage is completed, go to the next stage
       if (stage + 1 < settings.maxRuleLength && !nextQueue.isEmpty) {
         executeStage(stage + 1, nextQueue)

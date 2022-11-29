@@ -41,7 +41,7 @@ class Prune(fromOperation: Operation, val info: OperationInfo) extends Operation
 
     Constants(
       new Select("strategy", "Strategy",
-        Constants("DataCoveragePruning" -> "Data coverage pruning", "Maximal" -> "Maximal", "Closed" -> "Close", "OnlyBetterDescendant" -> "Only better descendant"),
+        Constants("DataCoveragePruning" -> "Data coverage pruning", "Maximal" -> "Maximal", "Closed" -> "Close", "OnlyBetterDescendant" -> "Only better descendant", "WithoutQuasiBinding" -> "Without quasi-binding"),
         Some("DataCoveragePruning"),
         {
           case ("DataCoveragePruning", _) => activeStrategy(true, false)

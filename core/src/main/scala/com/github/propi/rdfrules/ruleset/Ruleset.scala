@@ -118,6 +118,15 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     })
   }
 
+  def withoutQuasiBinding(injectiveMapping: Boolean = true)(implicit debugger: Debugger): Ruleset = {
+    implicit val ti: TripleIndex[Int] = index.tripleMap
+    implicit val tii: TripleItemIndex = index.tripleItemMap
+    transform(rules.parMap(parallelism)(x => Option(x).filter(!_.hasQuasiBinding(injectiveMapping)))
+      .withDebugger("Quasi binding filtering")
+      .filter(_.isDefined)
+      .map(_.get))
+  }
+
   def graphAwareRules: Ruleset = {
     implicit val ad: Int => (Debugger.ActionDebugger => Unit) => Unit = size => f => Debugger.EmptyDebugger.debug("", size)(f)
     transform(new ForEach[FinalRule] {

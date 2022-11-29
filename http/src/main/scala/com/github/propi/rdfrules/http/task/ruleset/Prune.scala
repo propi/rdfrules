@@ -18,6 +18,7 @@ class Prune(strategy: PruningStrategy)(implicit debugger: Debugger) extends Task
     case PruningStrategy.OnlyBetterDescendant(measure) => input.onlyBetterDescendant(measure)
     case PruningStrategy.Closed(measure) => input.closed(measure)
     case PruningStrategy.Maximal => input.maximal
+    case PruningStrategy.WithoutQuasiBinding(injectiveMapping) => input.withoutQuasiBinding(injectiveMapping)
   }
 }
 
@@ -35,6 +36,8 @@ object Prune extends TaskDefinition {
     case class Closed(measure: Key[Measure]) extends PruningStrategy
 
     case class OnlyBetterDescendant(measure: Key[Measure]) extends PruningStrategy
+
+    case class WithoutQuasiBinding(injectiveMapping: Boolean) extends PruningStrategy
 
   }
 }

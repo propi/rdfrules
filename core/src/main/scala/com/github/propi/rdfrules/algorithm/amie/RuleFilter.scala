@@ -317,6 +317,17 @@ object RuleFilter {
     }
   }
 
+  /**
+    * Filter no relevant fresh atoms, e.g., (a p C) & (a p1 b) => (a p b)
+    * If (a p C) is mapped only to one triple then it is quasi binding and is skipped
+    * IMPORTANT: this does not filter all quasi binding rules, only fresh atom.
+    * For example: (a p C) & (a p1 b) => (a p b) IS OK, if we add new atom (b p C) & (a p C) & (a p1 b) => (a p b) then
+    * (b p C) does not need to be quasi binding but (a p C) is now quasi binding!!! This is not checked in this place. Use hasQuasiBinding function on mined rules!
+    *
+    * @param body             body atoms
+    * @param injectiveMapping injective mapping
+    * @param atomCounting     Atom Counting
+    */
   class QuasiBindingFilter(body: Set[Atom], injectiveMapping: Boolean, atomCounting: AtomCounting) extends RuleFilter {
     def apply(newAtom: Atom, support: Int): FilterResult = {
       if (newAtom.subject.isInstanceOf[Atom.Constant] || newAtom.`object`.isInstanceOf[Atom.Constant]) {

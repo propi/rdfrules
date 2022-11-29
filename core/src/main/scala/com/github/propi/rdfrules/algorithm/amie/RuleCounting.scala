@@ -13,6 +13,8 @@ trait RuleCounting extends AtomCounting {
 
   val rule: FinalRule
 
+  def hasQuasiBinding(injectiveMapping: Boolean): Boolean = hasQuasiBinding(rule.body.toSet, injectiveMapping)
+
   /**
     * Count confidence for the rule
     *
