@@ -2,9 +2,6 @@ package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.algorithm.amie.FreshAtoms.{Part1, Part2}
 import com.github.propi.rdfrules.rule.FreshAtom
-import com.github.propi.rdfrules.utils.IncrementalInt
-
-import scala.collection.mutable
 
 trait FreshAtoms {
   def part1Length: Int
@@ -27,126 +24,6 @@ trait FreshAtoms {
 }
 
 object FreshAtoms {
-
-  /*trait Index {
-    def minOfMaxSupports: Int
-
-    def isEmpty: Boolean
-
-    def reset(): Unit
-
-    def trySetSupport(freshAtom: FreshAtom, support: Int): Unit
-
-    def filterInPlaceBySupport(f: Int => Boolean): Array[FreshAtom]
-  }
-
-  private class HashMapIndex(hmap: collection.mutable.HashMap[FreshAtom, IncrementalInt]) extends Index {
-    private var _minOfMaxSupports = 0
-    private var _minOfMaxSupportsCount = hmap.size
-
-    def minOfMaxSupports: Int = _minOfMaxSupports
-
-    def isEmpty: Boolean = hmap.isEmpty
-
-    def reset(): Unit = {
-      _minOfMaxSupports = Int.MinValue
-      _minOfMaxSupportsCount = hmap.size
-      hmap.valuesIterator.foreach(_.setValue(Int.MinValue))
-    }
-
-    def trySetSupport(freshAtom: FreshAtom, support: Int): Unit = for (lastSupport <- hmap.get(freshAtom)) {
-      val lastSupportValue = lastSupport.getValue
-      if (support > lastSupportValue) {
-        lastSupport.setValue(support)
-        if (lastSupportValue == _minOfMaxSupports) {
-          if (_minOfMaxSupportsCount == 1) {
-            _minOfMaxSupports = Int.MaxValue
-            for (support <- hmap.valuesIterator) {
-              if (support.getValue < _minOfMaxSupports) {
-                _minOfMaxSupports = support.getValue
-                _minOfMaxSupportsCount = 1
-              } else if (support.getValue == _minOfMaxSupports) {
-                _minOfMaxSupportsCount += 1
-              }
-            }
-          } else {
-            _minOfMaxSupportsCount -= 1
-          }
-        }
-      }
-    }
-
-    def filterInPlaceBySupport(f: Int => Boolean): Array[FreshAtom] = {
-      val builder = mutable.ArrayBuilder.make[FreshAtom]
-      hmap.filterInPlace { (freshAtom, support) =>
-        val isValid = f(support.getValue)
-        if (!isValid) {
-          builder.addOne(freshAtom)
-        }
-        isValid
-      }
-      builder.result()
-    }
-  }
-
-  def indexFrom(freshAtoms: FreshAtoms): Index = {
-    val hmap = collection.mutable.HashMap.empty[FreshAtom, IncrementalInt]
-    freshAtoms.part1Foreach(hmap.put(_, IncrementalInt()))
-    freshAtoms.part2Foreach(hmap.put(_, IncrementalInt()))
-    new HashMapIndex(hmap)
-  }*/
-
-  trait Index {
-    def isEmpty: Boolean
-
-    def minOfMaxSupports: Int
-
-    def reset(): Unit
-
-    def setSupport(freshAtom: FreshAtom, support: Int): Unit
-
-    def filterInPlaceBySupport(f: Int => Boolean): Array[FreshAtom]
-  }
-
-  private val emptyArray = new Array[FreshAtom](0)
-
-  private class HashMapIndex(hmap: collection.mutable.HashMap[FreshAtom, IncrementalInt]) extends Index {
-    private var _minOfMaxSupports = 0
-
-    def minOfMaxSupports: Int = _minOfMaxSupports
-
-    def isEmpty: Boolean = hmap.isEmpty
-
-    def reset(): Unit = {
-      hmap.valuesIterator.foreach(_.setValue(Int.MinValue))
-    }
-
-    def setSupport(freshAtom: FreshAtom, support: Int): Unit = for (lastSupport <- hmap.get(freshAtom) if support > lastSupport.getValue) {
-      lastSupport.setValue(support)
-    }
-
-    def filterInPlaceBySupport(f: Int => Boolean): Array[FreshAtom] = {
-      var builder: mutable.ArrayBuilder[FreshAtom] = null// mutable.ArrayBuilder.make[FreshAtom]
-      _minOfMaxSupports = Int.MaxValue
-      hmap.filterInPlace { (freshAtom, support) =>
-        val isValid = f(support.getValue)
-        _minOfMaxSupports = math.min(_minOfMaxSupports, support.getValue)
-        if (!isValid) {
-          if (builder == null) builder = mutable.ArrayBuilder.make
-          builder.addOne(freshAtom)
-        }
-        isValid
-      }
-      if (builder == null) emptyArray else builder.result()
-    }
-  }
-
-  def indexFrom(freshAtoms: FreshAtoms): Index = {
-    val hmap = collection.mutable.HashMap.empty[FreshAtom, IncrementalInt]
-    freshAtoms.part1Foreach(hmap.put(_, IncrementalInt()))
-    freshAtoms.part2Foreach(hmap.put(_, IncrementalInt()))
-    new HashMapIndex(hmap)
-  }
 
   class Part1(val freshAtoms: FreshAtoms) extends AnyVal {
     final def isEmpty: Boolean = freshAtoms.part1Length == 0
