@@ -174,6 +174,8 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
       */
     private def isRefinable(rule: ExpandingRule): Boolean = !topKActivated || rule.support >= settings.minComputedSupport(rule)
 
+    private val skipped = new AtomicInteger(0)
+
     @tailrec
     private def executeStage(stage: Int, queue: UniqueQueue[ExpandingRule]): Unit = {
       val nextQueue = /*if (experiment) new UniqueQueue.ConcurrentLinkedQueueWrapper(new ConcurrentLinkedQueue[ExpandingRule]()) else */ new UniqueQueue.ThreadSafeUniqueSet[ExpandingRule]
@@ -190,7 +192,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
               //if rule length is lower than max rule length we can expand this rule with one atom (in this refine phase it always applies)
               //if we use the topK approach the minHeadCoverage may change during mining; therefore we need to check minHC threshold for the current rule
               //refine the rule and add all expanded variants into the queue
-              for (rule <- rule.refine) {
+              for (rule <- rule.refine(skipped)) {
                 val ruleIsAdded = nextQueue.add(rule)
                 if (!ruleIsAdded) {
                   duplicates.incrementAndGet()
@@ -201,7 +203,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
                   foundRules.incrementAndGet()
                 }
               }
-              ad.done(s"processed rules, found closed rules: ${foundRules.get()}, activeThreads: ${activeThreads.get()}, duplicates: ${duplicates.get()}")
+              ad.done(s"processed rules, found closed rules: ${foundRules.get()}, activeThreads: ${activeThreads.get()}, duplicates: ${duplicates.get()}, skipped: ${skipped.get()}")
             }
           } finally {
             activeThreads.decrementAndGet()
@@ -215,7 +217,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
           job.join()
         }
       }
-      logger.info(s"total duplicates in stage $stage: ${duplicates.get()}")
+      logger.info(s"total duplicates in stage $stage: ${duplicates.get()}, skipped: ${skipped.get()}")
       //println(s"total duplicates: ${duplicates.get()}")
       //stage is completed, go to the next stage
       if (stage + 1 < settings.maxRuleLength && !nextQueue.isEmpty) {

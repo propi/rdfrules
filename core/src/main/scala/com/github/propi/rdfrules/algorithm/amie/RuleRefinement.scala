@@ -8,6 +8,7 @@ import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.Constan
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.{Debugger, IncrementalInt, TypedKeyMap}
 
+import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.mutable
 import scala.language.implicitConversions
 
@@ -16,6 +17,7 @@ import scala.language.implicitConversions
   */
 trait RuleRefinement extends AtomCounting with RuleExpansion with FreshAtomGenerator {
 
+  val skipped: AtomicInteger
   val rule: ExpandingRule
   val settings: AmieSettings
   protected val debugger: Debugger
@@ -101,7 +103,6 @@ trait RuleRefinement extends AtomCounting with RuleExpansion with FreshAtomGener
   }
 
   //var test = false
-
   /**
     * From the current rule create new extended rules with all possible new atoms
     * New extended rules needn't be closed but contain maximal two dangling items.
@@ -122,11 +123,22 @@ trait RuleRefinement extends AtomCounting with RuleExpansion with FreshAtomGener
       //countable fresh atoms are atoms for which we know all existing variables (we needn't know dangling variable)
       // - then we can count all projections for this fresh atom and then only check existence of rest atoms in the rule
       //for other fresh atoms we need to find instances for unknown variables (not for dangling variable)
-      val (countableFreshAtoms, possibleFreshAtoms) = getPossibleFreshAtoms.filter(x => patternFilter.matchFreshAtom(x)).toArray.partition(freshAtom => List(freshAtom.subject, freshAtom.`object`).forall(x => x == rule.head.subject || x == rule.head.`object` || x == dangling))
+      /*val countableFreshAtoms = collection.mutable.HashMap.empty[FreshAtom, IncrementalInt]
+      val possibleFreshAtoms = collection.mutable.HashMap.empty[FreshAtom, IncrementalInt]
+      val freshAtoms = List(countableFreshAtoms, possibleFreshAtoms)
+      for (freshAtom <- getPossibleFreshAtoms if patternFilter.matchFreshAtom(freshAtom)) {
+        if (List(freshAtom.subject, freshAtom.`object`).forall(x => x == rule.head.subject || x == rule.head.`object` || x == dangling)) {
+          countableFreshAtoms.put(freshAtom, IncrementalInt())
+        } else {
+          possibleFreshAtoms.put(freshAtom, IncrementalInt())
+        }
+      }*/
+      var freshAtoms: FreshAtoms = FreshAtoms.from(getPossibleFreshAtoms.filter(patternFilter.matchFreshAtom))(freshAtom => List(freshAtom.subject, freshAtom.`object`).forall(x => x == rule.head.subject || x == rule.head.`object` || x == dangling))
+      val freshAtomsIndex: FreshAtoms.Index = FreshAtoms.indexFrom(freshAtoms)
       //val minSupport = minComputedSupport(rule)
       val bodySet = rule.body.toSet
       //maxSupport is variable where the maximal support from all extension rules is saved
-      var maxSupport = 0
+      //var minMaxSupport = 0
       //this function creates variable map with specified head variables
       val specifyHeadVariableMapWithAtom: (Int, Int) => VariableMap = {
         val specifyVariableMapWithAtom = specifyVariableMapForAtom(rule.head)
@@ -150,21 +162,31 @@ trait RuleRefinement extends AtomCounting with RuleExpansion with FreshAtomGener
         //example 1: head size is 10, min support is 5. Only 4 steps are remaining and there are no projection found then we can stop "count projection"
         // - because no projection can have support greater or equal 5
         //example 2: head size is 10, min support is 5, remaining steps 2, projection with maximal support has value 2: 2 + 2 = 4 it is less than 5 - we can stop counting
-        val remains = headSize - x._2
-        maxSupport + remains >= minCurrentSupport
+        val nonReachingSupportThreshold = minCurrentSupport - (headSize - x._2)
+        val removedFreshAtoms = freshAtomsIndex.filterInPlaceBySupport(_ >= nonReachingSupportThreshold)
+        if (removedFreshAtoms.nonEmpty) {
+          freshAtoms = freshAtoms.remove(removedFreshAtoms)
+          skipped.addAndGet(removedFreshAtoms.length * (headSize - x._2))
+          !freshAtomsIndex.isEmpty
+        } else {
+          true
+        }
       }.foreach { case ((_subject, _object), i) =>
         //for each triple covering head of this rule, find and count all possible projections for all possible fresh atoms
-        val selectedAtoms = /*howLong("Rule expansion - bind projections", true)(*/ bindProjections(bodySet, possibleFreshAtoms, countableFreshAtoms, specifyHeadVariableMapWithAtom(_subject, _object)) //)
+        val selectedAtoms = /*howLong("Rule expansion - bind projections", true)(*/ bindProjections(bodySet, freshAtoms.part1, freshAtoms.part2, specifyHeadVariableMapWithAtom(_subject, _object)) //)
         for (atom <- selectedAtoms) {
           //for each found projection increase support by 1 and find max support
-          maxSupport = math.max(projections.getOrElseUpdate(atom, IncrementalInt()).++.getValue, maxSupport)
+          val support = projections.getOrElseUpdate(atom, IncrementalInt()).++.getValue
+          if (support > freshAtomsIndex.minOfMaxSupports) {
+            freshAtomsIndex.setSupport(atom.toFreshAtom(dangling), support)
+          }
         }
         val miningDuration = currentDuration
         if (miningDuration - lastDumpDuration > 30000) {
           debugger.logger.info(s"Long refining of rule $resolvedRule. Projections size: ${projections.size}. Step: $i of $headSize")
           lastDumpDuration = miningDuration
           if (timeout.exists(miningDuration >= _) || debugger.isInterrupted) {
-            maxSupport = Int.MinValue
+            freshAtomsIndex.reset()
             projections.clear()
           }
         }
@@ -201,7 +223,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion with FreshAtomGener
     * @param projections         set of atoms which are connectable to this rule and fulfill all constraints
     * @return set of projections/atoms
     */
-  private def bindProjections(atoms: Set[Atom], possibleFreshAtoms: Array[FreshAtom], countableFreshAtoms: Array[FreshAtom], variableMap: VariableMap)
+  private def bindProjections(atoms: Set[Atom], countableFreshAtoms: FreshAtoms.Part1, possibleFreshAtoms: FreshAtoms.Part2, variableMap: VariableMap)
                              (implicit projections: mutable.HashSet[Atom] = mutable.HashSet.empty): mutable.HashSet[Atom] = {
     //if there are some countable fresh atoms and there exists path for rest atoms then we can find all projections for these fresh atoms
     //TODO exists function here is maybe redundant because we know that this mapping exists if variableMap constains such constants which were thruly mapped in the previous refining
@@ -259,7 +281,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion with FreshAtomGener
         val (countableAtoms, restAtoms) = otherFreshAtoms.partition(freshAtom => Iterator(freshAtom.subject, freshAtom.`object`).forall(x => x == dangling || x == best.subject || x == best.`object` || variableMap.contains(x)))
         for (variableMap <- specifyVariableMap(best, variableMap)) {
           //we specify best atom and specified variables (projection) send to the next iteration
-          bindProjections(rest, restAtoms, countableAtoms, variableMap)
+          bindProjections(rest, countableAtoms, restAtoms, variableMap)
         }
       }
     }
@@ -362,7 +384,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion with FreshAtomGener
 object RuleRefinement {
 
   implicit class PimpedRule(extendedRule: ExpandingRule)(implicit ti: TripleIndex[Int], tii: TripleItemIndex, settings: AmieSettings, _debugger: Debugger) {
-    def refine: Iterator[ExpandingRule] = {
+    def refine(_skipped: AtomicInteger): Iterator[ExpandingRule] = {
       val _settings = settings
       /*if (settings.experiment) {
         new RuleRefinement2 {
@@ -374,6 +396,7 @@ object RuleRefinement {
         }.refine
       } else {*/
       new RuleRefinement {
+        val skipped: AtomicInteger = _skipped
         val rule: ExpandingRule = extendedRule
         val settings: AmieSettings = _settings
         val tripleIndex: TripleIndex[Int] = implicitly[TripleIndex[Int]]

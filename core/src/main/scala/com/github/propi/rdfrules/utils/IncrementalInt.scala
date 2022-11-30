@@ -14,6 +14,8 @@ class IncrementalInt {
     this
   }
 
+  def setValue(x: Int): Unit = value = x
+
   def getValue: Int = value
 
 }

@@ -9,7 +9,7 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
-sealed trait Atom {
+sealed trait Atom extends Product {
   def subject: Atom.Item
 
   def predicate: Int
@@ -22,6 +22,15 @@ sealed trait Atom {
 
   def transform(subject: Atom.Item = subject, predicate: Int = predicate, `object`: Atom.Item = `object`): Atom
 
+  def toFreshAtom(dangling: Atom.Variable): FreshAtom = {
+    def itemToVariable(x: Atom.Item): Atom.Variable = x match {
+      case x: Atom.Variable => x
+      case _ => dangling
+    }
+
+    FreshAtom(itemToVariable(subject), itemToVariable(`object`))
+  }
+
   def toGraphAwareAtom(implicit thi: TripleIndex[Int]): Atom.GraphAware = this match {
     case x: Atom.GraphAware => x
     case _ =>
@@ -33,6 +42,8 @@ sealed trait Atom {
       }
       Atom.GraphAwareBasic(subject, predicate, `object`)(graphs)
   }
+
+  override val hashCode: Int = scala.util.hashing.MurmurHash3.productHash(this)
 }
 
 object Atom {
