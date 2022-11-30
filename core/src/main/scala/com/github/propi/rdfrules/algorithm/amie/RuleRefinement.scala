@@ -8,7 +8,6 @@ import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.Constan
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.{Debugger, IncrementalInt, TypedKeyMap}
 
-import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.mutable
 import scala.language.implicitConversions
 
@@ -17,7 +16,6 @@ import scala.language.implicitConversions
   */
 trait RuleRefinement extends AtomCounting with RuleExpansion with FreshAtomGenerator {
 
-  val skipped: AtomicInteger
   val rule: ExpandingRule
   val settings: AmieSettings
   protected val debugger: Debugger
@@ -133,7 +131,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion with FreshAtomGener
           possibleFreshAtoms.put(freshAtom, IncrementalInt())
         }
       }*/
-      var freshAtoms: FreshAtoms = FreshAtoms.from(getPossibleFreshAtoms.filter(patternFilter.matchFreshAtom))(freshAtom => List(freshAtom.subject, freshAtom.`object`).forall(x => x == rule.head.subject || x == rule.head.`object` || x == dangling))
+      val freshAtoms: FreshAtoms = FreshAtoms.from(getPossibleFreshAtoms.filter(patternFilter.matchFreshAtom))(freshAtom => List(freshAtom.subject, freshAtom.`object`).forall(x => x == rule.head.subject || x == rule.head.`object` || x == dangling))
       //val freshAtomsIndex: FreshAtoms.Index = FreshAtoms.indexFrom(freshAtoms)
       //val minSupport = minComputedSupport(rule)
       val bodySet = rule.body.toSet
@@ -374,7 +372,7 @@ trait RuleRefinement extends AtomCounting with RuleExpansion with FreshAtomGener
 object RuleRefinement {
 
   implicit class PimpedRule(extendedRule: ExpandingRule)(implicit ti: TripleIndex[Int], tii: TripleItemIndex, settings: AmieSettings, _debugger: Debugger) {
-    def refine(_skipped: AtomicInteger): Iterator[ExpandingRule] = {
+    def refine: Iterator[ExpandingRule] = {
       val _settings = settings
       /*if (settings.experiment) {
         new RuleRefinement2 {
@@ -386,7 +384,6 @@ object RuleRefinement {
         }.refine
       } else {*/
       new RuleRefinement {
-        val skipped: AtomicInteger = _skipped
         val rule: ExpandingRule = extendedRule
         val settings: AmieSettings = _settings
         val tripleIndex: TripleIndex[Int] = implicitly[TripleIndex[Int]]
