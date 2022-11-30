@@ -134,11 +134,11 @@ trait RuleRefinement extends AtomCounting with RuleExpansion with FreshAtomGener
         }
       }*/
       var freshAtoms: FreshAtoms = FreshAtoms.from(getPossibleFreshAtoms.filter(patternFilter.matchFreshAtom))(freshAtom => List(freshAtom.subject, freshAtom.`object`).forall(x => x == rule.head.subject || x == rule.head.`object` || x == dangling))
-      val freshAtomsIndex: FreshAtoms.Index = FreshAtoms.indexFrom(freshAtoms)
+      //val freshAtomsIndex: FreshAtoms.Index = FreshAtoms.indexFrom(freshAtoms)
       //val minSupport = minComputedSupport(rule)
       val bodySet = rule.body.toSet
       //maxSupport is variable where the maximal support from all extension rules is saved
-      //var minMaxSupport = 0
+      var maxSupport = 0
       //this function creates variable map with specified head variables
       val specifyHeadVariableMapWithAtom: (Int, Int) => VariableMap = {
         val specifyVariableMapWithAtom = specifyVariableMapForAtom(rule.head)
@@ -162,31 +162,21 @@ trait RuleRefinement extends AtomCounting with RuleExpansion with FreshAtomGener
         //example 1: head size is 10, min support is 5. Only 4 steps are remaining and there are no projection found then we can stop "count projection"
         // - because no projection can have support greater or equal 5
         //example 2: head size is 10, min support is 5, remaining steps 2, projection with maximal support has value 2: 2 + 2 = 4 it is less than 5 - we can stop counting
-        val nonReachingSupportThreshold = minCurrentSupport - (headSize - x._2)
-        val removedFreshAtoms = freshAtomsIndex.filterInPlaceBySupport(_ >= nonReachingSupportThreshold)
-        if (removedFreshAtoms.nonEmpty) {
-          freshAtoms = freshAtoms.remove(removedFreshAtoms)
-          skipped.addAndGet(removedFreshAtoms.length * (headSize - x._2))
-          !freshAtomsIndex.isEmpty
-        } else {
-          true
-        }
+        val remains = headSize - x._2
+        maxSupport + remains >= minCurrentSupport
       }.foreach { case ((_subject, _object), i) =>
         //for each triple covering head of this rule, find and count all possible projections for all possible fresh atoms
         val selectedAtoms = /*howLong("Rule expansion - bind projections", true)(*/ bindProjections(bodySet, freshAtoms.part1, freshAtoms.part2, specifyHeadVariableMapWithAtom(_subject, _object)) //)
         for (atom <- selectedAtoms) {
           //for each found projection increase support by 1 and find max support
-          val support = projections.getOrElseUpdate(atom, IncrementalInt()).++.getValue
-          if (support > freshAtomsIndex.minOfMaxSupports) {
-            freshAtomsIndex.setSupport(atom.toFreshAtom(dangling), support)
-          }
+          maxSupport = math.max(projections.getOrElseUpdate(atom, IncrementalInt()).++.getValue, maxSupport)
         }
         val miningDuration = currentDuration
         if (miningDuration - lastDumpDuration > 30000) {
           debugger.logger.info(s"Long refining of rule $resolvedRule. Projections size: ${projections.size}. Step: $i of $headSize")
           lastDumpDuration = miningDuration
           if (timeout.exists(miningDuration >= _) || debugger.isInterrupted) {
-            freshAtomsIndex.reset()
+            maxSupport = Int.MinValue
             projections.clear()
           }
         }

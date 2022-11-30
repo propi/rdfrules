@@ -25,7 +25,7 @@ trait Rule {
 
   def ruleLength: Int = body.size + 1
 
-  override lazy val hashCode: Int = {
+  override def hashCode(): Int = {
     val support = this.support
     val headSize = this.headSize
     val bodyHashCode = body.iterator.map { atom =>

@@ -42,8 +42,6 @@ sealed trait Atom extends Product {
       }
       Atom.GraphAwareBasic(subject, predicate, `object`)(graphs)
   }
-
-  override val hashCode: Int = scala.util.hashing.MurmurHash3.productHash(this)
 }
 
 object Atom {
