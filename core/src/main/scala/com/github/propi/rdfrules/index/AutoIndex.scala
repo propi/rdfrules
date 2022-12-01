@@ -29,6 +29,8 @@ object AutoIndex {
     private val prefixMap = TrieMap.empty[String, String]
     private val counter = new AtomicInteger(0)
 
+    val zero: Int = -1
+
     def getNamespace(prefix: String): Option[String] = prefixMap.get(prefix)
 
     def getIndexOpt(x: TripleItem): Option[Int] = tripleItemToIndexMap.get(x).orElse({
