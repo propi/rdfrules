@@ -14,39 +14,11 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 23. 6. 2017.
   */
-trait RuleRefinement extends AtomCounting with RuleExpansion with FreshAtomGenerator {
+trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansion with FreshAtomGenerator {
 
-  val rule: ExpandingRule
-  val settings: AmieSettings
   protected val debugger: Debugger
 
   import settings._
-
-  /**
-    * Next possible dangling variable for this rule
-    */
-  lazy val dangling: Atom.Variable = rule.maxVariable.++
-
-  private lazy val minCurrentSupport = minComputedSupport(rule)
-
-  /**
-    * Map of all rule predicates. Each predicate has subject and object variables.
-    * For each this variable in a particular position it has list of other items (in subject or object position).
-    * List of other items may contain both variables and constants.
-    * Ex: "predicate 1" -> ( "subject variable a" -> List(object b, object B1, object B2) )
-    */
-  protected lazy val rulePredicates: collection.Map[Int, collection.Map[TripleItemPosition[Atom.Item], collection.Seq[Atom.Item]]] = {
-    val map = collection.mutable.HashMap.empty[Int, collection.mutable.HashMap[TripleItemPosition[Atom.Item], collection.mutable.ListBuffer[Atom.Item]]]
-    for (atom <- Iterator(rule.head) ++ rule.body.iterator) {
-      for ((position, item) <- Iterable[(TripleItemPosition[Atom.Item], Atom.Item)](atom.subjectPosition -> atom.`object`, atom.objectPosition -> atom.subject) if position.item.isInstanceOf[Atom.Variable]) {
-        map
-          .getOrElseUpdate(atom.predicate, collection.mutable.HashMap.empty)
-          .getOrElseUpdate(position, collection.mutable.ListBuffer.empty)
-          .append(item)
-      }
-    }
-    map
-  }
 
   /**
     * This is an auxiliary hmap used to prevent the generation of duplicate rules
@@ -70,19 +42,6 @@ trait RuleRefinement extends AtomCounting with RuleExpansion with FreshAtomGener
       }
     }
     hmap
-  }
-
-  /**
-    * if minAtomSize is lower than 0 then the atom size must be greater than or equal to minCurrentSupport
-    */
-  protected lazy val testAtomSize: Option[Int => Boolean] = {
-    if (minAtomSize == 0) {
-      None
-    } else if (minAtomSize < 0) {
-      Some((atomSize: Int) => atomSize >= minCurrentSupport)
-    } else {
-      Some((atomSize: Int) => atomSize >= minAtomSize)
-    }
   }
 
   /**
