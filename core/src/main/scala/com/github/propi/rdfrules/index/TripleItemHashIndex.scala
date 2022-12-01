@@ -101,6 +101,8 @@ abstract class TripleItemHashIndex private(hmap: java.util.Map[Integer, TripleIt
   def iterator: Iterator[(Int, TripleItem)] = hmap.entrySet().iterator().asScala.map(x => x.getKey.intValue() -> x.getValue)
 
   def extendWith(ext: collection.Map[Int, TripleItem]): TripleItemIndex = new TripleItemHashIndex.ExtendedTripleItemHashIndex(hmap, sameAs, prefixMap, ext, () => trim())
+
+  lazy val zero: Int = Iterator.from(Int.MinValue).find(getTripleItemOpt(_).isEmpty).get
 }
 
 object TripleItemHashIndex {

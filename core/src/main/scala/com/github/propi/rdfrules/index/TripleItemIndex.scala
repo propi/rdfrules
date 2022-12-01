@@ -6,6 +6,8 @@ import com.github.propi.rdfrules.data.TripleItem
   * Created by Vaclav Zeman on 3. 9. 2020.
   */
 trait TripleItemIndex {
+  def zero: Int
+
   def getNamespace(prefix: String): Option[String]
 
   def getIndex(x: TripleItem): Int = getIndexOpt(x).get

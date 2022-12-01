@@ -2,7 +2,6 @@ package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.algorithm.amie.RuleFilter.{MinSupportRuleFilter, QuasiBindingFilter, RuleConstraints, RulePatternFilter}
 import com.github.propi.rdfrules.data.TriplePosition
-import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule._
@@ -48,18 +47,23 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
     * Instantiated position
     * It returns Object for Nowhere constants position, it does not matter because instantiatedPosition is called always after isWithInstances.
     * It returns None if both Subject and Object are acceptable.
-    *
-    * @param predicate predicate
-    * @return
     */
-  private def instantiatedPosition(predicate: Int): Option[ConceptPosition] = constantsPosition.map {
-    case ConstantsPosition.Object => TriplePosition.Object
-    case ConstantsPosition.LowerCardinalitySide => tripleIndex.predicates(predicate).lowerCardinalitySide
-    case ConstantsPosition.Subject => TriplePosition.Subject
-    case _ => TriplePosition.Object
+  private lazy val instantiatedPosition: Int => Option[TriplePosition] = constantsPosition match {
+    case Some(constantsPosition) => constantsPosition match {
+      case ConstantsPosition.LowerCardinalitySide => predicate => Some(tripleIndex.predicates(predicate).lowerCardinalitySide)
+      case ConstantsPosition.Subject =>
+        val pos = Some(TriplePosition.Subject)
+        _ => pos
+      case _ =>
+        val pos = Some(TriplePosition.Object)
+        _ => pos
+    }
+    case None => _ => None
   }
 
+
   //var test = false
+
   /**
     * From the current rule create new extended rules with all possible new atoms
     * New extended rules needn't be closed but contain maximal two dangling items.
@@ -191,32 +195,24 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
         //specify fresh atom only with predicate
         //filter only atoms which need to be counted
         atomWithSpecifiedPredicate <- specifyAtom(freshAtom, variableMap) if isValidFreshPredicate(freshAtom, atomWithSpecifiedPredicate.predicate)
-        ip = instantiatedPosition(atomWithSpecifiedPredicate.predicate)
-        maxConstant = if (isWithInstances) {
-          if (freshAtom.subject == dangling) {
-            maxConstants.get(freshAtom.objectPosition -> atomWithSpecifiedPredicate.predicate)
-          } else if (freshAtom.`object` == dangling) {
-            maxConstants.get(freshAtom.subjectPosition -> atomWithSpecifiedPredicate.predicate)
-          } else {
-            None
-          }
-        } else {
-          None
-        }
-        //for each predicate of the fresh atom we specify all variables and we filter projections which are connected with the rest of other atoms
-        atom <- specifyAtom(atomWithSpecifiedPredicate, variableMap) if exists(atoms, variableMap + (freshAtom.subject -> Atom.Constant(atom.subject), atom.predicate, freshAtom.`object` -> Atom.Constant(atom.`object`)))
       } {
-        if (isWithInstances) {
-          //if we may to create instantiated atoms for this predicate and fresh atom (it is allowed and not already counted)
+        lazy val ip = instantiatedPosition(atomWithSpecifiedPredicate.predicate)
+        val validAtoms = specifyAtom(atomWithSpecifiedPredicate, variableMap).filter(atom => exists(atoms, variableMap + (freshAtom.subject -> Atom.Constant(atom.subject), atom.predicate, freshAtom.`object` -> Atom.Constant(atom.`object`))))
+        if (isWithInstances && freshAtom.subject == dangling && ip.forall(_ == TriplePosition.Subject)) {
+          val maxConstant = maxConstants.get(freshAtom.objectPosition -> atomWithSpecifiedPredicate.predicate)
+          for (atom <- validAtoms if maxConstant.forall(atom.subject > _) && testAtomSize.forall(_ (tripleIndex.predicates(atom.predicate).subjects(atom.subject).size(injectiveMapping)))) {
+            projections += Atom(Atom.Constant(atom.subject), atom.predicate, freshAtom.`object`)
+          }
+        } else if (isWithInstances && freshAtom.`object` == dangling && ip.forall(_ == TriplePosition.Object)) {
+          val maxConstant = maxConstants.get(freshAtom.subjectPosition -> atomWithSpecifiedPredicate.predicate)
+          for (atom <- validAtoms if maxConstant.forall(atom.`object` > _) && testAtomSize.forall(_ (tripleIndex.predicates(atom.predicate).objects(atom.`object`).size(injectiveMapping)))) {
+            projections += Atom(freshAtom.subject, atom.predicate, Atom.Constant(atom.`object`))
+          }
+        } else if (validAtoms.hasNext) {
+          //if we may to create variable atoms for this predicate and fresh atom (not already counted)
           //then we add new atom projection to atoms set
-          //if onlyObjectInstances is true we do not project instance atom in the subject position
-          //a new constant C2 must be greater than possible constant C1 in the rule within a same pair of variable and predicate: E.g. (a p C2) => (a p C1) : hmap = (a -> p) -> C2 if C2 >= C1
-          if (freshAtom.subject == dangling && ip.forall(_ == TriplePosition.Subject) && maxConstant.forall(atom.subject > _) && testAtomSize.forall(_ (tripleIndex.predicates(atom.predicate).subjects(atom.subject).size(injectiveMapping)))) projections += Atom(Atom.Constant(atom.subject), atom.predicate, freshAtom.`object`)
-          else if (freshAtom.`object` == dangling && ip.forall(_ == TriplePosition.Object) && maxConstant.forall(atom.subject > _) && testAtomSize.forall(_ (tripleIndex.predicates(atom.predicate).objects(atom.`object`).size(injectiveMapping)))) projections += Atom(freshAtom.subject, atom.predicate, Atom.Constant(atom.subject))
+          projections += Atom(freshAtom.subject, atomWithSpecifiedPredicate.predicate, freshAtom.`object`)
         }
-        //if we may to create variable atoms for this predicate and fresh atom (not already counted)
-        //then we add new atom projection to atoms set
-        projections += Atom(freshAtom.subject, atom.predicate, freshAtom.`object`)
       }
       //for other fresh atoms we need to specify best atom and repeat this function with all projections of the specified atom (recursively behaviour)
       if (otherFreshAtoms.nonEmpty) {
@@ -293,6 +289,7 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
           //if there exists atom in rule which has same predicate and object variable and is not instationed
           // - then we dont use this fresh atom for this predicate because p(a, B) -> p(a, b) is not allowed for functions (redundant and noisy rule)
           if (isWithInstances && instantiatedPosition(predicate).forall(_ == TriplePosition.Subject)) {
+            //exists function is called before this method therefore for injectiveMapping we need to check whether a new atom is duplicated across rest atoms in the rule
             val isDup = isDuplicateInstantiatedAtom(predicate, atom.objectPosition, rest, variableMap)
             //a new constant C2 must be greater than possible constant C1 in the rule within a same pair of variable and predicate: E.g. (a p C2) => (a p C1) : hmap = (a -> p) -> C2 if C2 >= C1
             val maxConstant = maxConstants.get(atom.objectPosition -> predicate)
@@ -308,6 +305,7 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
         //skip all counted predicates that are included in this rule
         for (predicate <- tripleIndex.subjects.get(sc).iterator.flatMap(_.predicates.iterator) if isValidFreshPredicate(atom, predicate)) {
           if (isWithInstances && instantiatedPosition(predicate).forall(_ == TriplePosition.Object)) {
+            //exists function is called before this method therefore for injectiveMapping we need to check whether a new atom is duplicated across rest atoms in the rule
             val isDup = isDuplicateInstantiatedAtom(predicate, atom.subjectPosition, rest, variableMap)
             //a new constant C2 must be greater than possible constant C1 in the rule within a same pair of variable and predicate: E.g. (a p C2) => (a p C1) : hmap = (a -> p) -> C2 if C2 >= C1
             val maxConstant = maxConstants.get(atom.subjectPosition -> predicate)
@@ -319,6 +317,7 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
       case (Atom.Constant(sc), Atom.Constant(oc)) =>
         //we skip counted predicate because in this case we count only with closed atom which are not counted for the existing predicate
         //we need to count all closed atoms
+        //exists function is called before this method therefore for injectiveMapping we need to check whether a new atom is duplicated across rest atoms in the rule
         for (predicate <- tripleIndex.subjects.get(sc).iterator.flatMap(_.objects.get(oc).iterator.flatMap(_.iterator)) if isValidFreshPredicate(atom, predicate) && !isDuplicateClosedAtom(sc, predicate, oc, atom.subjectPosition, atom.objectPosition)) {
           projections += Atom(atom.subject, predicate, atom.`object`)
         }
