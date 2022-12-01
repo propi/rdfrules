@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.algorithm.amie
 
-import com.github.propi.rdfrules.algorithm.amie.RuleEnhancement.PimpedRule
+import com.github.propi.rdfrules.algorithm.amie.RuleRefinement.PimpedRule
 import com.github.propi.rdfrules.algorithm.consumer.TopKRuleConsumer
 import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
@@ -161,7 +161,6 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
 
   private class AmieProcess(ruleConsumer: RuleConsumer)(implicit val tripleIndex: TripleIndex[Int], val tripleItemIndex: TripleItemIndex, val settings: AmieSettings, val forAtomMatcher: MappedAtomPatternMatcher[Atom]) extends HeadsFetcher {
     private val foundRules = new AtomicInteger(0)
-    private val numOfStages = (settings.maxRuleLength - 1) * (if (settings.isWithInstances) 2 else 1)
 
     def getFoundRules: Int = foundRules.get()
 
@@ -175,23 +174,30 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
       */
     private def isRefinable(rule: ExpandingRule): Boolean = !topKActivated || rule.support >= settings.minComputedSupport(rule)
 
-    private def instantiate(stage: Int, danglings: UniqueQueue[(ExpandingRule, Iterable[ExpandingRule])], nextQueue: UniqueQueue[ExpandingRule]): Unit = {
+    @tailrec
+    private def executeStage(stage: Int, queue: UniqueQueue[ExpandingRule]): Unit = {
+      val nextQueue = /*if (experiment) new UniqueQueue.ConcurrentLinkedQueueWrapper(new ConcurrentLinkedQueue[ExpandingRule]()) else */ new UniqueQueue.ThreadSafeUniqueSet[ExpandingRule]
       val duplicates = new AtomicInteger(0)
-      debugger.debug(s"Amie rules mining (instantiation), stage $stage of $numOfStages", danglings.size) { ad =>
+      debugger.debug(s"Amie rules mining, stage $stage of ${settings.maxRuleLength - 1}", queue.size) { ad =>
         val activeThreads = new AtomicInteger(parallelism)
         //starts P jobs in parallel where P is number of processors
         //each job refines rules from queue with length X where X is the stage number.
         val jobs = List.fill(parallelism) {
           val job: Runnable = () => try {
-            Iterator.continually(danglings.pollOption).takeWhile(_.isDefined && settings.timeout.forall(_ > settings.currentDuration) && !debugger.isInterrupted).map(_.get).foreach { case (parent, rules) =>
-              for (instantiatedRule <- parent.instantiate(rules.iterator.filter(isRefinable).filter(nextQueue.add).map(_.body.head))) {
-                val ruleIsAdded = nextQueue.add(instantiatedRule)
+            Iterator.continually(queue.pollOption).takeWhile(_.isDefined && settings.timeout.forall(_ > settings.currentDuration) && !debugger.isInterrupted).map(_.get).filter(isRefinable).foreach { rule =>
+              //debug()
+              //we continually take all defined (and valid) rules from queue until end of the stage or reaching of the timeout
+              //if rule length is lower than max rule length we can expand this rule with one atom (in this refine phase it always applies)
+              //if we use the topK approach the minHeadCoverage may change during mining; therefore we need to check minHC threshold for the current rule
+              //refine the rule and add all expanded variants into the queue
+              for (rule <- rule.refine) {
+                val ruleIsAdded = nextQueue.add(rule)
                 if (!ruleIsAdded) {
                   duplicates.incrementAndGet()
                   //println(Stringifier(rule.asInstanceOf[Rule]))
                 }
-                if (ruleIsAdded && instantiatedRule.isInstanceOf[ClosedRule] && (settings.patterns.isEmpty || settings.patterns.exists(_.matchWith[Rule](instantiatedRule)))) {
-                  ruleConsumer.send(instantiatedRule)
+                if (ruleIsAdded && rule.isInstanceOf[ClosedRule] && (settings.patterns.isEmpty || settings.patterns.exists(_.matchWith[Rule](rule)))) {
+                  ruleConsumer.send(rule)
                   foundRules.incrementAndGet()
                 }
               }
@@ -210,68 +216,10 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
         }
       }
       logger.info(s"total duplicates in stage $stage: ${duplicates.get()}")
-    }
-
-    @tailrec
-    private def executeStage(stage: Int, queue: UniqueQueue[ExpandingRule]): Unit = {
-      val nextQueue = new UniqueQueue.ThreadSafeUniqueSet[ExpandingRule]
-      lazy val newDanglings = new UniqueQueue.ConcurrentLinkedQueueWrapper(new ConcurrentLinkedQueue[(ExpandingRule, Iterable[ExpandingRule])]())
-      val duplicates = new AtomicInteger(0)
-      debugger.debug(s"Amie rules mining, stage $stage of $numOfStages", queue.size) { ad =>
-        val activeThreads = new AtomicInteger(parallelism)
-        //starts P jobs in parallel where P is number of processors
-        //each job refines rules from queue with length X where X is the stage number.
-        val jobs = List.fill(parallelism) {
-          val job: Runnable = () => try {
-            Iterator.continually(queue.pollOption).takeWhile(_.isDefined && settings.timeout.forall(_ > settings.currentDuration) && !debugger.isInterrupted).map(_.get).filter(isRefinable).foreach { rule =>
-              //debug()
-              //we continually take all defined (and valid) rules from queue until end of the stage or reaching of the timeout
-              //if rule length is lower than max rule length we can expand this rule with one atom (in this refine phase it always applies)
-              //if we use the topK approach the minHeadCoverage may change during mining; therefore we need to check minHC threshold for the current rule
-              //refine the rule and add all expanded variants into the queue
-              lazy val ruleNewDanglings = collection.mutable.ArrayBuffer.empty[ExpandingRule]
-              for ((rule, isDangling) <- rule.refine) {
-                if (settings.isWithInstances && isDangling) {
-                  ruleNewDanglings.addOne(rule)
-                } else {
-                  val ruleIsAdded = nextQueue.add(rule)
-                  if (!ruleIsAdded) {
-                    duplicates.incrementAndGet()
-                    //println(Stringifier(rule.asInstanceOf[Rule]))
-                  }
-                  if (ruleIsAdded && rule.isInstanceOf[ClosedRule] && (settings.patterns.isEmpty || settings.patterns.exists(_.matchWith[Rule](rule)))) {
-                    ruleConsumer.send(rule)
-                    foundRules.incrementAndGet()
-                  }
-                }
-              }
-              if (settings.isWithInstances && ruleNewDanglings.nonEmpty) {
-                newDanglings.add(rule -> ruleNewDanglings)
-              }
-              ad.done(s"processed rules, found closed rules: ${foundRules.get()}, activeThreads: ${activeThreads.get()}, duplicates: ${duplicates.get()}")
-            }
-          } finally {
-            activeThreads.decrementAndGet()
-          }
-          val thread = new Thread(job)
-          thread.start()
-          thread
-        }
-        //wait for all jobs in the current stage
-        for (job <- jobs) {
-          job.join()
-        }
-      }
-      logger.info(s"total duplicates in stage $stage: ${duplicates.get()}")
       //println(s"total duplicates: ${duplicates.get()}")
       //stage is completed, go to the next stage
-      if (settings.isWithInstances) {
-        if (!newDanglings.isEmpty) instantiate(stage + 1, newDanglings, nextQueue)
-        if (stage + 2 < numOfStages) executeStage(stage + 2, nextQueue)
-      } else {
-        if (stage < numOfStages) {
-          executeStage(stage + 1, nextQueue)
-        }
+      if (stage + 1 < settings.maxRuleLength && !nextQueue.isEmpty) {
+        executeStage(stage + 1, nextQueue)
       }
     }
 

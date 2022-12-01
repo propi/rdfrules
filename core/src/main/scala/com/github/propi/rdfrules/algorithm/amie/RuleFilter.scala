@@ -60,32 +60,9 @@ object RuleFilter {
     *
     * @param rule original rule (without refinement)
     */
-  class RulePatternFilter(rule: ExpandingRule, patterns: List[RulePattern.Mapped], maxRuleLength: Int, replaceConstantsWithDangling: Boolean)(implicit atomMatcher: MappedAtomPatternMatcher[Atom], freshAtomMatcher: MappedAtomPatternMatcher[FreshAtom]) extends RuleFilter {
+  class RulePatternFilter(rule: ExpandingRule, patterns: List[RulePattern.Mapped], maxRuleLength: Int)(implicit atomMatcher: MappedAtomPatternMatcher[Atom], freshAtomMatcher: MappedAtomPatternMatcher[FreshAtom]) extends RuleFilter {
 
-    private lazy val dangling = {
-      var maxDangling = Atom.Variable(0)
-      for {
-        pattern <- patterns
-        atomPattern <- pattern.body.iterator ++ pattern.head.iterator
-        AtomPattern.AtomItemPattern.Variable(x) <- Iterator(atomPattern.subject, atomPattern.predicate, atomPattern.`object`, atomPattern.graph) if x.index >= maxDangling.index
-      } {
-        maxDangling = x.++
-      }
-      AtomPattern.AtomItemPattern.Variable(maxDangling)
-    }
-
-    private def replaceConstantWithDangling(x: AtomPattern.AtomItemPattern.Mapped): AtomPattern.AtomItemPattern.Mapped = x match {
-      case _: AtomPattern.AtomItemPattern.Mapped.Constant | _: AtomPattern.AtomItemPattern.Mapped.OneOf | _: AtomPattern.AtomItemPattern.Mapped.NoneOf | AtomPattern.AtomItemPattern.AnyConstant => dangling
-      case _: AtomPattern.AtomItemPattern.Variable | AtomPattern.AtomItemPattern.AnyVariable | AtomPattern.AtomItemPattern.Any => x
-    }
-
-    private def replacePatternWithConstantsWithDangling(x: AtomPattern.Mapped): AtomPattern.Mapped = if (replaceConstantsWithDangling) {
-      AtomPattern.Mapped(replaceConstantWithDangling(x.subject), x.predicate, replaceConstantWithDangling(x.`object`), x.graph)
-    } else {
-      x
-    }
-
-    private def _matchAtom(atom: Either[Atom, FreshAtom], patterns: Iterable[(AtomPattern.Mapped, Aliases)]): Boolean = atom.fold(atom => patterns.exists(x => atomMatcher.matchPattern(atom, replacePatternWithConstantsWithDangling(x._1))(x._2).isDefined), freshAtom => patterns.exists(x => freshAtomMatcher.matchPattern(freshAtom, x._1)(x._2).isDefined))
+    private def _matchAtom(atom: Either[Atom, FreshAtom], patterns: Iterable[(AtomPattern.Mapped, Aliases)]): Boolean = atom.fold(atom => patterns.exists(x => atomMatcher.matchPattern(atom, x._1)(x._2).isDefined), freshAtom => patterns.exists(x => freshAtomMatcher.matchPattern(freshAtom, x._1)(x._2).isDefined))
 
     private def lowHighPermutations[A, B](higherCol: Set[A], loverCol: Iterable[B]): Iterator[List[(A, B)]] = {
       if (loverCol.isEmpty) {

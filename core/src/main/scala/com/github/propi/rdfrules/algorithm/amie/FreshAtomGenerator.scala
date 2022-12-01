@@ -4,10 +4,36 @@ import com.github.propi.rdfrules.rule.ExpandingRule.{ClosedRule, DanglingRule}
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule.{Atom, ExpandingRule, FreshAtom}
 
-trait FreshAtomGenerator extends RuleEnhancement {
+trait FreshAtomGenerator {
+
+  self: RuleRefinement =>
 
   import Atom.variableOrdering.mkOrderingOps
   import settings._
+
+  //private val tupleVariableOrdering = implicitly[Ordering[(Atom.Variable, Atom.Variable)]]
+
+  /* protected lazy val danglings: Set[Atom.Variable] = rule match {
+     case x: ExpandingRule.DanglingRule => x.variables.danglings.toSet
+     case _ => Set.empty
+   }*/
+
+  /*protected lazy val variablePairs: collection.Map[Atom.Variable, collection.Set[(Int, TripleItemPosition[Atom.Item])]] = {
+    val hmap = collection.mutable.HashMap.empty[Atom.Variable, collection.mutable.Set[(Int, TripleItemPosition[Atom.Item])]]
+    for (atom <- Iterator(rule.head) ++ rule.body.iterator) {
+      atom.subject match {
+        case x: Atom.Variable if danglings(x) =>
+          hmap.getOrElseUpdate(x, collection.mutable.HashSet.empty).add(atom.predicate -> TripleItemPosition.Object(atom.`object`))
+        case _ =>
+      }
+      atom.`object` match {
+        case x: Atom.Variable if danglings(x) =>
+          hmap.getOrElseUpdate(x, collection.mutable.HashSet.empty).add(atom.predicate -> TripleItemPosition.Subject(atom.subject))
+        case _ =>
+      }
+    }
+    hmap
+  }*/
 
   /**
     * This is an auxiliary hmap used to prevent the generation of duplicate rules
@@ -27,6 +53,42 @@ trait FreshAtomGenerator extends RuleEnhancement {
     }
     hmap
   }
+
+  /*private lazy val maxVariablePair = rule.body.iterator.map { atom =>
+    atomItemToVariable(atom.subject) -> atomItemToVariable(atom.`object`)
+  }.maxOption
+
+  protected lazy val maxPredicates2: collection.Map[Atom.Variable, Int] = {
+    val hmap = collection.mutable.HashMap.empty[Atom.Variable, Int]
+    for (atom <- rule.body) {
+      Iterator(atom.subject, atom.`object`).map {
+        case x: Atom.Variable => x
+        case _: Atom.Constant => dangling
+      }.foreach(x => hmap.get(x) match {
+        case Some(i) if i >= atom.predicate =>
+        case _ => hmap.put(x, atom.predicate)
+      })
+    }
+    hmap
+  }*/
+
+  /**
+    * This is an auxiliary hset used to prevent the generation of duplicate rules
+    * The collection set represents all variables in the rule which has an constant in a pair within an atom in the rule.
+    * E.g. (a p C) => (a p b) : hset = Set(a) - a has constant C in atom (a p C)
+    * For this rule we can not generate (a p c) & (a p C) => (a p b). First we need (a p c) then we can attach other atom with constant (a p C).
+    */
+  /*protected lazy val variablesWithConstants: collection.Set[Atom.Variable] = {
+    val hset = collection.mutable.HashSet.empty[Atom.Variable]
+    for (atom <- rule.body) {
+      (atom.subject, atom.`object`) match {
+        case (x: Atom.Variable, _: Atom.Constant) => hset.add(x)
+        case (_: Atom.Constant, x: Atom.Variable) => hset.add(x)
+        case _ =>
+      }
+    }
+    hset
+  }*/
 
   /**
     * Check whether the new fresh predicate is unique in the rule
@@ -66,6 +128,17 @@ trait FreshAtomGenerator extends RuleEnhancement {
       //we disable duplicate atoms in the rule or duplicate predicates if they are forbidden.
       (if (withDuplicitPredicates) !isDuplicateAtom(freshAtom, predicate) else isUniquePredicate(predicate))
   }
+
+  /*lazy val equivalentAtoms = freshAtom match {
+  case FreshAtom(s, o) if s == dangling && !danglings(o) => danglings.iterator.map(x => Set(o, x))
+  case FreshAtom(s, o) if o == dangling && !danglings(s) => danglings.iterator.map(x => Set(s, x))
+  case _ => Iterator.empty
+}*/
+  //if we have rule (c p a) => (a p b), then the fresh atom can not be (a p c). First we need (a p c) then (c p a) (this prevents duplicate generated rules)
+  //!(freshAtom.subject < freshAtom.`object` && rulePredicates.get(predicate).exists(_.get(TripleItemPosition.Subject(freshAtom.`object`)).exists(_.exists(freshAtom.subject == _)))) &&
+  //(!experiment || equivalentAtoms.forall(key => maxPredicates.get(key).forall(p => predicate > p || (predicate == p && freshAtom.`object` == dangling)))) &&
+  //(!experiment || danglings.size != 2 || !danglings(freshAtom.subject) || !danglings(freshAtom.`object`) || variablePairs(freshAtom.subject) != variablePairs(freshAtom.`object`) || freshAtom.subject < freshAtom.`object`) &&
+  //(!experiment || Iterator(freshAtom.subject, freshAtom.`object`).forall(x => maxPredicates2.get(x).forall(p => predicate > p || (predicate == p && maxVariablePair.forall(x => tupleVariableOrdering.gteq(freshAtom.subject -> freshAtom.`object`, x)))))) &&
 
   /**
     * Create all possible ordered combinations of fresh atoms which are connected to other rule atoms
