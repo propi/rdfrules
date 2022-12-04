@@ -18,6 +18,7 @@ trait DefaultMiningSettings {
   val ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer())
   val experiment: Boolean = false
   val withoutDuplicatePredicates: Boolean = false
+  val injectiveMapping: Boolean = true
 
 }
 
