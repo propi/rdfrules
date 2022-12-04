@@ -190,7 +190,6 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
         //filter only atoms which need to be counted
         atomWithSpecifiedPredicate <- specifyAtom(freshAtom, variableMap) if isValidFreshPredicate(freshAtom, atomWithSpecifiedPredicate.predicate)
       } {
-        lazy val ip = instantiatedPosition(atomWithSpecifiedPredicate.predicate)
         val validAtoms = specifyAtom(atomWithSpecifiedPredicate, variableMap).filter(atom => exists(atoms, variableMap + (freshAtom.subject -> Atom.Constant(atom.subject), atom.predicate, freshAtom.`object` -> Atom.Constant(atom.`object`))))
         if (validAtoms.hasNext) {
           //if we may to create variable atoms for this predicate and fresh atom (not already counted)
@@ -198,6 +197,7 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
           projections += Atom(freshAtom.subject, atomWithSpecifiedPredicate.predicate, freshAtom.`object`)
         }
         if (isWithInstances) {
+          val ip = instantiatedPosition(atomWithSpecifiedPredicate.predicate)
           if (freshAtom.subject == dangling && ip.forall(_ == TriplePosition.Subject)) {
             val maxConstant = maxConstants.get(freshAtom.objectPosition -> atomWithSpecifiedPredicate.predicate)
             for (atom <- validAtoms if maxConstant.forall(atom.subject > _) && testAtomSize.forall(_ (tripleIndex.predicates(atom.predicate).subjects(atom.subject).size(injectiveMapping)))) {
@@ -316,7 +316,9 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
           //we dont count fresh atom only with variables if there exists atom in rule which has same predicate and object variable
           // - because for p(a, c) -> p(a, b) it is counted AND for p(a, c) -> p(a, B) it is forbidden combination for functions (redundant and noisy rule)
           val logicAtom = Atom(sv, predicate, atom.`object`)
-          if (hasValidConstantAtom || !isDuplicateDanglingAtom(logicAtom, rest, variableMap)) projections += logicAtom
+          //checking duplicity (non-injective mapping) in this place is probably more expensive than let non-injective mapping be added to projections
+          //it does not matter because it is dangling, once the rule is closing then the non-injective mapping checking is performed.
+          if (rule.ruleLength + 1 < maxRuleLength && (hasValidConstantAtom || !isDuplicateDanglingAtom(logicAtom, rest, variableMap))) projections += logicAtom
         }
       //if there is variable on the object place (it is dangling), count all dangling projections
       case (s@Atom.Constant(sc), ov: Atom.Variable) =>
@@ -336,9 +338,7 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
             }
           }
           val logicAtom = Atom(atom.subject, predicate, ov)
-          if (hasValidConstantAtom || !isDuplicateDanglingAtom(logicAtom, rest, variableMap)) {
-            projections += logicAtom
-          }
+          if (rule.ruleLength + 1 < maxRuleLength && (hasValidConstantAtom || !isDuplicateDanglingAtom(logicAtom, rest, variableMap))) projections += logicAtom
         }
       //all variables are constants, there are not any dangling variables - atom is closed; there is only one projection
       case (Atom.Constant(sc), Atom.Constant(oc)) =>
