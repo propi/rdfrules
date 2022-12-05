@@ -26,7 +26,13 @@ trait RdfRulesMiningTask[T] extends Task[Index, Index, Ruleset, T] with TaskPreP
     _.addThreshold(Threshold.MaxRuleLength(maxRuleLength)),
     x => if (injectiveMapping) x.addConstraint(RuleConstraint.InjectiveMapping()) else x,
     x => if (allowConstants) {
-      if (withConstantsAtTheObjectPosition) x.addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Object)) else x.addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LowerCardinalitySide))
+      if (constantsEverywhere) {
+        x
+      } else if (withConstantsAtTheObjectPosition) {
+        x.addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Object))
+      } else {
+        x.addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LowerCardinalitySide))
+      }
     } else {
       x.addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere))
     },
@@ -41,10 +47,10 @@ trait RdfRulesMiningTask[T] extends Task[Index, Index, Ruleset, T] with TaskPreP
   protected def countOtherMetrics(ruleset: Ruleset): Ruleset = {
     Function.chain[Ruleset](List(
       _.setParallelism(numberOfThreads),
-      x => if (minConfidence <= 0.0) x else x.computeConfidence(minConfidence),
-      x => if (minPcaConfidence <= 0.0) x else x.computePcaConfidence(minPcaConfidence),
-      x => if (!countLift || minConfidence <= 0.0) x else x.computeLift(minConfidence)
-    ))(ruleset).cache
+      x => if (minConfidence <= 0.0) x else x.computeConfidence(minConfidence, injectiveMapping).cache,
+      x => if (minPcaConfidence <= 0.0) x else x.computePcaConfidence(minPcaConfidence, injectiveMapping).cache,
+      x => if (!countLift || minConfidence <= 0.0) x else x.computeLift(minConfidence, injectiveMapping).cache
+    ))(ruleset.withoutQuasiBinding(injectiveMapping).cache)
   }
 
   protected def taskBody(input: Index): Ruleset = countOtherMetrics(input.mine(miningTask(createDefaultMiningTask), ruleConsumer))

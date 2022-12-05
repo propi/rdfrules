@@ -146,7 +146,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
 
     val rulesWithConfidence = rules.parMap(parallelism) { rule =>
       rule.withConfidence(threshold, injectiveMapping)
-    }.filter(_.measures.get[Measure.Confidence].exists(_.value >= minConfidence)).withDebugger("Confidence computing")
+    }.withDebugger("Confidence computing").filter(_.measures.get[Measure.Confidence].exists(_.value >= minConfidence))
 
     val resColl = if (topK > 0) {
       //if we use topK approach then the final ruleset will have size lower than or equals to the original size
@@ -167,7 +167,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
 
     val rulesWithConfidence = rules.parMap(parallelism) { rule =>
       rule.withPcaConfidence(threshold, injectiveMapping)
-    }.filter(_.measures.get[Measure.PcaConfidence].exists(_.value >= minPcaConfidence)).withDebugger("Confidence computing")
+    }.withDebugger("PCA Confidence computing").filter(_.measures.get[Measure.PcaConfidence].exists(_.value >= minPcaConfidence))
 
     val resColl = if (topK > 0) {
       //if we use topK approach then the final ruleset will have size lower than or equals to the original size
