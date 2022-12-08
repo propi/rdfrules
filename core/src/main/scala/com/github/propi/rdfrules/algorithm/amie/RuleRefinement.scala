@@ -91,7 +91,7 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
       val freshAtoms: FreshAtoms = FreshAtoms.from(getPossibleFreshAtoms.filter(patternFilter.matchFreshAtom))(freshAtom => List(freshAtom.subject, freshAtom.`object`).forall(x => x == rule.head.subject || x == rule.head.`object` || x == dangling))
       //val freshAtomsIndex: FreshAtoms.Index = FreshAtoms.indexFrom(freshAtoms)
       //val minSupport = minComputedSupport(rule)
-      val bodySet = rule.body.toSet
+      val bodySet = rule.bodySet
       //maxSupport is variable where the maximal support from all extension rules is saved
       var maxSupport = 0
       //this function creates variable map with specified head variables

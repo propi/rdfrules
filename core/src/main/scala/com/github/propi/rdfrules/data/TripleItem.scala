@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.data
 
-import com.github.propi.rdfrules.utils.BasicExtractors.AnyToDouble
+import com.github.propi.rdfrules.utils.BasicExtractors.{AnyToBoolean, AnyToDouble}
 import eu.easyminer.discretization.impl.{IntervalBound, Interval => DiscretizationInterval}
 import org.apache.jena.datatypes.RDFDatatype
 import org.apache.jena.datatypes.xsd.XSDDatatype
@@ -243,5 +243,13 @@ object TripleItem {
       }
     }
   }
+
+  def parse(x: String): TripleItem = x match {
+    case AnyToDouble(x) => tripleItemJsonFormat.read(JsNumber(x))
+    case AnyToBoolean(x) => tripleItemJsonFormat.read(JsBoolean(x))
+    case x => tripleItemJsonFormat.read(JsString(x))
+  }
+
+  def parseUri(x: String): TripleItem.Uri = tripleItemUriJsonFormat.read(JsString(x))
 
 }

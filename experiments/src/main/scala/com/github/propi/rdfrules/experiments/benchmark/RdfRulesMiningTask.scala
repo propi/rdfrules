@@ -4,7 +4,7 @@ import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
-import com.github.propi.rdfrules.rule.{ResolvedRule, RuleConstraint, Threshold}
+import com.github.propi.rdfrules.rule.{Measure, ResolvedRule, RuleConstraint, Threshold}
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.Debugger
 
@@ -16,8 +16,8 @@ trait RdfRulesMiningTask[T] extends Task[Index, Index, Ruleset, T] with TaskPreP
   self: TaskPostProcessor[Ruleset, T] =>
 
   implicit val debugger: Debugger
-  val withConstantsAtTheObjectPosition: Boolean = false
 
+  val withConstantsAtTheObjectPosition: Boolean = false
   val countLift: Boolean = false
 
   private def createDefaultMiningTask: RulesMining = Function.chain[RulesMining](List(
@@ -49,11 +49,16 @@ trait RdfRulesMiningTask[T] extends Task[Index, Index, Ruleset, T] with TaskPreP
       _.setParallelism(numberOfThreads),
       x => if (minConfidence <= 0.0) x else x.computeConfidence(minConfidence, injectiveMapping).cache,
       x => if (minPcaConfidence <= 0.0) x else x.computePcaConfidence(minPcaConfidence, injectiveMapping).cache,
-      x => if (!countLift || minConfidence <= 0.0) x else x.computeLift(minConfidence, injectiveMapping).cache
+      x => if (!countLift || minConfidence <= 0.0) x else x.computeLift(minConfidence, injectiveMapping).cache,
+      x => if (skylinePruning) x.onlyBetterDescendant(Measure.PcaConfidence).cache else x,
     ))(ruleset.withoutQuasiBinding(injectiveMapping).cache)
   }
 
-  protected def taskBody(input: Index): Ruleset = countOtherMetrics(input.mine(miningTask(createDefaultMiningTask), ruleConsumer))
+  protected def taskBody(input: Index): Ruleset = {
+    val res = countOtherMetrics(input.mine(miningTask(createDefaultMiningTask), ruleConsumer))
+    res.size
+    res
+  }
 
 }
 

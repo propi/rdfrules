@@ -4,7 +4,6 @@ import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.{Atom, FreshAtom, InstantiatedAtom, ResolvedAtom}
 import com.github.propi.rdfrules.utils.{BasicFunctions, Debugger, Stringifier}
 import com.typesafe.scalalogging.Logger
-import com.github.propi.rdfrules.rule.ResolvedRule.atomStringifier
 
 /**
   * Created by Vaclav Zeman on 23. 6. 2017.

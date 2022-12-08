@@ -30,10 +30,10 @@ trait ForEach[+T] {
 
   def knownSize: Int = -1
 
-  def withDebugger(dataLoadingText: String)(implicit debugger: Debugger): ForEach[T] = new ForEach[T] {
+  def withDebugger(dataLoadingText: String, forced: Boolean = false)(implicit debugger: Debugger): ForEach[T] = new ForEach[T] {
     def foreach(f: T => Unit): Unit = {
       val num = if (self.knownSize > 0) self.knownSize else 0
-      debugger.debug(dataLoadingText, num) { ad =>
+      debugger.debug(dataLoadingText, num, forced) { ad =>
         for (x <- self.takeWhile(_ => !debugger.isInterrupted)) {
           f(x)
           ad.done()
@@ -245,6 +245,34 @@ trait ForEach[+T] {
 
   def reduceOption[A >: T](f: (A, A) => A): Option[A] = foldLeft(Option.empty[A])((x, y) => x.map(f(_, y)).orElse(Some(y)))
 
+  def :+[A >: T](x: A): ForEach[A] = {
+    val col = new ForEach[A] {
+      def foreach(f: A => Unit): Unit = {
+        self.foreach(f)
+        f(x)
+      }
+    }
+    if (knownSize >= 0) {
+      new KnownSizeForEach(knownSize + 1, col)
+    } else {
+      col
+    }
+  }
+
+  def +:[A >: T](x: A): ForEach[A] = {
+    val col = new ForEach[A] {
+      def foreach(f: A => Unit): Unit = {
+        f(x)
+        self.foreach(f)
+      }
+    }
+    if (knownSize >= 0) {
+      new KnownSizeForEach(knownSize + 1, col)
+    } else {
+      col
+    }
+  }
+
   def map[A](g: T => A): ForEach[A] = {
     val col = new ForEach[A] {
       def foreach(f: A => Unit): Unit = self.foreach(x => f(g(x)))
@@ -254,6 +282,15 @@ trait ForEach[+T] {
     } else {
       col
     }
+  }
+
+  def mkString(sep: String): String = {
+    val builder = new mutable.StringBuilder()
+    foreach { x =>
+      if (builder.nonEmpty) builder.append(sep)
+      builder.append(x.toString)
+    }
+    builder.toString()
   }
 
   def filter(p: T => Boolean): ForEach[T] = (f: T => Unit) => self.foreach(x => if (p(x)) f(x))

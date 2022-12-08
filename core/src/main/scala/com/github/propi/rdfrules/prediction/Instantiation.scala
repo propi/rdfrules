@@ -57,7 +57,7 @@ object Instantiation {
   private def resolvePredictionResult(head: InstantiatedAtom)(implicit thi: TripleIndex[Int]): PredictedResult = resolvePredictionResult(head.subject, head.predicate, head.`object`)
 
   private def instantiateRule(rule: FinalRule, injectiveMapping: Boolean)(implicit ac: AtomCounting): Iterator[InstantiatedRule] = {
-    val bodySet = rule.body.toSet
+    val bodySet = rule.bodySet
     for {
       variableMap <- ac.paths(bodySet, VariableMap(injectiveMapping))
       instantiatedHead <- variableMap.specifyAtom(rule.head).toInstantiatedAtom

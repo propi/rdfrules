@@ -4,6 +4,7 @@ import com.github.propi.rdfrules.data.{Triple, TripleItem}
 import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.rule
 import com.github.propi.rdfrules.rule.ResolvedAtom.ResolvedItem
+import com.github.propi.rdfrules.utils.Stringifier
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
@@ -30,6 +31,8 @@ sealed trait ResolvedAtom {
     case x: ResolvedAtom => (this eq x) || (subject == x.subject && predicate == x.predicate && `object` == x.`object`)
     case _ => false
   }
+
+  override def toString: String = Stringifier(this)
 }
 
 object ResolvedAtom {
@@ -44,6 +47,8 @@ object ResolvedAtom {
     def toItemOpt(implicit tripleItemIndex: TripleItemIndex): Option[Atom.Item]
 
     def toTripleItem: TripleItem
+
+    override def toString: String = Stringifier(this)
   }
 
   object ResolvedItem {
@@ -72,9 +77,20 @@ object ResolvedAtom {
 
     def apply(tripleItem: TripleItem): ResolvedItem = Constant(tripleItem)
 
+    def parse(x: String): ResolvedItem = if (x.startsWith("?")) {
+      apply(x)
+    } else {
+      apply(TripleItem.parse(x))
+    }
+
     implicit def apply(atomItem: rule.Atom.Item)(implicit mapper: TripleItemIndex): ResolvedItem = atomItem match {
       case x: rule.Atom.Variable => apply(x.value)
       case rule.Atom.Constant(x) => apply(mapper.getTripleItem(x))
+    }
+
+    implicit val itemStringifier: Stringifier[ResolvedItem] = {
+      case ResolvedItem.Variable(x) => x
+      case ResolvedItem.Constant(x) => x.toString
     }
 
     implicit val mappedAtomItemJsonFormat: RootJsonFormat[ResolvedItem] = new RootJsonFormat[ResolvedItem] {
@@ -123,11 +139,21 @@ object ResolvedAtom {
 
   def apply(subject: ResolvedItem, predicate: TripleItem.Uri, `object`: ResolvedItem, graphs: Set[TripleItem.Uri]): GraphAware = GraphAwareBasic(subject, predicate, `object`)(graphs)
 
+  def parse(s: String, p: String, o: String): ResolvedAtom = apply(ResolvedItem.parse(s), TripleItem.parseUri(p), ResolvedItem.parse(o))
+
   implicit def apply(atom: rule.Atom)(implicit mapper: TripleItemIndex): ResolvedAtom = atom match {
     case x: rule.Atom.GraphAware =>
       GraphAwareBasic(atom.subject, mapper.getTripleItem(atom.predicate).asInstanceOf[TripleItem.Uri], atom.`object`)(x.graphsIterator.map(mapper.getTripleItem(_).asInstanceOf[TripleItem.Uri]).toSet)
     case _ =>
       apply(atom.subject, mapper.getTripleItem(atom.predicate).asInstanceOf[TripleItem.Uri], atom.`object`)
+  }
+
+  implicit val atomStringifier: Stringifier[ResolvedAtom] = {
+    case x: ResolvedAtom.GraphAware =>
+      def bracketGraphs(strGraphs: String): String = if (x.graphs.size == 1) strGraphs else s"[$strGraphs]"
+
+      s"(${Stringifier(x.subject)} ${x.predicate.toString} ${Stringifier(x.`object`)} ${bracketGraphs(x.graphs.iterator.map(_.toString).mkString(", "))})"
+    case x => s"(${Stringifier(x.subject)} ${x.predicate.toString} ${Stringifier(x.`object`)})"
   }
 
   implicit val mappedAtomJsonFormat: RootJsonFormat[ResolvedAtom] = new RootJsonFormat[ResolvedAtom] {

@@ -6,7 +6,7 @@ version := "1.6.1"
 
 scalaVersion := "2.13.8"
 
-scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-encoding", "utf8")
+scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-opt:inline", "-encoding", "utf8")
 //scalacOptions += "-Xlog-implicits"
 
 parallelExecution in Test := false

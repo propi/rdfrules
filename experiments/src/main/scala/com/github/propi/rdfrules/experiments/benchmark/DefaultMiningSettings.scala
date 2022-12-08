@@ -20,6 +20,7 @@ trait DefaultMiningSettings {
   val withoutDuplicatePredicates: Boolean = false
   val injectiveMapping: Boolean = true
   val constantsEverywhere: Boolean = false
+  val skylinePruning: Boolean = false
 
 }
 

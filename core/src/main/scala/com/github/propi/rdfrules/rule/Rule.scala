@@ -10,11 +10,7 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
-trait Rule {
-
-  val body: IndexedSeq[Atom]
-  val head: Atom
-
+trait Rule extends RuleContent {
   def measures: TypedKeyMap.Immutable[Measure]
 
   def support: Int
@@ -23,25 +19,14 @@ trait Rule {
 
   def headCoverage: Double
 
-  def ruleLength: Int = body.size + 1
-
   override def hashCode(): Int = {
-    val support = this.support
-    val headSize = this.headSize
-    val bodyHashCode = body.iterator.map { atom =>
-      atom.predicate +
-        (atom.subject match {
-          case constant: Atom.Constant => constant.value
-          case _ => 0
-        }) +
-        (atom.`object` match {
-          case constant: Atom.Constant => constant.value
-          case _ => 0
-        })
-    }.foldLeft(0)(_ ^ _)
-    (bodyHashCode * body.size * 31) + headSize * 2 + support
+    super.hashCode() + this.headSize * 2 + this.support
   }
 
+  override def equals(other: Any): Boolean = other match {
+    case rule: Rule if headSize == rule.headSize && support == rule.support => super.equals(other)
+    case _ => false
+  }
 }
 
 object Rule {
@@ -49,12 +34,7 @@ object Rule {
   sealed trait FinalRule extends Rule {
     def withMeasures(measure: TypedKeyMap.Immutable[Measure]): FinalRule
 
-    private lazy val bodySet = body.toSet
-
-    override def equals(obj: Any): Boolean = obj match {
-      case that: Rule => ExpandingRule.checkRuleContentsEquality(that.body, bodySet, that.head, head)
-      case _ => false
-    }
+    override lazy val bodySet: Set[Atom] = body.toSet
   }
 
   private case class Simple(head: Atom, body: IndexedSeq[Atom])(val measures: TypedKeyMap.Immutable[Measure]) extends FinalRule {

@@ -13,7 +13,7 @@ trait RuleCounting extends AtomCounting {
 
   val rule: FinalRule
 
-  def hasQuasiBinding(injectiveMapping: Boolean): Boolean = hasQuasiBinding(rule.body.toSet, injectiveMapping)
+  def hasQuasiBinding(injectiveMapping: Boolean): Boolean = hasQuasiBinding(rule.bodySet, injectiveMapping)
 
   /**
     * Count confidence for the rule
@@ -39,9 +39,9 @@ trait RuleCounting extends AtomCounting {
       //first we count body size threshold: support / minConfidence
       //it counts wanted body site. If the body size is greater than wanted body size then confidence will be always lower than our defined threshold (min confidence)
       val bodySize = if (allPaths) {
-        count(rule.body.toSet, (support / minConfidence) + 1, VariableMap(injectiveMapping))
+        count(rule.bodySet, (support / minConfidence) + 1, VariableMap(injectiveMapping))
       } else {
-        countDistinctPairs(rule.body.toSet, rule.head, (support / minConfidence) + 1, injectiveMapping)
+        countDistinctPairs(rule.bodySet, rule.head, (support / minConfidence) + 1, injectiveMapping)
       }
       //confidence is number of head triples which are connected to other atoms in the rule DIVIDED number of all possible paths from body
       val confidence = if (bodySize == 0) 0.0 else support.toDouble / bodySize
@@ -126,7 +126,7 @@ trait RuleCounting extends AtomCounting {
         case _ => Iterator.empty
       }*/
 
-      val bodySet = rule.body.toSet
+      val bodySet = rule.bodySet
       val support = rule.support
       val maxPcaBodySize = (support / minPcaConfidence) + 1
       /*val newVar = (rule.body.iterator ++ Iterator(rule.head)).flatMap(x => Iterator(x.subject, x.`object`)).collect {

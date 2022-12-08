@@ -1,10 +1,8 @@
 package com.github.propi.rdfrules.rule
 
 import com.github.propi.rdfrules.index.TripleItemIndex
-import com.github.propi.rdfrules.rule.ResolvedAtom.ResolvedItem
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.utils.{Stringifier, TypedKeyMap}
-
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
@@ -13,9 +11,7 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 17. 4. 2018.
   */
-case class ResolvedRule private(body: IndexedSeq[ResolvedAtom], head: ResolvedAtom)(val measures: TypedKeyMap.Immutable[Measure]) {
-  def ruleLength: Int = body.size + 1
-
+case class ResolvedRule private(body: IndexedSeq[ResolvedAtom], head: ResolvedAtom)(val measures: TypedKeyMap.Immutable[Measure]) extends ResolvedRuleContent {
   def toRule(implicit tripleItemIndex: TripleItemIndex): FinalRule = Rule(
     head.toAtom,
     body.map(_.toAtom)
@@ -63,23 +59,15 @@ object ResolvedRule {
 
   def apply(body: IndexedSeq[ResolvedAtom], head: ResolvedAtom, measures: Measure*): ResolvedRule = ResolvedRule(body, head)(TypedKeyMap(measures))
 
+  def parse(head: (String, String, String), body: (String, String, String)*): ResolvedRule = apply(
+    body.iterator.map(x => ResolvedAtom.parse(x._1, x._2, x._3)).toIndexedSeq,
+    ResolvedAtom.parse(head._1, head._2, head._3)
+  )
+
   implicit def apply(rule: FinalRule)(implicit mapper: TripleItemIndex): ResolvedRule = ResolvedRule(
     rule.body.map(ResolvedAtom.apply),
     rule.head
   )(rule.measures)
-
-  implicit val itemStringifier: Stringifier[ResolvedItem] = {
-    case ResolvedItem.Variable(x) => x
-    case ResolvedItem.Constant(x) => x.toString
-  }
-
-  implicit val atomStringifier: Stringifier[ResolvedAtom] = {
-    case x: ResolvedAtom.GraphAware =>
-      def bracketGraphs(strGraphs: String): String = if (x.graphs.size == 1) strGraphs else s"[$strGraphs]"
-
-      s"(${Stringifier(x.subject)} ${x.predicate.toString} ${Stringifier(x.`object`)} ${bracketGraphs(x.graphs.iterator.map(_.toString).mkString(", "))})"
-    case x => s"(${Stringifier(x.subject)} ${x.predicate.toString} ${Stringifier(x.`object`)})"
-  }
 
   implicit val resolvedRuleStringifier: Stringifier[ResolvedRule] = (v: ResolvedRule) => v.body.map(x => Stringifier(x)).mkString(" ^ ") +
     " -> " +

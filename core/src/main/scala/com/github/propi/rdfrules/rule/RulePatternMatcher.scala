@@ -28,7 +28,7 @@ object RulePatternMatcher {
         case Some(head) => atomMatcher.matchPattern(x.head, head)
         case None => Some(aliases)
       }).filter(_ => pattern.exact && pattern.body.size == x.body.size || !pattern.exact && pattern.body.size <= x.body.size).flatMap { implicit aliases =>
-        if (pattern.orderless) matchAntecedentOrderless(x.body.toSet, pattern.body) else matchAntecedentGradually(x.body, pattern.body)
+        if (pattern.orderless) matchAntecedentOrderless(x.bodySet, pattern.body) else matchAntecedentGradually(x.body, pattern.body)
       }
     }
   }

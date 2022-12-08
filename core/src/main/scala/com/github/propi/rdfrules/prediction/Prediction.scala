@@ -15,7 +15,7 @@ object Prediction {
       val atomCounting = AtomCounting()
 
       val res = rules.flatMap { rule =>
-        val ruleBody = rule.body.toSet
+        val ruleBody = rule.bodySet
         val headVars = List(rule.head.subject, rule.head.`object`).collect {
           case x: Atom.Variable => x
         }
