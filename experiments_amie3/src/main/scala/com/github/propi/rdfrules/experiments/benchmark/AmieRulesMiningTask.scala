@@ -15,13 +15,18 @@ import scala.jdk.CollectionConverters._
 trait AmieRulesMiningTask extends Task[String, AMIE, util.List[Rule], IndexedSeq[ResolvedRule]] with TaskPreProcessor[String, AMIE] with TaskPostProcessor[util.List[Rule], IndexedSeq[ResolvedRule]] with DefaultMiningSettings {
 
   val confidenceCountingHeuristicOn = false
+  val skylinePruningOn = true
+  val amie3Optimization = false
 
   // -optimfh
   protected def preProcess(input: String): AMIE = {
     val cmd = List(
-      s"-oute -dpr -maxad $maxRuleLength -minhc $minHeadCoverage -minpca $minPcaConfidence -minc $minConfidence -nc $numberOfThreads",
+      s"-oute -dpr -maxad $maxRuleLength -minhc $minHeadCoverage -minpca $minPcaConfidence -nc $numberOfThreads",
       if (allowConstants) " -const" else "",
       if (confidenceCountingHeuristicOn) " -optimcb -optimfh" else "",
+      if (amie3Optimization) " -bias lazy -full -noHeuristics" else "",
+      if (minConfidence <= 0) " -ostd" else s" -minc $minConfidence",
+      if (!skylinePruningOn) " -noSkyline" else "",
       " " + input
     ).mkString
     HowLong.howLong("Original AMIE+ loading", memUsage = true, forceShow = true) {
