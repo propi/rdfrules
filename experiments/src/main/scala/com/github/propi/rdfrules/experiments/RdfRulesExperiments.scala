@@ -88,8 +88,13 @@ object RdfRulesExperiments {
               override val minPcaConfidence: Double = 0.0
               override val minConfidence: Double = 0.0
             } withInput index andFinallyProcessResultWith BasicPrinter()
-            val updatedIndex = Once executeTask new DiscretizationRdfRules(s"RDFRules: discretization, minHc = $minHc", minHc) withInput index andFinallyProcessAndReturnResultWith BasicPrinter()
-            Once executeTask new DiscretizationMiningRdfRules[Seq[Metric]](s"RDFRules: mine with discretization, minHc: $minHc", DiscretizedRuleFilter(updatedIndex), minHc, numberOfThreads) with NewTriplesPostprocessor withInput updatedIndex andFinallyProcessResultWith BasicPrinter()
+            for (pruningType <- Iterator("on", "off")) {
+              val updatedIndex = Once executeTask new DiscretizationRdfRules(s"RDFRules: discretization, minHc = $minHc, pruning = $pruningType", minHc) {
+                override protected val minSupportLowerBoundOn: Boolean = Iterator("on").contains(pruningType)
+                override protected val minSupportUpperBoundOn: Boolean = Iterator("on").contains(pruningType)
+              } withInput index andFinallyProcessAndReturnResultWith BasicPrinter()
+              Once executeTask new DiscretizationMiningRdfRules[Seq[Metric]](s"RDFRules: mine with discretization, minHc: $minHc, pruning = $pruningType", DiscretizedRuleFilter(updatedIndex), minHc, numberOfThreads) with NewTriplesPostprocessor withInput updatedIndex andFinallyProcessResultWith BasicPrinter()
+            }
           }
         } else {
           lazy val index = {

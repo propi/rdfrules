@@ -11,8 +11,6 @@ import eu.easyminer.discretization.algorithm.Discretization
 import eu.easyminer.discretization.impl.sorting.SortedInMemoryNumericProducer
 import eu.easyminer.discretization.impl.{Interval, Producer}
 
-import scala.util.Try
-
 /**
   * Created by Vaclav Zeman on 23. 3. 2020.
   */
@@ -111,14 +109,14 @@ class IndexOps private(implicit mapper: TripleItemIndex, thi: TripleIndex[Int]) 
     case _: DiscretizedTree.Leaf => tree
   }
 
-  def getDiscretizedTrees(predicates: Iterator[TripleItem], minSupport: Int, arity: Int): Iterator[(TripleItem, DiscretizedTree)] = {
-    val task = DiscretizationTask.EquisizeTree(minSupport, arity)
-    val discretization = Discretization[Double](task)
+  def getDiscretizedTrees(predicates: Iterator[TripleItem], minSupports: Map[Int, Int], arity: Int): Iterator[(TripleItem, DiscretizedTree)] = {
     for {
       predicate <- predicates
       predicateId <- mapper.getIndexOpt(predicate)
       tpi <- thi.predicates.get(predicateId)
     } yield {
+      val task = DiscretizationTask.EquisizeTree(minSupports(predicateId), arity)
+      val discretization = Discretization[Double](task)
       val col = new ForEach[Double] {
         def foreach(f: Double => Unit): Unit = {
           tpi.objects.iterator.map(mapper.getTripleItem).collect {
@@ -131,18 +129,54 @@ class IndexOps private(implicit mapper: TripleItemIndex, thi: TripleIndex[Int]) 
     }
   }
 
-  def getNumericPredicates(predicates: Iterator[TripleItem], minSupport: Int): Iterator[(TripleItem, Int)] = {
+  def getNumericPredicates(predicates: Iterator[TripleItem], minSupports: Map[Int, Int]): Iterator[(TripleItem, Int)] = {
     (if (predicates.nonEmpty) predicates.flatMap(mapper.getIndexOpt) else thi.predicates.iterator).map { predicate =>
       mapper.getTripleItem(predicate) -> thi.predicates.get(predicate).iterator.flatMap(_.objects.pairIterator).filter(x => mapper.getTripleItem(x._1).isInstanceOf[TripleItem.Number[_]]).map(_._2.size).sum
-    }.filter(_._2 >= minSupport)
+    }.filter(x => x._2 >= minSupports(mapper.getIndex(x._1)))
   }
 
-  def getMinSupportLower(minHeadSize: MinHeadSize, minHeadCoverage: MinHeadCoverage): Int = {
-    Try(thi.predicates.valuesIterator.map(_.size(true)).filter(_ >= minHeadSize.value).min).toOption.map(x => math.ceil(x * minHeadCoverage.value).toInt).getOrElse(Int.MaxValue)
+  /*private def getPredicateNeighbours(predicate: Int, hops: Int, minHeadSize: MinHeadSize): Iterator[Int] = {
+    val pindex = thi.predicates(predicate)
+    val p = Iterator(predicate).filter(_ => pindex.size(true) >= minHeadSize.value)
+    if (hops > 0) {
+      (pindex.neighboursSO.iterator ++ pindex.neighboursSS.iterator ++ pindex.neighboursOS.iterator ++ pindex.neighboursOO.iterator)
+        .distinct
+        .flatMap(getPredicateNeighbours(_, hops - 1, minHeadSize)) ++ p
+    } else {
+      p
+    }
+  }*/
+
+  private def getPredicateMinSupportLower(predicate: Int, hops: Int, minHeadSize: MinHeadSize): Option[Int] = {
+    val pindex = thi.predicates(predicate)
+    val psize = Some(pindex.size(true)).filter(_ >= minHeadSize.value)
+    if (hops > 0) {
+      ((pindex.neighboursSO.iterator ++ pindex.neighboursSS.iterator ++ pindex.neighboursOS.iterator ++ pindex.neighboursOO.iterator)
+        .distinct
+        .flatMap(getPredicateMinSupportLower(_, hops - 1, minHeadSize)) ++ psize.iterator).minOption
+    } else {
+      psize
+    }
   }
 
-  def getMinSupportUpper(minHeadSize: MinHeadSize, minHeadCoverage: MinHeadCoverage): Int = {
-    Try(thi.predicates.valuesIterator.map(_.size(true)).filter(_ >= minHeadSize.value).max).toOption.map(x => math.ceil(x * minHeadCoverage.value).toInt).getOrElse(Int.MaxValue)
+  def getMinSupportLower(minHeadSize: MinHeadSize, minHeadCoverage: MinHeadCoverage, maxRuleLength: Int): Map[Int, Int] = {
+    thi.predicates.iterator.map(p => p -> getPredicateMinSupportLower(p, math.max(maxRuleLength - 2, 1), minHeadSize).map(x => math.ceil(x * minHeadCoverage.value).toInt).getOrElse(Int.MaxValue)).toMap
+  }
+
+  private def getPredicateMinSupportUpper(predicate: Int, hops: Int, minHeadSize: MinHeadSize): Option[Int] = {
+    val pindex = thi.predicates(predicate)
+    val psize = Some(pindex.size(true)).filter(_ >= minHeadSize.value)
+    if (hops > 0) {
+      ((pindex.neighboursSO.iterator ++ pindex.neighboursSS.iterator ++ pindex.neighboursOS.iterator ++ pindex.neighboursOO.iterator)
+        .distinct
+        .flatMap(getPredicateMinSupportUpper(_, hops - 1, minHeadSize)) ++ psize.iterator).maxOption
+    } else {
+      psize
+    }
+  }
+
+  def getMinSupportUpper(minHeadSize: MinHeadSize, minHeadCoverage: MinHeadCoverage, maxRuleLength: Int): Map[Int, Int] = {
+    thi.predicates.iterator.map(p => p -> getPredicateMinSupportUpper(p, math.max(maxRuleLength - 2, 1), minHeadSize).map(x => math.ceil(x * minHeadCoverage.value).toInt).getOrElse(Int.MinValue)).toMap
   }
 
 }

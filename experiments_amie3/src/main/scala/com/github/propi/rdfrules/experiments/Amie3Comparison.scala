@@ -62,7 +62,7 @@ object Amie3Comparison {
         }
         if (cli.hasOption("runlogical")) {
           for (minHc <- minHcs) {
-            val taskDesc = s"minHeadCoverage = $minHc, minConfidence = 0.1, minPcaConfidence = 0.1, only logical rules"
+            val taskDesc = s"minHeadCoverage = $minHc, minPcaConfidence = 0.5, only logical rules"
             val taskResult1 = if (!cli.hasOption("rdfrulesonly")) Some(
               xTimes executeTask new MinHcAmie(s"AMIE: $taskDesc", minHc, numberOfThreads = numberOfThreads) {
                 override val minPcaConfidence: Double = 0.5
@@ -88,7 +88,7 @@ object Amie3Comparison {
         }
         if (cli.hasOption("runconstants")) {
           for (minHc <- minHcs) {
-            val taskDesc = s"minHeadCoverage = $minHc, minConfidence = 0.1, minPcaConfidence = 0.1, with constants"
+            val taskDesc = s"minHeadCoverage = $minHc, minPcaConfidence = 0.5, with constants"
             val taskResult1 = if (!cli.hasOption("rdfrulesonly")) Some(
               xTimes executeTask new MinHcAmie(s"AMIE: $taskDesc", minHc, true, numberOfThreads = numberOfThreads) {
                 override val minPcaConfidence: Double = 0.5

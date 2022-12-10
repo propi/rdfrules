@@ -14,17 +14,28 @@ import com.github.propi.rdfrules.utils.{Debugger, ForEach}
 class DiscretizationRdfRules(val name: String, override val minHeadCoverage: Double = DefaultMiningSettings.minHeadCoverage)
                             (implicit val debugger: Debugger) extends Task[Index, Index, Index, Index] with TaskPreProcessor[Index, Index] with TaskPostProcessor[Index, Index] with DefaultMiningSettings with CollectionBuilders {
 
+  protected val minSupportLowerBoundOn = true
+  protected val minSupportUpperBoundOn = true
+
   protected def postProcess(result: Index): Index = result
 
   protected def preProcess(input: Index): Index = input
 
   protected def taskBody(input: Index): Index = {
-    val minSupportLower = input.useRichOps(_.getMinSupportLower(Threshold.MinHeadSize(100), Threshold.MinHeadCoverage(minHeadCoverage)))
-    val minSupportUpper = input.useRichOps(_.getMinSupportUpper(Threshold.MinHeadSize(100), Threshold.MinHeadCoverage(minHeadCoverage)))
+    val minSupportLower = Function.chain[Map[Int, Int]](List(
+      x => if (minSupportLowerBoundOn) x else x.map {
+        case (p, _) => p -> 1
+      }
+    ))(input.useRichOps(_.getMinSupportLower(Threshold.MinHeadSize(100), Threshold.MinHeadCoverage(minHeadCoverage), maxRuleLength)))
+    val minSupportUpper = Function.chain[Map[Int, Int]](List(
+      x => if (minSupportUpperBoundOn) x else x.map {
+        case (p, _) => p -> Int.MaxValue
+      }
+    ))(input.useRichOps(_.getMinSupportUpper(Threshold.MinHeadSize(100), Threshold.MinHeadCoverage(minHeadCoverage), maxRuleLength)))
     val predicates = input.useRichOps(_.getNumericPredicates(Iterator.empty, minSupportLower).toList)
     val trees = input.useRichOps(_.getDiscretizedTrees(predicates.iterator.map(_._1), minSupportLower, 2).toList)
     input.useRichOps { x =>
-      val newQuads = ForEach.from(trees).flatMap(y => x.discretizedTreeQuads(y._1.asInstanceOf[TripleItem.Uri], minSupportUpper, y._2))
+      val newQuads = ForEach.from(trees).flatMap(y => x.discretizedTreeQuads(y._1.asInstanceOf[TripleItem.Uri], minSupportUpper(input.tripleItemMap.getIndex(y._1)), y._2))
       val (tihi, thi) = TripleItemHashIndex.mapQuads(input.toDataset.quads.concat(newQuads))(TripleHashIndex(_))
       Index(thi, tihi)
     }

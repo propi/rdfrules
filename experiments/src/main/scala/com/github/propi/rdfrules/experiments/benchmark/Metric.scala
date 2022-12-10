@@ -198,7 +198,16 @@ object Metric {
       case x: TripleItem.PrefixedUri => x.toLongUri.uri
     }.count(_.contains("_discretized_level_"))
     val numPredicates = thi.predicates.valuesIterator.count(_.objects.iterator.exists(mapper.getTripleItem(_).isInstanceOf[TripleItem.Number[_]]))
-    List(Number("predicates", thi.predicates.size), Number("numPredicates", numPredicates), Number("discretized_*", totalDisc), Number("triples", thi.size(false)))
+    val numIntervals = thi.predicates.iterator
+      .filter(x => mapper.getTripleItem(x).asInstanceOf[TripleItem.Uri].uri.contains("_discretized_level_"))
+      .flatMap { discPred =>
+        thi.predicates(discPred).objects.iterator
+          .map(mapper.getTripleItem)
+          .collect {
+            case x: TripleItem.Interval => x
+          }
+      }.size
+    List(Number("predicates", thi.predicates.size), Number("numPredicates", numPredicates), Number("discretized_*", totalDisc), Number("triples", thi.size(false)), Number("intervals", numIntervals))
   }
 
   val simpleStringifier: Stringifier[Metric] = (v: Metric) => v.getSimple.prettyValue

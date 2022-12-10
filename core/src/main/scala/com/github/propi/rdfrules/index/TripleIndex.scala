@@ -56,7 +56,7 @@ trait TripleIndex[T] {
             `sp->sq`.getOrElseUpdate(pNeighbour, IncrementalInt()) += (objects.size * pNeighbourIndex.subjects(s).size)
           }
         }
-        for (pNeighbour <- main.objects(s).predicates.iterator) {
+        for (pNeighbour <- main.objects.get(s).iterator.flatMap(_.predicates.iterator)) {
           `sp->oq`.getOrElseUpdate(pNeighbour, IncrementalInt()) += (objects.size * predicates(pNeighbour).objects(s).size)
         }
       }
@@ -69,7 +69,7 @@ trait TripleIndex[T] {
             `op->oq`.getOrElseUpdate(pNeighbour, IncrementalInt()) += (subjects.size * pNeighbourIndex.objects(o).size)
           }
         }
-        for (pNeighbour <- main.subjects(o).predicates.iterator) {
+        for (pNeighbour <- main.subjects.get(o).iterator.flatMap(_.predicates.iterator)) {
           `op->sq`.getOrElseUpdate(pNeighbour, IncrementalInt()) += (subjects.size * predicates(pNeighbour).subjects(o).size)
         }
       }
