@@ -32,7 +32,7 @@ object Prediction {
             .map(x => PredictedTriple(x, PredictedResult.Positive, rule))
         } else {
           atomCounting
-            .selectDistinctPairs(ruleBody, headVars, VariableMap(injectiveMapping))
+            .selectDistinctPairs(ruleBody, headVars, Iterator(VariableMap(injectiveMapping)))
             .map(constantsToTriple)
             .map(x => PredictedTriple(x, Instantiation.resolvePredictionResult(x.s, x.p, x.o), rule))
             .filter(x => predictionResults.isEmpty || predictionResults(x.predictedResult))

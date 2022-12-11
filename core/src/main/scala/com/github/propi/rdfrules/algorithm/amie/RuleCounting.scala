@@ -97,6 +97,86 @@ trait RuleCounting extends AtomCounting {
     }
   }
 
+  /*private def bodySizeLowerBound(pca: Option[(Int, TripleItemPosition[Atom.Variable])], injectiveMapping: Boolean) = {
+    if (rule.ruleLength == 3 && rule.head.subject.isInstanceOf[Atom.Variable] && rule.head.`object`.isInstanceOf[Atom.Variable]) {
+    var predicate = Option.empty[Int]
+    var sharedPosition = Option.empty[ConceptPosition]
+    val headVars = Set(rule.head.subject.asInstanceOf[Atom.Variable], rule.head.`object`.asInstanceOf[Atom.Variable])
+    val isAppropriateRule = rule.body.forall { atom =>
+        atom.subject -> atom.`object` match {
+          case (s: Atom.Variable, o: Atom.Variable) =>
+            if (predicate.forall(_ == atom.predicate)) {
+            if (headVars(s) && sharedPosition.forall(_ == TriplePosition.Object)) {
+              predicate = Some(atom.predicate)
+              sharedPosition = Some(TriplePosition.Object)
+              true
+            } else if (headVars(o) && sharedPosition.forall(_ == TriplePosition.Subject)) {
+              predicate = Some(atom.predicate)
+              sharedPosition = Some(TriplePosition.Subject)
+              true
+            } else {
+              false
+            }
+            } else {
+              false
+            }
+        }
+      }
+      if (isAppropriateRule) {
+        val p = predicate.get
+        pca match {
+          case Some((headPredicate, headVar)) if injectiveMapping =>
+          case Some((headPredicate, headVar)) =>
+          case None if injectiveMapping =>
+          case None =>
+            sharedPosition.get match {
+              case TriplePosition.Subject => tripleIndex.predicates(predicate.get).
+              case TriplePosition.Object => tripleIndex.predicates(predicate.get).objects.valuesIterator.map(_.size(true))
+            }
+
+        }
+      }
+    if (predicates.size == 1) {
+      for (shared <- variables.iterator.find(_._2 == atoms.size).map(_._1)) {
+        variables.remove(shared)
+        val checkExistence: (Int, TripleIndex.HashSet[Int] with TripleIndex.Reflexiveable) => Int = pca match {
+          case Some((headPredicate, headVar)) if headVar.item == shared.item =>
+            val pindex = tripleIndex.predicates(headPredicate)
+            val pcaCheck: Int => Boolean = headVar match {
+              case TripleItemPosition.Subject(_) => x => pindex.subjects.contains(x)
+              case TripleItemPosition.Object(_) => x => pindex.objects.contains(x)
+            }
+            val reflexivityCheck: (Int, Int) => Boolean = if (injectiveMapping) (x, y) => x != y else (_, _) => true
+            (x, index) => index.iterator.count(y => reflexivityCheck(x, y) && pcaCheck(y))
+          case Some((headPredicate, headVar)) => (aConstant, index) => {
+            val isValid = headVar match {
+              case TripleItemPosition.Subject(_) => tripleIndex.predicates(headPredicate).subjects.contains(aConstant)
+              case TripleItemPosition.Object(_) => tripleIndex.predicates(headPredicate).objects.contains(aConstant)
+            }
+            if (isValid) index.size(injectiveMapping) else 0
+          }
+          case None => (_, index) => index.size(injectiveMapping)
+        }
+        val pindex = tripleIndex.predicates(predicates.head)
+        shared match {
+          case TripleItemPosition.Subject(_) =>
+            pindex.objects.pairIterator.map { case (o, subjects) => subjects.}
+          case TripleItemPosition.Object(_) =>
+        }
+      }
+      variables.filter.
+    }
+    val hmap = collection.mutable.HashMap.empty[Int, collection.mutable.ArrayBuffer[Atom]]
+    for (atom <- atoms) {
+      hmap.getOrElseUpdate(atom.predicate, collection.mutable.ArrayBuffer.empty).addOne(atom)
+    }
+    atoms.iterator.groupBy(_.predicate)(collection.mutable.ArrayBuffer).valuesIterator.filter(_.length > 1).foldLeft(variableMap) { case (variableMap, atoms) =>
+      atoms.
+    }
+    hmap.valuesIterator.filter(_.)
+    }
+  }*/
+
   /**
     * Count pca confidence for the rule.
     * Pca confidence is less restrictive than the standard confidence.
@@ -115,72 +195,29 @@ trait RuleCounting extends AtomCounting {
       withPcaConfidence(0.001, allPaths)
     } else {
       logger.debug(s"PCA confidence counting for rule: " + rule)
-      /*
-      //get all subject instances for head atoms
-      val headInstances: Iterator[VariableMap] = (rule.head.subject, rule.head.`object`) match {
-        //if subject is variable then we return all subjects for the head atom predicate
-        case (x: Atom.Variable, _) => tripleIndex.predicates(rule.head.predicate).subjects.keysIterator.map(y => Map(x -> Atom.Constant(y)))
-        //if subject is constant then we will search negative examples for object variable, we return all object instances for the atom predicate
-        //TODO - this step is maybe invalid - only connections with subject are valid
-        case (_, x: Atom.Variable) => tripleIndex.predicates(rule.head.predicate).objects.keysIterator.map(y => Map(x -> Atom.Constant(y)))
-        case _ => Iterator.empty
-      }*/
-
       val bodySet = rule.bodySet
       val support = rule.support
       val maxPcaBodySize = (support / minPcaConfidence) + 1
-      /*val newVar = (rule.body.iterator ++ Iterator(rule.head)).flatMap(x => Iterator(x.subject, x.`object`)).collect {
-        case x: Atom.Variable => x
-      }.max.++
-      //if the inverse functionality is greater than functionality then we need to inverse the head atom
-      val isInverseFunction = inverseFunctionality(rule.head) > functionality(rule.head)
-      val existentialTriple = (rule.head.subject, rule.head.`object`) match {
-        case (_: Atom.Variable, _: Atom.Variable) => if (isInverseFunction) {
-          //for inverse functionality we predicate subject, object is fixed ?b
-          rule.head.transform(subject = newVar)
-        } else {
-          //by default we predicate object, subject is fixed ?a
-          rule.head.transform(`object` = newVar)
-        }
-        case (_: Atom.Variable, _) => rule.head.transform(subject = newVar)
-        case (_, _: Atom.Variable) => rule.head.transform(`object` = newVar)
-        case _ => rule.head
-      }*/
-      val isPCA: Seq[Atom.Constant] => Boolean = {
+      val zeroConstant = Atom.Constant(tripleItemIndex.zero)
+      val emptyVariableMap = VariableMap(injectiveMapping)
+      val pcaVariableMaps: Iterator[VariableMap] = {
         val pindex = tripleIndex.predicates(rule.head.predicate)
         pindex.higherCardinalitySide match {
           case TriplePosition.Subject =>
             if (rule.head.subject.isInstanceOf[Atom.Constant]) {
-              _ => true
+              Iterator(emptyVariableMap)
             } else {
-              constants => pindex.subjects.contains(constants.head.value)
+              pindex.subjects.iterator.map(x => emptyVariableMap + (rule.head.subject.asInstanceOf[Atom.Variable] -> Atom.Constant(x), rule.head.predicate, zeroConstant))
             }
           case TriplePosition.Object =>
             if (rule.head.`object`.isInstanceOf[Atom.Constant]) {
-              _ => true
+              Iterator(emptyVariableMap)
             } else {
-              constants => pindex.objects.contains(constants.last.value)
+              pindex.objects.iterator.map(x => emptyVariableMap + (zeroConstant, rule.head.predicate, rule.head.`object`.asInstanceOf[Atom.Variable] -> Atom.Constant(x)))
             }
         }
       }
-      val pcaBodySize = countDistinctPairs(bodySet, rule.head, maxPcaBodySize, injectiveMapping, isPCA)
-      //}
-      /*val pcaBodySize = headInstances.foldLeft(0) { (pcaBodySize, variableMap) =>
-        println(variableMap)
-        //for each head instance we compute body size and sum it with previously counted body size
-        //within each iteration we need to subtract the current pcaBodySize from maxPcaBodySize due to preservation of global threshold for summed paths (body sizes)
-        val countForInstance = if (allPaths) {
-          count(bodySet, maxPcaBodySize - pcaBodySize, variableMap)
-        } else {
-          countDistinctPairs(bodySet, headVars, maxPcaBodySize - pcaBodySize, variableMap)
-        }
-        println(countForInstance)
-        if (countForInstance > 0) {
-          RuleCounting.testCache += variableMap('a')
-          //println("map: " + variableMap)
-        }
-        pcaBodySize + countForInstance
-      }*/
+      val pcaBodySize = countDistinctPairs(bodySet, rule.head, maxPcaBodySize, pcaVariableMaps)
       val pcaConfidence = if (pcaBodySize == 0) 0.0 else support.toDouble / pcaBodySize
       if (pcaConfidence >= minPcaConfidence) {
         rule.withMeasures(TypedKeyMap(Measure.PcaBodySize(pcaBodySize), Measure.PcaConfidence(pcaConfidence)) ++= rule.measures)

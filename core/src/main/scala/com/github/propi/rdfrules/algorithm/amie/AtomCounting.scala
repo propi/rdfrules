@@ -154,7 +154,7 @@ trait AtomCounting {
     * @param pairFilter  additional filter for each found pair - suitable for PCA confidence
     * @return iterator of instantiated distinct pairs for variables which have covered all atoms
     */
-  def selectDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], variableMap: VariableMap, pairFilter: Seq[Atom.Constant] => Boolean = _ => true): Iterator[Seq[Atom.Constant]] = {
+  def selectDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], variableMaps: Iterator[VariableMap]): Iterator[Seq[Atom.Constant]] = {
     val foundPairs = collection.mutable.Set.empty[Seq[Atom.Constant]]
 
     //TODO check it. This is maybe better solution to choose best atom but it must be tested!
@@ -180,10 +180,10 @@ trait AtomCounting {
     }*/
 
     def sdp(atoms: Set[Atom], variableMap: VariableMap): Iterator[Seq[Atom.Constant]] = {
-      if (headVars.forall(variableMap.contains)) {
+      if (atoms.isEmpty || headVars.forall(variableMap.contains)) {
         //if all variables are mapped then we create an instantiated pair
         val pair = headVars.map(variableMap.apply)
-        if (!foundPairs(pair) && pairFilter(pair) && (atoms.isEmpty || exists(atoms, variableMap))) {
+        if (!foundPairs(pair) && (atoms.isEmpty || exists(atoms, variableMap))) {
           //if the pair has not been found yet and atoms is empty or there exists a path for remaining atoms then we use this pair
           foundPairs += pair
           Iterator(pair)
@@ -193,14 +193,15 @@ trait AtomCounting {
         }
       } else {
         //choose best atom for faster computing
-        val best = bestAtom(atoms, variableMap)
-        val rest = atoms - best
+        val isLastAtom = atoms.size == 1
+        val best = if (isLastAtom) atoms.head else bestAtom(atoms, variableMap)
+        val rest = if (isLastAtom) Set.empty[Atom] else atoms - best
         //specify variables in the best atom and process the rest of atoms for each instance
         specifyVariableMap(best, variableMap).flatMap(sdp(rest, _))
       }
     }
 
-    sdp(atoms, variableMap)
+    variableMaps.flatMap(variableMap => sdp(atoms, variableMap))
   }
 
   /**
@@ -213,8 +214,8 @@ trait AtomCounting {
     * @param pairFilter       additional filter for each found pair - suitable for PCA confidence
     * @return number of distinct pairs for variables which have covered all atoms
     */
-  def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double, injectiveMapping: Boolean, pairFilter: Seq[Atom.Constant] => Boolean = _ => true)(implicit debugger: Debugger): Int = {
-    countDistinctPairs(atoms, head, maxCount, VariableMap(injectiveMapping), pairFilter)
+  def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double, injectiveMapping: Boolean)(implicit debugger: Debugger): Int = {
+    countDistinctPairs(atoms, head, maxCount, Iterator(VariableMap(injectiveMapping)))
   }
 
   /**
@@ -227,11 +228,11 @@ trait AtomCounting {
     * @param pairFilter  additional filter for each found pair - suitable for PCA confidence
     * @return number of distinct pairs for variables which have covered all atoms
     */
-  def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double, variableMap: VariableMap, pairFilter: Seq[Atom.Constant] => Boolean)(implicit debugger: Debugger): Int = {
+  def countDistinctPairs(atoms: Set[Atom], head: Atom, maxCount: Double, variableMaps: Iterator[VariableMap])(implicit debugger: Debugger): Int = {
     val headVars = List(head.subject, head.`object`).collect {
       case x: Atom.Variable => x
     }
-    countDistinctPairs(atoms, headVars, maxCount, variableMap, pairFilter)
+    countDistinctPairs(atoms, headVars, maxCount, variableMaps)
   }
 
   /**
@@ -244,9 +245,9 @@ trait AtomCounting {
     * @param pairFilter  additional filter for each found pair - suitable for PCA confidence
     * @return number of distinct pairs for variables which have covered all atoms
     */
-  def countDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], maxCount: Double, variableMap: VariableMap, pairFilter: Seq[Atom.Constant] => Boolean)(implicit debugger: Debugger): Int = {
+  def countDistinctPairs(atoms: Set[Atom], headVars: Seq[Atom.Variable], maxCount: Double, variableMaps: Iterator[VariableMap])(implicit debugger: Debugger): Int = {
     var i = 0
-    val it = selectDistinctPairs(atoms, headVars, variableMap, pairFilter)
+    val it = selectDistinctPairs(atoms, headVars, variableMaps)
     var thresholdTime = System.currentTimeMillis() + 30000
     lazy val atomString = atoms.iterator.map(ResolvedAtom(_)).map(Stringifier(_)).mkString(" ^ ")
     while (it.hasNext && i <= maxCount && !debugger.isInterrupted) {
