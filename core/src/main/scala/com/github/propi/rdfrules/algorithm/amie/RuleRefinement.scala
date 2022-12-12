@@ -50,13 +50,15 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
     */
   private lazy val instantiatedPosition: Int => Option[TriplePosition] = constantsPosition match {
     case Some(constantsPosition) => constantsPosition match {
-      case ConstantsPosition.LowerCardinalitySide => predicate => Some(tripleIndex.predicates(predicate).lowerCardinalitySide)
+      case ConstantsPosition.LowerCardinalitySide(false) => predicate => Some(tripleIndex.predicates(predicate).lowerCardinalitySide)
       case ConstantsPosition.Subject =>
         val pos = Some(TriplePosition.Subject)
         _ => pos
-      case _ =>
+      case ConstantsPosition.Object =>
         val pos = Some(TriplePosition.Object)
         _ => pos
+      case _ =>
+        _ => None
     }
     case None => _ => None
   }

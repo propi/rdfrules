@@ -23,7 +23,7 @@ class RulesetSpec extends AnyFlatSpec with Matchers with Inside with CancelAfter
   private lazy val ruleset = {
     dataset1.mine(Amie()
       .addConstraint(RuleConstraint.WithoutDuplicatePredicates())
-      .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LowerCardinalitySide))
+      .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LowerCardinalitySide()))
       .addThreshold(Threshold.MinHeadCoverage(0.02))
     )
   }

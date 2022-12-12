@@ -67,15 +67,9 @@ object RdfRulesExperiments {
           val dbpedia1 = Graph("experiments/data/mappingbased_literals_sample.ttl.bz2")
           val dbpedia2 = Graph("experiments/data/mappingbased_objects_sample.tsv.bz2")
           val yagoDbpedia = Graph("experiments/data/yagoDBpediaInstances.tsv.bz2")
-          Once executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: graphs-mining YAGO, minHeadCoverage = 0.01", 0.01, true, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor {
-            override val withConstantsAtTheObjectPosition: Boolean = true
-          } withInput (yago1.toDataset + yago2).index() andFinallyProcessResultWith BasicPrinter()
-          Once executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: graphs-mining DBpedia, minHeadCoverage = 0.01", 0.01, true, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor {
-            override val withConstantsAtTheObjectPosition: Boolean = true
-          } withInput (dbpedia1.toDataset + dbpedia2).index() andFinallyProcessResultWith BasicPrinter()
-          Once executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: graphs-mining YAGO+DBpedia, minHeadCoverage = 0.01", 0.01, true, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor {
-            override val withConstantsAtTheObjectPosition: Boolean = true
-          } withInput (yago1.toDataset + yago2 + dbpedia1 + dbpedia2 + yagoDbpedia).index() andFinallyProcessResultWith BasicPrinter()
+          Once executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: graphs-mining YAGO, minHeadCoverage = 0.01", 0.01, Some(ConstantsPosition.Object), numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput (yago1.toDataset + yago2).index() andFinallyProcessResultWith BasicPrinter()
+          Once executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: graphs-mining DBpedia, minHeadCoverage = 0.01", 0.01, Some(ConstantsPosition.Object), numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput (dbpedia1.toDataset + dbpedia2).index() andFinallyProcessResultWith BasicPrinter()
+          Once executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: graphs-mining YAGO+DBpedia, minHeadCoverage = 0.01", 0.01, Some(ConstantsPosition.Object), numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput (yago1.toDataset + yago2 + dbpedia1 + dbpedia2 + yagoDbpedia).index() andFinallyProcessResultWith BasicPrinter()
         }/* else if (cli.hasOption("runlift")) {
           val yago = Graph("experiments/data/yago2core_facts.clean.notypes.tsv.bz2")
           val dbpedia = Graph("experiments/data/dbpedia.3.8.tsv.bz2")
@@ -83,8 +77,7 @@ object RdfRulesExperiments {
         }*/ else if (cli.hasOption("rundiscretization")) {
           for (minHc <- minHcs) {
             val index = Graph(inputTsvDataset).index()
-            Once executeTask new MinHcRdfRules[Seq[Metric]](s"RDFRules: mine without discretization, minHc: $minHc", minHc, true, numberOfThreads = numberOfThreads) with NewTriplesPostprocessor {
-              override val withConstantsAtTheObjectPosition: Boolean = true
+            Once executeTask new MinHcRdfRules[Seq[Metric]](s"RDFRules: mine without discretization, minHc: $minHc", minHc, Some(ConstantsPosition.Object), numberOfThreads = numberOfThreads) with NewTriplesPostprocessor {
               override val minPcaConfidence: Double = 0.0
               override val minConfidence: Double = 0.0
             } withInput index andFinallyProcessResultWith BasicPrinter()
@@ -111,19 +104,19 @@ object RdfRulesExperiments {
             }
             for (minHc <- minHcs) {
               val taskDesc = s"top 100 with highest head coverage, minHeadCoverage = $minHc, with constants"
-              xTimes executeTask new TopKRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: $taskDesc", 100, minHc, true, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput index andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
+              xTimes executeTask new TopKRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: $taskDesc", 100, minHc, None, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput index andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
             }
           }
           if (cli.hasOption("runpatterns")) {
-            xTimes executeTask new PatternRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: mining with pattern ? -> hasAcademicAdvisor, minHeadCoverage = 0.01, with constants", allowConstants = true, numberOfThreads = numberOfThreads)(AtomPattern(predicate = TripleItem.Uri("hasAcademicAdvisor"))) with RulesTaskPostprocessor {
+            xTimes executeTask new PatternRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: mining with pattern ? -> hasAcademicAdvisor, minHeadCoverage = 0.01, with constants", allowConstants = None, numberOfThreads = numberOfThreads)(AtomPattern(predicate = TripleItem.Uri("hasAcademicAdvisor"))) with RulesTaskPostprocessor {
               override val minPcaConfidence: Double = 0.0
               override val minConfidence: Double = 0.0
             } withInput index andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
-            xTimes executeTask new PatternRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: mining with pattern hasWonPrize -> ?, minHeadCoverage = 0.01, with constants", allowConstants = true, numberOfThreads = numberOfThreads)(AtomPattern(predicate = TripleItem.Uri("hasWonPrize")) =>: Option.empty[AtomPattern]) with RulesTaskPostprocessor {
+            xTimes executeTask new PatternRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: mining with pattern hasWonPrize -> ?, minHeadCoverage = 0.01, with constants", allowConstants = None, numberOfThreads = numberOfThreads)(AtomPattern(predicate = TripleItem.Uri("hasWonPrize")) =>: Option.empty[AtomPattern]) with RulesTaskPostprocessor {
               override val minPcaConfidence: Double = 0.0
               override val minConfidence: Double = 0.0
             } withInput index andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
-            xTimes executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: mine all, minHeadCoverage = 0.01, with constants", 0.01, true, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor {
+            xTimes executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: mine all, minHeadCoverage = 0.01, with constants", 0.01, None, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor {
               override val minPcaConfidence: Double = 0.0
               override val minConfidence: Double = 0.0
             } withInput index andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()

@@ -24,7 +24,7 @@ class ConsumersSpec extends AnyFlatSpec with Matchers with Inside with CancelAft
   private def amie(implicit debugger: Debugger) = Amie()
     .addThreshold(Threshold.MinHeadCoverage(0.01))
     .addConstraint(RuleConstraint.WithoutDuplicatePredicates())
-    .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LowerCardinalitySide))
+    .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LowerCardinalitySide()))
 
   "Amie" should "accept default consumer" in {
     Debugger() { implicit debugger =>

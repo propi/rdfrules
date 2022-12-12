@@ -27,7 +27,7 @@ trait HeadsFetcher extends AtomCounting {
       //result is original variable atom + instantied atoms with constants in subject + instantied atoms with constants in object
       //we do not instantient subject variable if onlyObjectInstances is true
       val it = settings.constantsPosition match {
-        case Some(ConstantsPosition.LowerCardinalitySide) => tripleIndex.predicates(logicalHead.predicate).lowerCardinalitySide match {
+        case Some(ConstantsPosition.LowerCardinalitySide(_)) => tripleIndex.predicates(logicalHead.predicate).lowerCardinalitySide match {
           case TriplePosition.Subject => specifySubject(logicalHead).map(_.transform(`object` = Atom.Variable(0)))
           case TriplePosition.Object => specifyObject(logicalHead)
         }

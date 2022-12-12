@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.experiments.benchmark.tasks
 
 import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.experiments.benchmark.{DefaultMiningSettings, DiscretizedRuleFilter, RdfRulesMiningTask, TaskPostProcessor}
+import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.Debugger
 
@@ -16,8 +17,7 @@ class DiscretizationMiningRdfRules[T](val name: String,
 
   self: TaskPostProcessor[Ruleset, T] =>
 
-  override val allowConstants: Boolean = true
-  override val withConstantsAtTheObjectPosition: Boolean = true
+  override val allowConstants: Option[ConstantsPosition] = Some(ConstantsPosition.Object)
   override val minPcaConfidence: Double = 0.0
   override val minConfidence: Double = 0.0
 

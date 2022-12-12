@@ -5,6 +5,7 @@ import amie.mining.AMIE
 import amie.rules.Rule
 import com.github.propi.rdfrules.experiments.AmieRuleOps.PimpedAmieRule
 import com.github.propi.rdfrules.rule.ResolvedRule
+import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.utils.HowLong
 
 import scala.jdk.CollectionConverters._
@@ -22,7 +23,7 @@ trait AmieRulesMiningTask extends Task[String, AMIE, util.List[Rule], IndexedSeq
   protected def preProcess(input: String): AMIE = {
     val cmd = List(
       s"-oute -dpr -maxad $maxRuleLength -minhc $minHeadCoverage -minpca $minPcaConfidence -nc $numberOfThreads",
-      if (allowConstants) " -const" else "",
+      if (!allowConstants.contains(ConstantsPosition.Nowhere)) " -const" else "",
       if (confidenceCountingHeuristicOn) " -optimcb -optimfh" else "",
       if (amie3Optimization) " -bias lazy -full -noHeuristics" else "",
       if (minConfidence <= 0) " -ostd" else s" -minc $minConfidence",

@@ -45,7 +45,7 @@ object YagoAndDbpediaSamples {
         Amie()
           .addThreshold(Threshold.MinHeadSize(80))
           .addThreshold(Threshold.MinHeadCoverage(0.001))
-          .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LowerCardinalitySide)),
+          .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LowerCardinalitySide())),
         RuleConsumer(TopKRuleConsumer(1000))
       ).computePcaConfidence(0.5)
         .computeLift()

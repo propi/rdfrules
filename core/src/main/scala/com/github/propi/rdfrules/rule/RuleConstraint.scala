@@ -58,7 +58,7 @@ object RuleConstraint {
 
       case object Object extends ConstantsPosition
 
-      case object LowerCardinalitySide extends ConstantsPosition
+      case class LowerCardinalitySide(headOnly: Boolean = false) extends ConstantsPosition
 
       case object Nowhere extends ConstantsPosition
 

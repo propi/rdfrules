@@ -8,6 +8,7 @@ import com.github.propi.rdfrules.experiments.benchmark.MetricsAggregator.StatsAg
 import com.github.propi.rdfrules.experiments.benchmark._
 import com.github.propi.rdfrules.experiments.benchmark.tasks._
 import com.github.propi.rdfrules.rule.ResolvedRule
+import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.utils.{Debugger, HowLong}
 import org.apache.commons.cli.{Options, PosixParser}
 
@@ -90,7 +91,7 @@ object Amie3Comparison {
           for (minHc <- minHcs) {
             val taskDesc = s"minHeadCoverage = $minHc, minPcaConfidence = 0.5, with constants"
             val taskResult1 = if (!cli.hasOption("rdfrulesonly")) Some(
-              xTimes executeTask new MinHcAmie(s"AMIE: $taskDesc", minHc, true, numberOfThreads = numberOfThreads) {
+              xTimes executeTask new MinHcAmie(s"AMIE: $taskDesc", minHc, None, numberOfThreads = numberOfThreads) {
                 override val minPcaConfidence: Double = 0.5
                 override val minConfidence: Double = 0.0
                 override val injectiveMapping: Boolean = false
@@ -98,10 +99,9 @@ object Amie3Comparison {
               } withInput inputTsvDataset andAggregateResultWith StatsAggregator
             ) else None
             val taskResult2 = if (!cli.hasOption("amieonly")) Some(
-              xTimes executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: $taskDesc", minHc, true, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor {
+              xTimes executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: $taskDesc", minHc, Some(ConstantsPosition.LowerCardinalitySide(true)), numberOfThreads = numberOfThreads) with RulesTaskPostprocessor {
                 override val minPcaConfidence: Double = 0.5
                 override val minConfidence: Double = 0.0
-                override val constantsEverywhere: Boolean = true
                 override val skylinePruning: Boolean = true
               } withInput index andAggregateResultWith StatsAggregator
             ) else None

@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.experiments.benchmark.tasks
 
 import com.github.propi.rdfrules.experiments.benchmark.{DefaultMiningSettings, RdfRulesMiningTask, TaskPostProcessor}
+import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.Debugger
 
@@ -10,7 +11,7 @@ import com.github.propi.rdfrules.utils.Debugger
 class NumOfThreadsRdfRules[T](val name: String,
                               override val numberOfThreads: Int,
                               override val minHeadCoverage: Double = DefaultMiningSettings.minHeadCoverage,
-                              override val allowConstants: Boolean = DefaultMiningSettings.allowConstants)
+                              override val allowConstants: Option[ConstantsPosition] = DefaultMiningSettings.allowConstants)
                              (implicit val debugger: Debugger) extends RdfRulesMiningTask[T] {
 
   self: TaskPostProcessor[Ruleset, T] =>

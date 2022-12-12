@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.experiments.benchmark
 
 import com.github.propi.rdfrules.algorithm.RuleConsumer
 import com.github.propi.rdfrules.algorithm.consumer.InMemoryRuleConsumer
+import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.ruleset.Ruleset
 
 /**
@@ -9,7 +10,7 @@ import com.github.propi.rdfrules.ruleset.Ruleset
   */
 trait DefaultMiningSettings {
 
-  val allowConstants: Boolean = false
+  val allowConstants: Option[ConstantsPosition] = Some(ConstantsPosition.Nowhere)
   val maxRuleLength: Int = 3
   val minPcaConfidence: Double = 0.1
   val minConfidence: Double = 0.1
@@ -19,7 +20,6 @@ trait DefaultMiningSettings {
   val experiment: Boolean = false
   val withoutDuplicatePredicates: Boolean = false
   val injectiveMapping: Boolean = true
-  val constantsEverywhere: Boolean = false
   val skylinePruning: Boolean = false
 
 }

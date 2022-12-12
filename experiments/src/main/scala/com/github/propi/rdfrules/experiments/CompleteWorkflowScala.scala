@@ -23,7 +23,7 @@ object CompleteWorkflowScala {
         .discretize(DiscretizationTask.Equifrequency(3))(_.triple.predicate.hasSameUriAs("hasNumberOfPeople"))
         .mine(Amie()
           .addThreshold(Threshold.MinHeadCoverage(0.01))
-          .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LowerCardinalitySide))
+          .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LowerCardinalitySide()))
           .addPattern(AtomPattern(predicate = TripleItem.Uri("hasNumberOfPeople")) =>: None)
           .addPattern(AtomPattern(predicate = TripleItem.Uri("hasNumberOfPeople")))
         )

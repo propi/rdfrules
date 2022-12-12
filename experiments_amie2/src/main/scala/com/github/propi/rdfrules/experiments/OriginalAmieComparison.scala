@@ -8,6 +8,7 @@ import com.github.propi.rdfrules.experiments.benchmark.MetricsAggregator.StatsAg
 import com.github.propi.rdfrules.experiments.benchmark._
 import com.github.propi.rdfrules.experiments.benchmark.tasks._
 import com.github.propi.rdfrules.rule.ResolvedRule
+import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.utils.{Debugger, HowLong}
 import org.apache.commons.cli.{Options, PosixParser}
 
@@ -87,10 +88,10 @@ object OriginalAmieComparison {
           for (minHc <- minHcs) {
             val taskDesc = s"minHeadCoverage = $minHc, minConfidence = 0.1, minPcaConfidence = 0.1, with constants"
             val taskResult1 = if (!cli.hasOption("rdfrulesonly")) Some(
-              xTimes executeTask new MinHcAmie(s"AMIE: $taskDesc", minHc, true, numberOfThreads = numberOfThreads) withInput inputTsvDataset andAggregateResultWith StatsAggregator
+              xTimes executeTask new MinHcAmie(s"AMIE: $taskDesc", minHc, None, numberOfThreads = numberOfThreads) withInput inputTsvDataset andAggregateResultWith StatsAggregator
             ) else None
             val taskResult2 = if (!cli.hasOption("amieonly")) Some(
-              xTimes executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: $taskDesc", minHc, true, numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput index andAggregateResultWith StatsAggregator
+              xTimes executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: $taskDesc", minHc, Some(ConstantsPosition.LowerCardinalitySide(true)), numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput index andAggregateResultWith StatsAggregator
             ) else None
             (taskResult1, taskResult2) match {
               case (Some(tr1), Some(tr2)) => tr1 compareWith tr2 andFinallyProcessResultWith BasicPrinter()
@@ -119,10 +120,10 @@ object OriginalAmieComparison {
           for (cores <- listOfCores) {
             val taskDesc = s"cores = $cores, minHeadCoverage = ${minHcs.head}, minConfidence = 0.1, minPcaConfidence = 0.1, with constants"
             val taskResult1 = if (!cli.hasOption("rdfrulesonly")) Some(
-              xTimes executeTask new NumOfThreadsAmie(s"AMIE: $taskDesc", cores, minHcs.head, true) withInput inputTsvDataset andAggregateResultWith StatsAggregator
+              xTimes executeTask new NumOfThreadsAmie(s"AMIE: $taskDesc", cores, minHcs.head, None) withInput inputTsvDataset andAggregateResultWith StatsAggregator
             ) else None
             val taskResult2 = if (!cli.hasOption("amieonly")) Some(
-              xTimes executeTask new NumOfThreadsRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: $taskDesc", cores, minHcs.head, true) with RulesTaskPostprocessor withInput index andAggregateResultWith StatsAggregator
+              xTimes executeTask new NumOfThreadsRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: $taskDesc", cores, minHcs.head, Some(ConstantsPosition.LowerCardinalitySide(true))) with RulesTaskPostprocessor withInput index andAggregateResultWith StatsAggregator
             ) else None
             (taskResult1, taskResult2) match {
               case (Some(tr1), Some(tr2)) => tr1 compareWith tr2 andFinallyProcessResultWith BasicPrinter()

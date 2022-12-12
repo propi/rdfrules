@@ -59,8 +59,8 @@ object HowLong {
       times.update(message, stats)
     }
     if (!silent) {
-      logger.trace(message + ": " + runningTime.pretty)
-      if (memUsage) logger.trace(message + ": " + ((afterUsedMem - beforeUsedMem) / 1000000.0) + " MB")
+      logger.debug(message + ": " + runningTime.pretty)
+      if (memUsage) logger.debug(message + ": " + ((afterUsedMem - beforeUsedMem) / 1000000.0) + " MB")
     }
     x
   } else {
