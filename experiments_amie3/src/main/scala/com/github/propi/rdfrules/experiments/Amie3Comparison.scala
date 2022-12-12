@@ -34,6 +34,7 @@ object Amie3Comparison {
     options.addOption("input", true, "input TSV dataset")
     options.addOption("output", true, "output file")
     options.addOption("times", true, "number of repetition of each task")
+    options.addOption("lcs", false, "constants at lower cardinality side")
 
     options.addOption("runconstants", false, "run mining with constants test")
     options.addOption("runlogical", false, "run mining only logical rules test")
@@ -99,7 +100,7 @@ object Amie3Comparison {
               } withInput inputTsvDataset andAggregateResultWith StatsAggregator
             ) else None
             val taskResult2 = if (!cli.hasOption("amieonly")) Some(
-              xTimes executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: $taskDesc", minHc, Some(ConstantsPosition.LowerCardinalitySide(true)), numberOfThreads = numberOfThreads) with RulesTaskPostprocessor {
+              xTimes executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: $taskDesc", minHc, Some(ConstantsPosition.LowerCardinalitySide(!cli.hasOption("lcs"))), numberOfThreads = numberOfThreads) with RulesTaskPostprocessor {
                 override val minPcaConfidence: Double = 0.5
                 override val minConfidence: Double = 0.0
                 override val skylinePruning: Boolean = true
