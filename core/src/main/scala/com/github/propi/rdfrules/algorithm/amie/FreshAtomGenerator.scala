@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.rule.ExpandingRule.{ClosedRule, DanglingRule}
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
-import com.github.propi.rdfrules.rule.{Atom, ExpandingRule, FreshAtom}
+import com.github.propi.rdfrules.rule.{Atom, FreshAtom}
 
 trait FreshAtomGenerator extends RuleEnhancement with AtomCounting {
 
@@ -85,27 +85,21 @@ trait FreshAtomGenerator extends RuleEnhancement with AtomCounting {
       case _ => throw new IllegalStateException()
     }
     val nextDangling = dangling.++
+    val maxPossibleDanglings = (maxRuleLength - rule.ruleLength - 1) * 2
     val checkRightDanglings = rule match {
       //if closed rule any fresh atom is allowed
       case _: ClosedRule => (_: FreshAtom) => true
-      case rule: DanglingRule => rule.variables match {
-        //if rule has one dangling, e.g., => (a C), then new fresh atom (b c) should not be allowed because we can not close this rule
-        //for example: (b c) => (a C) then we can not generate closing fresh atom (a *) due to fresh atoms ordering restriction
-        //therefore any fresh variable should be lower than or equal to both rule dangling (b <= a) || (c <= a) - this condition is not met.
-        case ExpandingRule.OneDangling(dangling1, _) => (x: FreshAtom) => x.subject <= dangling1 || x.`object` <= dangling1
-        //1. if rule has two danglings, e.g., => (a b), then new fresh atom (b c) should not be allowed because we can not close this rule
-        //for example: (b c) => (a b) then we can not generate closing fresh atom (a *) due to fresh atoms ordering restriction
-        //therefore any fresh variable should be lower than or equal to both rule danglings (b <= a && b <= b) || (c <= a && c <= b) - this condition is not met.
-        //2. we disable three danglings, max two are possible: (a c) => (a b), (a d) ^ (a c) => (a b) this is disabled
-        //fresh variable must be dangling (c, b) or no fresh variable must be new dangling (d)
-        case ExpandingRule.TwoDanglings(dangling1, dangling2, _) => (x: FreshAtom) =>
-          (x.subject <= dangling1 && x.subject <= dangling2 || x.`object` <= dangling1 && x.`object` <= dangling2) &&
-            (x.subject == dangling1 ||
-              x.subject == dangling2 ||
-              x.`object` == dangling1 ||
-              x.`object` == dangling2 ||
-              (x.subject != dangling && x.`object` != dangling))
-      }
+      //1. if rule has two danglings, e.g., => (a b), then new fresh atom (b c) should not be allowed because we can not close this rule
+      //for example: (b c) => (a b) then we can not generate closing fresh atom (a *) due to fresh atoms ordering restriction
+      //therefore any fresh variable should be lower than or equal to both rule danglings (b <= a && b <= b) || (c <= a && c <= b) - this condition is not met.
+      //2. we disable three danglings, max two are possible: (a c) => (a b), (a d) ^ (a c) => (a b) this is disabled
+      //fresh variable must be dangling (c, b) or no fresh variable must be new dangling (d)
+      case rule: DanglingRule => (x: FreshAtom) =>
+        val (subjectIsLower, objectIsLower, remDanglings) = rule.danglings.foldLeft((true, true, 0)) { case ((subjectIsLower, objectIsLower, remDanglings), dangling) =>
+          (subjectIsLower && x.subject <= dangling, objectIsLower && x.`object` <= dangling, if (dangling == x.subject || dangling == x.`object`) remDanglings else remDanglings + 1)
+        }
+        //val additionalDangling = if (x.subject == dangling || x.`object` == dangling) 1 else 0
+        remDanglings <= maxPossibleDanglings && (subjectIsLower || objectIsLower)
     }
     val checkLastAtom = if (rule.ruleLength + 1 < maxRuleLength) {
       (_: FreshAtom) => true
@@ -118,25 +112,14 @@ trait FreshAtomGenerator extends RuleEnhancement with AtomCounting {
         case Some(ConstantsPosition.Object) => (x: FreshAtom) => x.subject != dangling
         case _ => (_: FreshAtom) => true
       }
-      val danglingPos2 = rule match {
-        //if rule is closed and we mine with constants then any fresh atom is allowed because we will instantiate any fresh dangling variable
-        case _: ClosedRule if isWithInstances => (_: FreshAtom) => true
-        //if rule is closed and mining with constants is disabled then last fresh atom can not be opened (with dangling variable)
-        case _: ClosedRule => (x: FreshAtom) => x.subject != dangling && x.`object` != dangling
-        case rule: DanglingRule => rule.variables match {
-          //if rule has one dangling and we mine with constants then the rule dangling must be closed within the last atom
-          //shortly, we can not generate two danglings rule, e.g., (a C) => (a b) then this fresh atom is disabled (a, c)
-          case ExpandingRule.OneDangling(dangling1, _) if isWithInstances => (x: FreshAtom) =>
-            x.subject == dangling1 ||
-              x.`object` == dangling1
-          //one dangling rule without constants must be closed within last atom
-          case ExpandingRule.OneDangling(dangling1, _) => (x: FreshAtom) =>
-            (x.subject == dangling1 && x.`object` != dangling) ||
-              (x.`object` == dangling1 && x.subject != dangling)
-          //for two danglingss last atom must close both danglings
-          case ExpandingRule.TwoDanglings(dangling1, dangling2, _) => (x: FreshAtom) =>
-            (x.subject == dangling1 && x.`object` == dangling2) || (x.subject == dangling2 && x.`object` == dangling1)
-        }
+      //if rule is closed and we mine with constants then any fresh atom is allowed because we will instantiate any fresh dangling variable
+      //if rule is closed and mining with constants is disabled then last fresh atom can not be opened (with dangling variable)
+      //if rule has one dangling and we mine with constants then the rule dangling must be closed within the last atom
+      //shortly, we can not generate two danglings rule, e.g., (a C) => (a b) then this fresh atom is disabled (a, c)
+      val danglingPos2 = if (isWithInstances) {
+        (_: FreshAtom) => true
+      } else {
+        (x: FreshAtom) => x.subject != dangling && x.`object` != dangling
       }
       (x: FreshAtom) => danglingPos1(x) && danglingPos2(x)
     }

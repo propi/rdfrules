@@ -160,7 +160,7 @@ class IndexOps private(implicit mapper: TripleItemIndex, thi: TripleIndex[Int]) 
   }
 
   def getMinSupportLower(minHeadSize: MinHeadSize, minHeadCoverage: MinHeadCoverage, maxRuleLength: Int): Map[Int, Int] = {
-    thi.predicates.iterator.map(p => p -> getPredicateMinSupportLower(p, math.max(maxRuleLength - 2, 1), minHeadSize).map(x => math.ceil(x * minHeadCoverage.value).toInt).getOrElse(Int.MaxValue)).toMap
+    thi.predicates.iterator.map(p => p -> getPredicateMinSupportLower(p, maxRuleLength - 1, minHeadSize).map(x => math.ceil(x * minHeadCoverage.value).toInt).getOrElse(Int.MaxValue)).toMap
   }
 
   private def getPredicateMinSupportUpper(predicate: Int, hops: Int, minHeadSize: MinHeadSize): Option[Int] = {
@@ -176,7 +176,7 @@ class IndexOps private(implicit mapper: TripleItemIndex, thi: TripleIndex[Int]) 
   }
 
   def getMinSupportUpper(minHeadSize: MinHeadSize, minHeadCoverage: MinHeadCoverage, maxRuleLength: Int): Map[Int, Int] = {
-    thi.predicates.iterator.map(p => p -> getPredicateMinSupportUpper(p, math.max(maxRuleLength - 2, 1), minHeadSize).map(x => math.ceil(x * minHeadCoverage.value).toInt).getOrElse(Int.MinValue)).toMap
+    thi.predicates.iterator.map(p => p -> getPredicateMinSupportUpper(p, maxRuleLength - 1, minHeadSize).map(x => math.ceil(x * minHeadCoverage.value).toInt).getOrElse(Int.MinValue)).toMap
   }
 
 }

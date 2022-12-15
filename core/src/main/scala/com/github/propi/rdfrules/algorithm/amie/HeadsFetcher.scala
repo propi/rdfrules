@@ -47,14 +47,15 @@ trait HeadsFetcher extends AtomCounting {
       val tm = tripleIndex.predicates(atom.predicate)
       actionDebugger.done()
       val danglingRule = Some(atom.subject, atom.`object`).collect {
-        case (v1: Atom.Variable, v2: Atom.Variable) => (ExpandingRule.TwoDanglings(v2, v1, Nil), tm.size(settings.injectiveMapping), tm.size(settings.injectiveMapping))
-        case (Atom.Constant(c), v1: Atom.Variable) => (ExpandingRule.OneDangling(v1, Nil), tm.size(settings.injectiveMapping), tm.subjects.get(c).map(_.size(settings.injectiveMapping)).getOrElse(0))
-        case (v1: Atom.Variable, Atom.Constant(c)) => (ExpandingRule.OneDangling(v1, Nil), tm.size(settings.injectiveMapping), tm.objects.get(c).map(_.size(settings.injectiveMapping)).getOrElse(0))
+        case (v1: Atom.Variable, v2: Atom.Variable) => (List(v2, v1), tm.size(settings.injectiveMapping), tm.size(settings.injectiveMapping))
+        case (Atom.Constant(c), v1: Atom.Variable) => (List(v1), tm.size(settings.injectiveMapping), tm.subjects.get(c).map(_.size(settings.injectiveMapping)).getOrElse(0))
+        case (v1: Atom.Variable, Atom.Constant(c)) => (List(v1), tm.size(settings.injectiveMapping), tm.objects.get(c).map(_.size(settings.injectiveMapping)).getOrElse(0))
       }.filter(x => x._2 >= settings.minHeadSize && x._3 >= math.max(settings.minSupport, settings.minHeadCoverage * x._2)).map(x =>
         DanglingRule(Vector.empty, atom,
           x._3,
           x._2,
-          x._1
+          x._1,
+          Nil
         )
       )
       danglingRule

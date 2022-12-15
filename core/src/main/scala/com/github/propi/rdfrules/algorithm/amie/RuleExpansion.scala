@@ -24,13 +24,14 @@ trait RuleExpansion {
     val (secondDanglings, others) = rule match {
       case rule: ClosedRule => Nil -> rule.variables
       case rule: DanglingRule =>
-        val (danglings, others) = rule.variables.danglings.partition(x => x != atom.subject && x != atom.`object`)
-        danglings -> (others ::: rule.variables.others)
+        val (danglings, others) = rule.danglings.partition(x => x != atom.subject && x != atom.`object`)
+        danglings -> (others ::: rule.others)
     }
-    headDangling ::: secondDanglings match {
-      case List(a, b) => DanglingRule(atom +: rule.body, rule.head, support, rule.headSize, ExpandingRule.TwoDanglings(a, b, others))
-      case List(a) => DanglingRule(atom +: rule.body, rule.head, support, rule.headSize, ExpandingRule.OneDangling(a, others))
-      case _ => ClosedRule(atom +: rule.body, rule.head, support, rule.headSize, others)
+    val allDanglings = headDangling ::: secondDanglings
+    if (allDanglings.isEmpty) {
+      ClosedRule(atom +: rule.body, rule.head, support, rule.headSize, others)
+    } else {
+      DanglingRule(atom +: rule.body, rule.head, support, rule.headSize, allDanglings, others)
     }
     /*(atom.subject, atom.`object`) match {
       case (sv: Atom.Variable, ov: Atom.Variable) => if (sv == dangling || ov == dangling) {

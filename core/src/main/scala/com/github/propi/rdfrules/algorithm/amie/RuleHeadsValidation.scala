@@ -13,7 +13,7 @@ object RuleHeadsValidation {
 
     def withSupportedRanges(ranges: MutableRanges): ExpandingRule = rule match {
       case x: ClosedRule => ClosedRule(x.body, x.head, x.support, x.headSize, x.variables, ranges)
-      case x: DanglingRule => DanglingRule(x.body, x.head, x.support, x.headSize, x.variables, ranges)
+      case x: DanglingRule => DanglingRule(x.body, x.head, x.support, x.headSize, x.danglings, x.others, ranges)
     }
   }
 

@@ -32,7 +32,7 @@ object ExpandingRule {
 
   import Atom.variableOrdering.mkOrderingOps
 
-  sealed trait DanglingVariables {
+  /*sealed trait DanglingVariables {
     def others: List[Atom.Variable]
 
     def danglings: List[Atom.Variable]
@@ -46,11 +46,11 @@ object ExpandingRule {
 
   case class TwoDanglings(dangling1: Atom.Variable, dangling2: Atom.Variable, others: List[Atom.Variable]) extends DanglingVariables {
     def danglings: List[Atom.Variable] = List(dangling1, dangling2)
-  }
+  }*/
 
   sealed trait ClosedRule extends ExpandingRule {
     override def equals(other: Any): Boolean = other match {
-      case rule: ClosedRule => super.equals(other)
+      case _: ClosedRule => super.equals(other)
       case _ => false
     }
 
@@ -89,28 +89,31 @@ object ExpandingRule {
 
   sealed trait DanglingRule extends ExpandingRule {
     override def equals(other: Any): Boolean = other match {
-      case rule: DanglingRule => super.equals(other)
+      case _: DanglingRule => super.equals(other)
       case _ => false
     }
 
-    //TODO check whether it is faster than Rule hashCode
-    //override def hashCode(): Int = (1 + body.hashCode()) * 31 + head.hashCode()
-    val variables: DanglingVariables
+    def danglings: List[Atom.Variable]
 
-    lazy val maxVariable: Atom.Variable = if (variables.others.isEmpty) variables.danglings.head else variables.danglings.head.max(variables.others.head)
+    def others: List[Atom.Variable]
+
+    final def all: Iterator[Atom.Variable] = danglings.iterator ++ others.iterator
+
+    lazy val maxVariable: Atom.Variable = if (others.isEmpty) danglings.head else danglings.head.max(others.head)
   }
 
   object DanglingRule {
-    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, variables: DanglingVariables): DanglingRule = new BasicDanglingRule(body, head, support, headSize, variables)
+    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, danglings: List[Atom.Variable], others: List[Atom.Variable]): DanglingRule = new BasicDanglingRule(body, head, support, headSize, danglings, others)
 
-    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, variables: DanglingVariables, supportedRanges: MutableRanges): DanglingRule = new CachedDanglingRule(body, head, support, headSize, variables, SoftReference(supportedRanges))
+    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, danglings: List[Atom.Variable], others: List[Atom.Variable], supportedRanges: MutableRanges): DanglingRule = new CachedDanglingRule(body, head, support, headSize, danglings, others, SoftReference(supportedRanges))
   }
 
   private class BasicDanglingRule(val body: IndexedSeq[Atom],
                                   val head: Atom,
                                   val support: Int,
                                   val headSize: Int,
-                                  val variables: DanglingVariables) extends DanglingRule {
+                                  val danglings: List[Atom.Variable],
+                                  val others: List[Atom.Variable]) extends DanglingRule {
     def supportedRanges: Option[MutableRanges] = None
   }
 
@@ -118,7 +121,8 @@ object ExpandingRule {
                                    val head: Atom,
                                    val support: Int,
                                    val headSize: Int,
-                                   val variables: DanglingVariables,
+                                   val danglings: List[Atom.Variable],
+                                   val others: List[Atom.Variable],
                                    _supportedRanges: SoftReference[MutableRanges]
                                   ) extends DanglingRule {
     def supportedRanges: Option[MutableRanges] = _supportedRanges.get
