@@ -98,8 +98,8 @@ trait FreshAtomGenerator extends RuleEnhancement with AtomCounting {
         val (subjectIsLower, objectIsLower, remDanglings) = rule.danglings.foldLeft((true, true, 0)) { case ((subjectIsLower, objectIsLower, remDanglings), dangling) =>
           (subjectIsLower && x.subject <= dangling, objectIsLower && x.`object` <= dangling, if (dangling == x.subject || dangling == x.`object`) remDanglings else remDanglings + 1)
         }
-        //val additionalDangling = if (x.subject == dangling || x.`object` == dangling) 1 else 0
-        remDanglings <= maxPossibleDanglings && (subjectIsLower || objectIsLower)
+        val additionalDangling = if (x.subject == dangling || x.`object` == dangling) 1 else 0
+        remDanglings <= maxPossibleDanglings && (subjectIsLower || objectIsLower) && (remDanglings + additionalDangling <= maxDanglingVariables)
     }
     val checkLastAtom = if (rule.ruleLength + 1 < maxRuleLength) {
       (_: FreshAtom) => true

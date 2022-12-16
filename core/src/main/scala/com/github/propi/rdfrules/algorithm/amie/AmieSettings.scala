@@ -18,6 +18,7 @@ class AmieSettings(rulesMining: RulesMining)(implicit debugger: Debugger, mapper
   val constantsPosition: Option[ConstantsPosition] = rulesMining.constraints.get[RuleConstraint.ConstantsAtPosition].map(_.position)
   val isWithInstances: Boolean = !constantsPosition.contains(ConstantsPosition.Nowhere)
   val maxRuleLength: Int = rulesMining.thresholds.get[Threshold.MaxRuleLength].map(_.value).getOrElse(3)
+  val maxDanglingVariables: Int = math.floor((maxRuleLength * 2) / 3).toInt
   val withDuplicitPredicates: Boolean = !rulesMining.constraints.exists[RuleConstraint.WithoutDuplicatePredicates]
   val filters: List[RuleConstraint.MappedFilter] = rulesMining.constraints.iterator.collect {
     case filter: RuleConstraint.Filter => filter.mapped
