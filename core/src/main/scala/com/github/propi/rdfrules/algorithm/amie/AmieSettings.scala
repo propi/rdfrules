@@ -2,11 +2,12 @@ package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.index.TripleItemIndex
+import com.github.propi.rdfrules.rule.ExpandingRule.HeadTriplesBootstrapper
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule.{Atom, ExpandingRule, RuleConstraint, RulePattern, Threshold}
 import com.github.propi.rdfrules.utils.Debugger
 
-class AmieSettings(rulesMining: RulesMining)(implicit debugger: Debugger, mapper: TripleItemIndex) {
+class AmieSettings(rulesMining: RulesMining, val bootstrapper: Option[HeadTriplesBootstrapper])(implicit debugger: Debugger, mapper: TripleItemIndex) {
   @volatile private var _minHeadCoverage: Double = rulesMining.thresholds.get[Threshold.MinHeadCoverage].map(_.value).getOrElse(0.0)
 
   val parallelism: Int = rulesMining.parallelism
@@ -25,6 +26,12 @@ class AmieSettings(rulesMining: RulesMining)(implicit debugger: Debugger, mapper
   }.toList
   val timeout: Option[Long] = rulesMining.thresholds.get[Threshold.Timeout].map(_.duration.toMillis)
   private val startTime = System.currentTimeMillis()
+  val anytimeRefinement: AnytimeRefinement = timeout -> rulesMining.thresholds.get[Threshold.LocalTimeout] match {
+    case (Some(duration), Some(localTimeout)) => new AnytimeRefinement.GlobalTimeout(startTime + duration) :: new AnytimeRefinement.LocalTimeout(localTimeout)
+    case (Some(duration), None) => new AnytimeRefinement.GlobalTimeout(startTime + duration)
+    case (None, Some(localTimeout)) => new AnytimeRefinement.LocalTimeout(localTimeout)
+    case (None, None) => AnytimeRefinement.Empty
+  }
 
   def currentDuration: Long = System.currentTimeMillis() - startTime
 

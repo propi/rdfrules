@@ -58,6 +58,16 @@ object Threshold {
 
   implicit object Timeout extends Key[Timeout]
 
+  case class LocalTimeout(value: FiniteDuration, me: Double, dme: Boolean) extends Threshold {
+    def hasMarginError: Boolean = me > 0.0
+
+    def hasDuration: Boolean = value != Duration.Zero
+
+    def companion: LocalTimeout.type = LocalTimeout
+  }
+
+  implicit object LocalTimeout extends Key[LocalTimeout]
+
   implicit def thresholdToKeyValue(threshold: Threshold): (Key[Threshold], Threshold) = threshold.companion -> threshold
 
   def validate(threshold: Threshold): Threshold = threshold match {
@@ -68,6 +78,8 @@ object Threshold {
     case MinHeadCoverage(x) if x > 1 => MinHeadCoverage(1)
     //case TopK(x) if x < 1 => TopK(1)
     case Timeout(x) if x < 1 => Timeout(1)
+    case LocalTimeout(dur, me, dme) if me < 0.0 => LocalTimeout(dur, 0.0, dme)
+    case LocalTimeout(dur, me, dme) if me > 1.0 => LocalTimeout(dur, 1.0, dme)
     case x => x
   }
 

@@ -28,6 +28,12 @@ object Measure {
 
   implicit object HeadCoverage extends Key[HeadCoverage]
 
+  case class ApproximateHeadSize(value: Int) extends Measure {
+    def companion: ApproximateHeadSize.type = ApproximateHeadSize
+  }
+
+  implicit object ApproximateHeadSize extends Key[ApproximateHeadSize]
+
   case class HeadSize(value: Int) extends Measure {
     def companion: HeadSize.type = HeadSize
   }

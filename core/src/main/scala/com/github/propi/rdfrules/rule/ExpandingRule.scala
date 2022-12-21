@@ -1,7 +1,8 @@
 package com.github.propi.rdfrules.rule
 
 import com.github.propi.rdfrules.index.TripleIndex
-import com.github.propi.rdfrules.utils.{MutableRanges, TypedKeyMap}
+import com.github.propi.rdfrules.rule.ExpandingRule.HeadTriplesBootstrapper
+import com.github.propi.rdfrules.utils.{Bootstrapper, MutableRanges, TypedKeyMap}
 
 import scala.ref.SoftReference
 
@@ -17,6 +18,13 @@ sealed trait ExpandingRule extends Rule {
 
   final def headCoverage: Double = support.toDouble / headSize
 
+  def bootstrappedHeadTriples(injectiveMapping: Boolean)(implicit thi: TripleIndex[Int], bootstrapper: HeadTriplesBootstrapper): Iterator[(Int, Int)] = (head.subject, head.`object`) match {
+    case (_: Atom.Variable, _: Atom.Variable) => bootstrapper.randomIt(head.predicate -> None)(headTriples(injectiveMapping))
+    case (Atom.Constant(s), _: Atom.Variable) => bootstrapper.randomIt(head.predicate -> Some(TripleItemPosition.Subject(s)))(headTriples(injectiveMapping))
+    case (_: Atom.Variable, Atom.Constant(o)) => bootstrapper.randomIt(head.predicate -> Some(TripleItemPosition.Object(o)))(headTriples(injectiveMapping))
+    case (_: Atom.Constant, _: Atom.Constant) => headTriples(injectiveMapping)
+  }
+
   def headTriples(injectiveMapping: Boolean)(implicit thi: TripleIndex[Int]): Iterator[(Int, Int)] = (head.subject, head.`object`) match {
     case (_: Atom.Variable, _: Atom.Variable) =>
       thi.predicates(head.predicate).subjects.pairIterator.flatMap {
@@ -29,6 +37,8 @@ sealed trait ExpandingRule extends Rule {
 }
 
 object ExpandingRule {
+
+  type HeadTriplesBootstrapper = Bootstrapper[(Int, Option[TripleItemPosition[Int]]), (Int, Int)]
 
   import Atom.variableOrdering.mkOrderingOps
 

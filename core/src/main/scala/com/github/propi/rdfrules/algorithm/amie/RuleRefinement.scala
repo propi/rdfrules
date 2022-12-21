@@ -112,32 +112,39 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
       //ad.done()
       val headSize = rule.headSize
       lazy val resolvedRule = ResolvedRule(rule.body.map(ResolvedAtom(_)), rule.head)(TypedKeyMap(Measure.HeadSize(rule.headSize), Measure.Support(rule.support), Measure.HeadCoverage(rule.headCoverage)))
-      var lastDumpDuration = currentDuration
-      //howLong("Rule expansion - count projections", true) {
-      rule.headTriples(injectiveMapping).zipWithIndex.takeWhile { x =>
-        //if max support + remaining steps is lower than min support we can finish "count projection" process
-        //example 1: head size is 10, min support is 5. Only 4 steps are remaining and there are no projection found then we can stop "count projection"
-        // - because no projection can have support greater or equal 5
-        //example 2: head size is 10, min support is 5, remaining steps 2, projection with maximal support has value 2: 2 + 2 = 4 it is less than 5 - we can stop counting
-        val remains = headSize - x._2
-        maxSupport + remains >= minCurrentSupport
-      }.foreach { case ((_subject, _object), i) =>
-        //for each triple covering head of this rule, find and count all possible projections for all possible fresh atoms
-        val selectedAtoms = /*howLong("Rule expansion - bind projections", true)(*/ bindProjections(bodySet, freshAtoms.part1, freshAtoms.part2, specifyHeadVariableMapWithAtom(_subject, _object)) //)
-        for (atom <- selectedAtoms) {
-          //for each found projection increase support by 1 and find max support
-          maxSupport = math.max(projections.getOrElseUpdate(atom, IncrementalInt()).++.getValue, maxSupport)
-        }
-        val miningDuration = currentDuration
-        if (miningDuration - lastDumpDuration > 30000) {
-          debugger.logger.info(s"Long refining of rule $resolvedRule. Projections size: ${projections.size}. Step: $i of $headSize")
-          lastDumpDuration = miningDuration
-          if (timeout.exists(miningDuration >= _) || debugger.isInterrupted) {
-            maxSupport = Int.MinValue
-            projections.clear()
+      val headTriples = bootstrapper.map(implicit bootstrapper => rule.bootstrappedHeadTriples(injectiveMapping)).getOrElse(rule.headTriples(injectiveMapping))
+      var lastDumpTime = System.currentTimeMillis()
+
+      def stop(): Unit = {
+        maxSupport = Int.MinValue
+        projections.clear()
+      }
+
+      var i = 0
+      //if max support + remaining steps is lower than min support we can finish "count projection" process
+      //example 1: head size is 10, min support is 5. Only 4 steps are remaining and there are no projection found then we can stop "count projection"
+      // - because no projection can have support greater or equal 5
+      //example 2: head size is 10, min support is 5, remaining steps 2, projection with maximal support has value 2: 2 + 2 = 4 it is less than 5 - we can stop counting
+      anytimeRefinement.anytimeRefine(stop) { anytimeChecker =>
+        while (headTriples.hasNext && maxSupport + (headSize - i) >= minCurrentSupport) {
+          val (_subject, _object) = headTriples.next()
+          //for each triple covering head of this rule, find and count all possible projections for all possible fresh atoms
+          val selectedAtoms = /*howLong("Rule expansion - bind projections", true)(*/ bindProjections(bodySet, freshAtoms.part1, freshAtoms.part2, specifyHeadVariableMapWithAtom(_subject, _object)) //)
+          for (atom <- selectedAtoms) {
+            //for each found projection increase support by 1 and find max support
+            val support = projections.getOrElseUpdate(atom, IncrementalInt()).++.getValue
+            anytimeChecker.checkSupport(support)
+            maxSupport = math.max(support, maxSupport)
           }
+          val currentTime = System.currentTimeMillis()
+          anytimeChecker.checkTime(currentTime)
+          if (currentTime - lastDumpTime > 30000) {
+            debugger.logger.info(s"Long refining of rule $resolvedRule. Projections size: ${projections.size}. Step: $i of $headSize")
+            lastDumpTime = currentTime
+            if (debugger.isInterrupted) stop()
+          }
+          i += 1
         }
-        //ad.done()
       }
       //}
       // }
@@ -148,8 +155,9 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
       /*Iterator.continually(projections.headOption)
         .takeWhile(_.isDefined)
         .flatten*/
+      val supportIncreaseRatio = if (maxSupport == Int.MinValue) headSize.toDouble / i else 1.0
       projections.iterator.filter { case (atom, support) =>
-        ruleFilter(atom, support.getValue)
+        ruleFilter(atom, support.getValue * supportIncreaseRatio)
       }.map { case (atom, support) =>
         expand(atom, support.getValue)
       }

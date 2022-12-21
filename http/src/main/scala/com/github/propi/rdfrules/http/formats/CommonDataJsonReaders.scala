@@ -144,6 +144,7 @@ object CommonDataJsonReaders {
       case "MaxRuleLength" => Threshold.MaxRuleLength(fields("value").convertTo[Int])
       //case "TopK" => Threshold.TopK(fields("value").convertTo[Int])
       case "Timeout" => Threshold.Timeout(fields("value").convertTo[Int])
+      case "LocalTimeout" => Threshold.LocalTimeout(FiniteDuration(fields("value").convertTo[Int], MILLISECONDS), fields("me").convertTo[Double], fields("dme").convertTo[Boolean])
       case x => deserializationError(s"Invalid threshold name: $x")
     }
   }

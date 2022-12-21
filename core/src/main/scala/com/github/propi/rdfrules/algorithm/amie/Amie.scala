@@ -4,11 +4,11 @@ import com.github.propi.rdfrules.algorithm.amie.RuleRefinement.PimpedRule
 import com.github.propi.rdfrules.algorithm.consumer.TopKRuleConsumer
 import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
-import com.github.propi.rdfrules.rule.ExpandingRule.ClosedRule
+import com.github.propi.rdfrules.rule.ExpandingRule.{ClosedRule, HeadTriplesBootstrapper}
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
 import com.github.propi.rdfrules.rule._
-import com.github.propi.rdfrules.utils.{Debugger, ForEach, TypedKeyMap, UniqueQueue}
+import com.github.propi.rdfrules.utils.{Bootstrapper, Debugger, ForEach, TypedKeyMap, UniqueQueue}
 
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
@@ -45,25 +45,32 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
     */
   def mine(ruleConsumer: RuleConsumer)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): ForEach[FinalRule] = {
     val logger = debugger.logger
-    implicit val settings: AmieSettings = new AmieSettings(this)(/*if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) */ debugger /* else Debugger.EmptyDebugger*/ , mapper)
-    val observedRuleConsumer = ruleConsumer.withListener {
-      case TopKRuleConsumer.MinHeadCoverageUpdatedEvent(minHeadCoverage) =>
-        topKActivated = true
-        settings.setMinHeadCoverage(minHeadCoverage)
+    val headTriplesGenerator: (Option[HeadTriplesBootstrapper] => ForEach[FinalRule]) => ForEach[FinalRule] = if (thresholds.get[Threshold.LocalTimeout].exists(x => x.hasDuration || x.hasMarginError)) {
+      f => Bootstrapper[(Int, Option[TripleItemPosition[Int]]), (Int, Int), ForEach[FinalRule]]()(x => f(Some(x)))
+    } else {
+      f => f(None)
     }
-    //create amie process with debugger and final triple index
-    val process = new AmieProcess(observedRuleConsumer)
-    logger.info("Amie task settings:\n" + settings)
-    process.searchRules()
-    val timeoutReached = settings.timeout.exists(settings.currentDuration >= _)
-    val result = observedRuleConsumer.result
-    if (timeoutReached) {
-      logger.warn(s"The timeout limit '${thresholds.apply[Threshold.Timeout].duration.toMinutes} minutes' has been exceeded during mining. The miner returns ${process.getFoundRules} rules which need not be complete.")
+    headTriplesGenerator { bootstrapper =>
+      implicit val settings: AmieSettings = new AmieSettings(this, bootstrapper)(/*if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) */ debugger /* else Debugger.EmptyDebugger*/ , mapper)
+      val observedRuleConsumer = ruleConsumer.withListener {
+        case TopKRuleConsumer.MinHeadCoverageUpdatedEvent(minHeadCoverage) =>
+          topKActivated = true
+          settings.setMinHeadCoverage(minHeadCoverage)
+      }
+      //create amie process with debugger and final triple index
+      val process = new AmieProcess(observedRuleConsumer)
+      logger.info("Amie task settings:\n" + settings)
+      process.searchRules()
+      val timeoutReached = settings.timeout.exists(settings.currentDuration >= _)
+      val result = observedRuleConsumer.result
+      if (timeoutReached) {
+        logger.warn(s"The timeout limit '${thresholds.apply[Threshold.Timeout].duration.toMinutes} minutes' has been exceeded during mining. The miner returns ${process.getFoundRules} rules which need not be complete.")
+      }
+      if (debugger.isInterrupted) {
+        logger.warn(s"The mining task has been interrupted. The miner returns ${process.getFoundRules} rules which need not be complete.")
+      }
+      result
     }
-    if (debugger.isInterrupted) {
-      logger.warn(s"The mining task has been interrupted. The miner returns ${process.getFoundRules} rules which need not be complete.")
-    }
-    result
   }
 
   /*private class AmieResult(settings: RuleRefinement.Settings) extends Runnable {
