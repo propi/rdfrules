@@ -88,6 +88,7 @@ object Measure {
     case Measure.HeadConfidence(x) => Some(x)
     case Measure.HeadCoverage(x) => Some(x)
     case Measure.HeadSize(x) => Some(x)
+    case Measure.ApproximateHeadSize(x) => Some(x)
     case Measure.Lift(x) => Some(x)
     case Measure.PcaBodySize(x) => Some(x)
     case Measure.PcaConfidence(x) => Some(x)
@@ -108,6 +109,7 @@ object Measure {
     case Measure.HeadConfidence(x) => x
     case Measure.HeadCoverage(x) => x
     case Measure.HeadSize(x) => x
+    case Measure.ApproximateHeadSize(x) => x
     case Measure.Lift(x) => x
     case Measure.PcaBodySize(x) => x
     case Measure.PcaConfidence(x) => x
@@ -133,6 +135,7 @@ object Measure {
     case Measure.PcaConfidence(v) => s"pcaConfidence: $v"
     case Measure.HeadConfidence(v) => s"headConfidence: $v"
     case Measure.HeadSize(v) => s"headSize: $v"
+    case Measure.ApproximateHeadSize(v) => s"~headSize: $v"
     case Measure.BodySize(v) => s"bodySize: $v"
     case Measure.PcaBodySize(v) => s"pcaBodySize: $v"
     case Measure.Cluster(v) => s"cluster: $v"
@@ -145,6 +148,7 @@ object Measure {
       case Measure.HeadConfidence(x) => JsObject("name" -> JsString("HeadConfidence"), "value" -> JsNumber(x))
       case Measure.HeadCoverage(x) => JsObject("name" -> JsString("HeadCoverage"), "value" -> JsNumber(x))
       case Measure.HeadSize(x) => JsObject("name" -> JsString("HeadSize"), "value" -> JsNumber(x))
+      case Measure.ApproximateHeadSize(x) => JsObject("name" -> JsString("ApproximateHeadSize"), "value" -> JsNumber(x))
       case Measure.Lift(x) => JsObject("name" -> JsString("Lift"), "value" -> JsNumber(x))
       case Measure.PcaBodySize(x) => JsObject("name" -> JsString("PcaBodySize"), "value" -> JsNumber(x))
       case Measure.PcaConfidence(x) => JsObject("name" -> JsString("PcaConfidence"), "value" -> JsNumber(x))
@@ -161,6 +165,7 @@ object Measure {
         case "HeadConfidence" => Measure.HeadConfidence(value.convertTo[Double])
         case "HeadCoverage" => Measure.HeadCoverage(value.convertTo[Double])
         case "HeadSize" => Measure.HeadSize(value.convertTo[Int])
+        case "ApproximateHeadSize" => Measure.ApproximateHeadSize(value.convertTo[Int])
         case "Lift" => Measure.Lift(value.convertTo[Double])
         case "PcaBodySize" => Measure.PcaBodySize(value.convertTo[Int])
         case "PcaConfidence" => Measure.PcaConfidence(value.convertTo[Double])

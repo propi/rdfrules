@@ -15,16 +15,18 @@ trait Rule extends RuleContent {
 
   def support: Int
 
+  def supportIncreaseRatio: Float
+
   def headSize: Int
 
   def headCoverage: Double
 
   override def hashCode(): Int = {
-    super.hashCode() + this.headSize * 2 + this.support
+    super.hashCode() + this.headSize // * 2 + this.support
   }
 
   override def equals(other: Any): Boolean = other match {
-    case rule: Rule if headSize == rule.headSize && support == rule.support => super.equals(other)
+    case rule: Rule if headSize == rule.headSize && (support == rule.support || supportIncreaseRatio != rule.supportIncreaseRatio) => super.equals(other)
     case _ => false
   }
 }
@@ -39,6 +41,8 @@ object Rule {
 
   private case class Simple(head: Atom, body: IndexedSeq[Atom])(val measures: TypedKeyMap.Immutable[Measure]) extends FinalRule {
     def support: Int = measures[Measure.Support].value
+
+    def supportIncreaseRatio: Float = measures.get[Measure.ApproximateHeadSize].map(x => headSize.toFloat / x.value).getOrElse(1.0f)
 
     def headSize: Int = measures[Measure.HeadSize].value
 
@@ -67,11 +71,13 @@ object Rule {
 
   implicit def apply(rule: Rule): FinalRule = rule match {
     case x: FinalRule => x
-    case _ => Simple(rule.head, rule.body)(TypedKeyMap(
-      Measure.Support(rule.support),
-      Measure.HeadSize(rule.headSize),
-      Measure.HeadCoverage(rule.headCoverage)
-    ))
+    case _ =>
+      val measures = TypedKeyMap(
+        Measure.Support(rule.support),
+        Measure.HeadSize(rule.headSize),
+        Measure.HeadCoverage(rule.headCoverage)
+      )
+      Simple(rule.head, rule.body)(if (rule.supportIncreaseRatio > 1.0) measures += Measure.ApproximateHeadSize(math.round(rule.headSize / rule.supportIncreaseRatio)) else measures)
   }
 
   implicit val ruleOrdering: Ordering[Rule] = Ordering.by[Rule, TypedKeyMap.Immutable[Measure]](_.measures)

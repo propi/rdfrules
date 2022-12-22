@@ -155,11 +155,11 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
       /*Iterator.continually(projections.headOption)
         .takeWhile(_.isDefined)
         .flatten*/
-      val supportIncreaseRatio = if (maxSupport == Int.MinValue) headSize.toDouble / i else 1.0
-      projections.iterator.filter { case (atom, support) =>
-        ruleFilter(atom, support.getValue * supportIncreaseRatio)
+      val supportIncreaseRatio = if (maxSupport == Int.MinValue) headSize.toFloat / i else 1.0f
+      projections.iterator.map(x => x._1 -> math.round(x._2.getValue * supportIncreaseRatio)).filter { case (atom, support) =>
+        ruleFilter(atom, support)
       }.map { case (atom, support) =>
-        expand(atom, support.getValue)
+        expand(atom, support, supportIncreaseRatio)
       }
     }
   }

@@ -19,7 +19,7 @@ trait RuleExpansion {
     * @param support support of this rule with new atom
     * @return extended rule with new atom
     */
-  def expand(atom: Atom, support: Int): ExpandingRule = {
+  def expand(atom: Atom, support: Int, supportIncreaseRatio: Float): ExpandingRule = {
     val headDangling = if (atom.subject == dangling || atom.`object` == dangling) List(dangling) else Nil
     val (secondDanglings, others) = rule match {
       case rule: ClosedRule => Nil -> rule.variables
@@ -29,9 +29,9 @@ trait RuleExpansion {
     }
     val allDanglings = headDangling ::: secondDanglings
     if (allDanglings.isEmpty) {
-      ClosedRule(atom +: rule.body, rule.head, support, rule.headSize, others)
+      ClosedRule(atom +: rule.body, rule.head, support, supportIncreaseRatio, rule.headSize, others)
     } else {
-      DanglingRule(atom +: rule.body, rule.head, support, rule.headSize, allDanglings, others)
+      DanglingRule(atom +: rule.body, rule.head, support, supportIncreaseRatio, rule.headSize, allDanglings, others)
     }
     /*(atom.subject, atom.`object`) match {
       case (sv: Atom.Variable, ov: Atom.Variable) => if (sv == dangling || ov == dangling) {
