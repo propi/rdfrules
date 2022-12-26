@@ -3,6 +3,7 @@ package com.github.propi.rdfrules.experiments.benchmark
 import com.github.propi.rdfrules.algorithm.RuleConsumer
 import com.github.propi.rdfrules.algorithm.consumer.InMemoryRuleConsumer
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
+import com.github.propi.rdfrules.rule.Threshold
 import com.github.propi.rdfrules.ruleset.Ruleset
 
 /**
@@ -21,6 +22,7 @@ trait DefaultMiningSettings {
   val withoutDuplicatePredicates: Boolean = false
   val injectiveMapping: Boolean = true
   val skylinePruning: Boolean = false
+  val localTimeout: Option[Threshold.LocalTimeout] = None
 
 }
 

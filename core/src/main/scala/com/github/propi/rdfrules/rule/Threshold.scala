@@ -66,7 +66,11 @@ object Threshold {
     def companion: LocalTimeout.type = LocalTimeout
   }
 
-  implicit object LocalTimeout extends Key[LocalTimeout]
+  implicit object LocalTimeout extends Key[LocalTimeout] {
+    def apply(value: FiniteDuration): LocalTimeout = new LocalTimeout(value, 0.0, false)
+
+    def apply(me: Double, dme: Boolean): LocalTimeout = new LocalTimeout(Duration.Zero, me, dme)
+  }
 
   implicit def thresholdToKeyValue(threshold: Threshold): (Key[Threshold], Threshold) = threshold.companion -> threshold
 

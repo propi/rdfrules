@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.utils
 
+import scala.reflect.ClassTag
 import scala.util.Random
 
 trait Bootstrapper[K, V] {
@@ -8,9 +9,9 @@ trait Bootstrapper[K, V] {
 
 object Bootstrapper {
 
-  def apply[K, V, T](sequentially: Boolean = false, unbounded: Boolean = false)(f: Bootstrapper[K, V] => T): T = f(new ConcurrentBootstrapper[K, V](sequentially, unbounded))
+  def apply[K, V, T](sequentially: Boolean = false, unbounded: Boolean = false)(f: Bootstrapper[K, V] => T)(implicit tag: ClassTag[V]): T = f(new ConcurrentBootstrapper[K, V](sequentially, unbounded))
 
-  private class ConcurrentBootstrapper[K, V](sequentially: Boolean, unbounded: Boolean) extends Bootstrapper[K, V] {
+  private class ConcurrentBootstrapper[K, V](sequentially: Boolean, unbounded: Boolean)(implicit tag: ClassTag[V]) extends Bootstrapper[K, V] {
     private val cache = collection.concurrent.TrieMap.empty[K, CachedBootstrapper]
 
     private class CachedBootstrapper(barray: Array[V]) {

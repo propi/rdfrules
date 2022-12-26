@@ -22,6 +22,7 @@ trait RdfRulesMiningTask[T] extends Task[Index, Index, Ruleset, T] with TaskPreP
     _.setParallelism(numberOfThreads),
     _.addThreshold(Threshold.MinHeadCoverage(minHeadCoverage)),
     _.addThreshold(Threshold.MaxRuleLength(maxRuleLength)),
+    x => localTimeout.map(x.addThreshold(_)).getOrElse(x),
     x => if (injectiveMapping) x.addConstraint(RuleConstraint.InjectiveMapping()) else x,
     x => allowConstants match {
       case Some(pos) => x.addConstraint(RuleConstraint.ConstantsAtPosition(pos))

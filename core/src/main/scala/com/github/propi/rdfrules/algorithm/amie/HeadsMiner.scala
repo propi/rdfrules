@@ -29,7 +29,7 @@ class HeadsMiner private(_parallelism: Int = Runtime.getRuntime.availableProcess
   def mine(ruleConsumer: RuleConsumer)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): ForEach[FinalRule] = {
     //val logger = debugger.logger
     //create amie process with debugger and final triple index
-    implicit val settings: AmieSettings = new AmieSettings(this)(/*if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) */ debugger /* else Debugger.EmptyDebugger*/ , mapper)
+    implicit val settings: AmieSettings = new AmieSettings(this, None)(/*if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) */ debugger /* else Debugger.EmptyDebugger*/ , mapper)
     val process = new AmieProcess
     process.getHeads.foreach(ruleConsumer.send(_))
     ruleConsumer.result
