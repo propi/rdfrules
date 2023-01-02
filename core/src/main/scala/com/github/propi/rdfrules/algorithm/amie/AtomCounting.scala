@@ -394,7 +394,7 @@ trait AtomCounting {
     * @return iterator of all triples for this atom
     */
   def getAtomTriples(atom: Atom, injectiveMapping: Boolean): Iterator[(Int, Int)] = specifyAtom(atom, VariableMap(injectiveMapping))
-    .map(x => x.subject.asInstanceOf[Atom.Constant].value -> x.`object`.asInstanceOf[Atom.Constant].value)
+    .map(x => x.subject -> x.`object`)
 
 }
 

@@ -15,18 +15,30 @@ trait Rule extends RuleContent {
 
   def support: Int
 
+  /**
+    * If the support is approximative then support = ~support (time-windowed) * supportIncreaseRatio
+    * SupportIncreaseRatio > 0 indicates that the support increase ratio was used and support is approximative.
+    * support = ~support (time-windowed) * supportIncreaseRatio
+    * ~support (time-windowed) = support / supportIncreaseRatio
+    * samples = headSupport / supportIncreaseRatio
+    * ~hc = ~support / samples
+    *
+    * @return
+    */
   def supportIncreaseRatio: Float
 
   def headSize: Int
 
+  def headSupport: Int
+
   def headCoverage: Double
 
   override def hashCode(): Int = {
-    super.hashCode() + this.headSize // * 2 + this.support
+    super.hashCode() + this.headSupport // * 2 + this.support
   }
 
   override def equals(other: Any): Boolean = other match {
-    case rule: Rule if headSize == rule.headSize && (support == rule.support || supportIncreaseRatio != rule.supportIncreaseRatio) => super.equals(other)
+    case rule: Rule if headSupport == rule.headSupport && (support == rule.support || (supportIncreaseRatio + rule.supportIncreaseRatio) > 0.0f) => super.equals(other)
     case _ => false
   }
 }
@@ -42,7 +54,9 @@ object Rule {
   private case class Simple(head: Atom, body: IndexedSeq[Atom])(val measures: TypedKeyMap.Immutable[Measure]) extends FinalRule {
     def support: Int = measures[Measure.Support].value
 
-    def supportIncreaseRatio: Float = measures.get[Measure.ApproximateHeadSize].map(x => headSize.toFloat / x.value).getOrElse(1.0f)
+    def headSupport: Int = measures[Measure.HeadSupport].value
+
+    def supportIncreaseRatio: Float = measures.get[Measure.SupportIncreaseRatio].map(_.value).getOrElse(0.0f)
 
     def headSize: Int = measures[Measure.HeadSize].value
 
@@ -55,6 +69,7 @@ object Rule {
     val measuresMap = Function.chain[TypedKeyMap.Immutable[Measure]](List(
       m => if (m.exists[Measure.Support]) m else m + Measure.Support(0),
       m => if (m.exists[Measure.HeadSize]) m else m + Measure.HeadSize(0),
+      m => if (m.exists[Measure.HeadSupport]) m else m + Measure.HeadSupport(0),
       m => if (m.exists[Measure.HeadCoverage]) m else m + Measure.HeadCoverage(0.0)
     ))(measures)
     Simple(head, body)(measuresMap)
@@ -64,6 +79,7 @@ object Rule {
     val measuresMap = Function.chain[TypedKeyMap[Measure]](List(
       m => if (m.exists[Measure.Support]) m else m += Measure.Support(0),
       m => if (m.exists[Measure.HeadSize]) m else m += Measure.HeadSize(0),
+      m => if (m.exists[Measure.HeadSupport]) m else m + Measure.HeadSupport(0),
       m => if (m.exists[Measure.HeadCoverage]) m else m += Measure.HeadCoverage(0.0)
     ))(TypedKeyMap(measures))
     Simple(head, body)(measuresMap)
@@ -75,9 +91,10 @@ object Rule {
       val measures = TypedKeyMap(
         Measure.Support(rule.support),
         Measure.HeadSize(rule.headSize),
-        Measure.HeadCoverage(rule.headCoverage)
+        Measure.HeadCoverage(rule.headCoverage),
+        Measure.HeadSupport(rule.headSupport)
       )
-      Simple(rule.head, rule.body)(if (rule.supportIncreaseRatio > 1.0) measures += Measure.ApproximateHeadSize(math.round(rule.headSize / rule.supportIncreaseRatio)) else measures)
+      Simple(rule.head, rule.body)(if (rule.supportIncreaseRatio > 0.0f) measures += Measure.SupportIncreaseRatio(rule.supportIncreaseRatio) else measures)
   }
 
   implicit val ruleOrdering: Ordering[Rule] = Ordering.by[Rule, TypedKeyMap.Immutable[Measure]](_.measures)

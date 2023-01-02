@@ -161,7 +161,8 @@ object RuleSerialization {
       case Measure.PcaConfidence(x) => 8 -> x
       case Measure.Support(x) => 9 -> x.toDouble
       case Measure.Cluster(x) => 10 -> x.toDouble
-      case Measure.ApproximateHeadSize(x) => 11 -> x.toDouble
+      case Measure.SupportIncreaseRatio(x) => 11 -> x.toDouble
+      case Measure.HeadSupport(x) => 12 -> x.toDouble
     }
     buffer.put(mtype.toByte)
     buffer.putDouble(value)
@@ -183,7 +184,8 @@ object RuleSerialization {
       case 8 => Measure.PcaConfidence(value)
       case 9 => Measure.Support(value.toInt)
       case 10 => Measure.Cluster(value.toInt)
-      case 11 => Measure.ApproximateHeadSize(value.toInt)
+      case 11 => Measure.SupportIncreaseRatio(value.toFloat)
+      case 12 => Measure.HeadSupport(value.toInt)
       case _ => throw new Deserializer.DeserializationException("Invalid type of a measure.")
     }
   }

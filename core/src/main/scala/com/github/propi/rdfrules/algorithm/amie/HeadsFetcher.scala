@@ -54,6 +54,7 @@ trait HeadsFetcher extends AtomCounting {
         DanglingRule(Vector.empty, atom,
           x._3,
           x._2,
+          x._3,
           x._1,
           Nil
         )

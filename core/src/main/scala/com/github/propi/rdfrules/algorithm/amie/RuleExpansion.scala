@@ -29,9 +29,9 @@ trait RuleExpansion {
     }
     val allDanglings = headDangling ::: secondDanglings
     if (allDanglings.isEmpty) {
-      ClosedRule(atom +: rule.body, rule.head, support, supportIncreaseRatio, rule.headSize, others)
+      ClosedRule(atom +: rule.body, rule.head, support, supportIncreaseRatio, rule.headSize, rule.headSupport, others)
     } else {
-      DanglingRule(atom +: rule.body, rule.head, support, supportIncreaseRatio, rule.headSize, allDanglings, others)
+      DanglingRule(atom +: rule.body, rule.head, support, supportIncreaseRatio, rule.headSize, rule.headSupport, allDanglings, others)
     }
     /*(atom.subject, atom.`object`) match {
       case (sv: Atom.Variable, ov: Atom.Variable) => if (sv == dangling || ov == dangling) {

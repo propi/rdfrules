@@ -22,17 +22,23 @@ object Measure {
 
   implicit object Support extends Key[Support]
 
+  case class HeadSupport(value: Int) extends Measure {
+    def companion: HeadSupport.type = HeadSupport
+  }
+
+  implicit object HeadSupport extends Key[HeadSupport]
+
   case class HeadCoverage(value: Double) extends Measure {
     def companion: HeadCoverage.type = HeadCoverage
   }
 
   implicit object HeadCoverage extends Key[HeadCoverage]
 
-  case class ApproximateHeadSize(value: Int) extends Measure {
-    def companion: ApproximateHeadSize.type = ApproximateHeadSize
+  case class SupportIncreaseRatio(value: Float) extends Measure {
+    def companion: SupportIncreaseRatio.type = SupportIncreaseRatio
   }
 
-  implicit object ApproximateHeadSize extends Key[ApproximateHeadSize]
+  implicit object SupportIncreaseRatio extends Key[SupportIncreaseRatio]
 
   case class HeadSize(value: Int) extends Measure {
     def companion: HeadSize.type = HeadSize
@@ -88,18 +94,19 @@ object Measure {
     case Measure.HeadConfidence(x) => Some(x)
     case Measure.HeadCoverage(x) => Some(x)
     case Measure.HeadSize(x) => Some(x)
-    case Measure.ApproximateHeadSize(x) => Some(x)
+    case Measure.SupportIncreaseRatio(x) => Some(x)
     case Measure.Lift(x) => Some(x)
     case Measure.PcaBodySize(x) => Some(x)
     case Measure.PcaConfidence(x) => Some(x)
     case Measure.Support(x) => Some(x)
+    case Measure.HeadSupport(x) => Some(x)
     case Measure.Cluster(x) => Some(x)
   }
 
   implicit def mesureToKeyValue(measure: Measure): (Key[Measure], Measure) = measure.companion -> measure
 
   implicit val measureKeyOrdering: Ordering[Key[Measure]] = {
-    val map = Iterator[Key[Measure]](Support, HeadCoverage, Confidence, PcaConfidence, Lift, HeadConfidence, HeadSize, BodySize, PcaBodySize, Cluster).zipWithIndex.map(x => x._1 -> (x._2 + 1)).toMap
+    val map = Iterator[Key[Measure]](Support, HeadCoverage, Confidence, PcaConfidence, Lift, HeadConfidence, HeadSize, SupportIncreaseRatio, BodySize, PcaBodySize, HeadSupport, Cluster).zipWithIndex.map(x => x._1 -> (x._2 + 1)).toMap
     Ordering.by[Key[Measure], Int](map.getOrElse(_, 0))
   }
 
@@ -109,11 +116,12 @@ object Measure {
     case Measure.HeadConfidence(x) => x
     case Measure.HeadCoverage(x) => x
     case Measure.HeadSize(x) => x
-    case Measure.ApproximateHeadSize(x) => x
+    case Measure.SupportIncreaseRatio(x) => x
     case Measure.Lift(x) => x
     case Measure.PcaBodySize(x) => x
     case Measure.PcaConfidence(x) => x
     case Measure.Support(x) => x
+    case Measure.HeadSupport(x) => x
     case Measure.Cluster(x) => x * -1
   }.reverse
 
@@ -135,9 +143,10 @@ object Measure {
     case Measure.PcaConfidence(v) => s"pcaConfidence: $v"
     case Measure.HeadConfidence(v) => s"headConfidence: $v"
     case Measure.HeadSize(v) => s"headSize: $v"
-    case Measure.ApproximateHeadSize(v) => s"~headSize: $v"
+    case Measure.SupportIncreaseRatio(v) => s"supportIncreaseRatio: $v"
     case Measure.BodySize(v) => s"bodySize: $v"
     case Measure.PcaBodySize(v) => s"pcaBodySize: $v"
+    case Measure.HeadSupport(v) => s"headSupport: $v"
     case Measure.Cluster(v) => s"cluster: $v"
   }
 
@@ -148,11 +157,12 @@ object Measure {
       case Measure.HeadConfidence(x) => JsObject("name" -> JsString("HeadConfidence"), "value" -> JsNumber(x))
       case Measure.HeadCoverage(x) => JsObject("name" -> JsString("HeadCoverage"), "value" -> JsNumber(x))
       case Measure.HeadSize(x) => JsObject("name" -> JsString("HeadSize"), "value" -> JsNumber(x))
-      case Measure.ApproximateHeadSize(x) => JsObject("name" -> JsString("ApproximateHeadSize"), "value" -> JsNumber(x))
+      case Measure.SupportIncreaseRatio(x) => JsObject("name" -> JsString("SupportIncreaseRatio"), "value" -> JsNumber(x))
       case Measure.Lift(x) => JsObject("name" -> JsString("Lift"), "value" -> JsNumber(x))
       case Measure.PcaBodySize(x) => JsObject("name" -> JsString("PcaBodySize"), "value" -> JsNumber(x))
       case Measure.PcaConfidence(x) => JsObject("name" -> JsString("PcaConfidence"), "value" -> JsNumber(x))
       case Measure.Support(x) => JsObject("name" -> JsString("Support"), "value" -> JsNumber(x))
+      case Measure.HeadSupport(x) => JsObject("name" -> JsString("HeadSupport"), "value" -> JsNumber(x))
       case Measure.Cluster(x) => JsObject("name" -> JsString("Cluster"), "value" -> JsNumber(x))
     }
 
@@ -165,11 +175,12 @@ object Measure {
         case "HeadConfidence" => Measure.HeadConfidence(value.convertTo[Double])
         case "HeadCoverage" => Measure.HeadCoverage(value.convertTo[Double])
         case "HeadSize" => Measure.HeadSize(value.convertTo[Int])
-        case "ApproximateHeadSize" => Measure.ApproximateHeadSize(value.convertTo[Int])
+        case "SupportIncreaseRatio" => Measure.SupportIncreaseRatio(value.convertTo[Float])
         case "Lift" => Measure.Lift(value.convertTo[Double])
         case "PcaBodySize" => Measure.PcaBodySize(value.convertTo[Int])
         case "PcaConfidence" => Measure.PcaConfidence(value.convertTo[Double])
         case "Support" => Measure.Support(value.convertTo[Int])
+        case "HeadSupport" => Measure.HeadSupport(value.convertTo[Int])
         case "Cluster" => Measure.Cluster(value.convertTo[Int])
         case x => deserializationError(s"Invalid measure of significance: $x")
       }

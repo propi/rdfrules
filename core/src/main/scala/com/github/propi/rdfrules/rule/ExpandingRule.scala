@@ -71,22 +71,22 @@ object ExpandingRule {
   }
 
   sealed trait ExactRule extends ExpandingRule {
-    def supportIncreaseRatio: Float = 1.0f
+    def supportIncreaseRatio: Float = 0.0f
   }
 
   object ClosedRule {
-    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, _supportIncreaseRatio: Float, headSize: Int, variables: List[Atom.Variable]): ClosedRule = {
-      if (_supportIncreaseRatio > 1.0f) {
-        new BasicClosedRule(body, head, math.ceil(support * _supportIncreaseRatio).toInt, headSize, variables) {
+    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, _supportIncreaseRatio: Float, headSize: Int, headSupport: Int, variables: List[Atom.Variable]): ClosedRule = {
+      if (_supportIncreaseRatio > 0.0f) {
+        new BasicClosedRule(body, head, support, headSize, headSupport, variables) {
           val supportIncreaseRatio: Float = _supportIncreaseRatio
         }
       } else {
-        apply(body, head, support, headSize, variables)
+        apply(body, head, support, headSize, headSupport, variables)
       }
     }
 
-    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, variables: List[Atom.Variable]): ClosedRule = {
-      new BasicClosedRule(body, head, support, headSize, variables) with ExactRule
+    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, headSupport: Int, variables: List[Atom.Variable]): ClosedRule = {
+      new BasicClosedRule(body, head, support, headSize, headSupport, variables) with ExactRule
     }
 
     //def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, variables: List[Atom.Variable], supportedRanges: MutableRanges): ClosedRule = new CachedClosedRule(body, head, support, headSize, variables, SoftReference(supportedRanges))
@@ -96,6 +96,7 @@ object ExpandingRule {
                                          val head: Atom,
                                          val support: Int,
                                          val headSize: Int,
+                                         val headSupport: Int,
                                          val variables: List[Atom.Variable]
                                         ) extends ClosedRule {
     def supportedRanges: Option[MutableRanges] = None
@@ -128,17 +129,17 @@ object ExpandingRule {
   }
 
   object DanglingRule {
-    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, danglings: List[Atom.Variable], others: List[Atom.Variable]): DanglingRule = {
-      new BasicDanglingRule(body, head, support, headSize, danglings, others) with ExactRule
+    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, headSupport: Int, danglings: List[Atom.Variable], others: List[Atom.Variable]): DanglingRule = {
+      new BasicDanglingRule(body, head, support, headSize, headSupport, danglings, others) with ExactRule
     }
 
-    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, _supportIncreaseRatio: Float, headSize: Int, danglings: List[Atom.Variable], others: List[Atom.Variable]): DanglingRule = {
-      if (_supportIncreaseRatio > 1.0f) {
-        new BasicDanglingRule(body, head, math.ceil(support * _supportIncreaseRatio).toInt, headSize, danglings, others) {
+    def apply(body: IndexedSeq[Atom], head: Atom, support: Int, _supportIncreaseRatio: Float, headSize: Int, headSupport: Int, danglings: List[Atom.Variable], others: List[Atom.Variable]): DanglingRule = {
+      if (_supportIncreaseRatio > 0.0f) {
+        new BasicDanglingRule(body, head, support, headSize, headSupport, danglings, others) {
           val supportIncreaseRatio: Float = _supportIncreaseRatio
         }
       } else {
-        apply(body, head, support, headSize, danglings, others)
+        apply(body, head, support, headSize, headSupport, danglings, others)
       }
     }
     //def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, danglings: List[Atom.Variable], others: List[Atom.Variable], supportedRanges: MutableRanges): DanglingRule = new CachedDanglingRule(body, head, support, headSize, danglings, others, SoftReference(supportedRanges))
@@ -148,6 +149,7 @@ object ExpandingRule {
                                            val head: Atom,
                                            val support: Int,
                                            val headSize: Int,
+                                           val headSupport: Int,
                                            val danglings: List[Atom.Variable],
                                            val others: List[Atom.Variable]) extends DanglingRule {
     def supportedRanges: Option[MutableRanges] = None

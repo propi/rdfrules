@@ -110,14 +110,14 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
       //if (withDuplicitPredicates) (countableFreshAtoms.iterator ++ possibleFreshAtoms.iterator).foreach(countAtomsWithExistingPredicate)
       //}
       //ad.done()
-      val headSize = rule.headSize
+      //val headSize = rule.headSize
       lazy val resolvedRule = ResolvedRule(rule.body.map(ResolvedAtom(_)), rule.head)(TypedKeyMap(Measure.HeadSize(rule.headSize), Measure.Support(rule.support), Measure.HeadCoverage(rule.headCoverage)))
       val headTriples = bootstrapper.map(implicit bootstrapper => rule.bootstrappedHeadTriples(injectiveMapping)).getOrElse(rule.headTriples(injectiveMapping))
       var lastDumpTime = System.currentTimeMillis()
 
       def stop(): Unit = {
         maxSupport = Int.MinValue
-        projections.clear()
+        //projections.clear()
       }
 
       var i = 0
@@ -126,7 +126,7 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
       // - because no projection can have support greater or equal 5
       //example 2: head size is 10, min support is 5, remaining steps 2, projection with maximal support has value 2: 2 + 2 = 4 it is less than 5 - we can stop counting
       anytimeRefinement.anytimeRefine(stop) { anytimeChecker =>
-        while (headTriples.hasNext && maxSupport + (headSize - i) >= minCurrentSupport) {
+        while (headTriples.hasNext && maxSupport + (rule.headSupport - i) >= minCurrentSupport) {
           val (_subject, _object) = headTriples.next()
           //for each triple covering head of this rule, find and count all possible projections for all possible fresh atoms
           val selectedAtoms = /*howLong("Rule expansion - bind projections", true)(*/ bindProjections(bodySet, freshAtoms.part1, freshAtoms.part2, specifyHeadVariableMapWithAtom(_subject, _object)) //)
@@ -139,7 +139,7 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
           val currentTime = System.currentTimeMillis()
           anytimeChecker.checkTime(currentTime)
           if (currentTime - lastDumpTime > 30000) {
-            debugger.logger.info(s"Long refining of rule $resolvedRule. Projections size: ${projections.size}. Step: $i of $headSize")
+            debugger.logger.info(s"Long refining of rule $resolvedRule. Projections size: ${projections.size}. Step: $i of ${rule.headSupport}")
             lastDumpTime = currentTime
             if (debugger.isInterrupted) stop()
           }
@@ -155,8 +155,8 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
       /*Iterator.continually(projections.headOption)
         .takeWhile(_.isDefined)
         .flatten*/
-      val supportIncreaseRatio = if (maxSupport == Int.MinValue) headSize.toFloat / i else 1.0f
-      projections.iterator.map(x => x._1 -> math.round(x._2.getValue * supportIncreaseRatio)).filter { case (atom, support) =>
+      val supportIncreaseRatio = if (bootstrapper.isDefined || maxSupport == Int.MinValue) rule.headSupport.toFloat / i else 0.0f
+      projections.iterator.map(x => x._1 -> (if (supportIncreaseRatio > 0.0f) math.round(x._2.getValue * supportIncreaseRatio) else x._2.getValue)).filter { case (atom, support) =>
         ruleFilter(atom, support)
       }.map { case (atom, support) =>
         expand(atom, support, supportIncreaseRatio)

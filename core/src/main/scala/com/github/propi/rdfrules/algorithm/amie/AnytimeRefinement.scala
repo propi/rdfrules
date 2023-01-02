@@ -72,24 +72,55 @@ object AnytimeRefinement {
       def checkSupport(support: Int): Unit = ()
     }
 
-    private class SamplesChecker(stop: () => Unit) extends Checker {
-      private var i = 1.0
-      private var nearestToHalfHc = 0.0
+    private class SamplesChecker(stop: () => Unit, checkingActivated: Boolean) extends Checker {
+      //we start at 2 because we do not want hc=0 or hc=1 which causes minSampleSize=0
+      private var i = 2.0
+      private var nearestToHalfHc = 0.5
+      private var nearestToHalfHcThreshold = 1.0
+      private var _checkingActivated = checkingActivated
 
-      def checkSupport(support: Int): Unit = nearestToHalfHc = math.max(math.abs((support / i) - 0.5), nearestToHalfHc)
+      /**
+        * Nearest to 0.5 head coverage searching for a time window
+        * Closer to 0.5 means higher sample size threshold
+        *
+        * @param support support
+        */
+      def checkSupport(support: Int): Unit = {
+        //zero support is not allowed because we do not want hc=0 which causes minSampleSize=0
+        val hc = if (support == 0) 1 else support / i
+        val hcThreshold = math.abs(hc - 0.5)
+        if (hcThreshold < nearestToHalfHcThreshold) {
+          nearestToHalfHc = hc
+          nearestToHalfHcThreshold = hcThreshold
+        }
+      }
+
+      def activateChecking(): Unit = {
+        _checkingActivated = true
+      }
 
       def checkTime(currentTime: Long): Unit = {
-        val minSampleSize = nearestToHalfHc * (1 - nearestToHalfHc) * mer(nearestToHalfHc)
-        if (i >= minSampleSize) stop()
+        if (_checkingActivated) {
+          val minSampleSize = nearestToHalfHc * (1.0 - nearestToHalfHc) * mer(nearestToHalfHc)
+          if (i >= minSampleSize) {
+            //println(s"samples reached: $nearestToHalfHc, ss: $minSampleSize, bs: $i")
+            stop()
+          }
+        }
+        //end of the current time window, reset nearestToHalfHc because supports and hcs may change within next time window
+        nearestToHalfHcThreshold = 1.0
         i += 1
       }
     }
 
     private class CombChecker(stop: () => Unit) extends Checker {
-      private val samplesChecker = new SamplesChecker(stop)
-      private val timeChecker = new TimeChecker(() => samplesChecker.checkTime(0L))
+      private val samplesChecker = new SamplesChecker(stop, false)
+      private val timeChecker = new TimeChecker(() => samplesChecker.activateChecking())
 
-      def checkTime(currentTime: Long): Unit = timeChecker.checkTime(currentTime)
+      def checkTime(currentTime: Long): Unit = {
+        timeChecker.checkTime(currentTime)
+        samplesChecker.checkTime(currentTime)
+      }
 
       def checkSupport(support: Int): Unit = samplesChecker.checkSupport(support)
     }
@@ -98,7 +129,7 @@ object AnytimeRefinement {
       localTimeout.hasDuration -> localTimeout.hasMarginError match {
         case (true, true) => f(new CombChecker(stop))
         case (true, false) => f(new TimeChecker(stop))
-        case (false, true) => f(new SamplesChecker(stop))
+        case (false, true) => f(new SamplesChecker(stop, true))
         case (false, false) => f(EmptyChecker)
       }
     }
