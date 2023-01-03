@@ -1,10 +1,9 @@
-package com.github.propi.rdfrules.experiments.benchmark
+package com.github.propi.rdfrules.experiments.benchmark.postprocessors
 
+import com.github.propi.rdfrules.experiments.benchmark.{Metric, TaskPostProcessor}
 import com.github.propi.rdfrules.index.IndexItem
 import com.github.propi.rdfrules.rule.Measure
 import com.github.propi.rdfrules.ruleset.Ruleset
-
-import scala.language.postfixOps
 
 /**
   * Created by Vaclav Zeman on 10. 4. 2020.

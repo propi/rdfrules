@@ -13,9 +13,7 @@ object MetricsAggregator {
 
   object StatsAggregator extends MetricsAggregator {
     def aggregateMetrics(metricsSeq: Seq[Seq[Metric]]): Seq[Metric] = metricsSeq.flatten.groupBy(_.name).view.mapValues { variables =>
-      val col = variables.collect {
-        case x: Metric.Simple => x
-      }
+      val col = variables.map(_.getSimple)
       val max = col.maxBy(_.doubleValue)
       val min = col.minBy(_.doubleValue)
       val avg = col.reduceLeft(_ + _) / col.length

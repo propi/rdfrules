@@ -1,5 +1,6 @@
-package com.github.propi.rdfrules.experiments.benchmark
+package com.github.propi.rdfrules.experiments.benchmark.postprocessors
 
+import com.github.propi.rdfrules.experiments.benchmark.TaskPostProcessor
 import com.github.propi.rdfrules.rule.ResolvedRule
 import com.github.propi.rdfrules.ruleset.Ruleset
 

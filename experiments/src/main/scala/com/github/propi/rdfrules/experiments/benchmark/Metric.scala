@@ -40,6 +40,10 @@ object Metric {
 
   sealed trait Complex extends Metric
 
+  abstract class UniversalMetric(val name: String) extends Complex {
+    def getSimple: Metric.Simple = Metric.Number(this.name, doubleValue)
+  }
+
   case class Duration(name: String, value: duration.Duration) extends Simple {
     def doubleValue: Double = value.toNanos.toDouble
 
@@ -223,6 +227,7 @@ object Metric {
       case x: ClustersSimilarities => x.toString
       case Stats(avg, stdDev, min, max) => s"${x.name}: ${avg.prettyValue} (stdDev: ${stdDev.prettyValue}, min: ${min.prettyValue}, max: ${max.prettyValue})"
       case Comparison(metric, absDiff, relDiff) => Stringifier(metric)(basicStringifier) + ", " + Stringifier(absDiff)(signSimpleStringifier) + s" (${Stringifier[Metric](Number("", relDiff * 100))(signSimpleStringifier)}%)"
+      case x: UniversalMetric => x.toString
     }
   }
 

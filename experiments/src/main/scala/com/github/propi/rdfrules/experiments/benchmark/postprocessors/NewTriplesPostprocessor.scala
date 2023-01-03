@@ -1,5 +1,6 @@
-package com.github.propi.rdfrules.experiments.benchmark
+package com.github.propi.rdfrules.experiments.benchmark.postprocessors
 
+import com.github.propi.rdfrules.experiments.benchmark.{Metric, TaskPostProcessor}
 import com.github.propi.rdfrules.prediction.PredictedResult
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.Debugger
