@@ -33,7 +33,6 @@ class FilterRules(fromOperation: Operation, val info: OperationInfo) extends Ope
           "Confidence" -> "Confidence",
           "PcaConfidence" -> "PCA confidence",
           "PcaBodySize" -> "PCA body size",
-          "HeadConfidence" -> "Head confidence",
           "Lift" -> "Lift",
           "Cluster" -> "Cluster"
         ), onSelect = (_, value) => summaryTitle.value = value),

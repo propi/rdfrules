@@ -111,7 +111,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
       val predictedResults: Set[PredictedResult] = if (onlyExistingTriples) Set(PredictedResult.Positive) else Set.empty
       val predictionResult = if (onlyFunctionalProperties) predict(predictedResults, injectiveMapping).onlyFunctionalPredictions else predict(predictedResults, injectiveMapping).distinctPredictions
       val hashSet = collection.mutable.LinkedHashSet.empty[FinalRule]
-      for (rule <- predictionResult.triples.map(_.rule)) {
+      for (rule <- predictionResult.singleTriples.map(_.rule)) {
         hashSet += rule
       }
       hashSet.foreach(f)
@@ -186,8 +186,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     implicit val tii: TripleItemIndex = index.tripleItemMap
     val resColl = rules.parMap(parallelism) { rule =>
       Function.chain[FinalRule](List(
-        rule => if (rule.measures.exists[Measure.Confidence]) rule else rule.withConfidence(minConfidence, injectiveMapping),
-        rule => if (rule.measures.exists[Measure.HeadConfidence]) rule else rule.withHeadConfidence,
+        rule => if (rule.measures.exists[Measure.Confidence] || rule.measures.exists[Measure.PcaConfidence]) rule else rule.withPcaConfidence(minConfidence, injectiveMapping),
         rule => rule.withLift
       ))(rule)
     }.withDebugger("Lift computing")

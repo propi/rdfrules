@@ -230,8 +230,7 @@ object PipelineJsonReaders {
     val selector = json.toSelector
     new prediction.Filter(
       selector("predictedResults").toTypedIterable[PredictedResult].toSet,
-      selector("distinctPrediction").to[Boolean].getOrElse(false),
-      selector("onlyFunctionalPredictions").to[Boolean].getOrElse(false),
+      selector("completionStrategy").to[CompletionStrategy],
       selector("tripleMatchers").toIterable.flatMap { selector =>
         selector.to[TripleMatcher].zip(selector("inverse").to[Boolean].orElse(Some(false)))
       }.toSeq,
@@ -391,7 +390,7 @@ object PipelineJsonReaders {
         fields("name").convertTo[String] match {
           case prediction.Cache.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Cache], tail)
           case prediction.Filter.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Filter], tail)
-          case prediction.GetPrediction.name => pipeline ~> params.convertTo[prediction.GetPrediction] ~> ToJsonTask.FromGroupedPredictedTriple
+          case prediction.GetPrediction.name => pipeline ~> params.convertTo[prediction.GetPrediction] ~> ToJsonTask.FromPredictedTriple
           case prediction.Evaluate.name => pipeline ~> params.convertTo[prediction.Evaluate] ~> ToJsonTask.FromEvaluationResult
           case prediction.ToDataset.name => addTaskFromDataset(pipeline ~> params.convertTo[prediction.ToDataset], tail)
           case prediction.Size.name => pipeline ~> params.convertTo[prediction.Size] ~> ToJsonTask.FromInt

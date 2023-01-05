@@ -245,7 +245,6 @@ object CommonDataJsonReaders {
     case "Confidence" => Measure.Confidence
     case "PcaConfidence" => Measure.PcaConfidence
     case "PcaBodySize" => Measure.PcaBodySize
-    case "HeadConfidence" => Measure.HeadConfidence
     case "Lift" => Measure.Lift
     case "Cluster" => Measure.Cluster
     case x => deserializationError(s"Invalid measure name: $x")

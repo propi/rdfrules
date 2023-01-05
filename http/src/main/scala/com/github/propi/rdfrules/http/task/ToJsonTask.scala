@@ -9,7 +9,7 @@ import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.formats.CommonDataJsonWriters._
 import com.github.propi.rdfrules.http.util.TraversablePublisher._
 import com.github.propi.rdfrules.index.PropertyCardinalities
-import com.github.propi.rdfrules.prediction.EvaluationResult
+import com.github.propi.rdfrules.prediction.{EvaluationResult, ResolvedPredictedTriple}
 import com.github.propi.rdfrules.rule.{ResolvedInstantiatedRule, ResolvedRule}
 import com.github.propi.rdfrules.utils.ForEach
 import spray.json.DefaultJsonProtocol._
@@ -65,8 +65,8 @@ object ToJsonTask extends TaskDefinition {
     def execute(input: Seq[(Histogram.Key, Int)]): Source[JsValue, NotUsed] = Source.fromIterator(() => input.iterator.map(_.toJson))
   }
 
-  object FromGroupedPredictedTriple extends ToJsonTask[Seq[GroupedPredictedTriple]] {
-    def execute(input: Seq[GroupedPredictedTriple]): Source[JsValue, NotUsed] = Source.fromIterator(() => input.iterator.map(_.toJson))
+  object FromPredictedTriple extends ToJsonTask[Seq[ResolvedPredictedTriple]] {
+    def execute(input: Seq[ResolvedPredictedTriple]): Source[JsValue, NotUsed] = Source.fromIterator(() => input.iterator.map(_.toJson))
   }
 
   object FromInstantiatedRules extends ToJsonTask[Seq[ResolvedInstantiatedRule]] {

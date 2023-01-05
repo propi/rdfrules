@@ -58,12 +58,6 @@ object Measure {
 
   implicit object Confidence extends Key[Confidence]
 
-  case class HeadConfidence(value: Double) extends Measure {
-    def companion: HeadConfidence.type = HeadConfidence
-  }
-
-  implicit object HeadConfidence extends Key[HeadConfidence]
-
   case class Lift(value: Double) extends Measure {
     def companion: Lift.type = Lift
   }
@@ -91,7 +85,6 @@ object Measure {
   def unapply(arg: Measure): Option[Double] = arg match {
     case Measure.BodySize(x) => Some(x)
     case Measure.Confidence(x) => Some(x)
-    case Measure.HeadConfidence(x) => Some(x)
     case Measure.HeadCoverage(x) => Some(x)
     case Measure.HeadSize(x) => Some(x)
     case Measure.SupportIncreaseRatio(x) => Some(x)
@@ -106,14 +99,13 @@ object Measure {
   implicit def mesureToKeyValue(measure: Measure): (Key[Measure], Measure) = measure.companion -> measure
 
   implicit val measureKeyOrdering: Ordering[Key[Measure]] = {
-    val map = Iterator[Key[Measure]](Support, HeadCoverage, Confidence, PcaConfidence, Lift, HeadConfidence, HeadSize, SupportIncreaseRatio, BodySize, PcaBodySize, HeadSupport, Cluster).zipWithIndex.map(x => x._1 -> (x._2 + 1)).toMap
+    val map = Iterator[Key[Measure]](Support, HeadCoverage, Confidence, PcaConfidence, Lift, HeadSize, SupportIncreaseRatio, BodySize, PcaBodySize, HeadSupport, Cluster).zipWithIndex.map(x => x._1 -> (x._2 + 1)).toMap
     Ordering.by[Key[Measure], Int](map.getOrElse(_, 0))
   }
 
   implicit val measureOrdering: Ordering[Measure] = Ordering.by[Measure, Double] {
     case Measure.BodySize(x) => x
     case Measure.Confidence(x) => x
-    case Measure.HeadConfidence(x) => x
     case Measure.HeadCoverage(x) => x
     case Measure.HeadSize(x) => x
     case Measure.SupportIncreaseRatio(x) => x
@@ -141,7 +133,6 @@ object Measure {
     case Measure.Confidence(v) => s"confidence: $v"
     case Measure.Lift(v) => s"lift: $v"
     case Measure.PcaConfidence(v) => s"pcaConfidence: $v"
-    case Measure.HeadConfidence(v) => s"headConfidence: $v"
     case Measure.HeadSize(v) => s"headSize: $v"
     case Measure.SupportIncreaseRatio(v) => s"supportIncreaseRatio: $v"
     case Measure.BodySize(v) => s"bodySize: $v"
@@ -154,7 +145,6 @@ object Measure {
     def write(obj: Measure): JsValue = obj match {
       case Measure.BodySize(x) => JsObject("name" -> JsString("BodySize"), "value" -> JsNumber(x))
       case Measure.Confidence(x) => JsObject("name" -> JsString("Confidence"), "value" -> JsNumber(x))
-      case Measure.HeadConfidence(x) => JsObject("name" -> JsString("HeadConfidence"), "value" -> JsNumber(x))
       case Measure.HeadCoverage(x) => JsObject("name" -> JsString("HeadCoverage"), "value" -> JsNumber(x))
       case Measure.HeadSize(x) => JsObject("name" -> JsString("HeadSize"), "value" -> JsNumber(x))
       case Measure.SupportIncreaseRatio(x) => JsObject("name" -> JsString("SupportIncreaseRatio"), "value" -> JsNumber(x))
@@ -172,7 +162,6 @@ object Measure {
       fields("name").convertTo[String] match {
         case "BodySize" => Measure.BodySize(value.convertTo[Int])
         case "Confidence" => Measure.Confidence(value.convertTo[Double])
-        case "HeadConfidence" => Measure.HeadConfidence(value.convertTo[Double])
         case "HeadCoverage" => Measure.HeadCoverage(value.convertTo[Double])
         case "HeadSize" => Measure.HeadSize(value.convertTo[Int])
         case "SupportIncreaseRatio" => Measure.SupportIncreaseRatio(value.convertTo[Float])

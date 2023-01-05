@@ -31,6 +31,8 @@ trait TripleIndex[T] {
 
   def quads: Iterator[IndexItem.Quad[T]]
 
+  def contains(triple: IndexItem.Triple[T]): Boolean = predicates.get(triple.p).exists(_.subjects.get(triple.s).exists(_.contains(triple.o)))
+
   def evaluateAllLazyVals(): Unit
 
   protected def buildFastIntMap(from: Iterator[(T, Int)]): HashMap[T, Int]
@@ -79,6 +81,28 @@ trait TripleIndex[T] {
         buildFastIntMap(`op->oq`.view.mapValues(_.getValue).iterator),
         buildFastIntMap(`op->sq`.view.mapValues(_.getValue).iterator)
       )
+    }
+
+    private def countAverageCardinality(index: HashMap[T, HashSet[T]]): Int = math.round(index.valuesIterator.map(x => x.size).sum.toFloat / index.size)
+
+    final lazy val averageSubjectCardinality: Int = countAverageCardinality(subjects)
+
+    final lazy val averageObjectCardinality: Int = countAverageCardinality(objects)
+
+    /**
+      * Average cardinality of higher cardinality side is suitable for qpca confidence computing
+      */
+    final def averageCardinality: Int = higherCardinalitySide match {
+      case TriplePosition.Subject => averageSubjectCardinality
+      case TriplePosition.Object => averageObjectCardinality
+    }
+
+    /**
+      * Mode probability is needed for lift measure calculation
+      */
+    final lazy val modeProbability: Double = lowerCardinalitySide match {
+      case TriplePosition.Subject => subjects.valuesIterator.map(_.size).max.toDouble / size(false)
+      case TriplePosition.Object => objects.valuesIterator.map(_.size).max.toDouble / size(false)
     }
 
     final lazy val pcaNegatives: Int = higherCardinalitySide match {
@@ -177,6 +201,20 @@ object TripleIndex {
   trait Builder[T] {
     def build: TripleIndex[T]
   }
+
+  private object EmptySet extends HashSet[Any] with Reflexiveable {
+    def iterator: Iterator[Any] = Iterator.empty
+
+    def contains(x: Any): Boolean = false
+
+    def isEmpty: Boolean = true
+
+    def hasReflexiveRecord: Boolean = false
+
+    def size: Int = 0
+  }
+
+  def emptySet[T]: HashSet[T] with Reflexiveable = EmptySet.asInstanceOf[HashSet[T] with Reflexiveable]
 
   implicit def setToHashSet[T](set: Set[T]): HashSet[T] = new HashSet[T] {
     def iterator: Iterator[T] = set.iterator

@@ -37,6 +37,7 @@ object RdfRulesExperiments {
   def main(args: Array[String]): Unit = {
     val parser = new PosixParser
     val options = new Options
+    options.addOption("len", true, "max rule length")
     options.addOption("cores", true, "max number of cores")
     options.addOption("minhcs", true, "list of min head coverages")
     options.addOption("minsims", true, "list of min similarities for clustering")
@@ -59,6 +60,7 @@ object RdfRulesExperiments {
     val cli = parser.parse(options, args)
 
     val numberOfThreads = cli.getOptionValue("cores", Runtime.getRuntime.availableProcessors().toString).toInt
+    val maxRuleLen = cli.getOptionValue("len", "3").toInt
     val minHcs = cli.getOptionValue("minhcs", "0.005,0.01,0.02,0.05,0.1,0.2,0.3").split(",").iterator.map(_.trim).filter(_.nonEmpty).map(_.toDouble).toList
     val inputTsvDataset = getInputTsvDataset(cli.getOptionValue("input", "experiments/data/yago2core_facts.clean.notypes.tsv.bz2"))
     //experiments/data/mappingbased_objects_sample.tsv.bz2
@@ -151,43 +153,42 @@ object RdfRulesExperiments {
           }
           if (cli.hasOption("runanytime")) {
             val minHc = minHcs.head
-            val ruleLength = 4
             val ruleset = {
               implicit val rulesToMetrics: Ruleset => Seq[Metric] = rules => List(new RulesetMetric("ruleset", rules))
-              val exhaustive = xTimes executeTask new MinHcRdfRules[Ruleset](s"RDFRules: anytime - exhaustive", minHc, Some(ConstantsPosition.LowerCardinalitySide(true)), numberOfThreads) with TaskPostProcessor[Ruleset, Ruleset] {
-                override val minPcaConfidence: Double = 0.5
+              val exhaustive = xTimes executeTask new MinHcRdfRules[Ruleset](s"RDFRules: anytime - exhaustive", minHc, Some(ConstantsPosition.LowerCardinalitySide()), numberOfThreads) with TaskPostProcessor[Ruleset, Ruleset] {
+                override val minPcaConfidence: Double = 0.0
                 override val minConfidence: Double = 0.0
-                override val maxRuleLength: Int = ruleLength
+                override val maxRuleLength: Int = maxRuleLen
 
                 protected def postProcess(result: Ruleset): Ruleset = result
               } withInput index
               val ruleset = exhaustive._2.head.collectFirst {
-                case x: RulesetMetric => x.ruleset/*.cache("experiments/data/testrulecache.cache")*/.rules.map(x => RuleContent(x.body, x.head) -> x).toMap
+                case x: RulesetMetric => x.ruleset /*.cache("experiments/data/testrulecache.cache")*/ .rules.map(x => RuleContent(x.body, x.head) -> x).toMap
               }.getOrElse(Map.empty)
               exhaustive andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
               ruleset
             }
             for (i <- Iterator(100, 1000, 10000, 60000)) {
-              xTimes executeTask new AnytimeRdfRules[RulesDiffsStats](s"RDFRules: anytime - only time, $i ms", Threshold.LocalTimeout(i milliseconds), minHc, Some(ConstantsPosition.LowerCardinalitySide(true)), numberOfThreads) with RulesDiffsPostprocessor {
-                override val maxRuleLength: Int = ruleLength
+              xTimes executeTask new AnytimeRdfRules[RulesDiffsStats](s"RDFRules: anytime - only time, $i ms", Threshold.LocalTimeout(i milliseconds), minHc, Some(ConstantsPosition.LowerCardinalitySide()), numberOfThreads) with RulesDiffsPostprocessor {
+                override val maxRuleLength: Int = maxRuleLen
                 protected val relevantRules: Map[RuleContent, Rule] = ruleset
               } withInput index andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
-              xTimes executeTask new AnytimeRdfRules[RulesDiffsStats](s"RDFRules: anytime - time with minSamples, $i ms", Threshold.LocalTimeout(i milliseconds, 0.01, true), minHc, Some(ConstantsPosition.LowerCardinalitySide(true)), numberOfThreads) with RulesDiffsPostprocessor {
-                override val maxRuleLength: Int = ruleLength
+              xTimes executeTask new AnytimeRdfRules[RulesDiffsStats](s"RDFRules: anytime - time with minSamples, $i ms", Threshold.LocalTimeout(i milliseconds, 0.01, true), minHc, Some(ConstantsPosition.LowerCardinalitySide()), numberOfThreads) with RulesDiffsPostprocessor {
+                override val maxRuleLength: Int = maxRuleLen
                 protected val relevantRules: Map[RuleContent, Rule] = ruleset
               } withInput index andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
             }
-            xTimes executeTask new AnytimeRdfRules[RulesDiffsStats](s"RDFRules: anytime - minSamples only with dme", Threshold.LocalTimeout(0.01, true), minHc, Some(ConstantsPosition.LowerCardinalitySide(true)), numberOfThreads) with RulesDiffsPostprocessor {
-              override val maxRuleLength: Int = ruleLength
+            xTimes executeTask new AnytimeRdfRules[RulesDiffsStats](s"RDFRules: anytime - minSamples only with dme", Threshold.LocalTimeout(0.01, true), minHc, Some(ConstantsPosition.LowerCardinalitySide()), numberOfThreads) with RulesDiffsPostprocessor {
+              override val maxRuleLength: Int = maxRuleLen
               protected val relevantRules: Map[RuleContent, Rule] = ruleset
             } withInput index andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
-            xTimes executeTask new AnytimeRdfRules[RulesDiffsStats](s"RDFRules: anytime - minSamples only without dme", Threshold.LocalTimeout(0.01, false), minHc, Some(ConstantsPosition.LowerCardinalitySide(true)), numberOfThreads) with RulesDiffsPostprocessor {
-              override val maxRuleLength: Int = ruleLength
+            xTimes executeTask new AnytimeRdfRules[RulesDiffsStats](s"RDFRules: anytime - minSamples only without dme", Threshold.LocalTimeout(0.01, false), minHc, Some(ConstantsPosition.LowerCardinalitySide()), numberOfThreads) with RulesDiffsPostprocessor {
+              override val maxRuleLength: Int = maxRuleLen
               protected val relevantRules: Map[RuleContent, Rule] = ruleset
             } withInput index andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
             for (i <- Iterator(0.02, 0.05, 0.1)) {
-              xTimes executeTask new AnytimeRdfRules[RulesDiffsStats](s"RDFRules: anytime - minSamples with dme with me $i", Threshold.LocalTimeout(i, true), minHc, Some(ConstantsPosition.LowerCardinalitySide(true)), numberOfThreads) with RulesDiffsPostprocessor {
-                override val maxRuleLength: Int = ruleLength
+              xTimes executeTask new AnytimeRdfRules[RulesDiffsStats](s"RDFRules: anytime - minSamples with dme with me $i", Threshold.LocalTimeout(i, true), minHc, Some(ConstantsPosition.LowerCardinalitySide()), numberOfThreads) with RulesDiffsPostprocessor {
+                override val maxRuleLength: Int = maxRuleLen
                 protected val relevantRules: Map[RuleContent, Rule] = ruleset
               } withInput index andAggregateResultWith StatsAggregator andFinallyProcessResultWith BasicPrinter()
             }

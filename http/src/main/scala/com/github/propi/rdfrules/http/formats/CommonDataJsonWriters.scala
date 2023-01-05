@@ -4,8 +4,7 @@ import com.github.propi.rdfrules.data.Properties.PropertyStats
 import com.github.propi.rdfrules.data.{Histogram, Quad, Triple, TripleItemType}
 import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.service.Task.TaskResponse
-import com.github.propi.rdfrules.http.task.GroupedPredictedTriple
-import com.github.propi.rdfrules.prediction.EvaluationResult
+import com.github.propi.rdfrules.prediction.{EvaluationResult, ResolvedPredictedTriple}
 import com.github.propi.rdfrules.rule.{ResolvedInstantiatedAtom, ResolvedInstantiatedRule}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
@@ -58,7 +57,7 @@ object CommonDataJsonWriters {
     "amount" -> obj._2.toJson
   )
 
-  implicit val groupedPredictedTripleWriter: RootJsonWriter[GroupedPredictedTriple] = (obj: GroupedPredictedTriple) => JsObject(
+  implicit val predictedTripleWriter: RootJsonWriter[ResolvedPredictedTriple] = (obj: ResolvedPredictedTriple) => JsObject(
     "triple" -> obj.triple.toJson,
     "predictedResult" -> obj.predictedResult.toJson,
     "rules" -> obj.rules.toJson

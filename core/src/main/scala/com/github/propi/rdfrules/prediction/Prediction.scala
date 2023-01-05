@@ -8,8 +8,8 @@ import com.github.propi.rdfrules.utils.ForEach
 
 object Prediction {
 
-  def apply(rules: ForEach[FinalRule], index: Index, predictionResults: Set[PredictedResult], injectiveMapping: Boolean): ForEach[PredictedTriple] = {
-    (f: PredictedTriple => Unit) => {
+  def apply(rules: ForEach[FinalRule], index: Index, predictionResults: Set[PredictedResult], injectiveMapping: Boolean): ForEach[PredictedTriple.Single] = {
+    (f: PredictedTriple.Single => Unit) => {
       implicit val thi: TripleIndex[Int] = index.tripleMap
       implicit val tii: TripleItemIndex = index.tripleItemMap
       val atomCounting = AtomCounting()

@@ -22,8 +22,12 @@ class FilterPrediction(fromOperation: Operation, val info: OperationInfo) extend
         PredictedResult.PcaPositive.toString -> PredictedResult.PcaPositive.label
       ),
       summaryTitle = Property.SummaryTitle.NoTitle),
-    new Checkbox("distinctPrediction", "Distinct predictions", summaryTitle = "distinct"),
-    new Checkbox("onlyFunctionalPredictions", "Functions only", summaryTitle = "functions"),
+    new Select("completionStrategy", "Completion strategy", Constants(
+      "distinctPredictions" -> "Distinct predictions",
+      "functionalPredictions" -> "Only functional predictions",
+      "pcaPredictions" -> "Only PCA predictions",
+      "qpcaPredictions" -> "Only QPCA predictions"
+    ), summaryTitle = "completion"),
     DynamicGroup("tripleMatchers", "Triple filter", SummaryTitle.NoTitle) { implicit context =>
       Constants(
         new OptionalText[String]("subject", "Subject", validator = RegExp("<.*>|.*:.*", true), summaryTitle = "subject"),
@@ -45,7 +49,6 @@ class FilterPrediction(fromOperation: Operation, val info: OperationInfo) extend
           "Confidence" -> "Confidence",
           "PcaConfidence" -> "PCA confidence",
           "PcaBodySize" -> "PCA body size",
-          "HeadConfidence" -> "Head confidence",
           "Lift" -> "Lift"
         ), onSelect = (_, value) => summaryTitle.value = value),
         new FixedText[String]("value", "Value", validator = RegExp("\\d+(\\.\\d+)?|[><]=? \\d+(\\.\\d+)?|[\\[\\(]\\d+(\\.\\d+)?;\\d+(\\.\\d+)?[\\]\\)]"), summaryTitle = SummaryTitle.Variable(summaryTitle))

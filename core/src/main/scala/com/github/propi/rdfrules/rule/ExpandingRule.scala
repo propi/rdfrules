@@ -70,15 +70,11 @@ object ExpandingRule {
     lazy val maxVariable: Atom.Variable = variables.max
   }
 
-  sealed trait ExactRule extends ExpandingRule {
-    def supportIncreaseRatio: Float = 0.0f
-  }
-
   object ClosedRule {
     def apply(body: IndexedSeq[Atom], head: Atom, support: Int, _supportIncreaseRatio: Float, headSize: Int, headSupport: Int, variables: List[Atom.Variable]): ClosedRule = {
       if (_supportIncreaseRatio > 0.0f) {
         new BasicClosedRule(body, head, support, headSize, headSupport, variables) {
-          val supportIncreaseRatio: Float = _supportIncreaseRatio
+          override val supportIncreaseRatio: Float = _supportIncreaseRatio
         }
       } else {
         apply(body, head, support, headSize, headSupport, variables)
@@ -86,13 +82,13 @@ object ExpandingRule {
     }
 
     def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, headSupport: Int, variables: List[Atom.Variable]): ClosedRule = {
-      new BasicClosedRule(body, head, support, headSize, headSupport, variables) with ExactRule
+      new BasicClosedRule(body, head, support, headSize, headSupport, variables)
     }
 
     //def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, variables: List[Atom.Variable], supportedRanges: MutableRanges): ClosedRule = new CachedClosedRule(body, head, support, headSize, variables, SoftReference(supportedRanges))
   }
 
-  private abstract class BasicClosedRule(val body: IndexedSeq[Atom],
+  private class BasicClosedRule(val body: IndexedSeq[Atom],
                                          val head: Atom,
                                          val support: Int,
                                          val headSize: Int,
@@ -100,6 +96,8 @@ object ExpandingRule {
                                          val variables: List[Atom.Variable]
                                         ) extends ClosedRule {
     def supportedRanges: Option[MutableRanges] = None
+
+    def supportIncreaseRatio: Float = 0.0f
   }
 
   /*private class CachedClosedRule(val body: IndexedSeq[Atom],
@@ -130,13 +128,13 @@ object ExpandingRule {
 
   object DanglingRule {
     def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, headSupport: Int, danglings: List[Atom.Variable], others: List[Atom.Variable]): DanglingRule = {
-      new BasicDanglingRule(body, head, support, headSize, headSupport, danglings, others) with ExactRule
+      new BasicDanglingRule(body, head, support, headSize, headSupport, danglings, others)
     }
 
     def apply(body: IndexedSeq[Atom], head: Atom, support: Int, _supportIncreaseRatio: Float, headSize: Int, headSupport: Int, danglings: List[Atom.Variable], others: List[Atom.Variable]): DanglingRule = {
       if (_supportIncreaseRatio > 0.0f) {
         new BasicDanglingRule(body, head, support, headSize, headSupport, danglings, others) {
-          val supportIncreaseRatio: Float = _supportIncreaseRatio
+          override val supportIncreaseRatio: Float = _supportIncreaseRatio
         }
       } else {
         apply(body, head, support, headSize, headSupport, danglings, others)
@@ -145,7 +143,7 @@ object ExpandingRule {
     //def apply(body: IndexedSeq[Atom], head: Atom, support: Int, headSize: Int, danglings: List[Atom.Variable], others: List[Atom.Variable], supportedRanges: MutableRanges): DanglingRule = new CachedDanglingRule(body, head, support, headSize, danglings, others, SoftReference(supportedRanges))
   }
 
-  private abstract class BasicDanglingRule(val body: IndexedSeq[Atom],
+  private class BasicDanglingRule(val body: IndexedSeq[Atom],
                                            val head: Atom,
                                            val support: Int,
                                            val headSize: Int,
@@ -153,6 +151,8 @@ object ExpandingRule {
                                            val danglings: List[Atom.Variable],
                                            val others: List[Atom.Variable]) extends DanglingRule {
     def supportedRanges: Option[MutableRanges] = None
+
+    def supportIncreaseRatio: Float = 0.0f
   }
 
   /*private class CachedDanglingRule(val body: IndexedSeq[Atom],

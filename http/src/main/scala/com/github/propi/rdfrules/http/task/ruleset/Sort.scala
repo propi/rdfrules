@@ -23,7 +23,6 @@ class Sort(measures: Seq[(Option[TypedKeyMap.Key[Measure]], Boolean)]) extends T
       val measuresConverters: Seq[FinalRule => Measure] = measures.map(x => x._1.collect {
         case Measure.BodySize => rule: FinalRule => Measure.BodySize(rule.measures.get(Measure.BodySize).map(_.value).getOrElse(0) * revNum(x._2))
         case Measure.Confidence => rule: FinalRule => Measure.Confidence(rule.measures.get(Measure.Confidence).map(_.value).getOrElse(0.0) * revNum(x._2))
-        case Measure.HeadConfidence => rule: FinalRule => Measure.HeadConfidence(rule.measures.get(Measure.HeadConfidence).map(_.value).getOrElse(0.0) * revNum(x._2))
         case Measure.HeadCoverage => rule: FinalRule => Measure.HeadCoverage(rule.measures.get(Measure.HeadCoverage).map(_.value).getOrElse(0.0) * revNum(x._2))
         case Measure.HeadSize => rule: FinalRule => Measure.HeadSize(rule.measures.get(Measure.HeadSize).map(_.value).getOrElse(0) * revNum(x._2))
         case Measure.Lift => rule: FinalRule => Measure.Lift(rule.measures.get(Measure.Lift).map(_.value).getOrElse(0.0) * revNum(x._2))

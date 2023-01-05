@@ -109,4 +109,17 @@ object Deserializer {
     (Deserializer.deserialize[T1](bais), Deserializer.deserialize[T2](bais), Deserializer.deserialize[T3](bais))
   }
 
+  implicit def tuple4Deserializer[T1, T2, T3, T4](implicit
+                                                  deserializer1: Deserializer[T1],
+                                                  serializationSize1: SerializationSize[T1],
+                                                  deserializer2: Deserializer[T2],
+                                                  serializationSize2: SerializationSize[T2],
+                                                  deserializer3: Deserializer[T3],
+                                                  serializationSize3: SerializationSize[T3],
+                                                  deserializer4: Deserializer[T4],
+                                                  serializationSize4: SerializationSize[T4]): Deserializer[(T1, T2, T3, T4)] = (v: Array[Byte]) => {
+    val bais = new ByteArrayInputStream(v)
+    (Deserializer.deserialize[T1](bais), Deserializer.deserialize[T2](bais), Deserializer.deserialize[T3](bais), Deserializer.deserialize[T4](bais))
+  }
+
 }

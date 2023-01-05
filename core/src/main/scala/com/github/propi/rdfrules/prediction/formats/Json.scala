@@ -34,7 +34,7 @@ object Json {
     try {
       ForEach.from(
         source.mkString.parseJson.convertTo[IndexedSeq[JsValue]]
-          .flatMap(_.convertTo[IndexedSeq[ResolvedPredictedTriple]](ResolvedPredictedTriple.resolvedPredictedTriplesJsonReader))
+          .flatMap(_.convertTo[IndexedSeq[ResolvedPredictedTriple]])
       )
     } finally {
       source.close()

@@ -2,9 +2,10 @@ package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
+import com.github.propi.rdfrules.prediction.PredictionTask
 import com.github.propi.rdfrules.rule.Rule.FinalRule
-import com.github.propi.rdfrules.rule.{Atom, Measure}
-import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
+import com.github.propi.rdfrules.rule.{Atom, Measure, TripleItemPosition}
+import com.github.propi.rdfrules.utils.{Debugger, IncrementalInt, TypedKeyMap}
 
 /**
   * Created by Vaclav Zeman on 11. 7. 2017.
@@ -59,10 +60,10 @@ trait RuleCounting extends AtomCounting {
     *
     * @return New rule with counted head confidence
     */
+  /*@deprecated("old lift measure")
   def withHeadConfidence: FinalRule = {
     //logger.debug(s"Head confidence counting for rule: " + rule)
     val average = (rule.head.subject, rule.head.`object`) match {
-      //TODO add functionality and inverseFunctionaly to choose which part of atom should take into account
       //if head is variables atom then average is number of all subjects (or objects depending on functionality) with the predicate of the head atom
       //DIVIDED
       //number of all subjects (or objects depending on functionality)
@@ -78,7 +79,7 @@ trait RuleCounting extends AtomCounting {
       case _ => 0
     }
     rule.withMeasures(TypedKeyMap(Measure.HeadConfidence(average)) ++= rule.measures)
-  }
+  }*/
 
   /**
     * Count lift for the rule.
@@ -88,13 +89,12 @@ trait RuleCounting extends AtomCounting {
     */
   def withLift: FinalRule = {
     //logger.debug(s"Lift counting for rule: " + rule)
-    val confidence = rule.measures.get[Measure.Confidence]
-    val average = rule.measures.get[Measure.HeadConfidence]
-    (confidence, average) match {
-      //lift is confidence DIVIDED average confidence for the head atom
-      case (Some(confidence), Some(average)) => rule.withMeasures(TypedKeyMap(Measure.Lift(confidence.value / average.value)) ++= rule.measures)
-      case _ => rule
-    }
+    (for {
+      confidence <- rule.measures.get[Measure.PcaConfidence].map(_.value).orElse(rule.measures.get[Measure.Confidence].map(_.value))
+      propertyModeProbability <- tripleIndex.predicates.get(rule.head.predicate).map(_.modeProbability)
+    } yield {
+      rule.withMeasures(TypedKeyMap(Measure.Lift(confidence / propertyModeProbability)))
+    }).getOrElse(rule)
   }
 
   /*private def bodySizeLowerBound(pca: Option[(Int, TripleItemPosition[Atom.Variable])], injectiveMapping: Boolean) = {
@@ -192,7 +192,7 @@ trait RuleCounting extends AtomCounting {
   def withPcaConfidence(minPcaConfidence: Double, injectiveMapping: Boolean, allPaths: Boolean = false)(implicit debugger: Debugger): FinalRule = {
     //minimal allowed confidence is 0.1%
     if (minPcaConfidence < 0.001) {
-      withPcaConfidence(0.001, allPaths)
+      withPcaConfidence(0.001, injectiveMapping, allPaths)
     } else {
       //logger.debug(s"PCA confidence counting for rule: " + rule)
       val bodySet = rule.bodySet
@@ -224,7 +224,7 @@ trait RuleCounting extends AtomCounting {
 
       val (pcaVariableMaps, pairFilter): (Iterator[VariableMap], Option[Seq[Atom.Constant] => Boolean]) = {
         val pindex = tripleIndex.predicates(rule.head.predicate)
-        lazy val _bestAtom = rule.body.iterator/*.filter(x => headVars.contains(x.subject) || headVars.contains(x.`object`))*/.map(x => x -> scoreAtom(x, emptyVariableMap)).minBy(_._2)
+        lazy val _bestAtom = rule.body.iterator /*.filter(x => headVars.contains(x.subject) || headVars.contains(x.`object`))*/ .map(x => x -> scoreAtom(x, emptyVariableMap)).minBy(_._2)
         pindex.higherCardinalitySide match {
           case TriplePosition.Subject => rule.head.subject match {
             case _: Atom.Constant => Iterator(emptyVariableMap) -> None
@@ -242,6 +242,113 @@ trait RuleCounting extends AtomCounting {
           }
         }
       }
+      val pcaBodySize = countDistinctPairs(bodySet, rule.head, maxPcaBodySize, pcaVariableMaps, pairFilter)
+      val pcaConfidence = if (pcaBodySize == 0) 0.0 else support.toDouble / pcaBodySize
+      if (pcaConfidence >= minPcaConfidence) {
+        rule.withMeasures(TypedKeyMap(Measure.PcaBodySize(pcaBodySize), Measure.PcaConfidence(pcaConfidence)) ++= rule.measures)
+      } else {
+        rule
+      }
+    }
+  }
+
+  def withQpcaConfidence(minQpcaConfidence: Double, injectiveMapping: Boolean)(implicit debugger: Debugger): FinalRule = {
+    //minimal allowed confidence is 0.1%
+    if (minQpcaConfidence < 0.001) {
+      withPcaConfidence(0.001, injectiveMapping)
+    } else {
+      //logger.debug(s"PCA confidence counting for rule: " + rule)
+      val bodySet = rule.bodySet
+      val support = rule.support
+      val maxPcaBodySize = (support / minPcaConfidence) + 1
+      val zeroConstant = Atom.Constant(tripleItemIndex.zero)
+      val emptyVariableMap = VariableMap(injectiveMapping)
+      /*val headVars = List(rule.head.subject, rule.head.`object`).collect {
+        case x: Atom.Variable => x
+      }*/
+
+      val maxNegatives: Int = ???
+      var negatives = 0
+      val cache = collection.mutable.HashMap.empty[PredictionTask, (IncrementalInt, IncrementalInt)]
+
+      val incrementNegatives: Seq[Atom.Constant] => Unit = {
+        val pindex = tripleIndex.predicates(rule.head.predicate)
+        pindex.higherCardinalitySide match {
+          case TriplePosition.Subject =>
+            rule.head.subject match {
+              case Atom.Constant(s) =>
+                _ => negatives += 1
+              case _ =>
+                val objectConstant: Seq[Atom.Constant] => Int = rule.head.`object` match {
+                  case Atom.Constant(x) => _ => x
+                  case _ => _.last.value
+                }
+                constants =>
+                  val predictionTask = PredictionTask(rule.head.predicate, TripleItemPosition.Subject(constants.head.value))
+                  val (missing, existing) = cache.getOrElseUpdate(predictionTask, IncrementalInt() -> IncrementalInt())
+                  val isExisting = pindex.subjects.get(predictionTask.c.item).exists(_.contains(objectConstant(constants)))
+                  if (isExisting) {
+                    existing.++
+                  } else {
+                    missing.++
+                    if (missing.getValue > pindex.averageSubjectCardinality) {
+                      negatives += 1
+                    }
+                  }
+            }
+          case TriplePosition.Object =>
+            if (rule.head.`object`.isInstanceOf[Atom.Constant]) {
+              _ => true
+            } else {
+              val objectConstant: Seq[Atom.Constant] => Int = rule.head.`object` match {
+                case Atom.Constant(x) => _ => x
+                case _ => _.last.value
+              }
+              constants =>
+                val predictionTask = PredictionTask(rule.head.predicate, TripleItemPosition.Subject(constants.head.value))
+                val (missing, existing) = cache.getOrElseUpdate(predictionTask, IncrementalInt() -> IncrementalInt())
+                val isExisting = pindex.subjects.get(predictionTask.c.item).exists(_.contains(objectConstant(constants)))
+                if (isExisting) {
+                  existing.++
+                } else {
+                  missing.++
+                  if (missing.getValue > pindex.averageSubjectCardinality) {
+                    negatives += 1
+                  }
+                }
+            }
+        }
+      }
+
+      val (pcaVariableMaps, pairFilter): (Iterator[VariableMap], Option[Seq[Atom.Constant] => Boolean]) = {
+        val pindex = tripleIndex.predicates(rule.head.predicate)
+        lazy val _bestAtom = rule.body.iterator /*.filter(x => headVars.contains(x.subject) || headVars.contains(x.`object`))*/ .map(x => x -> scoreAtom(x, emptyVariableMap)).minBy(_._2)
+        pindex.higherCardinalitySide match {
+          case TriplePosition.Subject => rule.head.subject match {
+            case _: Atom.Constant => Iterator(emptyVariableMap) -> None
+            case v: Atom.Variable => _bestAtom match {
+              case (_, score) if score < pindex.subjects.size => Iterator(emptyVariableMap) -> Some(isPCA)
+              case _ => pindex.subjects.iterator.map(x => emptyVariableMap + (v -> Atom.Constant(x), rule.head.predicate, zeroConstant)) -> None
+            }
+          }
+          case TriplePosition.Object => rule.head.`object` match {
+            case _: Atom.Constant => Iterator(emptyVariableMap) -> None
+            case v: Atom.Variable => _bestAtom match {
+              case (_, score) if score < pindex.objects.size => Iterator(emptyVariableMap) -> Some(isPCA)
+              case _ => pindex.objects.iterator.map(x => emptyVariableMap + (zeroConstant, rule.head.predicate, v -> Atom.Constant(x))) -> None
+            }
+          }
+        }
+      }
+
+      val predictions = selectDistinctPairs(bodySet, List(rule.head.subject, rule.head.`object`).collect {
+        case x: Atom.Variable => x
+      }, pcaVariableMaps)
+      while (predictions.hasNext && negatives <= maxNegatives && !debugger.isInterrupted) {
+        val prediction = predictions.next()
+      }
+      takeWhile(negatives <= maxNegatives && !debugger.isInterrupted)
+
       val pcaBodySize = countDistinctPairs(bodySet, rule.head, maxPcaBodySize, pcaVariableMaps, pairFilter)
       val pcaConfidence = if (pcaBodySize == 0) 0.0 else support.toDouble / pcaBodySize
       if (pcaConfidence >= minPcaConfidence) {

@@ -49,6 +49,11 @@ object BasicFunctions {
 
   def round(x: Double, precision: Int): Double = BigDecimal(x).setScale(precision, BigDecimal.RoundingMode.HALF_UP).toDouble
 
+  def firstToLowerCase(x: String): String = x.headOption match {
+    case Some(first) => s"${first.toLower}${x.tail}"
+    case None => x
+  }
+
   def parseNumber(x: String): Option[Either[Int, Double]] = {
     if (x == null || x.isEmpty) {
       return None

@@ -100,4 +100,21 @@ object Serializer {
     baos.toByteArray
   }
 
+  implicit def tuple4Serializer[T1, T2, T3, T4](implicit
+                                                serializer1: Serializer[T1],
+                                                serializationSize1: SerializationSize[T1],
+                                                serializer2: Serializer[T2],
+                                                serializationSize2: SerializationSize[T2],
+                                                serializer3: Serializer[T3],
+                                                serializationSize3: SerializationSize[T3],
+                                                serializer4: Serializer[T4],
+                                                serializationSize4: SerializationSize[T4]): Serializer[(T1, T2, T3, T4)] = (v: (T1, T2, T3, T4)) => {
+    val baos = new ByteArrayOutputStream()
+    baos.write(Serializer.serialize(v._1))
+    baos.write(Serializer.serialize(v._2))
+    baos.write(Serializer.serialize(v._3))
+    baos.write(Serializer.serialize(v._4))
+    baos.toByteArray
+  }
+
 }

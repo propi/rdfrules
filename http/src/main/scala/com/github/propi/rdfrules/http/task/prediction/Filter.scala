@@ -1,14 +1,13 @@
 package com.github.propi.rdfrules.http.task.prediction
 
 import com.github.propi.rdfrules.data.TripleItem
-import com.github.propi.rdfrules.http.task.{Task, TaskDefinition, TripleItemMatcher, TripleMatcher}
+import com.github.propi.rdfrules.http.task.{CompletionStrategy, Task, TaskDefinition, TripleItemMatcher, TripleMatcher}
 import com.github.propi.rdfrules.prediction.{PredictedResult, PredictedTriples}
 import com.github.propi.rdfrules.rule.{Measure, RulePattern}
 import com.github.propi.rdfrules.utils.TypedKeyMap
 
 class Filter(predictedResults: Set[PredictedResult],
-             distinctPrediction: Boolean,
-             onlyFunctionalPredictions: Boolean,
+             completionStrategy: Option[CompletionStrategy],
              tripleMatchers: Seq[(TripleMatcher, Boolean)],
              measures: Seq[(Option[TypedKeyMap.Key[Measure]], TripleItemMatcher.Number)],
              patterns: Seq[RulePattern],
@@ -26,10 +25,11 @@ class Filter(predictedResults: Set[PredictedResult],
     predictedTriples => if (measures.nonEmpty) {
       predictedTriples.filter(predictedTriple => measures.forall { case (measure, matcher) =>
         measure match {
-          case Some(measure) => predictedTriple.rule.measures.get(measure).collect {
-            case Measure(x) => TripleItem.Number(x)
-          }.exists(matcher.matchAll(_).nonEmpty)
-          case None => matcher.matchAll(TripleItem.Number(predictedTriple.rule.ruleLength)).nonEmpty
+          case Some(measure) =>
+            predictedTriple.rules.exists(rule => rule.measures.get(measure).collect {
+              case Measure(x) => TripleItem.Number(x)
+            }.exists(matcher.matchAll(_).nonEmpty))
+          case None => predictedTriple.rules.exists(rule => matcher.matchAll(TripleItem.Number(rule.ruleLength)).nonEmpty)
         }
       })
     } else {
@@ -39,8 +39,13 @@ class Filter(predictedResults: Set[PredictedResult],
       case Seq(head, tail@_*) => predictedTriples.filter(head, tail: _*)
       case _ => predictedTriples
     },
-    predictedTriples => if (distinctPrediction) predictedTriples.distinctPredictions else predictedTriples,
-    predictedTriples => if (onlyFunctionalPredictions) predictedTriples.onlyFunctionalPredictions else predictedTriples
+    predictedTriples => completionStrategy match {
+      case Some(CompletionStrategy.DistinctPredictions) => predictedTriples.distinctPredictions
+      case Some(CompletionStrategy.FunctionalPredictions) => predictedTriples.onlyFunctionalPredictions
+      case Some(CompletionStrategy.PcaPredictions) => predictedTriples.onlyPcaPredictions
+      case Some(CompletionStrategy.QpcaPredictions) => predictedTriples.onlyQpcaPredictions
+      case None => predictedTriples
+    }
   ))(input)
 }
 

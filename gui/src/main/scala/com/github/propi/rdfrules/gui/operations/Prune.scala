@@ -22,7 +22,6 @@ class Prune(fromOperation: Operation, val info: OperationInfo) extends Operation
       "Confidence" -> "Confidence",
       "PcaConfidence" -> "PCA confidence",
       "PcaBodySize" -> "PCA body size",
-      "HeadConfidence" -> "Head confidence",
       "Lift" -> "Lift"
     ), Some("HeadCoverage"))), true))
 
