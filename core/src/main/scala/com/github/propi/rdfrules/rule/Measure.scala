@@ -64,6 +64,18 @@ object Measure {
 
   implicit object Lift extends Key[Lift]
 
+  case class QpcaBodySize(value: Int) extends Measure {
+    def companion: QpcaBodySize.type = QpcaBodySize
+  }
+
+  implicit object QpcaBodySize extends Key[QpcaBodySize]
+
+  case class QpcaConfidence(value: Double) extends Measure {
+    def companion: QpcaConfidence.type = QpcaConfidence
+  }
+
+  implicit object QpcaConfidence extends Key[QpcaConfidence]
+
   case class PcaBodySize(value: Int) extends Measure {
     def companion: PcaBodySize.type = PcaBodySize
   }
@@ -91,6 +103,8 @@ object Measure {
     case Measure.Lift(x) => Some(x)
     case Measure.PcaBodySize(x) => Some(x)
     case Measure.PcaConfidence(x) => Some(x)
+    case Measure.QpcaBodySize(x) => Some(x)
+    case Measure.QpcaConfidence(x) => Some(x)
     case Measure.Support(x) => Some(x)
     case Measure.HeadSupport(x) => Some(x)
     case Measure.Cluster(x) => Some(x)
@@ -99,7 +113,7 @@ object Measure {
   implicit def mesureToKeyValue(measure: Measure): (Key[Measure], Measure) = measure.companion -> measure
 
   implicit val measureKeyOrdering: Ordering[Key[Measure]] = {
-    val map = Iterator[Key[Measure]](Support, HeadCoverage, Confidence, PcaConfidence, Lift, HeadSize, SupportIncreaseRatio, BodySize, PcaBodySize, HeadSupport, Cluster).zipWithIndex.map(x => x._1 -> (x._2 + 1)).toMap
+    val map = Iterator[Key[Measure]](Support, HeadCoverage, Confidence, PcaConfidence, QpcaConfidence, Lift, HeadSize, SupportIncreaseRatio, BodySize, PcaBodySize, QpcaBodySize, HeadSupport, Cluster).zipWithIndex.map(x => x._1 -> (x._2 + 1)).toMap
     Ordering.by[Key[Measure], Int](map.getOrElse(_, 0))
   }
 
@@ -112,14 +126,17 @@ object Measure {
     case Measure.Lift(x) => x
     case Measure.PcaBodySize(x) => x
     case Measure.PcaConfidence(x) => x
+    case Measure.QpcaBodySize(x) => x
+    case Measure.QpcaConfidence(x) => x
     case Measure.Support(x) => x
     case Measure.HeadSupport(x) => x
     case Measure.Cluster(x) => x * -1
   }.reverse
 
-  implicit val measuresOrdering: Ordering[TypedKeyMap.Immutable[Measure]] = Ordering.by[TypedKeyMap.Immutable[Measure], (Measure, Measure, Measure, Measure, Measure)] { measures =>
+  implicit val measuresOrdering: Ordering[TypedKeyMap.Immutable[Measure]] = Ordering.by[TypedKeyMap.Immutable[Measure], (Measure, Measure, Measure, Measure, Measure, Measure)] { measures =>
     (
       measures.get(Measure.Cluster).getOrElse(Measure.Cluster(0)),
+      measures.get(Measure.QpcaConfidence).getOrElse(Measure.QpcaConfidence(0)),
       measures.get(Measure.PcaConfidence).getOrElse(Measure.PcaConfidence(0)),
       measures.get(Measure.Lift).getOrElse(Measure.Lift(0)),
       measures.get(Measure.Confidence).getOrElse(Measure.Confidence(0)),
@@ -133,10 +150,12 @@ object Measure {
     case Measure.Confidence(v) => s"confidence: $v"
     case Measure.Lift(v) => s"lift: $v"
     case Measure.PcaConfidence(v) => s"pcaConfidence: $v"
+    case Measure.QpcaConfidence(v) => s"qpcaConfidence: $v"
     case Measure.HeadSize(v) => s"headSize: $v"
     case Measure.SupportIncreaseRatio(v) => s"supportIncreaseRatio: $v"
     case Measure.BodySize(v) => s"bodySize: $v"
     case Measure.PcaBodySize(v) => s"pcaBodySize: $v"
+    case Measure.QpcaBodySize(v) => s"qpcaBodySize: $v"
     case Measure.HeadSupport(v) => s"headSupport: $v"
     case Measure.Cluster(v) => s"cluster: $v"
   }
@@ -150,7 +169,9 @@ object Measure {
       case Measure.SupportIncreaseRatio(x) => JsObject("name" -> JsString("SupportIncreaseRatio"), "value" -> JsNumber(x))
       case Measure.Lift(x) => JsObject("name" -> JsString("Lift"), "value" -> JsNumber(x))
       case Measure.PcaBodySize(x) => JsObject("name" -> JsString("PcaBodySize"), "value" -> JsNumber(x))
+      case Measure.QpcaBodySize(x) => JsObject("name" -> JsString("QpcaBodySize"), "value" -> JsNumber(x))
       case Measure.PcaConfidence(x) => JsObject("name" -> JsString("PcaConfidence"), "value" -> JsNumber(x))
+      case Measure.QpcaConfidence(x) => JsObject("name" -> JsString("QpcaConfidence"), "value" -> JsNumber(x))
       case Measure.Support(x) => JsObject("name" -> JsString("Support"), "value" -> JsNumber(x))
       case Measure.HeadSupport(x) => JsObject("name" -> JsString("HeadSupport"), "value" -> JsNumber(x))
       case Measure.Cluster(x) => JsObject("name" -> JsString("Cluster"), "value" -> JsNumber(x))
@@ -168,6 +189,8 @@ object Measure {
         case "Lift" => Measure.Lift(value.convertTo[Double])
         case "PcaBodySize" => Measure.PcaBodySize(value.convertTo[Int])
         case "PcaConfidence" => Measure.PcaConfidence(value.convertTo[Double])
+        case "QpcaBodySize" => Measure.QpcaBodySize(value.convertTo[Int])
+        case "QpcaConfidence" => Measure.QpcaConfidence(value.convertTo[Double])
         case "Support" => Measure.Support(value.convertTo[Int])
         case "HeadSupport" => Measure.HeadSupport(value.convertTo[Int])
         case "Cluster" => Measure.Cluster(value.convertTo[Int])

@@ -162,6 +162,8 @@ object RuleSerialization {
       case Measure.Cluster(x) => 10 -> x.toDouble
       case Measure.SupportIncreaseRatio(x) => 11 -> x.toDouble
       case Measure.HeadSupport(x) => 12 -> x.toDouble
+      case Measure.QpcaBodySize(x) => 13 -> x.toDouble
+      case Measure.QpcaConfidence(x) => 14 -> x
     }
     buffer.put(mtype.toByte)
     buffer.putDouble(value)
@@ -184,6 +186,8 @@ object RuleSerialization {
       case 10 => Measure.Cluster(value.toInt)
       case 11 => Measure.SupportIncreaseRatio(value.toFloat)
       case 12 => Measure.HeadSupport(value.toInt)
+      case 13 => Measure.QpcaBodySize(value.toInt)
+      case 14 => Measure.QpcaConfidence(value)
       case _ => throw new Deserializer.DeserializationException("Invalid type of a measure.")
     }
   }
