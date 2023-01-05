@@ -17,7 +17,7 @@ class AnytimeRdfRules[T](val name: String,
                         (implicit val debugger: Debugger) extends RdfRulesMiningTask[T] {
   self: TaskPostProcessor[Ruleset, T] =>
 
-  override val minPcaConfidence: Double = 0.5
+  override val minPcaConfidence: Double = 0.0
   override val minConfidence: Double = 0.0
   override val localTimeout: Option[Threshold.LocalTimeout] = Some(timeout)
 }
