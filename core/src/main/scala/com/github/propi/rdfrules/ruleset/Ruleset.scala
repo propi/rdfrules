@@ -6,6 +6,7 @@ import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
 import com.github.propi.rdfrules.index.{AutoIndex, Index, TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.prediction.{InstantiatedRuleset, Instantiation, PredictedResult, PredictedTriples, Prediction}
+import com.github.propi.rdfrules.rule.Measure.{Confidence, ConfidenceMeasure}
 import com.github.propi.rdfrules.rule.PatternMatcher.Aliases
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
@@ -139,42 +140,27 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     })
   }
 
-  def computeConfidence(minConfidence: Double, injectiveMapping: Boolean = true, topK: Int = 0)(implicit debugger: Debugger): Ruleset = {
+  def computeConfidence[T <: ConfidenceMeasure](minConfidence: Double, injectiveMapping: Boolean = true, topK: Int = 0)(implicit confidenceType: Confidence[T], debugger: Debugger): Ruleset = {
     @volatile var threshold = minConfidence
     implicit val ti: TripleIndex[Int] = index.tripleMap
     implicit val tii: TripleItemIndex = index.tripleItemMap
 
-    val rulesWithConfidence = rules.parMap(parallelism) { rule =>
-      rule.withConfidence(threshold, injectiveMapping)
-    }.withDebugger("Confidence computing").filter(_.measures.get[Measure.Confidence].exists(_.value >= minConfidence))
-
-    val resColl = if (topK > 0) {
-      //if we use topK approach then the final ruleset will have size lower than or equals to the original size
-      //therefore we shrink the original ruleset
-      //first we need to define rule ordering for priority queue
-      implicit val ord: Ordering[FinalRule] = Ordering.by[FinalRule, (Double, Double)](x => x.measures.get[Measure.Confidence].map(_.value).getOrElse(0.0) -> x.measures.apply[Measure.HeadCoverage].value).reverse
-      rulesWithConfidence.topK(topK)(rule => threshold = rule.measures.apply[Measure.Confidence].value)
-    } else {
-      rulesWithConfidence
+    val withConfidence: FinalRule => FinalRule = confidenceType match {
+      case Measure.CwaConfidence => _.withCwaConfidence(threshold, injectiveMapping)
+      case Measure.PcaConfidence => _.withPcaConfidence(threshold, injectiveMapping)
+      case Measure.QpcaConfidence =>  _.withQpcaConfidence(threshold, injectiveMapping)
     }
-    transform(resColl)
-  }
 
-  def computePcaConfidence(minPcaConfidence: Double, injectiveMapping: Boolean = true, topK: Int = 0)(implicit debugger: Debugger): Ruleset = {
-    @volatile var threshold = minPcaConfidence
-    implicit val ti: TripleIndex[Int] = index.tripleMap
-    implicit val tii: TripleItemIndex = index.tripleItemMap
-
-    val rulesWithConfidence = rules.parMap(parallelism) { rule =>
-      rule.withPcaConfidence(threshold, injectiveMapping)
-    }.withDebugger("PCA Confidence computing").filter(_.measures.get[Measure.PcaConfidence].exists(_.value >= minPcaConfidence))
+    val rulesWithConfidence = rules.parMap(parallelism)(withConfidence)
+      .withDebugger(s"${confidenceType.productPrefix} computing")
+      .filter(_.measures.get[T].exists(_.value >= minConfidence))
 
     val resColl = if (topK > 0) {
       //if we use topK approach then the final ruleset will have size lower than or equals to the original size
       //therefore we shrink the original ruleset
       //first we need to define rule ordering for priority queue
-      implicit val ord: Ordering[FinalRule] = Ordering.by[FinalRule, (Double, Double)](x => x.measures.get[Measure.PcaConfidence].map(_.value).getOrElse(0.0) -> x.measures.apply[Measure.HeadCoverage].value).reverse
-      rulesWithConfidence.topK(topK)(rule => threshold = rule.measures.apply[Measure.PcaConfidence].value)
+      implicit val ord: Ordering[FinalRule] = Ordering.by[FinalRule, (Double, Double)](x => x.measures.get[T].map(_.value).getOrElse(0.0) -> x.measures.apply[Measure.HeadCoverage].value).reverse
+      rulesWithConfidence.topK(topK)(rule => threshold = rule.measures.apply[T].value)
     } else {
       rulesWithConfidence
     }
@@ -186,7 +172,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     implicit val tii: TripleItemIndex = index.tripleItemMap
     val resColl = rules.parMap(parallelism) { rule =>
       Function.chain[FinalRule](List(
-        rule => if (rule.measures.exists[Measure.Confidence] || rule.measures.exists[Measure.PcaConfidence]) rule else rule.withPcaConfidence(minConfidence, injectiveMapping),
+        rule => if (rule.measures.exists[Measure.CwaConfidence] || rule.measures.exists[Measure.PcaConfidence] || rule.measures.exists[Measure.QpcaConfidence]) rule else rule.withPcaConfidence(minConfidence, injectiveMapping),
         rule => rule.withLift
       ))(rule)
     }.withDebugger("Lift computing")

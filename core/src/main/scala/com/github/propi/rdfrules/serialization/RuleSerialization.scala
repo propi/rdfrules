@@ -152,7 +152,7 @@ object RuleSerialization {
     val buffer = ByteBuffer.allocate(measureSerializationSize.size)
     val (mtype, value) = v match {
       case Measure.BodySize(x) => 1 -> x.toDouble
-      case Measure.Confidence(x) => 2 -> x
+      case Measure.CwaConfidence(x) => 2 -> x
       case Measure.HeadCoverage(x) => 4 -> x
       case Measure.HeadSize(x) => 5 -> x.toDouble
       case Measure.Lift(x) => 6 -> x
@@ -176,7 +176,7 @@ object RuleSerialization {
     val value = Deserializer.deserialize[Double](bais)
     mtype match {
       case 1 => Measure.BodySize(value.toInt)
-      case 2 => Measure.Confidence(value)
+      case 2 => Measure.CwaConfidence(value)
       case 4 => Measure.HeadCoverage(value)
       case 5 => Measure.HeadSize(value.toInt)
       case 6 => Measure.Lift(value)

@@ -47,7 +47,7 @@ object YagoAndDbpediaSamples {
           .addThreshold(Threshold.MinHeadCoverage(0.001))
           .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.LowerCardinalitySide())),
         RuleConsumer(TopKRuleConsumer(1000))
-      ).computePcaConfidence(0.5)
+      ).computeConfidence[Measure.PcaConfidence](0.5)
         .computeLift()
         .filter(_.measures.exists[Measure.Lift])
         .makeClusters(DbScan(minNeighbours = 1))

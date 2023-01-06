@@ -22,12 +22,14 @@ class Sort(measures: Seq[(Option[TypedKeyMap.Key[Measure]], Boolean)]) extends T
     } else {
       val measuresConverters: Seq[FinalRule => Measure] = measures.map(x => x._1.collect {
         case Measure.BodySize => rule: FinalRule => Measure.BodySize(rule.measures.get(Measure.BodySize).map(_.value).getOrElse(0) * revNum(x._2))
-        case Measure.Confidence => rule: FinalRule => Measure.Confidence(rule.measures.get(Measure.Confidence).map(_.value).getOrElse(0.0) * revNum(x._2))
+        case Measure.CwaConfidence => rule: FinalRule => Measure.CwaConfidence(rule.measures.get(Measure.CwaConfidence).map(_.value).getOrElse(0.0) * revNum(x._2))
         case Measure.HeadCoverage => rule: FinalRule => Measure.HeadCoverage(rule.measures.get(Measure.HeadCoverage).map(_.value).getOrElse(0.0) * revNum(x._2))
         case Measure.HeadSize => rule: FinalRule => Measure.HeadSize(rule.measures.get(Measure.HeadSize).map(_.value).getOrElse(0) * revNum(x._2))
         case Measure.Lift => rule: FinalRule => Measure.Lift(rule.measures.get(Measure.Lift).map(_.value).getOrElse(0.0) * revNum(x._2))
         case Measure.PcaBodySize => rule: FinalRule => Measure.PcaBodySize(rule.measures.get(Measure.PcaBodySize).map(_.value).getOrElse(0) * revNum(x._2))
         case Measure.PcaConfidence => rule: FinalRule => Measure.PcaConfidence(rule.measures.get(Measure.PcaConfidence).map(_.value).getOrElse(0.0) * revNum(x._2))
+        case Measure.QpcaBodySize => rule: FinalRule => Measure.QpcaBodySize(rule.measures.get(Measure.QpcaBodySize).map(_.value).getOrElse(0) * revNum(x._2))
+        case Measure.QpcaConfidence => rule: FinalRule => Measure.QpcaConfidence(rule.measures.get(Measure.QpcaConfidence).map(_.value).getOrElse(0.0) * revNum(x._2))
         case Measure.Support => rule: FinalRule => Measure.Support(rule.measures.get(Measure.Support).map(_.value).getOrElse(0) * revNum(x._2))
         case Measure.Cluster => rule: FinalRule => Measure.Cluster(rule.measures.get(Measure.Cluster).map(_.number).getOrElse(0) * revNum(x._2))
       }.getOrElse((rule: FinalRule) => Measure.Cluster(rule.ruleLength * revNum(x._2))))

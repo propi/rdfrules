@@ -28,6 +28,12 @@ class PropertiesCardinalities(val title: String, val id: Future[String]) extends
       {record.domain.toString}
       , range:
       {record.range.toString}
+      , target variable:
+      {record.target}
+      , target averaged cardinality:
+      {record.targetAverageCadinality.toString}
+      , target mode probability:
+      {record.targetModeProbability.toString}
     </div>
   </div>
 
@@ -55,6 +61,9 @@ object PropertiesCardinalities {
     val size: Int
     val domain: Int
     val range: Int
+    val target: String
+    val targetAverageCadinality: Int
+    val targetModeProbability: Double
   }
 
 }

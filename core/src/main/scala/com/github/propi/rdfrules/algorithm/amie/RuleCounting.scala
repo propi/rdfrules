@@ -22,7 +22,7 @@ trait RuleCounting extends AtomCounting {
     *                      rule with confidence lower than minConfidence will have confidence = minConfidence - 1
     * @return New rule with counted confidence
     */
-  def withConfidence(minConfidence: Double, injectiveMapping: Boolean, allPaths: Boolean = false)(implicit debugger: Debugger): FinalRule = {
+  def withCwaConfidence(minConfidence: Double, injectiveMapping: Boolean, allPaths: Boolean = false)(implicit debugger: Debugger): FinalRule = {
     /*TODO: Check confidence counting - it may be wrong, e.g.: p(c, b) & p(c, a) => p(a, b)
     A -> C1 -> B
     A -> C2 -> B
@@ -31,7 +31,7 @@ trait RuleCounting extends AtomCounting {
     */
     //minimal allowed confidence is 0.1%
     if (minConfidence < 0.001) {
-      withConfidence(0.001, allPaths)
+      withCwaConfidence(0.001, allPaths)
     } else {
       //logger.debug(s"Confidence counting for rule: " + rule)
       val support = rule.support
@@ -46,7 +46,7 @@ trait RuleCounting extends AtomCounting {
       //confidence is number of head triples which are connected to other atoms in the rule DIVIDED number of all possible paths from body
       val confidence = if (bodySize == 0) 0.0 else support.toDouble / bodySize
       if (confidence >= minConfidence) {
-        rule.withMeasures(TypedKeyMap(Measure.BodySize(bodySize), Measure.Confidence(confidence)) ++= rule.measures)
+        rule.withMeasures(TypedKeyMap(Measure.BodySize(bodySize), Measure.CwaConfidence(confidence)) ++= rule.measures)
       } else {
         rule
       }
@@ -89,10 +89,10 @@ trait RuleCounting extends AtomCounting {
   def withLift: FinalRule = {
     //logger.debug(s"Lift counting for rule: " + rule)
     (for {
-      confidence <- rule.measures.get[Measure.PcaConfidence].map(_.value).orElse(rule.measures.get[Measure.Confidence].map(_.value))
+      confidence <- rule.measures.get[Measure.QpcaConfidence].map(_.value).orElse(rule.measures.get[Measure.PcaConfidence].map(_.value)).orElse(rule.measures.get[Measure.CwaConfidence].map(_.value))
       propertyModeProbability <- tripleIndex.predicates.get(rule.head.predicate).map(_.modeProbability)
     } yield {
-      rule.withMeasures(TypedKeyMap(Measure.Lift(confidence / propertyModeProbability)))
+      rule.withMeasures(rule.measures + Measure.Lift(confidence / propertyModeProbability))
     }).getOrElse(rule)
   }
 
@@ -259,7 +259,7 @@ trait RuleCounting extends AtomCounting {
       val bodySet = rule.bodySet
       val support = rule.support
       val maxNegatives = (support / minQpcaConfidence) + 1
-      var negatives = 0
+      var bodySize = 0
       val cache = collection.mutable.HashMap.empty[Int, IncrementalInt]
       val pindex = tripleIndex.predicates(rule.head.predicate)
 
@@ -267,9 +267,9 @@ trait RuleCounting extends AtomCounting {
         val sindex = pindex.subjects.get(s)
         val currentCardinality = cache.getOrElseUpdate(s, IncrementalInt(sindex.map(_.size(injectiveMapping)).getOrElse(0)))
         if (sindex.exists(_.contains(o))) {
-          negatives += 1
+          bodySize += 1
         } else if (currentCardinality.getValue >= pindex.averageSubjectCardinality) {
-          negatives += 1
+          bodySize += 1
         } else {
           currentCardinality += 1
         }
@@ -279,9 +279,9 @@ trait RuleCounting extends AtomCounting {
         val oindex = pindex.objects.get(o)
         val currentCardinality = cache.getOrElseUpdate(o, IncrementalInt(oindex.map(_.size(injectiveMapping)).getOrElse(0)))
         if (oindex.exists(_.contains(s))) {
-          negatives += 1
+          bodySize += 1
         } else if (currentCardinality.getValue >= pindex.averageObjectCardinality) {
-          negatives += 1
+          bodySize += 1
         } else {
           currentCardinality += 1
         }
@@ -316,7 +316,7 @@ trait RuleCounting extends AtomCounting {
       val predictions = selectDistinctPairs(bodySet, List(rule.head.subject, rule.head.`object`).collect {
         case x: Atom.Variable => x
       }, Iterator(VariableMap(injectiveMapping)))
-      while (predictions.hasNext && negatives <= maxNegatives && !debugger.isInterrupted) {
+      while (predictions.hasNext && bodySize <= maxNegatives && !debugger.isInterrupted) {
         incrementNegatives(predictions.next())
         i += 1
         if (i % 500 == 0) {
@@ -326,10 +326,11 @@ trait RuleCounting extends AtomCounting {
           }
         }
       }
-      if (debugger.isInterrupted) negatives = 0
-      val qpcaConfidence = if (negatives == 0) 0.0 else support.toDouble / negatives
+      if (debugger.isInterrupted) bodySize = 0
+      val qpcaConfidence = if (bodySize == 0) 0.0 else support.toDouble / bodySize
+      //println(s"$atomString : $support / $bodySize = $qpcaConfidence")
       if (qpcaConfidence >= minQpcaConfidence) {
-        rule.withMeasures(TypedKeyMap(Measure.QpcaBodySize(negatives), Measure.PcaConfidence(qpcaConfidence)) ++= rule.measures)
+        rule.withMeasures(TypedKeyMap(Measure.QpcaBodySize(bodySize), Measure.QpcaConfidence(qpcaConfidence)) ++= rule.measures)
       } else {
         rule
       }

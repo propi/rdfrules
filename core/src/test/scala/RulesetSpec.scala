@@ -44,10 +44,10 @@ class RulesetSpec extends AnyFlatSpec with Matchers with Inside with CancelAfter
 
   "Ruleset" should "count confidence" in {
     val rules = ruleset.computeConfidence(0.9)
-    all(rules.rules.map(_.measures.apply[Measure.Confidence].value).toSeq) should be >= 0.9
+    all(rules.rules.map(_.measures.apply[Measure.CwaConfidence].value).toSeq) should be >= 0.9
     rules.size shouldBe 12
     val rules2 = ruleset.computeConfidence(0).rules
-    all(rules2.map(_.measures.apply[Measure.Confidence].value).toSeq) should be >= 0.001
+    all(rules2.map(_.measures.apply[Measure.CwaConfidence].value).toSeq) should be >= 0.001
     rules2.size shouldBe 810
   }
 
@@ -59,7 +59,7 @@ class RulesetSpec extends AnyFlatSpec with Matchers with Inside with CancelAfter
 
   it should "count lift" in {
     val rules = ruleset.computeLift().rules
-    all(rules.map(_.measures.apply[Measure.Confidence].value).toSeq) should be >= 0.5
+    all(rules.map(_.measures.apply[Measure.CwaConfidence].value).toSeq) should be >= 0.5
     for (rule <- rules) {
       rule.measures.exists[Measure.Lift] shouldBe true
       rule.measures.exists[Measure.HeadConfidence] shouldBe true

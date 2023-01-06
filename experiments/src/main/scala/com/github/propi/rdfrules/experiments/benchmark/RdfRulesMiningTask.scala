@@ -39,8 +39,9 @@ trait RdfRulesMiningTask[T] extends Task[Index, Index, Ruleset, T] with TaskPreP
   protected def countOtherMetrics(ruleset: Ruleset): Ruleset = {
     Function.chain[Ruleset](List(
       _.setParallelism(numberOfThreads),
-      x => if (minConfidence <= 0.0) x else x.computeConfidence(minConfidence, injectiveMapping).cache,
-      x => if (minPcaConfidence <= 0.0) x else x.computePcaConfidence(minPcaConfidence, injectiveMapping).cache,
+      x => if (minConfidence <= 0.0) x else x.computeConfidence[Measure.CwaConfidence](minConfidence, injectiveMapping).cache,
+      x => if (minPcaConfidence <= 0.0) x else x.computeConfidence[Measure.PcaConfidence](minPcaConfidence, injectiveMapping).cache,
+      x => if (minQpcaConfidence <= 0.0) x else x.computeConfidence[Measure.QpcaConfidence](minQpcaConfidence, injectiveMapping).cache,
       x => if (!countLift || minConfidence <= 0.0) x else x.computeLift(minConfidence, injectiveMapping).cache,
       x => if (skylinePruning) x.onlyBetterDescendant(Measure.PcaConfidence).cache else x,
     ))(ruleset)

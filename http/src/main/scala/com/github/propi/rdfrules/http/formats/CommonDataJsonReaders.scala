@@ -242,9 +242,11 @@ object CommonDataJsonReaders {
     case "Support" => Measure.Support
     case "HeadCoverage" => Measure.HeadCoverage
     case "BodySize" => Measure.BodySize
-    case "Confidence" => Measure.Confidence
+    case "Confidence" => Measure.CwaConfidence
     case "PcaConfidence" => Measure.PcaConfidence
     case "PcaBodySize" => Measure.PcaBodySize
+    case "QpcaConfidence" => Measure.QpcaConfidence
+    case "QpcaBodySize" => Measure.QpcaBodySize
     case "Lift" => Measure.Lift
     case "Cluster" => Measure.Cluster
     case x => deserializationError(s"Invalid measure name: $x")
@@ -363,6 +365,7 @@ object CommonDataJsonReaders {
     selector("name").to[String].map {
       case "StandardConfidence" => ConfidenceType.StandardConfidence(fields("min").convertTo[Double], fields.get("topk").map(_.convertTo[Int]).getOrElse(0))
       case "PcaConfidence" => ConfidenceType.PcaConfidence(fields("min").convertTo[Double], fields.get("topk").map(_.convertTo[Int]).getOrElse(0))
+      case "QpcaConfidence" => ConfidenceType.QpcaConfidence(fields("min").convertTo[Double], fields.get("topk").map(_.convertTo[Int]).getOrElse(0))
       case "Lift" => ConfidenceType.Lift(fields("min").convertTo[Double])
       case x => deserializationError(s"Invalid name of confidence type: $x")
     }.get

@@ -266,10 +266,10 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
     val rules = InMemoryRuleConsumer() { consumer =>
       thi.subjects
       thi.objects
-      amie.mine(consumer).map(_.withConfidence(0.2)).filter(_.measures.exists[Measure.Confidence]).toIndexedSeq
+      amie.mine(consumer).map(_.withCwaConfidence(0.2)).filter(_.measures.exists[Measure.CwaConfidence]).toIndexedSeq
     }
     rules.size shouldBe 7
-    rules.forall(_.measures.apply[Measure.Confidence].value >= 0.2) shouldBe true
+    rules.forall(_.measures.apply[Measure.CwaConfidence].value >= 0.2) shouldBe true
   }
 
   it should "mine with timemout" in {

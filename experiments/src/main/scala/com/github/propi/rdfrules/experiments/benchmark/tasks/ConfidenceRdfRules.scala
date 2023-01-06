@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.experiments.benchmark.tasks
 
 import com.github.propi.rdfrules.experiments.benchmark.{DefaultMiningSettings, RulesetTask, TaskPostProcessor}
+import com.github.propi.rdfrules.rule.Measure
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.Debugger
 
@@ -20,8 +21,8 @@ class ConfidenceRdfRules[T](val name: String,
   protected def preProcess(input: Ruleset): Ruleset = input.setParallelism(numberOfThreads)
 
   protected def taskBody(input: Ruleset): Ruleset = Function.chain[Ruleset](List(
-    x => if (minConfidence > 0.0) x.computeConfidence(minConfidence, topK = topK) else x,
-    x => if (minPcaConfidence > 0.0) x.computePcaConfidence(minPcaConfidence, topK = topK) else x,
+    x => if (minConfidence > 0.0) x.computeConfidence[Measure.CwaConfidence](minConfidence, topK = topK) else x,
+    x => if (minPcaConfidence > 0.0) x.computeConfidence[Measure.PcaConfidence](minPcaConfidence, topK = topK) else x,
     x => if (countLift && minConfidence > 0.0) x.computeLift(minConfidence) else x
   ))(input).cache
 

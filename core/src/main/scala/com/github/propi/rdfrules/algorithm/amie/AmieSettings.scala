@@ -63,6 +63,7 @@ class AmieSettings(rulesMining: RulesMining, val bootstrapper: Option[HeadTriple
     s"WithConstants=$isWithInstances,\n" +
     s"ConstantsPosition=${constantsPosition.map(_.toString).getOrElse("All")},\n" +
     s"Timeout=${timeout.getOrElse(-1L)},\n" +
+    s"LocalTimeout=${rulesMining.thresholds.get[Threshold.LocalTimeout]},\n" +
     s"WithDuplicitPredicates=$withDuplicitPredicates,\n" +
     s"InjectiveMapping=$injectiveMapping,\n" +
     s"Patterns=$patterns,\n" +

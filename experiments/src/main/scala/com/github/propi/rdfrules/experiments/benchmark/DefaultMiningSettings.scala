@@ -13,6 +13,7 @@ trait DefaultMiningSettings {
 
   val allowConstants: Option[ConstantsPosition] = Some(ConstantsPosition.Nowhere)
   val maxRuleLength: Int = 3
+  val minQpcaConfidence: Double = 0.0
   val minPcaConfidence: Double = 0.1
   val minConfidence: Double = 0.1
   val minHeadCoverage: Double = 0.01

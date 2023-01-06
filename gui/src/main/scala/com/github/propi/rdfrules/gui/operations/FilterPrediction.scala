@@ -49,6 +49,8 @@ class FilterPrediction(fromOperation: Operation, val info: OperationInfo) extend
           "Confidence" -> "Confidence",
           "PcaConfidence" -> "PCA confidence",
           "PcaBodySize" -> "PCA body size",
+          "QpcaConfidence" -> "QPCA confidence",
+          "QpcaBodySize" -> "QPCA body size",
           "Lift" -> "Lift"
         ), onSelect = (_, value) => summaryTitle.value = value),
         new FixedText[String]("value", "Value", validator = RegExp("\\d+(\\.\\d+)?|[><]=? \\d+(\\.\\d+)?|[\\[\\(]\\d+(\\.\\d+)?;\\d+(\\.\\d+)?[\\]\\)]"), summaryTitle = SummaryTitle.Variable(summaryTitle))

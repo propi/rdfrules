@@ -16,6 +16,14 @@ sealed trait Measure extends Value {
 
 object Measure {
 
+  sealed trait ConfidenceMeasure extends Measure {
+    def companion: Confidence[Measure]
+
+    def value: Double
+  }
+
+  sealed trait Confidence[+T <: Measure] extends Key[T] with Product
+
   case class Support(value: Int) extends Measure {
     def companion: Support.type = Support
   }
@@ -52,11 +60,11 @@ object Measure {
 
   implicit object BodySize extends Key[BodySize]
 
-  case class Confidence(value: Double) extends Measure {
-    def companion: Confidence.type = Confidence
+  case class CwaConfidence(value: Double) extends ConfidenceMeasure {
+    def companion: CwaConfidence.type = CwaConfidence
   }
 
-  implicit object Confidence extends Key[Confidence]
+  implicit case object CwaConfidence extends Confidence[CwaConfidence]
 
   case class Lift(value: Double) extends Measure {
     def companion: Lift.type = Lift
@@ -70,11 +78,11 @@ object Measure {
 
   implicit object QpcaBodySize extends Key[QpcaBodySize]
 
-  case class QpcaConfidence(value: Double) extends Measure {
+  case class QpcaConfidence(value: Double) extends ConfidenceMeasure {
     def companion: QpcaConfidence.type = QpcaConfidence
   }
 
-  implicit object QpcaConfidence extends Key[QpcaConfidence]
+  implicit case object QpcaConfidence extends Confidence[QpcaConfidence]
 
   case class PcaBodySize(value: Int) extends Measure {
     def companion: PcaBodySize.type = PcaBodySize
@@ -82,11 +90,11 @@ object Measure {
 
   implicit object PcaBodySize extends Key[PcaBodySize]
 
-  case class PcaConfidence(value: Double) extends Measure {
+  case class PcaConfidence(value: Double) extends ConfidenceMeasure {
     def companion: PcaConfidence.type = PcaConfidence
   }
 
-  implicit object PcaConfidence extends Key[PcaConfidence]
+  implicit case object PcaConfidence extends Confidence[PcaConfidence]
 
   case class Cluster(number: Int) extends Measure {
     def companion: Cluster.type = Cluster
@@ -96,7 +104,7 @@ object Measure {
 
   def unapply(arg: Measure): Option[Double] = arg match {
     case Measure.BodySize(x) => Some(x)
-    case Measure.Confidence(x) => Some(x)
+    case Measure.CwaConfidence(x) => Some(x)
     case Measure.HeadCoverage(x) => Some(x)
     case Measure.HeadSize(x) => Some(x)
     case Measure.SupportIncreaseRatio(x) => Some(x)
@@ -113,13 +121,13 @@ object Measure {
   implicit def mesureToKeyValue(measure: Measure): (Key[Measure], Measure) = measure.companion -> measure
 
   implicit val measureKeyOrdering: Ordering[Key[Measure]] = {
-    val map = Iterator[Key[Measure]](Support, HeadCoverage, Confidence, PcaConfidence, QpcaConfidence, Lift, HeadSize, SupportIncreaseRatio, BodySize, PcaBodySize, QpcaBodySize, HeadSupport, Cluster).zipWithIndex.map(x => x._1 -> (x._2 + 1)).toMap
+    val map = Iterator[Key[Measure]](Support, HeadCoverage, CwaConfidence, PcaConfidence, QpcaConfidence, Lift, HeadSize, SupportIncreaseRatio, BodySize, PcaBodySize, QpcaBodySize, HeadSupport, Cluster).zipWithIndex.map(x => x._1 -> (x._2 + 1)).toMap
     Ordering.by[Key[Measure], Int](map.getOrElse(_, 0))
   }
 
   implicit val measureOrdering: Ordering[Measure] = Ordering.by[Measure, Double] {
     case Measure.BodySize(x) => x
-    case Measure.Confidence(x) => x
+    case Measure.CwaConfidence(x) => x
     case Measure.HeadCoverage(x) => x
     case Measure.HeadSize(x) => x
     case Measure.SupportIncreaseRatio(x) => x
@@ -139,7 +147,7 @@ object Measure {
       measures.get(Measure.QpcaConfidence).getOrElse(Measure.QpcaConfidence(0)),
       measures.get(Measure.PcaConfidence).getOrElse(Measure.PcaConfidence(0)),
       measures.get(Measure.Lift).getOrElse(Measure.Lift(0)),
-      measures.get(Measure.Confidence).getOrElse(Measure.Confidence(0)),
+      measures.get(Measure.CwaConfidence).getOrElse(Measure.CwaConfidence(0)),
       measures.get(Measure.HeadCoverage).getOrElse(Measure.HeadCoverage(0))
     )
   }
@@ -147,7 +155,7 @@ object Measure {
   implicit val measureStringifier: Stringifier[Measure] = {
     case Measure.Support(v) => s"support: $v"
     case Measure.HeadCoverage(v) => s"headCoverage: $v"
-    case Measure.Confidence(v) => s"confidence: $v"
+    case Measure.CwaConfidence(v) => s"cwaConfidence: $v"
     case Measure.Lift(v) => s"lift: $v"
     case Measure.PcaConfidence(v) => s"pcaConfidence: $v"
     case Measure.QpcaConfidence(v) => s"qpcaConfidence: $v"
@@ -163,7 +171,7 @@ object Measure {
   implicit val measureJsonFormat: RootJsonFormat[Measure] = new RootJsonFormat[Measure] {
     def write(obj: Measure): JsValue = obj match {
       case Measure.BodySize(x) => JsObject("name" -> JsString("BodySize"), "value" -> JsNumber(x))
-      case Measure.Confidence(x) => JsObject("name" -> JsString("Confidence"), "value" -> JsNumber(x))
+      case Measure.CwaConfidence(x) => JsObject("name" -> JsString("CwaConfidence"), "value" -> JsNumber(x))
       case Measure.HeadCoverage(x) => JsObject("name" -> JsString("HeadCoverage"), "value" -> JsNumber(x))
       case Measure.HeadSize(x) => JsObject("name" -> JsString("HeadSize"), "value" -> JsNumber(x))
       case Measure.SupportIncreaseRatio(x) => JsObject("name" -> JsString("SupportIncreaseRatio"), "value" -> JsNumber(x))
@@ -182,7 +190,7 @@ object Measure {
       val value = fields("value")
       fields("name").convertTo[String] match {
         case "BodySize" => Measure.BodySize(value.convertTo[Int])
-        case "Confidence" => Measure.Confidence(value.convertTo[Double])
+        case "CwaConfidence" => Measure.CwaConfidence(value.convertTo[Double])
         case "HeadCoverage" => Measure.HeadCoverage(value.convertTo[Double])
         case "HeadSize" => Measure.HeadSize(value.convertTo[Int])
         case "SupportIncreaseRatio" => Measure.SupportIncreaseRatio(value.convertTo[Float])

@@ -14,7 +14,7 @@ import com.github.propi.rdfrules.experiments.benchmark.postprocessors.RulesDiffs
 import com.github.propi.rdfrules.experiments.benchmark.postprocessors.{ClusterDistancesTaskPostprocessor, NewTriplesPostprocessor, RulesDiffsPostprocessor, RulesTaskPostprocessor}
 import com.github.propi.rdfrules.experiments.benchmark.tasks._
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
-import com.github.propi.rdfrules.rule.{AtomPattern, ResolvedRule, Rule, RuleConstraint, RuleContent, Threshold}
+import com.github.propi.rdfrules.rule.{AtomPattern, Measure, ResolvedRule, Rule, RuleConstraint, RuleContent, Threshold}
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.{Debugger, HowLong}
 import org.apache.commons.cli.{Options, PosixParser}
@@ -147,7 +147,7 @@ object RdfRulesExperiments {
           if (cli.hasOption("runpruning")) {
             val topKs = cli.getOptionValue("topks", "500,1000,2000,4000,8000,16000,32000").split(",").iterator.map(_.trim).filter(_.nonEmpty).map(_.toInt).toList
             for (topK <- topKs) {
-              val rules = index.mine(Amie().setParallelism(numberOfThreads).addThreshold(Threshold.MinHeadCoverage(0.01)), RuleConsumer(TopKRuleConsumer(topK))).computeConfidence(0.1).cache
+              val rules = index.mine(Amie().setParallelism(numberOfThreads).addThreshold(Threshold.MinHeadCoverage(0.01)), RuleConsumer(TopKRuleConsumer(topK))).computeConfidence[Measure.CwaConfidence](0.1).cache
               Once executeTask new PruningRdfRules(s"RDFRules: pruning, rules: ${rules.size}, topK: $topK") withInput rules andFinallyProcessResultWith BasicPrinter()
             }
           }

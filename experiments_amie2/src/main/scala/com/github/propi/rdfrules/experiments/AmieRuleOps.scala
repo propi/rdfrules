@@ -44,7 +44,7 @@ object AmieRuleOps {
         Measure.HeadCoverage(amieRule.getHeadCoverage),
         Measure.BodySize(amieRule.getBodySize.toInt),
         Measure.PcaBodySize(amieRule.getPcaBodySize.toInt),
-        Measure.Confidence(amieRule.getStdConfidence),
+        Measure.CwaConfidence(amieRule.getStdConfidence),
         Measure.PcaConfidence(amieRule.getPcaConfidence)
       )
       ResolvedRule(body, head, measures: _*)

@@ -27,7 +27,7 @@ object CompleteWorkflowScala {
           .addPattern(AtomPattern(predicate = TripleItem.Uri("hasNumberOfPeople")) =>: None)
           .addPattern(AtomPattern(predicate = TripleItem.Uri("hasNumberOfPeople")))
         )
-        .computePcaConfidence(0.5)
+        .computeConfidence[Measure.PcaConfidence](0.5)
         .sorted
         .cache
       ruleset.export(Example.resultDir + "rules-workflow-scala.json")
