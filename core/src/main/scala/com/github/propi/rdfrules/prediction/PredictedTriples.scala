@@ -18,7 +18,7 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 6. 10. 2017.
   */
-class PredictedTriples private(val triples: ForEach[PredictedTriple], val index: Index)
+class PredictedTriples private(val triples: ForEach[PredictedTriple], val index: Index, val parallelism: Int)
   extends Transformable[PredictedTriple, PredictedTriples]
     with Cacheable[PredictedTriple, PredictedTriples]
     with Sortable[PredictedTriple, PredictedTriples]
@@ -26,21 +26,28 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
 
   self =>
 
+  protected def serializer: Serializer[PredictedTriple] = Serializer.by[PredictedTriple, ResolvedPredictedTriple](ResolvedPredictedTriple(_)(index.tripleItemMap))
+
+  protected def deserializer: Deserializer[PredictedTriple] = Deserializer.by[ResolvedPredictedTriple, PredictedTriple](_.toPredictedTriple(index.tripleItemMap))
+
+  protected def ordering: Ordering[PredictedTriple] = Ordering.by(x => (x match {
+    case x: PredictedTriple.Scored => -x.score
+    case _ => 0.0
+  }) -> x.rules.head)
+
+  protected def serializationSize: SerializationSize[PredictedTriple] = SerializationSize.by[PredictedTriple, ResolvedPredictedTriple]
+
+  protected def dataLoadingText: String = "Predicted triples loading"
+
   protected def coll: ForEach[PredictedTriple] = triples
 
-  protected def transform(col: ForEach[PredictedTriple]): PredictedTriples = new PredictedTriples(col, index)
+  protected def transform(col: ForEach[PredictedTriple]): PredictedTriples = new PredictedTriples(col, index, parallelism)
 
   protected def cachedTransform(col: ForEach[PredictedTriple]): PredictedTriples = transform(col)
 
-  protected implicit val ordering: Ordering[PredictedTriple] = Ordering.by(_.rules.head)
-  protected val serializer: Serializer[PredictedTriple] = Serializer.by[PredictedTriple, ResolvedPredictedTriple](ResolvedPredictedTriple(_)(index.tripleItemMap))
-  protected val deserializer: Deserializer[PredictedTriple] = Deserializer.by[ResolvedPredictedTriple, PredictedTriple](_.toPredictedTriple(index.tripleItemMap))
-  protected val serializationSize: SerializationSize[PredictedTriple] = SerializationSize.by[PredictedTriple, ResolvedPredictedTriple]
-  protected val dataLoadingText: String = "Predicted triples loading"
-
   def singleTriples: ForEach[PredictedTriple.Single] = coll.flatMap(_.toSinglePredictedTriples)
 
-  def withIndex(index: Index): PredictedTriples = new PredictedTriples(triples, index)
+  def withIndex(index: Index): PredictedTriples = new PredictedTriples(triples, index, parallelism)
 
   def filter(pattern: RulePattern, patterns: RulePattern*): PredictedTriples = transform((f: PredictedTriple => Unit) => {
     implicit val mapper: TripleItemIndex = index.tripleItemMap
@@ -79,6 +86,10 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
   def distinctPredictions: PredictedTriples = transform(triples.distinctBy(_.triple))
 
   def grouped(limit: Int = -1): PredictedTriples = transform(triples.groupedBy(limit)(_.triple).map(_.reduce(_ :++ _.rules)))
+
+  def predictionTasks(limit: Int = -1): ForEach[PredictedTriples] = triples.groupedBy(limit)(PredictionTask(_)(index.tripleMap)).map(triples => new PredictedTriples(triples, index, parallelism))
+
+  def scoreGroups(implicit predictionScorer: PredictionScorer): PredictedTriples = transform(triples.parMap(parallelism)(x => x.withScore(predictionScorer.score(x))))
 
   def onlyPcaPredictions: PredictedTriples = filter(_.predictedResult == PredictedResult.PcaPositive).onlyFunctionalPredictions
 
@@ -144,12 +155,21 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
   }
 
   def `export`(file: String)(implicit writer: PredictionWriter): Unit = `export`(new File(file))
+
+  def setParallelism(parallelism: Int): PredictedTriples = {
+    val normParallelism = if (parallelism < 1 || parallelism > Runtime.getRuntime.availableProcessors()) {
+      Runtime.getRuntime.availableProcessors()
+    } else {
+      parallelism
+    }
+    new PredictedTriples(triples, index, normParallelism)
+  }
 }
 
 object PredictedTriples {
   private def resolvedReader(file: File)(implicit reader: PredictionReader): PredictionReader = if (reader == PredictionReader.NoReader) PredictionReader(file) else reader
 
-  def apply(index: Index, triples: ForEach[PredictedTriple]): PredictedTriples = new PredictedTriples(triples, index)
+  def apply(index: Index, triples: ForEach[PredictedTriple]): PredictedTriples = new PredictedTriples(triples, index, Runtime.getRuntime.availableProcessors())
 
   def apply(index: Index, triples: ForEach[ResolvedPredictedTriple])(implicit i1: DummyImplicit): PredictedTriples = apply(index, triples.map(_.toPredictedTriple(index.tripleItemMap)))
 

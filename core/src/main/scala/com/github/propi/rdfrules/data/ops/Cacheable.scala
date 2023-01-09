@@ -14,9 +14,9 @@ trait Cacheable[T, Coll] extends Transformable[T, Coll] {
 
   self: Coll =>
 
-  protected implicit val serializer: Serializer[T]
-  protected implicit val deserializer: Deserializer[T]
-  protected implicit val serializationSize: SerializationSize[T]
+  protected implicit def serializer: Serializer[T]
+  protected implicit def deserializer: Deserializer[T]
+  protected implicit def serializationSize: SerializationSize[T]
 
   protected def cachedTransform(col: ForEach[T]): Coll
 

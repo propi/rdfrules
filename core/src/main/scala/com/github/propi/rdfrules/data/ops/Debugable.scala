@@ -9,7 +9,7 @@ trait Debugable[T, Coll] extends Transformable[T, Coll] {
 
   self: Coll =>
 
-  protected val dataLoadingText: String
+  protected def dataLoadingText: String
 
   /**
     * Cache the entity into the memory and return cached entity (IndexedSeq abstraction is used)

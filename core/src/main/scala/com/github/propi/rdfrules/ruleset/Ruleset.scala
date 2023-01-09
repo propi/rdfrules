@@ -39,11 +39,15 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
 
   protected def cachedTransform(col: ForEach[FinalRule]): Ruleset = new Ruleset(col, index, parallelism)
 
-  protected val ordering: Ordering[FinalRule] = implicitly[Ordering[FinalRule]]
-  protected val serializer: Serializer[FinalRule] = Serializer.by[FinalRule, ResolvedRule](ResolvedRule(_)(index.tripleItemMap))
-  protected val deserializer: Deserializer[FinalRule] = Deserializer.by[ResolvedRule, FinalRule](_.toRule(index.tripleItemMap))
-  protected val serializationSize: SerializationSize[FinalRule] = SerializationSize.by[FinalRule, ResolvedRule]
-  protected val dataLoadingText: String = "Ruleset loading"
+  protected def ordering: Ordering[FinalRule] = implicitly[Ordering[FinalRule]]
+
+  protected def serializer: Serializer[FinalRule] = Serializer.by[FinalRule, ResolvedRule](ResolvedRule(_)(index.tripleItemMap))
+
+  protected def deserializer: Deserializer[FinalRule] = Deserializer.by[ResolvedRule, FinalRule](_.toRule(index.tripleItemMap))
+
+  protected def serializationSize: SerializationSize[FinalRule] = SerializationSize.by[FinalRule, ResolvedRule]
+
+  protected def dataLoadingText: String = "Ruleset loading"
 
   def withIndex(index: Index): Ruleset = new Ruleset(rules, index, parallelism)
 
@@ -148,7 +152,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     val withConfidence: FinalRule => FinalRule = confidenceType match {
       case Measure.CwaConfidence => _.withCwaConfidence(threshold, injectiveMapping)
       case Measure.PcaConfidence => _.withPcaConfidence(threshold, injectiveMapping)
-      case Measure.QpcaConfidence =>  _.withQpcaConfidence(threshold, injectiveMapping)
+      case Measure.QpcaConfidence => _.withQpcaConfidence(threshold, injectiveMapping)
     }
 
     val rulesWithConfidence = rules.parMap(parallelism)(withConfidence)
@@ -184,7 +188,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
   }
 
   def predict(predictedResults: Set[PredictedResult] = Set.empty, injectiveMapping: Boolean = true)(implicit debugger: Debugger): PredictedTriples = {
-    PredictedTriples(index, Prediction(rules.withDebugger("Predicted rules"), index, predictedResults, injectiveMapping))
+    PredictedTriples(index, Prediction(rules.withDebugger("Predicted rules"), index, predictedResults, injectiveMapping)).setParallelism(parallelism)
   }
 
   def makeClusters(clustering: Clustering[FinalRule]): Ruleset = transform((f: FinalRule => Unit) => clustering.clusters(rules.toIndexedSeq).view.zipWithIndex.flatMap { case (cluster, index) =>

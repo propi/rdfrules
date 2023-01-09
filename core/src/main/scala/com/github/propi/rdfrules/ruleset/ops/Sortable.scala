@@ -11,7 +11,7 @@ import scala.collection.mutable
   */
 trait Sortable[T, Coll] extends Transformable[T, Coll] {
 
-  protected implicit val ordering: Ordering[T]
+  protected implicit def ordering: Ordering[T]
 
   def sorted: Coll = transform(new Sorted(coll))
 
