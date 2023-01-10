@@ -31,6 +31,8 @@ object AutoIndex {
 
     val zero: Int = -1
 
+    def size: Int = tripleItemToIndexMap.size
+
     def getNamespace(prefix: String): Option[String] = prefixMap.get(prefix)
 
     def getIndexOpt(x: TripleItem): Option[Int] = tripleItemToIndexMap.get(x).orElse({

@@ -198,7 +198,7 @@ object TripleItemHashIndex {
 
   def fromIndexedItem(col: ForEach[(Int, TripleItem)])(implicit debugger: Debugger, collectionsBuilder: TypedCollectionsBuilder[Int]): TripleItemHashIndex = {
     val (hmap, smap, pmap) = buildBasicMaps
-    val tihi = new BasicTripleItemHashIndex(hmap, smap, pmap)
+    val tihi: TripleItemHashIndex = new BasicTripleItemHashIndex(hmap, smap, pmap)
     debugger.debug("Triple items indexing", forced = true) { ad =>
       for (kv <- col) {
         tihi.addPrefix(kv._2)

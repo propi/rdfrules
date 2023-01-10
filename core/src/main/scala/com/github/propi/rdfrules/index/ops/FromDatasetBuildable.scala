@@ -1,7 +1,6 @@
 package com.github.propi.rdfrules.index.ops
 
 import com.github.propi.rdfrules.data.{Dataset, TripleItem}
-import com.github.propi.rdfrules.index.IndexCollections.TypedCollectionsBuilder
 import com.github.propi.rdfrules.index._
 import com.github.propi.rdfrules.utils.ForEach
 
@@ -14,8 +13,6 @@ trait FromDatasetBuildable extends Buildable {
 
   @volatile protected var dataset: Option[Dataset]
   @volatile protected var parent: Option[Index]
-
-  implicit protected def collectionBuilders: TypedCollectionsBuilder[Int]
 
   protected def buildTripleIndex: TripleIndex[Int] = {
     val tihi = self.tripleItemMap

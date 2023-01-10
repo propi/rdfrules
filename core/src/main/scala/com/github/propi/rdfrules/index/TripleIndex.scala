@@ -172,8 +172,4 @@ object TripleIndex {
 
   implicit def builderToTripleIndex[T](implicit builder: Builder[T]): TripleIndex[T] = builder.build
 
-  implicit def tripleIndexToBuilder[T](implicit tripleIndex: TripleIndex[T]): Builder[T] = new Builder[T] {
-    def build: TripleIndex[T] = tripleIndex
-  }
-
 }

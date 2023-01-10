@@ -118,4 +118,8 @@ object IndexCollections {
     def isEmpty: Boolean = set.isEmpty
   }
 
+  implicit def tripleIndexToBuilder[T](implicit tripleIndex: TripleIndex[T]): Builder[T] = new Builder[T] {
+    def build: TripleIndex[T] = tripleIndex
+  }
+
 }

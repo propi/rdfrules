@@ -21,7 +21,7 @@ trait NewTriplesPostprocessor extends TaskPostProcessor[Ruleset, Seq[Metric]] {
     List(
       Metric.Number("rules", rules),
       Metric.Number("rulesConf", crules.size),
-      Metric.Number("newTriples", crules.predict(Set(PredictedResult.PcaPositive)).distinctPredictions.triples.size)
+      Metric.Number("newTriples", crules.predict(predictedResults = Set(PredictedResult.PcaPositive)).distinctPredictions.triples.size)
     )
   }
 

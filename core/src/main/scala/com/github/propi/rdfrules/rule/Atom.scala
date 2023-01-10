@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.rule
 
 import com.github.propi.rdfrules.data.TripleItem
-import com.github.propi.rdfrules.index.TripleIndex.HashSet
+import com.github.propi.rdfrules.index.IndexCollections.HashSet
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 
 import scala.language.implicitConversions

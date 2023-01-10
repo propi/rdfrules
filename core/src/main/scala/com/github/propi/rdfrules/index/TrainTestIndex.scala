@@ -1,7 +1,6 @@
 package com.github.propi.rdfrules.index
 
 import com.github.propi.rdfrules.data.Dataset
-import com.github.propi.rdfrules.index.IndexCollections.TypedCollectionsBuilder
 import com.github.propi.rdfrules.utils.Debugger
 
 sealed trait TrainTestIndex {
@@ -26,5 +25,5 @@ object TrainTestIndex {
 
   def apply(train: Index): TrainTestIndex = new OneIndex(train)
 
-  def apply(train: Index, test: Dataset)(implicit debugger: Debugger, collectionsBuilder: TypedCollectionsBuilder[Int]): TrainTestIndex = new TwoIndexes(train, Index(test, train, false))
+  def apply(train: Index, test: Dataset)(implicit debugger: Debugger): TrainTestIndex = new TwoIndexes(train, Index(test, train, false))
 }

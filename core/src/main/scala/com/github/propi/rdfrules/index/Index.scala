@@ -67,8 +67,6 @@ object Index {
   private abstract class FromDatasetIndex(_dataset: Option[Dataset], _parent: Option[Index]) extends Index with Cacheable with FromDatasetBuildable {
     @volatile protected var dataset: Option[Dataset] = _dataset
     @volatile protected var parent: Option[Index] = _parent
-
-    implicit protected def collectionBuilders: IndexCollections.TypedCollectionsBuilder[Int] = CollectionBuilders.intCollectionBuilder
   }
 
   private class FromDatasetPartiallyPreservedIndex(_dataset: Option[Dataset],

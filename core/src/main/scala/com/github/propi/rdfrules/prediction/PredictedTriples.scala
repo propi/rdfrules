@@ -4,7 +4,7 @@ import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
 import com.github.propi.rdfrules.data.{Graph, TriplePosition}
 import com.github.propi.rdfrules.index.IndexItem.IntTriple
-import com.github.propi.rdfrules.index.{AutoIndex, TrainTestIndex, TripleIndex, TripleItemIndex}
+import com.github.propi.rdfrules.index.{AutoIndex, IndexCollections, TrainTestIndex, TripleItemIndex}
 import com.github.propi.rdfrules.prediction.RankingEvaluationResult.Hits
 import com.github.propi.rdfrules.rule.PatternMatcher.Aliases
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
@@ -52,7 +52,7 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
   def singleTriples: ForEach[PredictedTriple.Single] = coll.flatMap(_.toSinglePredictedTriples)
 
   def filter(pattern: RulePattern, patterns: RulePattern*): PredictedTriples = transform((f: PredictedTriple => Unit) => {
-    implicit val thi: TripleIndex.Builder[Int] = index.train
+    implicit val thi: IndexCollections.Builder[Int] = index.train
     val rulePatternMatcher = implicitly[PatternMatcher[Rule, RulePattern.Mapped]]
     val mappedPatterns = (pattern +: patterns).map(_.withOrderless().mapped)
     triples.filter(triple => mappedPatterns.exists(rulePattern => triple.rules.exists(rule => rulePatternMatcher.matchPattern(rule, rulePattern)(Aliases.empty).isDefined))).foreach(f)
@@ -246,7 +246,7 @@ object PredictedTriples {
 
   def apply(index: TrainTestIndex, triples: ForEach[ResolvedPredictedTriple])(implicit i1: DummyImplicit): PredictedTriples = apply(index, triples.map(_.toPredictedTriple(index.test.tripleItemMap)))
 
-  def apply(triples: ForEach[ResolvedPredictedTriple]): PredictedTriples = apply(AutoIndex(), triples)
+  def apply(triples: ForEach[ResolvedPredictedTriple]): PredictedTriples = apply(TrainTestIndex(AutoIndex()), triples)
 
   def apply(index: TrainTestIndex, file: File)(implicit reader: PredictionReader): PredictedTriples = apply(index, resolvedReader(file).fromFile(file))
 
@@ -271,7 +271,7 @@ object PredictedTriples {
 
   def fromCache(index: TrainTestIndex, file: String): PredictedTriples = fromCache(index, new File(file))
 
-  def fromCache(is: => InputStream): PredictedTriples = fromCache(AutoIndex(), is)
+  def fromCache(is: => InputStream): PredictedTriples = fromCache(TrainTestIndex(AutoIndex()), is)
 
   def fromCache(file: File): PredictedTriples = fromCache(new FileInputStream(file))
 

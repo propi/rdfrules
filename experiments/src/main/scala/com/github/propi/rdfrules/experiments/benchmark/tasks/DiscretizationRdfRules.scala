@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.experiments.benchmark.tasks
 import com.github.propi.rdfrules.data.TripleItem
 import com.github.propi.rdfrules.experiments.IndexOps._
 import com.github.propi.rdfrules.experiments.benchmark.{DefaultMiningSettings, Task, TaskPostProcessor, TaskPreProcessor}
-import com.github.propi.rdfrules.index.ops.CollectionBuilders
+import com.github.propi.rdfrules.index.ops.CollectionBuilders._
 import com.github.propi.rdfrules.index.{Index, TripleHashIndex, TripleItemHashIndex}
 import com.github.propi.rdfrules.rule.Threshold
 import com.github.propi.rdfrules.utils.{Debugger, ForEach}
@@ -12,7 +12,7 @@ import com.github.propi.rdfrules.utils.{Debugger, ForEach}
   * Created by Vaclav Zeman on 10. 4. 2020.
   */
 class DiscretizationRdfRules(val name: String, override val minHeadCoverage: Double = DefaultMiningSettings.minHeadCoverage)
-                            (implicit val debugger: Debugger) extends Task[Index, Index, Index, Index] with TaskPreProcessor[Index, Index] with TaskPostProcessor[Index, Index] with DefaultMiningSettings with CollectionBuilders {
+                            (implicit val debugger: Debugger) extends Task[Index, Index, Index, Index] with TaskPreProcessor[Index, Index] with TaskPostProcessor[Index, Index] with DefaultMiningSettings {
 
   protected val minSupportLowerBoundOn = true
   protected val minSupportUpperBoundOn = true

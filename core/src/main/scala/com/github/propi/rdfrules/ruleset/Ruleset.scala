@@ -3,6 +3,7 @@ package com.github.propi.rdfrules.ruleset
 import com.github.propi.rdfrules.algorithm.Clustering
 import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
+import com.github.propi.rdfrules.data.Dataset
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
 import com.github.propi.rdfrules.index.{AutoIndex, Index, IndexCollections, TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.prediction.{InstantiatedRuleset, Instantiation, PredictedResult, PredictedTriples, Prediction}
@@ -114,7 +115,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     transform((f: FinalRule => Unit) => {
       implicit val mapper: TripleItemIndex = index.tripleItemMap
       val predictedResults: Set[PredictedResult] = if (onlyExistingTriples) Set(PredictedResult.Positive) else Set.empty
-      val predictionResult = if (onlyFunctionalProperties) predict(predictedResults, injectiveMapping).onlyFunctionalPredictions else predict(predictedResults, injectiveMapping).distinctPredictions
+      val predictionResult = if (onlyFunctionalProperties) predict(predictedResults = predictedResults, injectiveMapping = injectiveMapping).onlyFunctionalPredictions else predict(predictedResults = predictedResults, injectiveMapping = injectiveMapping).distinctPredictions
       val hashSet = collection.mutable.LinkedHashSet.empty[FinalRule]
       for (rule <- predictionResult.singleTriples.map(_.rule)) {
         hashSet += rule
@@ -187,8 +188,8 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     InstantiatedRuleset(index, Instantiation(rules, index, predictionResults, injectiveMapping))
   }
 
-  def predict(predictedResults: Set[PredictedResult] = Set.empty, injectiveMapping: Boolean = true)(implicit debugger: Debugger): PredictedTriples = {
-    PredictedTriples(index, Prediction(rules.withDebugger("Predicted rules"), index, predictedResults, injectiveMapping)).setParallelism(parallelism)
+  def predict(testSet: Option[Dataset] = None, predictedResults: Set[PredictedResult] = Set.empty, injectiveMapping: Boolean = true)(implicit debugger: Debugger): PredictedTriples = {
+    Prediction(rules.withDebugger("Predicted rules"), index, testSet, predictedResults, injectiveMapping).setParallelism(parallelism)
   }
 
   def makeClusters(clustering: Clustering[FinalRule]): Ruleset = transform((f: FinalRule => Unit) => clustering.clusters(rules.toIndexedSeq).view.zipWithIndex.flatMap { case (cluster, index) =>
