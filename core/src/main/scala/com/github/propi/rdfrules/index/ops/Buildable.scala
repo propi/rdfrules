@@ -7,7 +7,7 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 13. 3. 2018.
   */
-trait Buildable extends CollectionBuilders {
+trait Buildable {
 
   protected def buildTripleIndex: TripleIndex[Int]
 
