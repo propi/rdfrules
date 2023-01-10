@@ -8,6 +8,8 @@ import com.github.propi.rdfrules.data.TripleItem
 trait TripleItemIndex {
   def zero: Int
 
+  def size: Int
+
   def getNamespace(prefix: String): Option[String]
 
   def getIndex(x: TripleItem): Int = getIndexOpt(x).get

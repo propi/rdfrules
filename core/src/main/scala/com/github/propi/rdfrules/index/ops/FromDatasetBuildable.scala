@@ -1,6 +1,7 @@
 package com.github.propi.rdfrules.index.ops
 
 import com.github.propi.rdfrules.data.{Dataset, TripleItem}
+import com.github.propi.rdfrules.index.IndexCollections.TypedCollectionsBuilder
 import com.github.propi.rdfrules.index._
 import com.github.propi.rdfrules.utils.ForEach
 
@@ -12,6 +13,9 @@ trait FromDatasetBuildable extends Buildable {
   self: Index =>
 
   @volatile protected var dataset: Option[Dataset]
+  @volatile protected var parent: Option[Index]
+
+  implicit protected def collectionBuilders: TypedCollectionsBuilder[Int]
 
   protected def buildTripleIndex: TripleIndex[Int] = {
     val tihi = self.tripleItemMap
@@ -29,13 +33,18 @@ trait FromDatasetBuildable extends Buildable {
     thi
   }
 
-  protected def buildTripleItemIndex: TripleItemIndex = TripleItemHashIndex(dataset.map(_.quads).getOrElse(ForEach.empty))
+  protected def buildTripleItemIndex: TripleItemIndex = {
+    val res = TripleItemHashIndex(dataset.map(_.quads).getOrElse(ForEach.empty), parent.map(_.tripleItemMap))
+    parent = None
+    res
+  }
 
   protected def buildAll: (TripleItemIndex, TripleIndex[Int]) = {
-    val res = TripleItemHashIndex.mapQuads(dataset.map(_.quads).getOrElse(ForEach.empty)) { mappedQuads =>
+    val res = TripleItemHashIndex.mapQuads(dataset.map(_.quads).getOrElse(ForEach.empty), parent.map(_.tripleItemMap)) { mappedQuads =>
       TripleHashIndex(mappedQuads)
     }
     dataset = None
+    parent = None
     res
   }
 

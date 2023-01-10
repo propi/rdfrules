@@ -9,7 +9,7 @@ import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.formats.CommonDataJsonWriters._
 import com.github.propi.rdfrules.http.util.TraversablePublisher._
 import com.github.propi.rdfrules.index.PropertyCardinalities
-import com.github.propi.rdfrules.prediction.{EvaluationResult, ResolvedPredictedTriple}
+import com.github.propi.rdfrules.prediction.{CompletenessEvaluationResult, ResolvedPredictedTriple}
 import com.github.propi.rdfrules.rule.{ResolvedInstantiatedRule, ResolvedRule}
 import com.github.propi.rdfrules.utils.ForEach
 import spray.json.DefaultJsonProtocol._
@@ -37,8 +37,8 @@ object ToJsonTask extends TaskDefinition {
     def execute(input: Int): Source[JsValue, NotUsed] = Source.single(JsNumber(input))
   }
 
-  object FromEvaluationResult extends ToJsonTask[EvaluationResult] {
-    def execute(input: EvaluationResult): Source[JsValue, NotUsed] = Source.single(input.toJson)
+  object FromEvaluationResult extends ToJsonTask[CompletenessEvaluationResult] {
+    def execute(input: CompletenessEvaluationResult): Source[JsValue, NotUsed] = Source.single(input.toJson)
   }
 
   object FromQuads extends ToJsonTask[QuadTraversableView] {

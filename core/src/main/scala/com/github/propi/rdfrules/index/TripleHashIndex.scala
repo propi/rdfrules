@@ -1,7 +1,6 @@
 package com.github.propi.rdfrules.index
 
-import com.github.propi.rdfrules.index.TripleHashIndex._
-import com.github.propi.rdfrules.index.TripleIndex.{HashMap, HashSet, Reflexiveable}
+import com.github.propi.rdfrules.index.IndexCollections.{HashMap, HashSet, MutableHashMap, MutableHashSet, MutableReflexivable, Reflexiveable, TypedCollectionsBuilder}
 import com.github.propi.rdfrules.rule.TripleItemPosition
 import com.github.propi.rdfrules.utils.{Debugger, ForEach}
 
@@ -10,7 +9,7 @@ import scala.language.implicitConversions
 /**
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
-class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder[T]) extends TripleIndex[T] {
+class TripleHashIndex[T] private(implicit collectionsBuilder: TypedCollectionsBuilder[T]) extends TripleIndex[T] {
 
   private type ItemMap = MutableHashMap[T, MutableHashSet[T] with Reflexiveable]
   private type ItemMapReflexiveable = MutableHashMap[T, MutableHashSet[T]] with MutableReflexivable
@@ -28,7 +27,12 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
   @volatile private var _size: Int = -1
   @volatile private var _nonReflexiveSize: Int = -1
 
-  protected def buildFastIntMap(from: Iterator[(T, Int)]): HashMap[T, Int] = collectionsBuilder.intMap(from)
+  protected def buildFastIntMap(from: Iterator[(T, Int)]): HashMap[T, Int] = {
+    val hmap = collectionsBuilder.emptyIntHashMap
+    from.foreach(x => hmap.put(x._1, x._2))
+    hmap.trim()
+    hmap
+  }
 
   private class GraphsHashSet[C <: HashSet[T] with Reflexiveable](val value: C, val graphs: MutableHashSet[T]) extends HashSet[T] with Reflexiveable {
     def addGraph(g: T): Unit = graphs += g
@@ -44,7 +48,7 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
     def hasReflexiveRecord: Boolean = value.hasReflexiveRecord
   }
 
-  private class TriplePredicateIndex(val subjects: ItemMapWithGraphsAndMap, val objects: ItemMapWithGraphsAndSet)(implicit collectionsBuilder: CollectionsBuilder[T]) extends PredicateIndex {
+  private class TriplePredicateIndex(val subjects: ItemMapWithGraphsAndMap, val objects: ItemMapWithGraphsAndSet) extends PredicateIndex {
     @volatile private var _size: Int = -1
     @volatile private var _nonReflexiveSize: Int = -1
     @volatile private var _graphs: Option[HashSet[T]] = None
@@ -362,58 +366,6 @@ class TripleHashIndex[T] private(implicit collectionsBuilder: CollectionsBuilder
 
 object TripleHashIndex {
 
-  trait MutableHashSet[T] extends HashSet[T] {
-    def +=(x: T): Unit
-
-    def -=(x: T): Unit
-
-    def trim(): Unit
-  }
-
-  trait MutableHashMap[K, V] extends HashMap[K, V] {
-    def getOrElseUpdate(key: K, default: => V): V
-
-    def remove(key: K): Unit
-
-    def put(key: K, value: V): Unit
-
-    def clear(): Unit
-
-    def trim(): Unit
-  }
-
-  trait Reflexive extends Reflexiveable {
-    def hasReflexiveRecord: Boolean = true
-  }
-
-  trait NonReflexive extends Reflexiveable {
-    def hasReflexiveRecord: Boolean = false
-  }
-
-  trait MutableReflexivable extends Reflexiveable {
-    @volatile private var _isReflexive: Boolean = false
-
-    final def hasReflexiveRecord: Boolean = _isReflexive
-
-    final def setReflexivity(): Unit = _isReflexive = true
-  }
-
-  trait CollectionsBuilder[T] {
-    def intMap(from: IterableOnce[(T, Int)]): HashMap[T, Int]
-
-    def emptySet: MutableHashSet[T]
-
-    def emptyHashMap[V]: MutableHashMap[T, V]
-
-    def emptySetReflexiveable: MutableHashSet[T] with MutableReflexivable
-
-    def emptyMapReflexiveable[V]: MutableHashMap[T, V] with MutableReflexivable
-
-    def emptySetNonReflexive: MutableHashSet[T] with NonReflexive
-
-    def emptySetReflexive: MutableHashSet[T] with Reflexive
-  }
-
   def addQuads[T](quads: ForEach[IndexItem[T]])(implicit thi: TripleHashIndex[T], debugger: Debugger): Unit = {
     try {
       quads.foreach {
@@ -429,7 +381,7 @@ object TripleHashIndex {
     }
   }
 
-  def apply[T](quads: ForEach[IndexItem[T]])(implicit debugger: Debugger, collectionsBuilder: CollectionsBuilder[T]): TripleHashIndex[T] = {
+  def apply[T](quads: ForEach[IndexItem[T]])(implicit debugger: Debugger, collectionsBuilder: TypedCollectionsBuilder[T]): TripleHashIndex[T] = {
     val index = new TripleHashIndex[T]
     debugger.debug("Dataset indexing", forced = true) { ad =>
       for (quad <- quads.takeWhile(_ => !debugger.isInterrupted)) {

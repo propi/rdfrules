@@ -4,7 +4,7 @@ import com.github.propi.rdfrules.algorithm.Clustering
 import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
 import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
-import com.github.propi.rdfrules.index.{AutoIndex, Index, TripleIndex, TripleItemIndex}
+import com.github.propi.rdfrules.index.{AutoIndex, Index, IndexCollections, TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.prediction.{InstantiatedRuleset, Instantiation, PredictedResult, PredictedTriples, Prediction}
 import com.github.propi.rdfrules.rule.Measure.{Confidence, ConfidenceMeasure}
 import com.github.propi.rdfrules.rule.PatternMatcher.Aliases
@@ -53,7 +53,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
 
   def filter(pattern: RulePattern, patterns: RulePattern*): Ruleset = transform((f: FinalRule => Unit) => {
     implicit val mapper: TripleItemIndex = index.tripleItemMap
-    implicit val thi: TripleIndex.Builder[Int] = index
+    implicit val thi: IndexCollections.Builder[Int] = index
     val rulePatternMatcher = implicitly[PatternMatcher[Rule, RulePattern.Mapped]]
     val mappedPatterns = (pattern +: patterns).map(_.withOrderless().mapped)
     rules.filter(rule => mappedPatterns.exists(rulePattern => rulePatternMatcher.matchPattern(rule, rulePattern)(Aliases.empty).isDefined)).foreach(f)

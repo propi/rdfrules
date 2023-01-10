@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.index
 
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
-import com.github.propi.rdfrules.index.TripleIndex.{HashMap, HashSet, Reflexiveable}
+import com.github.propi.rdfrules.index.IndexCollections.{Builder, HashMap, HashSet, Reflexiveable}
 import com.github.propi.rdfrules.rule.TripleItemPosition
 import com.github.propi.rdfrules.utils.IncrementalInt
 
@@ -170,67 +170,7 @@ trait TripleIndex[T] {
 
 object TripleIndex {
 
-  trait HashSet[T] {
-    def iterator: Iterator[T]
-
-    def contains(x: T): Boolean
-
-    def size: Int
-
-    def isEmpty: Boolean
-  }
-
-  trait HashMap[K, +V] extends HashSet[K] {
-    def apply(key: K): V
-
-    def get(key: K): Option[V]
-
-    def valuesIterator: Iterator[V]
-
-    def pairIterator: Iterator[(K, V)]
-  }
-
-  trait Reflexiveable {
-    def hasReflexiveRecord: Boolean
-
-    def size: Int
-
-    final def size(nonReflexive: Boolean): Int = if (nonReflexive && hasReflexiveRecord) size - 1 else size
-  }
-
-  trait Builder[T] {
-    def build: TripleIndex[T]
-  }
-
-  private object EmptySet extends HashSet[Any] with Reflexiveable {
-    def iterator: Iterator[Any] = Iterator.empty
-
-    def contains(x: Any): Boolean = false
-
-    def isEmpty: Boolean = true
-
-    def hasReflexiveRecord: Boolean = false
-
-    def size: Int = 0
-  }
-
-  def emptySet[T]: HashSet[T] with Reflexiveable = EmptySet.asInstanceOf[HashSet[T] with Reflexiveable]
-
-  implicit def setToHashSet[T](set: Set[T]): HashSet[T] = new HashSet[T] {
-    def iterator: Iterator[T] = set.iterator
-
-    def contains(x: T): Boolean = set(x)
-
-    def size: Int = set.size
-
-    def isEmpty: Boolean = set.isEmpty
-  }
-
   implicit def builderToTripleIndex[T](implicit builder: Builder[T]): TripleIndex[T] = builder.build
-
-  implicit def indexToBuilder(index: Index): Builder[Int] = new Builder[Int] {
-    def build: TripleIndex[Int] = index.tripleMap
-  }
 
   implicit def tripleIndexToBuilder[T](implicit tripleIndex: TripleIndex[T]): Builder[T] = new Builder[T] {
     def build: TripleIndex[T] = tripleIndex

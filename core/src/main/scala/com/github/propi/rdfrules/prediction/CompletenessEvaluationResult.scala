@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.prediction
 /**
   * Created by Vaclav Zeman on 15. 10. 2019.
   */
-case class EvaluationResult(tp: Int, fp: Int, fn: Int, tn: Int) {
+case class CompletenessEvaluationResult(tp: Int, fp: Int, fn: Int, tn: Int) {
 
   def accuracy: Double = {
     val d = tp + fp + fn + tn

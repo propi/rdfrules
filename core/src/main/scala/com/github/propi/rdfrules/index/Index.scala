@@ -1,13 +1,15 @@
 package com.github.propi.rdfrules.index
 
 import java.io._
-
 import com.github.propi.rdfrules.algorithm.consumer.InMemoryRuleConsumer
 import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.data.Dataset
+import com.github.propi.rdfrules.index.IndexCollections.Builder
 import com.github.propi.rdfrules.index.ops._
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.Debugger
+
+import scala.language.implicitConversions
 
 /**
   * Created by Vaclav Zeman on 12. 3. 2018.
@@ -62,21 +64,26 @@ trait Index {
 
 object Index {
 
-  private abstract class FromDatasetIndex(_dataset: Option[Dataset]) extends Index with Cacheable with FromDatasetBuildable {
+  private abstract class FromDatasetIndex(_dataset: Option[Dataset], _parent: Option[Index]) extends Index with Cacheable with FromDatasetBuildable {
     @volatile protected var dataset: Option[Dataset] = _dataset
+    @volatile protected var parent: Option[Index] = _parent
+
+    implicit protected def collectionBuilders: IndexCollections.TypedCollectionsBuilder[Int] = CollectionBuilders.intCollectionBuilder
   }
 
   private class FromDatasetPartiallyPreservedIndex(_dataset: Option[Dataset],
+                                                   _parent: Option[Index],
                                                    protected val defaultTripleMap: Option[TripleIndex[Int]],
                                                    protected val defaultTripleItemMap: Option[TripleItemIndex])
-                                                  (implicit val debugger: Debugger) extends FromDatasetIndex(_dataset) with PartiallyPreservedInMemory {
-    def withDebugger(implicit debugger: Debugger): Index = new FromDatasetPartiallyPreservedIndex(dataset, optTripleMap, optTripleItemMap)
+                                                  (implicit val debugger: Debugger) extends FromDatasetIndex(_dataset, _parent) with PartiallyPreservedInMemory {
+    def withDebugger(implicit debugger: Debugger): Index = new FromDatasetPartiallyPreservedIndex(dataset, parent, optTripleMap, optTripleItemMap)
   }
 
   private class FromDatasetFullyPreservedIndex(_dataset: Option[Dataset],
+                                               _parent: Option[Index],
                                                protected val defaultIndex: Option[(TripleItemIndex, TripleIndex[Int])])
-                                              (implicit val debugger: Debugger) extends FromDatasetIndex(_dataset) with FullyPreservedInMemory {
-    def withDebugger(implicit debugger: Debugger): Index = new FromDatasetFullyPreservedIndex(dataset, optIndex)
+                                              (implicit val debugger: Debugger) extends FromDatasetIndex(_dataset, _parent) with FullyPreservedInMemory {
+    def withDebugger(implicit debugger: Debugger): Index = new FromDatasetFullyPreservedIndex(dataset, parent, optIndex)
   }
 
   private abstract class FromCacheIndex(is: => InputStream) extends Index with Cacheable with FromCacheBuildable {
@@ -119,9 +126,17 @@ object Index {
 
   def apply(dataset: Dataset, partially: Boolean)(implicit _debugger: Debugger): Index = {
     if (partially) {
-      new FromDatasetPartiallyPreservedIndex(Some(dataset), None, None)
+      new FromDatasetPartiallyPreservedIndex(Some(dataset), None, None, None)
     } else {
-      new FromDatasetFullyPreservedIndex(Some(dataset), None)
+      new FromDatasetFullyPreservedIndex(Some(dataset), None, None)
+    }
+  }
+
+  def apply(dataset: Dataset, parent: Index, partially: Boolean)(implicit _debugger: Debugger): Index = {
+    if (partially) {
+      new FromDatasetPartiallyPreservedIndex(Some(dataset), Some(parent), None, None)
+    } else {
+      new FromDatasetFullyPreservedIndex(Some(dataset), Some(parent), None)
     }
   }
 
@@ -138,5 +153,9 @@ object Index {
   def fromCache(file: File, partially: Boolean)(implicit debugger: Debugger): Index = fromCache(new FileInputStream(file), partially)
 
   def fromCache(file: String, partially: Boolean)(implicit debugger: Debugger): Index = fromCache(new File(file), partially)
+
+  implicit def indexToBuilder(index: Index): Builder[Int] = new Builder[Int] {
+    def build: TripleIndex[Int] = index.tripleMap
+  }
 
 }

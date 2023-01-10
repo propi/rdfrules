@@ -1,12 +1,12 @@
 package com.github.propi.rdfrules.http.task.prediction
 
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
-import com.github.propi.rdfrules.prediction.{EvaluationResult, PredictedTriples}
+import com.github.propi.rdfrules.prediction.{CompletenessEvaluationResult, PredictedTriples}
 
-class Evaluate(pca: Boolean, injectiveMapping: Boolean) extends Task[PredictedTriples, EvaluationResult] {
+class Evaluate(pca: Boolean, injectiveMapping: Boolean) extends Task[PredictedTriples, CompletenessEvaluationResult] {
   val companion: TaskDefinition = Evaluate
 
-  def execute(input: PredictedTriples): EvaluationResult = {
+  def execute(input: PredictedTriples): CompletenessEvaluationResult = {
     input.evaluate(pca, injectiveMapping)
   }
 }

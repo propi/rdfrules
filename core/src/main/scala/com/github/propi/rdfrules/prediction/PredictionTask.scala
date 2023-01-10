@@ -1,14 +1,21 @@
 package com.github.propi.rdfrules.prediction
 
 import com.github.propi.rdfrules.data.TriplePosition
+import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
+import com.github.propi.rdfrules.index.IndexCollections.{HashSet, Reflexiveable}
 import com.github.propi.rdfrules.index.IndexItem.IntTriple
-import com.github.propi.rdfrules.index.TripleIndex
+import com.github.propi.rdfrules.index.{IndexCollections, TripleIndex}
 import com.github.propi.rdfrules.rule.TripleItemPosition
 
 case class PredictionTask(p: Int, c: TripleItemPosition[Int]) {
-  def index(implicit tripleIndex: TripleIndex[Int]): TripleIndex.HashSet[Int] with TripleIndex.Reflexiveable = c match {
-    case TripleItemPosition.Subject(s) => tripleIndex.predicates.get(p).flatMap(_.subjects.get(s)).getOrElse(TripleIndex.emptySet[Int])
-    case TripleItemPosition.Object(o) => tripleIndex.predicates.get(p).flatMap(_.objects.get(o)).getOrElse(TripleIndex.emptySet[Int])
+  def predictionTaskPattern: PredictionTaskPattern = PredictionTaskPattern(p, c match {
+    case _: TripleItemPosition.Subject[_] => TriplePosition.Object
+    case _: TripleItemPosition.Object[_] => TriplePosition.Subject
+  })
+
+  def index(implicit tripleIndex: TripleIndex[Int]): HashSet[Int] with Reflexiveable = c match {
+    case TripleItemPosition.Subject(s) => tripleIndex.predicates.get(p).flatMap(_.subjects.get(s)).getOrElse(IndexCollections.emptySet[Int])
+    case TripleItemPosition.Object(o) => tripleIndex.predicates.get(p).flatMap(_.objects.get(o)).getOrElse(IndexCollections.emptySet[Int])
   }
 }
 
@@ -21,5 +28,8 @@ object PredictionTask {
     case None => PredictionTask(triple.p, TripleItemPosition.Subject(triple.s))
   }
 
-  def apply(predictedTriple: PredictedTriple)(implicit tripleIndex: TripleIndex[Int]): PredictionTask = apply(predictedTriple.triple)
+  def apply(triple: IntTriple, targetVariable: ConceptPosition): PredictionTask = targetVariable match {
+    case TriplePosition.Subject => PredictionTask(triple.p, TripleItemPosition.Object(triple.o))
+    case TriplePosition.Object => PredictionTask(triple.p, TripleItemPosition.Subject(triple.o))
+  }
 }
