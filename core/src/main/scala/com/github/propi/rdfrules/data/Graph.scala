@@ -13,6 +13,7 @@ import com.github.propi.rdfrules.utils.{Debugger, ForEach}
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 
 import scala.language.implicitConversions
+import scala.reflect.ClassTag
 
 /**
   * Created by Vaclav Zeman on 3. 10. 2017.
@@ -24,7 +25,8 @@ class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView
     with PrefixesOps[Graph]
     with Discretizable[Graph]
     with Cacheable[Triple, Graph]
-    with Debugable[Triple, Graph] {
+    with Debugable[Triple, Graph]
+    with Sampleable[Triple, Graph] {
 
   protected val serializer: Serializer[Triple] = implicitly[Serializer[Triple]]
   protected val deserializer: Deserializer[Triple] = implicitly[Deserializer[Triple]]
@@ -40,6 +42,10 @@ class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView
   protected def transformQuads(col: QuadTraversableView): Graph = transform(col.map(_.triple))
 
   protected def transformPrefixesAndColl(prefixes: ForEach[Prefix], col: QuadTraversableView): Graph = new Graph(name, col.map(_.triple), prefixes)
+
+  protected def valueClassTag: ClassTag[Triple] = implicitly[ClassTag[Triple]]
+
+  override protected def samplingDistributor: Option[Triple => Any] = Some(_.predicate)
 
   def foreach(f: Triple => Unit): Unit = triples.foreach(f)
 

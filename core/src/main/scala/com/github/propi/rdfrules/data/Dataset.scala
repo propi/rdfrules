@@ -12,6 +12,7 @@ import com.github.propi.rdfrules.utils.serialization.{Deserializer, Serializatio
 import com.github.propi.rdfrules.utils.{Debugger, ForEach}
 
 import java.io._
+import scala.reflect.ClassTag
 
 /**
   * Created by Vaclav Zeman on 3. 10. 2017.
@@ -23,7 +24,8 @@ class Dataset private(val quads: QuadTraversableView, val userDefinedPrefixes: F
     with PrefixesOps[Dataset]
     with Discretizable[Dataset]
     with Cacheable[Quad, Dataset]
-    with Debugable[Quad, Dataset] {
+    with Debugable[Quad, Dataset]
+    with Sampleable[Quad, Dataset] {
 
   protected val serializer: Serializer[Quad] = implicitly[Serializer[Quad]]
   protected val deserializer: Deserializer[Quad] = implicitly[Deserializer[Quad]]
@@ -39,6 +41,10 @@ class Dataset private(val quads: QuadTraversableView, val userDefinedPrefixes: F
   protected def transformQuads(col: QuadTraversableView): Dataset = transform(col)
 
   protected def transformPrefixesAndColl(prefixes: ForEach[Prefix], col: QuadTraversableView): Dataset = new Dataset(col, prefixes)
+
+  protected def valueClassTag: ClassTag[Quad] = implicitly[ClassTag[Quad]]
+
+  override protected def samplingDistributor: Option[Quad => Any] = Some(_.triple.predicate)
 
   def +(graph: Graph): Dataset = new Dataset(quads.concat(graph.quads), userDefinedPrefixes).addPrefixes(graph.userDefinedPrefixes)
 
