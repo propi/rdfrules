@@ -8,7 +8,7 @@ import com.github.propi.rdfrules.index.{AutoIndex, IndexCollections, TrainTestIn
 import com.github.propi.rdfrules.prediction.RankingEvaluationResult.Hits
 import com.github.propi.rdfrules.rule.PatternMatcher.Aliases
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
-import com.github.propi.rdfrules.rule.{Atom, PatternMatcher, Rule, RulePattern}
+import com.github.propi.rdfrules.rule.{PatternMatcher, Rule, RulePattern}
 import com.github.propi.rdfrules.ruleset.ops.Sortable
 import com.github.propi.rdfrules.serialization.TripleSerialization._
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
@@ -34,10 +34,7 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
 
   protected def deserializer: Deserializer[PredictedTriple] = Deserializer.by[ResolvedPredictedTriple, PredictedTriple](_.toPredictedTriple)
 
-  protected def ordering: Ordering[PredictedTriple] = Ordering.by(x => (x match {
-    case x: PredictedTriple.Scored => -x.score
-    case _ => 0.0
-  }) -> x.rules.head)
+  protected def ordering: Ordering[PredictedTriple] = Ordering.by(x => -x.score -> x.rules.head)
 
   protected def serializationSize: SerializationSize[PredictedTriple] = SerializationSize.by[PredictedTriple, ResolvedPredictedTriple]
 
@@ -168,9 +165,10 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
       }
     }
     val qDouble = q.toDouble
-    val qrDouble = q.toDouble
+    val qrDouble = qr.toDouble
     RankingEvaluationResult(
       if (q == 0) hits.map(k => Hits(k, 0.0)) else hits.iterator.zipWithIndex.map { case (k, i) => Hits(k, sumHits(i) / qDouble) }.toSeq,
+      if (qr == 0) hits.map(k => Hits(k, 0.0)) else hits.iterator.zipWithIndex.map { case (k, i) => Hits(k, sumHits(i) / qrDouble) }.toSeq,
       if (qr == 0) 0.0 else sumRank / qrDouble,
       if (qr == 0) 0.0 else sumiRank / qrDouble,
       q,
@@ -184,12 +182,16 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
 
   def evaluateRanking(hits: IndexedSeq[Int], targetVariable: ConceptPosition): RankingEvaluationResult = evaluateRanking(hits, predictionTaskBuilder(targetVariable))
 
-  def evaluateCompleteness(pca: Boolean, injectiveMapping: Boolean = true): CompletenessEvaluationResult = {
+  private def evaluateCompleteness(pca: Boolean, injectiveMapping: Boolean, buildPredictionTask: PredictedTriple => ForEach[PredictionTask]): CompletenessEvaluationResult = {
     var tp, fp = 0
-    val predictedProperties = collection.mutable.HashMap.empty[Int, (Int, IncrementalInt)]
+    val predictionTasks = collection.mutable.HashMap.empty[PredictionTask, (Int, IncrementalInt)]
     val predictedTriples = collection.mutable.HashSet.empty[IntTriple]
-    for (triple <- singleTriples) {
-      val max = index.test.tripleMap.predicates.get(triple.triple.p).map { p =>
+    for {
+      triple <- singleTriples
+      predictionTask <- buildPredictionTask(triple) if !predictedTriples(triple.triple)
+    } {
+      val (_, pcounter) = predictionTasks.getOrElseUpdate(predictionTask, predictionTask.index(index.test.tripleMap).size(injectiveMapping) -> IncrementalInt())
+      /*val max = index.test.tripleMap.predicates.get(triple.triple.p).map { p =>
         (triple.rule.head.subject, triple.rule.head.`object`) match {
           case (_: Atom.Variable, _: Atom.Variable) => p.size(injectiveMapping)
           case (Atom.Constant(x), _: Atom.Variable) => p.subjects.get(x).map(_.size(injectiveMapping)).getOrElse(0)
@@ -201,22 +203,38 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val index:
         triple.triple.p,
         max -> IncrementalInt()
       )
-      if (pmax < max) predictedProperties.update(triple.triple.p, max -> pcounter)
-      if (!predictedTriples(triple.triple)) {
-        predictedTriples += triple.triple
-        triple.predictedResult match {
-          case PredictedResult.Positive =>
-            tp += 1
-            pcounter += 1
-          case PredictedResult.Negative =>
-            fp += 1
-          case PredictedResult.PcaPositive =>
-            if (!pca) fp += 1
-        }
+      if (pmax < max) predictedProperties.update(triple.triple.p, max -> pcounter)*/
+      predictedTriples += triple.triple
+      triple.predictedResult match {
+        case PredictedResult.Positive =>
+          tp += 1
+          pcounter += 1
+        case PredictedResult.Negative =>
+          fp += 1
+        case PredictedResult.PcaPositive =>
+          if (!pca) fp += 1
       }
     }
-    CompletenessEvaluationResult(tp, fp, math.max(0, predictedProperties.valuesIterator.map(x => x._1 - x._2.getValue).sum), 0)
+    CompletenessEvaluationResult(tp, fp, math.max(0, predictionTasks.valuesIterator.map(x => x._1 - x._2.getValue).sum), 0)
   }
+
+  def evaluateCompleteness(pca: Boolean, injectiveMapping: Boolean): CompletenessEvaluationResult = evaluateCompleteness(pca, injectiveMapping, predictionTaskBuilder)
+
+  def evaluateCompleteness(pca: Boolean): CompletenessEvaluationResult = evaluateCompleteness(pca, true)
+
+  def evaluateCompleteness: CompletenessEvaluationResult = evaluateCompleteness(true, true)
+
+  def evaluateCompleteness(pca: Boolean, injectiveMapping: Boolean, predictionTaskPatterns: Set[PredictionTaskPattern]): CompletenessEvaluationResult = evaluateCompleteness(pca, injectiveMapping, predictionTaskBuilder(predictionTaskPatterns))
+
+  def evaluateCompleteness(pca: Boolean, predictionTaskPatterns: Set[PredictionTaskPattern]): CompletenessEvaluationResult = evaluateCompleteness(pca, true, predictionTaskPatterns)
+
+  def evaluateCompleteness(predictionTaskPatterns: Set[PredictionTaskPattern]): CompletenessEvaluationResult = evaluateCompleteness(true, true, predictionTaskPatterns)
+
+  def evaluateCompleteness(pca: Boolean, injectiveMapping: Boolean, targetVariable: ConceptPosition): CompletenessEvaluationResult = evaluateCompleteness(pca, injectiveMapping, predictionTaskBuilder(targetVariable))
+
+  def evaluateCompleteness(pca: Boolean, targetVariable: ConceptPosition): CompletenessEvaluationResult = evaluateCompleteness(pca, true, targetVariable)
+
+  def evaluateCompleteness(targetVariable: ConceptPosition): CompletenessEvaluationResult = evaluateCompleteness(true, true, targetVariable)
 
   def toGraph: Graph = Graph(distinctPredictions.resolvedTriples.map(_.triple))
 

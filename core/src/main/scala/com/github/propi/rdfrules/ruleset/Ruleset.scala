@@ -157,7 +157,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     }
 
     val rulesWithConfidence = rules.parMap(parallelism)(withConfidence)
-      .withDebugger(s"${confidenceType.productPrefix} computing")
+      .withDebugger(s"${confidenceType.productPrefix} computing", true)
       .filter(_.measures.get[T].exists(_.value >= minConfidence))
 
     val resColl = if (topK > 0) {

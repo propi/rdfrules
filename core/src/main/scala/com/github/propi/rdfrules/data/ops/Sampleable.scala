@@ -68,9 +68,9 @@ trait Sampleable[T, Coll] extends Transformable[T, Coll] {
 
   private def transformSample(i: Int)(implicit sampler: ForEach[(Int, T)]) = transform(sampler.filter(_._1 == i).map(_._2))
 
-  def shuffle: Coll = transform(new Sampler(shufflingStrategy(IndexedSeq(RelativePart(1.0f)))).map(_._2))
+  def shuffle: Coll = transform(new Sampler(shufflingStrategy(IndexedSeq(RelativePart(1.0f)))).map(_._2).streamingCached)
 
-  def shuffle(part: Part): Coll = transform(new Sampler(shufflingStrategy(IndexedSeq(part))).map(_._2))
+  def shuffle(part: Part): Coll = transform(new Sampler(shufflingStrategy(IndexedSeq(part))).map(_._2).streamingCached)
 
   def shuffle(train: Part, test: Part): (Coll, Coll) = {
     implicit val sampler: ForEach[(Int, T)] = new Sampler(shufflingStrategy(IndexedSeq(train, test))).streamingCached
@@ -82,9 +82,9 @@ trait Sampleable[T, Coll] extends Transformable[T, Coll] {
     (transformSample(0), transformSample(1), transformSample(2))
   }
 
-  def bootstrap: Coll = transform(new Sampler(bootstrappingStrategy(IndexedSeq(RelativePart(1.0f)))).map(_._2))
+  def bootstrap: Coll = transform(new Sampler(bootstrappingStrategy(IndexedSeq(RelativePart(1.0f)))).map(_._2).streamingCached)
 
-  def bootstrap(part: Part): Coll = transform(new Sampler(bootstrappingStrategy(IndexedSeq(part))).map(_._2))
+  def bootstrap(part: Part): Coll = transform(new Sampler(bootstrappingStrategy(IndexedSeq(part))).map(_._2).streamingCached)
 
   def bootstrap(train: Part, test: Part): (Coll, Coll) = {
     implicit val sampler: ForEach[(Int, T)] = new Sampler(bootstrappingStrategy(IndexedSeq(train, test))).streamingCached

@@ -57,6 +57,11 @@ object PredictedTriple {
   implicit class PimpedPredictedTriple(val predictedTriple: PredictedTriple) extends AnyVal {
     def withScore(score: Double): Scored = ScoredBasicGrouped(predictedTriple.triple)(predictedTriple.rules.toVector, predictedTriple.predictedResult, score)
 
+    def score: Double = predictedTriple match {
+      case x: Scored => x.score
+      case _ => 0.0
+    }
+
     def predictionTask(targetVariable: ConceptPosition): PredictionTask = PredictionTask(predictedTriple.triple, targetVariable)
 
     def predictionTask(implicit tripleIndex: TripleIndex[Int]): PredictionTask = PredictionTask(predictedTriple.triple)
