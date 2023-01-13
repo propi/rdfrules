@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.index
 
 import com.github.propi.rdfrules.data.TripleItem
 import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
+import com.github.propi.rdfrules.index.TripleIndex.PredicateIndex
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
@@ -36,7 +37,7 @@ object PropertyCardinalities {
 
   private case class ResolvedBasic(property: TripleItem.Uri, size: Int, domain: Int, range: Int, target: ConceptPosition, targetAverageCadinality: Int, targetModeProbability: Double) extends Resolved
 
-  def apply(property: Int, index: TripleIndex[Int]#PredicateIndex): PropertyCardinalities.Mapped = {
+  def apply(property: Int, index: PredicateIndex[Int]): PropertyCardinalities.Mapped = {
     MappedBasic(property, index.size(false), index.subjects.size, index.objects.size, index.lowerCardinalitySide, index.averageCardinality, index.modeProbability)
   }
 

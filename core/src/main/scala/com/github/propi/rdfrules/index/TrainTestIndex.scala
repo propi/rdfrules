@@ -9,6 +9,8 @@ sealed trait TrainTestIndex {
   def train: Index
 
   def test: Index
+
+  def merged: Index
 }
 
 object TrainTestIndex {
@@ -17,13 +19,20 @@ object TrainTestIndex {
     def testIsTrain: Boolean = true
 
     def test: Index = train
+
+    def merged: Index = train
   }
 
-  private class TwoIndexes(val train: Index, val test: Index) extends TrainTestIndex {
+  private class TwoIndexes(val train: Index, val test: Index, _merged: => Index) extends TrainTestIndex {
+    lazy val merged: Index = _merged
+
     def testIsTrain: Boolean = false
   }
 
   def apply(train: Index): TrainTestIndex = new OneIndex(train)
 
-  def apply(train: Index, test: Dataset)(implicit debugger: Debugger): TrainTestIndex = new TwoIndexes(train, Index(test, train, false))
+  def apply(train: Index, test: Dataset)(implicit debugger: Debugger): TrainTestIndex = {
+    val testIndex = Index(test, train, false)
+    new TwoIndexes(train, Index(test, train, false), Index(MergedTripleIndex(train.tripleMap, testIndex.tripleMap), testIndex.tripleItemMap))
+  }
 }

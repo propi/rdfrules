@@ -3,6 +3,7 @@ package com.github.propi.rdfrules.index
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
 import com.github.propi.rdfrules.index.IndexCollections.{Builder, HashMap, HashSet, Reflexiveable}
+import com.github.propi.rdfrules.index.TripleIndex.{ObjectIndex, PredicateIndex, SubjectIndex}
 import com.github.propi.rdfrules.rule.TripleItemPosition
 import com.github.propi.rdfrules.utils.IncrementalInt
 
@@ -23,21 +24,31 @@ trait TripleIndex[T] {
 
   def size(nonReflexive: Boolean): Int
 
-  def predicates: HashMap[T, PredicateIndex]
+  def predicates: HashMap[T, PredicateIndex[T]]
 
-  def subjects: HashMap[T, SubjectIndex]
+  def subjects: HashMap[T, SubjectIndex[T]]
 
-  def objects: HashMap[T, ObjectIndex]
+  def objects: HashMap[T, ObjectIndex[T]]
 
   def quads: Iterator[IndexItem.Quad[T]]
 
-  def contains(triple: IndexItem.Triple[T]): Boolean = predicates.get(triple.p).exists(_.subjects.get(triple.s).exists(_.contains(triple.o)))
+  def contains(s: T, p: T, o: T): Boolean = predicates.get(p).exists(_.subjects.get(s).exists(_.contains(o)))
+
+  def contains(triple: IndexItem.Triple[T]): Boolean = contains(triple.s, triple.p, triple.o)
+
+  def contains(quad: IndexItem.Quad[T]): Boolean = contains(quad.s, quad.p, quad.o)
 
   def evaluateAllLazyVals(): Unit
 
-  protected def buildFastIntMap(from: Iterator[(T, Int)]): HashMap[T, Int]
+}
 
-  trait PredicateIndex {
+object TripleIndex {
+
+  trait PredicateIndex[T] {
+    def buildFastIntMap(from: Iterator[(T, Int)]): HashMap[T, Int]
+
+    def context: TripleIndex[T]
+
     def subjects: HashMap[T, HashSet[T] with Reflexiveable]
 
     def objects: HashMap[T, HashSet[T] with Reflexiveable]
@@ -50,29 +61,29 @@ trait TripleIndex[T] {
       val `op->oq` = collection.mutable.HashMap.empty[T, IncrementalInt]
       val `op->sq` = collection.mutable.HashMap.empty[T, IncrementalInt]
       for ((s, objects) <- subjects.pairIterator) {
-        for (pNeighbour <- main.subjects(s).predicates.iterator) {
-          val pNeighbourIndex = predicates(pNeighbour)
+        for (pNeighbour <- context.subjects(s).predicates.iterator) {
+          val pNeighbourIndex = context.predicates(pNeighbour)
           if (pNeighbourIndex == this) {
             `sp->sq`.getOrElseUpdate(pNeighbour, IncrementalInt()) += (objects.size * (objects.size - 1))
           } else {
             `sp->sq`.getOrElseUpdate(pNeighbour, IncrementalInt()) += (objects.size * pNeighbourIndex.subjects(s).size)
           }
         }
-        for (pNeighbour <- main.objects.get(s).iterator.flatMap(_.predicates.iterator)) {
-          `sp->oq`.getOrElseUpdate(pNeighbour, IncrementalInt()) += (objects.size * predicates(pNeighbour).objects(s).size)
+        for (pNeighbour <- context.objects.get(s).iterator.flatMap(_.predicates.iterator)) {
+          `sp->oq`.getOrElseUpdate(pNeighbour, IncrementalInt()) += (objects.size * context.predicates(pNeighbour).objects(s).size)
         }
       }
       for ((o, subjects) <- objects.pairIterator) {
-        for (pNeighbour <- main.objects(o).predicates.iterator) {
-          val pNeighbourIndex = predicates(pNeighbour)
+        for (pNeighbour <- context.objects(o).predicates.iterator) {
+          val pNeighbourIndex = context.predicates(pNeighbour)
           if (pNeighbourIndex == this) {
             `op->oq`.getOrElseUpdate(pNeighbour, IncrementalInt()) += (subjects.size * (subjects.size - 1))
           } else {
             `op->oq`.getOrElseUpdate(pNeighbour, IncrementalInt()) += (subjects.size * pNeighbourIndex.objects(o).size)
           }
         }
-        for (pNeighbour <- main.subjects.get(o).iterator.flatMap(_.predicates.iterator)) {
-          `op->sq`.getOrElseUpdate(pNeighbour, IncrementalInt()) += (subjects.size * predicates(pNeighbour).subjects(o).size)
+        for (pNeighbour <- context.subjects.get(o).iterator.flatMap(_.predicates.iterator)) {
+          `op->sq`.getOrElseUpdate(pNeighbour, IncrementalInt()) += (subjects.size * context.predicates(pNeighbour).subjects(o).size)
         }
       }
       (
@@ -152,7 +163,7 @@ trait TripleIndex[T] {
     final def isInverseFunction: Boolean = objectRelativeCardinality == 1.0
   }
 
-  trait SubjectIndex {
+  trait SubjectIndex[T] {
     def predicates: HashSet[T]
 
     def objects: HashMap[T, HashSet[T] with Reflexiveable]
@@ -160,15 +171,11 @@ trait TripleIndex[T] {
     def size(nonReflexive: Boolean): Int
   }
 
-  trait ObjectIndex {
+  trait ObjectIndex[T] {
     def predicates: HashSet[T]
 
     def size(nonReflexive: Boolean): Int
   }
-
-}
-
-object TripleIndex {
 
   implicit def builderToTripleIndex[T](implicit builder: Builder[T]): TripleIndex[T] = builder.build
 

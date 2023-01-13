@@ -9,7 +9,7 @@ import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.formats.CommonDataJsonWriters._
 import com.github.propi.rdfrules.http.util.TraversablePublisher._
 import com.github.propi.rdfrules.index.PropertyCardinalities
-import com.github.propi.rdfrules.prediction.{CompletenessEvaluationResult, ResolvedPredictedTriple}
+import com.github.propi.rdfrules.prediction.ResolvedPredictedTriple
 import com.github.propi.rdfrules.rule.{ResolvedInstantiatedRule, ResolvedRule}
 import com.github.propi.rdfrules.utils.ForEach
 import spray.json.DefaultJsonProtocol._

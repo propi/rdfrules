@@ -4,7 +4,7 @@ import com.github.propi.rdfrules.data.Properties.PropertyStats
 import com.github.propi.rdfrules.data.{Histogram, Quad, Triple, TripleItemType}
 import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.service.Task.TaskResponse
-import com.github.propi.rdfrules.prediction.{CompletenessEvaluationResult, ResolvedPredictedTriple}
+import com.github.propi.rdfrules.prediction.ResolvedPredictedTriple
 import com.github.propi.rdfrules.rule.{ResolvedInstantiatedAtom, ResolvedInstantiatedRule}
 import spray.json.DefaultJsonProtocol._
 import spray.json._

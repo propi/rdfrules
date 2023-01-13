@@ -1,9 +1,7 @@
 package com.github.propi.rdfrules.prediction
 
 import com.github.propi.rdfrules.data.TriplePosition
-import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
 import com.github.propi.rdfrules.index.IndexItem.IntTriple
-import com.github.propi.rdfrules.index.TripleIndex
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 
 sealed trait PredictedTriple {
@@ -62,11 +60,7 @@ object PredictedTriple {
       case _ => 0.0
     }
 
-    def predictionTask(targetVariable: ConceptPosition): PredictionTask = PredictionTask(predictedTriple.triple, targetVariable)
-
-    def predictionTask(implicit tripleIndex: TripleIndex[Int]): PredictionTask = PredictionTask(predictedTriple.triple)
-
-    def predictionTaskPatterns: (PredictionTaskPattern, PredictionTaskPattern) = PredictionTaskPattern(predictedTriple.triple.p, TriplePosition.Subject) -> PredictionTaskPattern(predictedTriple.triple.p, TriplePosition.Object)
+    def predictionTasks: (PredictionTask, PredictionTask) = PredictionTask(predictedTriple.triple, TriplePosition.Object) -> PredictionTask(predictedTriple.triple, TriplePosition.Subject)
 
     def toSinglePredictedTriples: Iterator[Single] = predictedTriple match {
       case x: Single => Iterator(x)

@@ -29,7 +29,7 @@ object IndexCollections {
 
     def size: Int
 
-    final def size(nonReflexive: Boolean): Int = if (nonReflexive && hasReflexiveRecord) size - 1 else size
+    def size(nonReflexive: Boolean): Int = if (nonReflexive && hasReflexiveRecord) size - 1 else size
   }
 
   trait MutableHashSet[T] extends HashSet[T] {
@@ -94,6 +94,18 @@ object IndexCollections {
     def emptySetReflexive: MutableHashSet[T] with Reflexive
   }
 
+  class ReflexivableHashSet[T](value: T, hset: HashSet[T] with Reflexiveable) {
+    def iterator(nonReflexive: Boolean): Iterator[T] = if (nonReflexive) hset.iterator.filter(_ != value) else hset.iterator
+
+    def contains(x: T, nonReflexive: Boolean): Boolean = if (nonReflexive) value != x && hset.contains(x) else hset.contains(x)
+
+    def size(nonReflexive: Boolean): Int = hset.size(nonReflexive)
+
+    def isEmpty(nonReflexive: Boolean): Boolean = hset.size(nonReflexive) == 0
+
+    def hasReflexiveRecord: Boolean = hset.hasReflexiveRecord
+  }
+
   private object EmptySet extends HashSet[Any] with Reflexiveable {
     def iterator: Iterator[Any] = Iterator.empty
 
@@ -107,6 +119,39 @@ object IndexCollections {
   }
 
   def emptySet[T]: HashSet[T] with Reflexiveable = EmptySet.asInstanceOf[HashSet[T] with Reflexiveable]
+
+  class MergedHashSet[T](hset1: HashSet[T], hset2: HashSet[T]) extends HashSet[T] {
+    def iterator: Iterator[T] = hset1.iterator ++ hset2.iterator.filter(!hset1.contains(_))
+
+    def contains(x: T): Boolean = hset1.contains(x) || hset2.contains(x)
+
+    lazy val _size: Int = hset1.size + hset2.iterator.count(!hset1.contains(_))
+
+    def size: Int = _size
+
+    def isEmpty: Boolean = hset1.isEmpty && hset2.isEmpty
+  }
+
+  class MergedHashMap[K, +V](hmap1: HashMap[K, V], hmap2: HashMap[K, V])(merge: K => (V, V) => V) extends MergedHashSet(hmap1, hmap2) with HashMap[K, V] {
+    def apply(key: K): V = hmap1.get(key) -> hmap2.get(key) match {
+      case (Some(x), Some(y)) => merge(key)(x, y)
+      case (Some(x), None) => x
+      case (None, Some(y)) => y
+      case (None, None) => None.get
+    }
+
+    def get(key: K): Option[V] = hmap1.get(key) -> hmap2.get(key) match {
+      case (Some(x), Some(y)) => Some(merge(key)(x, y))
+      case (x: Some[V], None) => x
+      case (None, y: Some[V]) => y
+      case (None, None) => None
+    }
+
+    def valuesIterator: Iterator[V] = pairIterator.map(_._2)
+
+    def pairIterator: Iterator[(K, V)] = hmap1.pairIterator.map(x => x._1 -> hmap2.get(x._1).map(merge(x._1)(x._2, _)).getOrElse(x._2)) ++
+      hmap2.pairIterator.filter(x => !hmap1.contains(x._1))
+  }
 
   implicit def setToHashSet[T](set: Set[T]): HashSet[T] = new HashSet[T] {
     def iterator: Iterator[T] = set.iterator

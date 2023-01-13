@@ -9,15 +9,15 @@ import com.github.propi.rdfrules.utils.{Debugger, ForEach}
 
 object Prediction {
 
-  def apply(rules: ForEach[FinalRule], train: Index, test: Option[Dataset], predictionResults: Set[PredictedResult], injectiveMapping: Boolean)(implicit debugger: Debugger): PredictedTriples = {
+  def apply(rules: ForEach[FinalRule], train: Index, test: Option[Dataset], mergeTestAndTrainForPrediction: Boolean, predictionResults: Set[PredictedResult], injectiveMapping: Boolean)(implicit debugger: Debugger): PredictedTriples = {
     val index = test match {
       case Some(test) => TrainTestIndex(train, test)
       case None => TrainTestIndex(train)
     }
     val predictedTriples = new ForEach[PredictedTriple.Single] {
       def foreach(f: PredictedTriple.Single => Unit): Unit = {
-        implicit val thi: TripleIndex[Int] = index.test.tripleMap
-        implicit val tii: TripleItemIndex = index.test.tripleItemMap
+        implicit val thi: TripleIndex[Int] = if (mergeTestAndTrainForPrediction) index.merged.tripleMap else index.test.tripleMap
+        implicit val tii: TripleItemIndex = if (mergeTestAndTrainForPrediction) index.merged.tripleItemMap else index.test.tripleItemMap
         val atomCounting = AtomCounting()
 
         val res = rules.flatMap { rule =>
