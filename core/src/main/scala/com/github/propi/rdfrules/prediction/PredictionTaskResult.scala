@@ -4,22 +4,15 @@ import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.index.IndexItem.IntTriple
 import com.github.propi.rdfrules.index.TripleIndex
 import com.github.propi.rdfrules.rule.TripleItemPosition
-import com.github.propi.rdfrules.utils.ForEach
+import com.github.propi.rdfrules.utils.{ForEach, TopKQueue}
 
-import scala.collection.immutable.TreeMap
+import scala.collection.immutable.ArraySeq
+import scala.collection.mutable
 
-class PredictionTaskResult private(val predictionTask: PredictionTask, candidates: TreeMap[Int, (PredictedTriple, Int)]) {
-  def predictedTriples: ForEach[PredictedTriple] = new ForEach[PredictedTriple] {
-    def foreach(f: PredictedTriple => Unit): Unit = candidates.valuesIterator.map(_._1).foreach(f)
+class PredictionTaskResult private(val predictionTask: PredictionTask, candidates: Iterable[PredictedTriple]) {
+  def predictedTriples: ForEach[PredictedTriple] = candidates
 
-    override def knownSize: Int = candidates.size
-  }
-
-  def predictedCandidates: ForEach[Int] = new ForEach[Int] {
-    def foreach(f: Int => Unit): Unit = candidates.keysIterator.foreach(f)
-
-    override def knownSize: Int = candidates.size
-  }
+  def predictedCandidates: ForEach[Int] = predictedTriples.map(_.triple.target(predictionTask.targetVariable))
 
   def size: Int = candidates.size
 
@@ -33,7 +26,7 @@ class PredictionTaskResult private(val predictionTask: PredictionTask, candidate
 
   def topCorrectPredictedTripleRank: Option[Int] = correctPredictedTriplesRanks.headOption
 
-  def rank(candidate: Int): Option[Int] = candidates.get(candidate).map(_._2)
+  def rank(candidate: Int): Option[Int] = predictedCandidates.zipWithIndex.find(_._1 == candidate).map(_._2)
 
   def rank(triple: IntTriple): Option[Int] = {
     if (triple.p == predictionTask.p) {
@@ -54,23 +47,40 @@ class PredictionTaskResult private(val predictionTask: PredictionTask, candidate
     val maxCardinalityThreshold = train.predicates.get(predictionTask.p).map(x => if (predictionTask.targetVariable == TriplePosition.Subject) x.averageObjectCardinality else x.averageSubjectCardinality).getOrElse(1)
     val remainingSlots = maxCardinalityThreshold - currentCardinality
     if (remainingSlots > 0) {
-      new PredictionTaskResult(predictionTask, candidates.take(remainingSlots))
+      new PredictionTaskResult(predictionTask, candidates.view.take(remainingSlots))
     } else {
-      new PredictionTaskResult(predictionTask, TreeMap.empty)
+      new PredictionTaskResult(predictionTask, Nil)
     }
   }
 
-  def headOption: Option[PredictedTriple] = candidates.headOption.map(_._2._1)
+  def headOption: Option[PredictedTriple] = candidates.headOption
 }
 
 object PredictionTaskResult {
 
-  def apply(predictionTask: PredictionTask, predictedTriples: ForEach[PredictedTriple]): PredictionTaskResult = {
-    val sortedMapBuilder = TreeMap.newBuilder[Int, (PredictedTriple, Int)]
-    predictedTriples.zipWithIndex.map(x => (x._2 + 1) -> (x._1 -> (x._2 + 1))).foreach(sortedMapBuilder.addOne)
-    new PredictionTaskResult(
-      predictionTask,
-      sortedMapBuilder.result()
-    )
+  def empty(predictionTask: PredictionTask): PredictionTaskResult = new PredictionTaskResult(predictionTask, Nil)
+
+  def factory(topK: Int = -1): collection.Factory[(PredictionTask, PredictedTriple), PredictionTaskResult] = new collection.Factory[(PredictionTask, PredictedTriple), PredictionTaskResult] {
+    def fromSpecific(it: IterableOnce[(PredictionTask, PredictedTriple)]): PredictionTaskResult = it.iterator.foldLeft(newBuilder)(_.addOne(_)).result()
+
+    def newBuilder: mutable.Builder[(PredictionTask, PredictedTriple), PredictionTaskResult] = {
+      var predictionTask = Option.empty[PredictionTask]
+      val predictedTriplesQueue = new TopKQueue[PredictedTriple](topK, false)(Ordering.by(-_.score))
+      new mutable.Builder[(PredictionTask, PredictedTriple), PredictionTaskResult] {
+        def clear(): Unit = {
+          predictionTask = None
+          predictedTriplesQueue.clear()
+        }
+
+        def result(): PredictionTaskResult = new PredictionTaskResult(predictionTask.get, ArraySeq.from(predictedTriplesQueue.dequeueAll).view.reverse)
+
+        def addOne(elem: (PredictionTask, PredictedTriple)): this.type = {
+          if (predictionTask.isEmpty) predictionTask = Some(elem._1)
+          predictedTriplesQueue.enqueue(elem._2)
+          this
+        }
+      }
+    }
   }
+
 }

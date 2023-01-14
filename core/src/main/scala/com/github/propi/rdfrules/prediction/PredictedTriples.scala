@@ -3,6 +3,7 @@ package com.github.propi.rdfrules.prediction
 import com.github.propi.rdfrules.data.Graph
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
 import com.github.propi.rdfrules.index.{AutoIndex, IndexCollections, TrainTestIndex, TripleItemIndex}
+import com.github.propi.rdfrules.prediction.PredictedTriplesAggregator.{RulesFactory, ScoreFactory}
 import com.github.propi.rdfrules.prediction.eval.{EvaluationBuilder, EvaluationResult}
 import com.github.propi.rdfrules.rule.PatternMatcher.Aliases
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
@@ -79,7 +80,9 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val parall
 
   def distinctPredictions: PredictedTriples = transform(triples.distinctBy(_.triple))
 
-  def grouped(limit: Int = -1): PredictedTriples = transform(triples.groupedBy(limit)(_.triple).map(_.reduce(_ :++ _.rules)))
+  def grouped(scoreFactory: ScoreFactory, rulesFactory: RulesFactory, limit: Int = -1): PredictedTriples = {
+    transform(triples.groupedBy(limit)(_.triple)(PredictedTriplesAggregator(scoreFactory, rulesFactory)).map(_._2))
+  }
 
   class PredictionTasksResults private[PredictedTriples](coll: ForEach[PredictionTaskResult]) extends ForEach[(PredictionTask.Resolved, PredictedTriples)] {
     def foreach(f: ((PredictionTask.Resolved, PredictedTriples)) => Unit): Unit = coll.map(x => PredictionTask.Resolved(x.predictionTask) -> transform(x.predictedTriples)).foreach(f)
@@ -97,27 +100,24 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val parall
     def onlyQpcaPredictions: PredictedTriples = transform(coll.flatMap(_.filterByQpca(index.train.tripleMap).predictedTriples))
   }
 
-  def predictionTasks(predictionTasksBuilder: PredictionTasksBuilder = PredictionTasksBuilder.FromTestSet.FromPredicateCardinalities, limit: Int = -1): PredictionTasksResults = {
+  def predictionTasks(predictionTasksBuilder: PredictionTasksBuilder = PredictionTasksBuilder.FromTestSet.FromPredicateCardinalities, limit: Int = -1, topK: Int = -1): PredictionTasksResults = {
     val coll: ForEach[PredictionTaskResult] = predictionTasksBuilder match {
-      case builder: PredictionTasksBuilder.FromPredictedTriple => triples.flatMap(x => builder.build(x).map(_ -> x)).groupedBy(limit)(_._1).map(triples => PredictionTaskResult(triples.head._1, triples.map(_._2)))
+      case builder: PredictionTasksBuilder.FromPredictedTriple => triples.flatMap(x => builder.build(x).map(_ -> x)).groupedBy(limit)(_._1)(PredictionTaskResult.factory(topK)).map(_._2)
       case builder: PredictionTasksBuilder.FromData => (f: PredictionTaskResult => Unit) => {
         val hset = collection.mutable.Set.empty[PredictionTask]
         builder.build.take(limit).foreach(hset.addOne)
         triples.flatMap { predictedTriple =>
           val (taskHead, taskTail) = predictedTriple.predictionTasks
           ForEach(taskHead -> predictedTriple, taskTail -> predictedTriple)
-        }.filter(x => hset(x._1)).groupedBy()(_._1).foreach { triples =>
-          val predictionTask = triples.head._1
+        }.filter(x => hset(x._1)).groupedBy()(_._1)(PredictionTaskResult.factory(topK)).foreach { case (predictionTask, result) =>
           hset.remove(predictionTask)
-          f(PredictionTaskResult(predictionTask, triples.map(_._2)))
+          f(result)
         }
-        hset.foreach(predictionTask => f(PredictionTaskResult(predictionTask, ForEach.empty)))
+        hset.foreach(predictionTask => f(PredictionTaskResult.empty(predictionTask)))
       }
     }
     new PredictionTasksResults(coll)
   }
-
-  def scoreGroups(implicit predictionScorer: PredictionScorer): PredictedTriples = transform(triples.parMap(parallelism)(x => x.withScore(predictionScorer.score(x))))
 
   def withoutTrainTriples: PredictedTriples = filter(x => !index.train.tripleMap.contains(x.triple))
 

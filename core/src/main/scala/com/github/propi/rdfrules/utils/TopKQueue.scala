@@ -15,7 +15,7 @@ class TopKQueue[T](capacity: Int, allowOverflowIfSameScore: Boolean)(implicit or
     * @return true = the element has been enqueued, false = the element has not been enqueued since it has too low score
     */
   def enqueue(x: T): Boolean = {
-    if (queue.size < capacity) {
+    if (capacity == -1 || queue.size < capacity) {
       queue.enqueue(x)
       true
     } else if (ord.lt(x, queue.head)) {
@@ -51,10 +51,15 @@ class TopKQueue[T](capacity: Int, allowOverflowIfSameScore: Boolean)(implicit or
 
   def head: Option[T] = overflowBuffer.headOption.orElse(queue.headOption)
 
-  def isFull: Boolean = queue.length >= capacity
+  def isFull: Boolean = capacity != -1 && queue.length >= capacity
 
   def isOverflowed: Boolean = overflowBuffer.nonEmpty
 
   def dequeueAll: Iterator[T] = Iterator.continually(dequeue).takeWhile(_.isDefined).map(_.get)
+
+  def clear(): Unit = {
+    overflowBuffer = Nil
+    queue.clear()
+  }
 
 }

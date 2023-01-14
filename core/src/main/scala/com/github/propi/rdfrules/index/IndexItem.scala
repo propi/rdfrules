@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.index
 
 import com.github.propi.rdfrules.data
-import com.github.propi.rdfrules.data.TripleItem
+import com.github.propi.rdfrules.data.{TripleItem, TriplePosition}
 import com.github.propi.rdfrules.rule.Atom
 
 /**
@@ -16,7 +16,13 @@ object IndexItem {
 
   case class Quad[T](s: T, p: T, o: T, g: T) extends IndexItem[T]
 
-  case class Triple[T](s: T, p: T, o: T) extends IndexItem[T]
+  case class Triple[T](s: T, p: T, o: T) extends IndexItem[T] {
+    final def target(position: TriplePosition): T = position match {
+      case TriplePosition.Subject => s
+      case TriplePosition.Object => o
+      case TriplePosition.Predicate => p
+    }
+  }
 
   case class SameAs[T](s: T, o: T) extends IndexItem[T]
 

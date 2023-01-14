@@ -33,7 +33,7 @@ object TripleSerialization {
 
   implicit val resolvedPredictedTripleSerializer: Serializer[ResolvedPredictedTriple] = (v: ResolvedPredictedTriple) => {
     Serializer.serialize((v.triple, v.predictedResult, v.rules.iterator, v match {
-      case v: ResolvedPredictedTriple.Scored => v.score
+      case v: ResolvedPredictedTriple.Grouped => v.score
       case _ => 0.0
     }))
   }
@@ -42,11 +42,11 @@ object TripleSerialization {
     val bais = new ByteArrayInputStream(v)
     val (triple, predictedResult, rules, score) = Deserializer.deserialize[(Triple, PredictedResult, Iterable[ResolvedRule], Double)](bais)
     if (score > 0.0) {
-      ResolvedPredictedTriple(triple, predictedResult, rules).withScore(score)
+      ResolvedPredictedTriple(triple, predictedResult, rules, score)
     } else if (rules.size == 1) {
       ResolvedPredictedTriple(triple, predictedResult, rules.head)
     } else {
-      ResolvedPredictedTriple(triple, predictedResult, rules)
+      ResolvedPredictedTriple(triple, predictedResult, rules, score)
     }
   }
 

@@ -1,9 +1,9 @@
-package com.github.propi.rdfrules.prediction.scorer
+package com.github.propi.rdfrules.prediction.aggregator
 
-import com.github.propi.rdfrules.prediction.{PredictedTriple, PredictionScorer}
+import com.github.propi.rdfrules.prediction.PredictedTriple
 import com.github.propi.rdfrules.rule.{Measure, Rule}
 
-object JointScorer extends PredictionScorer {
+object JointScorer {
   private def confidence(rule: Rule): Double = rule.measures.get[Measure.QpcaConfidence]
     .orElse(rule.measures.get[Measure.PcaConfidence])
     .orElse(rule.measures.get[Measure.CwaConfidence])

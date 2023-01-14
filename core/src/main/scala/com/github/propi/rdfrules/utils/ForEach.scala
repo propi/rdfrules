@@ -204,13 +204,21 @@ trait ForEach[+T] {
 
   def slice(from: Int, until: Int): ForEach[T] = drop(from).take(until - from)
 
-  def groupedBy[K](max: Int = -1)(g: T => K): ForEach[ForEach[T]] = (f: ForEach[T] => Unit) => {
-    val hmap = collection.mutable.LinkedHashMap.empty[K, collection.mutable.ArrayBuffer[T]]
-    for (x <- self.takeWhile(_ => max < 0 || hmap.size < max)) {
-      val key = g(x)
-      hmap.getOrElseUpdate(key, collection.mutable.ArrayBuffer.empty).addOne(x)
+  def groupedBy[K, C](max: Int = -1, linked: Boolean = false)(g: T => K)(factory: Factory[T, C]): ForEach[(K, C)] = (f: ((K, C)) => Unit) => {
+    val hmap = if (linked) {
+      collection.mutable.LinkedHashMap.empty[K, collection.mutable.Builder[T, C]]
+    } else {
+      collection.mutable.HashMap.empty[K, collection.mutable.Builder[T, C]]
     }
-    hmap.valuesIterator.map(ForEach.from).foreach(f)
+    for (x <- self) {
+      val key = g(x)
+      hmap.get(key) match {
+        case Some(v) => v.addOne(x)
+        case None if max < 0 || hmap.size < max => hmap.put(key, factory.newBuilder.addOne(x))
+        case _ =>
+      }
+    }
+    hmap.foreach(x => f(x._1 -> x._2.result()))
   }
 
   def groupBy[K, C](g: T => K)(factory: Factory[T, C]): Map[K, C] = {
