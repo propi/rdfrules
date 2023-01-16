@@ -74,7 +74,7 @@ object ResolvedRule {
     Stringifier(v.head) + " | " +
     v.measures.iterator.toList.sortBy(_.companion).iterator.map(x => Stringifier(x)).mkString(", ")
 
-  implicit val resolvedRuleOrdering: Ordering[ResolvedRule] = Ordering.by[ResolvedRule, TypedKeyMap.Immutable[Measure]](_.measures)
+  implicit def resolvedRuleOrdering(implicit measuresOrdering: Ordering[TypedKeyMap.Immutable[Measure]]): Ordering[ResolvedRule] = Ordering.by[ResolvedRule, TypedKeyMap.Immutable[Measure]](_.measures)
 
   implicit val resolvedRuleJsonFormat: RootJsonFormat[ResolvedRule] = new RootJsonFormat[ResolvedRule] {
     def write(obj: ResolvedRule): JsValue = JsObject(

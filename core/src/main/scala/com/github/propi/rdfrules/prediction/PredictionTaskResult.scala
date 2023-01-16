@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.prediction
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.index.IndexItem.IntTriple
 import com.github.propi.rdfrules.index.TripleIndex
-import com.github.propi.rdfrules.rule.TripleItemPosition
+import com.github.propi.rdfrules.rule.{DefaultConfidence, TripleItemPosition}
 import com.github.propi.rdfrules.utils.{ForEach, TopKQueue}
 
 import scala.collection.immutable.ArraySeq
@@ -15,6 +15,8 @@ class PredictionTaskResult private(val predictionTask: PredictionTask, candidate
   def predictedCandidates: ForEach[Int] = predictedTriples.map(_.triple.target(predictionTask.targetVariable))
 
   def size: Int = candidates.size
+
+  def isEmpty: Boolean = candidates.isEmpty
 
   def correctPredictedTriplesRanks: Vector[Int] = predictedTriples.zipWithIndex.foldLeft(Vector.empty[Int]) { case (ranks, (predictedTriple, k)) =>
     if (predictedTriple.predictedResult == PredictedResult.Positive) {
@@ -60,12 +62,12 @@ object PredictionTaskResult {
 
   def empty(predictionTask: PredictionTask): PredictionTaskResult = new PredictionTaskResult(predictionTask, Nil)
 
-  def factory(topK: Int = -1): collection.Factory[(PredictionTask, PredictedTriple), PredictionTaskResult] = new collection.Factory[(PredictionTask, PredictedTriple), PredictionTaskResult] {
+  def factory(topK: Int = -1)(implicit defaultConfidence: DefaultConfidence): collection.Factory[(PredictionTask, PredictedTriple), PredictionTaskResult] = new collection.Factory[(PredictionTask, PredictedTriple), PredictionTaskResult] {
     def fromSpecific(it: IterableOnce[(PredictionTask, PredictedTriple)]): PredictionTaskResult = it.iterator.foldLeft(newBuilder)(_.addOne(_)).result()
 
     def newBuilder: mutable.Builder[(PredictionTask, PredictedTriple), PredictionTaskResult] = {
       var predictionTask = Option.empty[PredictionTask]
-      val predictedTriplesQueue = new TopKQueue[PredictedTriple](topK, false)(Ordering.by(-_.score))
+      val predictedTriplesQueue = new TopKQueue[PredictedTriple](topK, false)
       new mutable.Builder[(PredictionTask, PredictedTriple), PredictionTaskResult] {
         def clear(): Unit = {
           predictionTask = None

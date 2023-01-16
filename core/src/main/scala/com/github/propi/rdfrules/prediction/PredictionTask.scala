@@ -22,7 +22,12 @@ case class PredictionTask(p: Int, c: TripleItemPosition[Int]) {
 }
 
 object PredictionTask {
-  case class Resolved(p: TripleItem.Uri, c: TripleItemPosition[TripleItem])
+  case class Resolved(p: TripleItem.Uri, c: TripleItemPosition[TripleItem]) {
+    override def toString: String = c match {
+      case TripleItemPosition.Subject(s) => s"($s $p ?)"
+      case TripleItemPosition.Object(o) => s"(? $p $o)"
+    }
+  }
 
   object Resolved {
     def apply(predictionTask: PredictionTask)(implicit mapper: TripleItemIndex): Resolved = Resolved(

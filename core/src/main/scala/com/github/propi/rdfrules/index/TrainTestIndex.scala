@@ -33,6 +33,6 @@ object TrainTestIndex {
 
   def apply(train: Index, test: Dataset)(implicit debugger: Debugger): TrainTestIndex = {
     val testIndex = Index(test, train, false)
-    new TwoIndexes(train, Index(test, train, false), Index(MergedTripleIndex(train.tripleMap, testIndex.tripleMap), testIndex.tripleItemMap))
+    new TwoIndexes(train, testIndex, Index(MergedTripleIndex(train.tripleMap, testIndex.tripleMap), testIndex.tripleItemMap))
   }
 }

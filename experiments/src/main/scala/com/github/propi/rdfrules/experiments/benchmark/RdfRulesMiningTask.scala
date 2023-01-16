@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.experiments.benchmark
 import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.index.Index
-import com.github.propi.rdfrules.rule.{Measure, ResolvedRule, RuleConstraint, Threshold}
+import com.github.propi.rdfrules.rule.{DefaultConfidence, Measure, ResolvedRule, RuleConstraint, Threshold}
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.Debugger
 
@@ -42,7 +42,7 @@ trait RdfRulesMiningTask[T] extends Task[Index, Index, Ruleset, T] with TaskPreP
       x => if (minConfidence <= 0.0) x else x.computeConfidence[Measure.CwaConfidence](minConfidence, injectiveMapping).cache,
       x => if (minPcaConfidence <= 0.0) x else x.computeConfidence[Measure.PcaConfidence](minPcaConfidence, injectiveMapping).cache,
       x => if (minQpcaConfidence <= 0.0) x else x.computeConfidence[Measure.QpcaConfidence](minQpcaConfidence, injectiveMapping).cache,
-      x => if (!countLift || minConfidence <= 0.0) x else x.computeLift(minConfidence, injectiveMapping).cache,
+      x => if (!countLift) x else x.computeLift().cache,
       x => if (skylinePruning) x.onlyBetterDescendant(Measure.PcaConfidence).cache else x,
     ))(ruleset)
   }

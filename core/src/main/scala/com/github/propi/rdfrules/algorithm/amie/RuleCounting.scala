@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.algorithm.amie
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.Rule.FinalRule
-import com.github.propi.rdfrules.rule.{Atom, Measure, ResolvedAtom}
+import com.github.propi.rdfrules.rule.{Atom, DefaultConfidence, Measure, ResolvedAtom}
 import com.github.propi.rdfrules.utils._
 
 /**
@@ -86,10 +86,10 @@ trait RuleCounting extends AtomCounting {
     *
     * @return New rule with counted lift
     */
-  def withLift: FinalRule = {
+  def withLift(confidence: DefaultConfidence): FinalRule = {
     //logger.debug(s"Lift counting for rule: " + rule)
     (for {
-      confidence <- rule.measures.get[Measure.QpcaConfidence].map(_.value).orElse(rule.measures.get[Measure.PcaConfidence].map(_.value)).orElse(rule.measures.get[Measure.CwaConfidence].map(_.value))
+      confidence <- confidence.confidenceOpt(rule.measures)
       propertyModeProbability <- tripleIndex.predicates.get(rule.head.predicate).map(_.modeProbability)
     } yield {
       rule.withMeasures(rule.measures + Measure.Lift(confidence / propertyModeProbability))

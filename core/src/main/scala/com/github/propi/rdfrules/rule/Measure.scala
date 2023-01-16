@@ -141,15 +141,25 @@ object Measure {
     case Measure.Cluster(x) => x * -1
   }.reverse
 
-  implicit val measuresOrdering: Ordering[TypedKeyMap.Immutable[Measure]] = Ordering.by[TypedKeyMap.Immutable[Measure], (Measure, Measure, Measure, Measure, Measure, Measure)] { measures =>
-    (
-      measures.get(Measure.Cluster).getOrElse(Measure.Cluster(0)),
-      measures.get(Measure.QpcaConfidence).getOrElse(Measure.QpcaConfidence(0)),
-      measures.get(Measure.PcaConfidence).getOrElse(Measure.PcaConfidence(0)),
-      measures.get(Measure.Lift).getOrElse(Measure.Lift(0)),
-      measures.get(Measure.CwaConfidence).getOrElse(Measure.CwaConfidence(0)),
-      measures.get(Measure.HeadCoverage).getOrElse(Measure.HeadCoverage(0))
-    )
+  object DefaultOrdering {
+    implicit val defaultMeasuresOrdering: Ordering[TypedKeyMap.Immutable[Measure]] = Ordering.by[TypedKeyMap.Immutable[Measure], (Measure, Measure, Measure, Measure, Measure)] { measures =>
+      (
+        measures.get(Measure.Cluster).getOrElse(Measure.Cluster(0)),
+        measures.get(Measure.QpcaConfidence).getOrElse(Measure.QpcaConfidence(0.0)),
+        measures.get(Measure.PcaConfidence).getOrElse(Measure.PcaConfidence(0.0)),
+        measures.get(Measure.CwaConfidence).getOrElse(Measure.CwaConfidence(0.0)),
+        measures.get(Measure.HeadCoverage).getOrElse(Measure.HeadCoverage(0.0))
+      )
+    }
+  }
+
+  object ConfidenceFirstOrdering {
+    implicit def confidenceFirstMeasuresOrdering(implicit defaultConfidence: DefaultConfidence): Ordering[TypedKeyMap.Immutable[Measure]] = Ordering.by[TypedKeyMap.Immutable[Measure], (Measure, Measure)] { measures =>
+      (
+        defaultConfidence.typedConfidence(measures).getOrElse(Measure.CwaConfidence(0.0)),
+        measures.get(Measure.HeadCoverage).getOrElse(Measure.HeadCoverage(0.0))
+      )
+    }
   }
 
   implicit val measureStringifier: Stringifier[Measure] = {

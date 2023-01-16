@@ -97,9 +97,9 @@ object Rule {
       Simple(rule.head, rule.body)(if (rule.supportIncreaseRatio > 0.0f) measures += Measure.SupportIncreaseRatio(rule.supportIncreaseRatio) else measures)
   }
 
-  implicit val ruleOrdering: Ordering[Rule] = Ordering.by[Rule, TypedKeyMap.Immutable[Measure]](_.measures)
+  implicit def ruleOrdering(implicit measuresOrdering: Ordering[TypedKeyMap.Immutable[Measure]]): Ordering[Rule] = Ordering.by[Rule, TypedKeyMap.Immutable[Measure]](_.measures)
 
-  implicit val ruleSimpleOrdering: Ordering[FinalRule] = Ordering.by[FinalRule, Rule](_.asInstanceOf[Rule])
+  implicit def ruleSimpleOrdering(implicit measuresOrdering: Ordering[TypedKeyMap.Immutable[Measure]]): Ordering[FinalRule] = Ordering.by[FinalRule, Rule](_.asInstanceOf[Rule])
 
   implicit val ruleSimilarityCounting: SimilarityCounting[Rule] = AtomsSimilarityCounting /*(0.5 * AtomsSimilarityCounting) ~
     (0.1 * LengthSimilarityCounting) ~

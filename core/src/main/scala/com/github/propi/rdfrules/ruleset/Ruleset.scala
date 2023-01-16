@@ -11,7 +11,7 @@ import com.github.propi.rdfrules.rule.Measure.{Confidence, ConfidenceMeasure}
 import com.github.propi.rdfrules.rule.PatternMatcher.Aliases
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
-import com.github.propi.rdfrules.rule.{Measure, PatternMatcher, ResolvedRule, Rule, RulePattern}
+import com.github.propi.rdfrules.rule.{DefaultConfidence, Measure, PatternMatcher, ResolvedRule, Rule, RulePattern}
 import com.github.propi.rdfrules.ruleset.ops.{Sortable, Treeable}
 import com.github.propi.rdfrules.serialization.RuleSerialization._
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
@@ -21,6 +21,7 @@ import com.github.propi.rdfrules.utils.{Debugger, ForEach, TypedKeyMap}
 import java.io._
 import scala.collection.mutable
 import scala.math.Ordering.Implicits.seqOrdering
+import Measure.DefaultOrdering._
 
 /**
   * Created by Vaclav Zeman on 6. 10. 2017.
@@ -40,7 +41,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
 
   protected def cachedTransform(col: ForEach[FinalRule]): Ruleset = new Ruleset(col, index, parallelism)
 
-  protected def ordering: Ordering[FinalRule] = implicitly[Ordering[FinalRule]]
+  protected def ordering: Ordering[FinalRule] = implicitly
 
   protected def serializer: Serializer[FinalRule] = Serializer.by[FinalRule, ResolvedRule](ResolvedRule(_)(index.tripleItemMap))
 
@@ -114,6 +115,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
   def pruned(onlyExistingTriples: Boolean = true, onlyFunctionalProperties: Boolean = true, injectiveMapping: Boolean = true)(implicit debugger: Debugger): Ruleset = {
     transform((f: FinalRule => Unit) => {
       implicit val mapper: TripleItemIndex = index.tripleItemMap
+      implicit val defaultConfidence: DefaultConfidence = DefaultConfidence()
       val predictedResults: Set[PredictedResult] = if (onlyExistingTriples) Set(PredictedResult.Positive) else Set.empty
       val predictionResult = if (onlyFunctionalProperties) predict(predictedResults = predictedResults, injectiveMapping = injectiveMapping).predictionTasks(PredictionTasksBuilder.FromPredictedTriple.FromPredicateCardinalities).onlyFunctionalPredictions else predict(predictedResults = predictedResults, injectiveMapping = injectiveMapping).distinctPredictions
       val hashSet = collection.mutable.LinkedHashSet.empty[FinalRule]
@@ -172,14 +174,11 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     transform(resColl)
   }
 
-  def computeLift(minConfidence: Double = 0.5, injectiveMapping: Boolean = true)(implicit debugger: Debugger): Ruleset = {
+  def computeLift(confidence: DefaultConfidence = DefaultConfidence())(implicit debugger: Debugger): Ruleset = {
     implicit val ti: TripleIndex[Int] = index.tripleMap
     implicit val tii: TripleItemIndex = index.tripleItemMap
     val resColl = rules.parMap(parallelism) { rule =>
-      Function.chain[FinalRule](List(
-        rule => if (rule.measures.exists[Measure.CwaConfidence] || rule.measures.exists[Measure.PcaConfidence] || rule.measures.exists[Measure.QpcaConfidence]) rule else rule.withPcaConfidence(minConfidence, injectiveMapping),
-        rule => rule.withLift
-      ))(rule)
+      rule.withLift(confidence)
     }.withDebugger("Lift computing")
     transform(resColl)
   }

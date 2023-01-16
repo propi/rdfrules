@@ -47,6 +47,32 @@ object PredictedTriplesAggregator {
 
   trait RulesFactory extends FromSpecific[FinalRule, Iterable[FinalRule]]
 
+  object EmptyScoreFactory extends ScoreFactory {
+    def newBuilder: mutable.Builder[FinalRule, Double] = new mutable.Builder[FinalRule, Double] {
+      def clear(): Unit = ()
+
+      def result(): Double = 0.0
+
+      def addOne(elem: FinalRule): this.type = this
+    }
+  }
+
+  object EmptyRulesFactory extends RulesFactory {
+    def newBuilder: mutable.Builder[FinalRule, Iterable[FinalRule]] = {
+      val buffer = collection.mutable.ArrayBuffer.empty[FinalRule]
+      new mutable.Builder[FinalRule, Iterable[FinalRule]] {
+        def clear(): Unit = buffer.clear()
+
+        def result(): Iterable[FinalRule] = buffer
+
+        def addOne(elem: FinalRule): this.type = {
+          buffer.addOne(elem)
+          this
+        }
+      }
+    }
+  }
+
   def apply(scoreFactory: ScoreFactory, rulesFactory: RulesFactory): FromSpecific[PredictedTriple, PredictedTriple.Grouped] = new FromSpecific[PredictedTriple, PredictedTriple.Grouped] {
     def newBuilder: mutable.Builder[PredictedTriple, PredictedTriple.Grouped] = new PredictedTriplesAggregator(scoreFactory.newBuilder, rulesFactory.newBuilder)
   }

@@ -21,6 +21,10 @@ sealed trait ResolvedPredictedTriple {
   def predictedResult: PredictedResult
 
   def toPredictedTriple(implicit tripleItemIndex: TripleItemIndex): PredictedTriple
+
+  def score: Double
+
+  override def toString: String = s"$triple, score: $score\n - ${rules.mkString("\n - ")}"
 }
 
 object ResolvedPredictedTriple {
@@ -45,6 +49,8 @@ object ResolvedPredictedTriple {
     )
 
     def rules: Iterable[ResolvedRule] = List(rule)
+
+    def score: Double = 0.0
   }
 
   private case class BasicGrouped(triple: Triple)(val rules: Iterable[ResolvedRule], val predictedResult: PredictedResult, val score: Double) extends Grouped {

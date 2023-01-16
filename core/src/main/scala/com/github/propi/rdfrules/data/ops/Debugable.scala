@@ -11,12 +11,6 @@ trait Debugable[T, Coll] extends Transformable[T, Coll] {
 
   protected def dataLoadingText: String
 
-  /**
-    * Cache the entity into the memory and return cached entity (IndexedSeq abstraction is used)
-    * Strict transformation
-    *
-    * @return in memory cached entity
-    */
-  def withDebugger(implicit debugger: Debugger): Coll = transform(coll.withDebugger(dataLoadingText))
+  def withDebugger(msg: String = dataLoadingText, forced: Boolean = false)(implicit debugger: Debugger): Coll = transform(coll.withDebugger(msg, forced))
 
 }
