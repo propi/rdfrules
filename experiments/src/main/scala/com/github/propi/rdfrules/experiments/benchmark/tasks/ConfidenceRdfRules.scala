@@ -23,7 +23,7 @@ class ConfidenceRdfRules[T](val name: String,
   protected def taskBody(input: Ruleset): Ruleset = Function.chain[Ruleset](List(
     x => if (minConfidence > 0.0) x.computeConfidence[Measure.CwaConfidence](minConfidence, topK = topK) else x,
     x => if (minPcaConfidence > 0.0) x.computeConfidence[Measure.PcaConfidence](minPcaConfidence, topK = topK) else x,
-    x => if (countLift && minConfidence > 0.0) x.computeLift(minConfidence) else x
+    x => if (countLift) x.computeLift() else x
   ))(input).cache
 
 }
