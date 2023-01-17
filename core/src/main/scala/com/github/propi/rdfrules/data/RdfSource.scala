@@ -11,7 +11,19 @@ sealed trait RdfSource
 
 object RdfSource {
 
-  object Tsv extends RdfSource
+  case class Tsv(parsingMode: Tsv.ParsingMode) extends RdfSource
+
+  object Tsv {
+    sealed trait ParsingMode
+
+    object ParsingMode {
+      case object Raw extends ParsingMode
+
+      case object ParsedUris extends ParsingMode
+
+      case object ParsedLiterals extends ParsingMode
+    }
+  }
 
   object Sql extends RdfSource
 
@@ -41,7 +53,7 @@ object RdfSource {
     case "xml" | "rdf" | "owl" => JenaLang(Lang.RDFXML)
     case "trig" => JenaLang(Lang.TRIG)
     case "trix" => JenaLang(Lang.TRIX)
-    case "tsv" => Tsv
+    case "tsv" => Tsv(Tsv.ParsingMode.Raw)
     case "sql" => Sql
     case "cache" => Cache
     case x => throw new IllegalArgumentException(s"Unsupported RDF format for reading: $x")
@@ -49,14 +61,14 @@ object RdfSource {
 
   implicit def rdfSourceToRdfReader(rdfSource: RdfSource): RdfReader = rdfSource match {
     case JenaLang(lang) => lang
-    case Tsv => Tsv
+    case tsv: Tsv => tsv
     case Sql => Sql
     case Cache => Cache
   }
 
   implicit def rdfSourceToRdfWriter(rdfSource: RdfSource): RdfWriter = rdfSource match {
     case x: JenaLang => x.toRDFFormat
-    case Tsv => Tsv
+    case tsv: Tsv => tsv
     case Sql => Sql
     case Cache => Cache
   }

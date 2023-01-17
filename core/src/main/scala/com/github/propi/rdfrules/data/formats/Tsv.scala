@@ -1,5 +1,6 @@
 package com.github.propi.rdfrules.data.formats
 
+import com.github.propi.rdfrules.data.RdfSource.Tsv.ParsingMode
 import com.github.propi.rdfrules.data._
 import com.github.propi.rdfrules.data.ops.PrefixesOps
 import com.github.propi.rdfrules.utils.{BasicFunctions, InputStreamBuilder, OutputStreamBuilder}
@@ -77,87 +78,109 @@ trait Tsv {
     }
   }.view*/
 
-  implicit def tsvReader(rdfSource: RdfSource.Tsv.type): RdfReader = (inputStreamBuilder: InputStreamBuilder) => (f: Quad => Unit) => {
+  private val prefixes = Array(
+    Prefix.Full("rdfs", "http://www.w3.org/2000/01/rdf-schema#"),
+    Prefix.Full("xsd", "http://www.w3.org/2001/XMLSchema#"),
+    Prefix.Full("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#"),
+    Prefix.Full("owl", "http://www.w3.org/2002/07/owl#")
+  )
+
+  private def stringToPrefixedUri(x: String): Option[TripleItem.Uri] = {
+    val sepIndex = x.indexOf(':')
+    if (sepIndex >= 0) {
+      val prefix = x.substring(0, sepIndex)
+      val localName = if (x.length > (sepIndex + 1)) x.substring(sepIndex + 1) else ""
+      if (prefix == "_") {
+        Some(TripleItem.BlankNode(localName))
+      } else {
+        prefixes.find(_.prefix == prefix).map(p => TripleItem.PrefixedUri(p, localName)).orElse(Some(TripleItem.LongUri(x)))
+      }
+    } else {
+      None
+    }
+  }
+
+  private def stringToLongUri(x: String): Option[TripleItem.Uri] = {
+    if (x.startsWith("<") && x.endsWith(">")) {
+      Some(TripleItem.LongUri(stripMargins(x)))
+    } else {
+      None
+    }
+  }
+
+  private def stringToNumber(x: String): Option[TripleItem] = {
+    if (x.nonEmpty && (x.head.isDigit || x.head == '-')) {
+      BasicFunctions.parseNumber(x).map {
+        case Left(x) => TripleItem.Number(x)
+        case Right(x) => TripleItem.Number(x)
+      }
+    } else {
+      None
+    }
+  }
+
+  private def stringToText(x: String): Option[TripleItem] = {
+    if (x.startsWith("\"")) {
+      if (x.endsWith("\"")) {
+        Some(TripleItem.Text(stripMargins(x)))
+      } else {
+        val sepIndex = x.lastIndexOf("\"^^")
+        if (sepIndex >= 0) {
+          val text = x.substring(1, sepIndex)
+          Some(stringToNumber(text).getOrElse(TripleItem.Text(text)))
+        } else {
+          None
+        }
+      }
+    } else {
+      None
+    }
+  }
+
+  class Parser private[Tsv](parsingMode: ParsingMode) {
+    val parseUri: String => TripleItem.Uri = parsingMode match {
+      case ParsingMode.Raw => TripleItem.LongUri
+      case _ => x => stringToLongUri(x).orElse(stringToPrefixedUri(x)).getOrElse(TripleItem.LongUri(x))
+    }
+
+    val parseLiteral: String => TripleItem = parsingMode match {
+      case ParsingMode.Raw | ParsingMode.ParsedUris => parseUri
+      case _ => x =>
+        stringToLongUri(x)
+          .orElse(stringToText(x))
+          .orElse(stringToPrefixedUri(x))
+          .orElse(stringToNumber(x))
+          .getOrElse(TripleItem.LongUri(x))
+    }
+
+    def parseTriple(line: String): Option[Triple] = {
+      val triple = line.trim.split("\t")
+      if (triple.length == 3) {
+        val trimmedSubject = triple(0).trim
+        val trimmedPredicate = triple(1).trim
+        val strippedSubject = parseUri(trimmedSubject)
+        val strippedPredicate = parseUri(trimmedPredicate)
+        val strippedObject = triple(2).trim.stripSuffix(".").trim
+        Some(Triple(
+          strippedSubject,
+          strippedPredicate,
+          parseLiteral(strippedObject)
+        ))
+      } else {
+        None
+      }
+    }
+  }
+
+  def tripleParser(parsingMode: ParsingMode): Parser = new Parser(parsingMode)
+
+  implicit def tsvReader(rdfSource: RdfSource.Tsv): RdfReader = (inputStreamBuilder: InputStreamBuilder) => (f: Quad => Unit) => {
     val is = new BufferedInputStream(inputStreamBuilder.build)
     val source = Source.fromInputStream(is, "UTF-8")
     try {
-      val prefixes = Array(
-        Prefix.Full("rdfs", "http://www.w3.org/2000/01/rdf-schema#"),
-        Prefix.Full("xsd", "http://www.w3.org/2001/XMLSchema#"),
-        Prefix.Full("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#"),
-        Prefix.Full("owl", "http://www.w3.org/2002/07/owl#")
-      )
-
-      def stringToPrefixedUri(x: String): Option[TripleItem.Uri] = {
-        val sepIndex = x.indexOf(':')
-        if (sepIndex >= 0) {
-          val prefix = x.substring(0, sepIndex)
-          val localName = if (x.length > (sepIndex + 1)) x.substring(sepIndex + 1) else ""
-          if (prefix == "_") {
-            Some(TripleItem.BlankNode(localName))
-          } else {
-            prefixes.find(_.prefix == prefix).map(p => TripleItem.PrefixedUri(p, localName)).orElse(Some(TripleItem.LongUri(x)))
-          }
-        } else {
-          None
-        }
-      }
-
-      def stringToLongUri(x: String): Option[TripleItem.Uri] = {
-        if (x.startsWith("<") && x.endsWith(">")) {
-          Some(TripleItem.LongUri(stripMargins(x)))
-        } else {
-          None
-        }
-      }
-
-      def stringToNumber(x: String): Option[TripleItem] = {
-        if (x.nonEmpty && (x.head.isDigit || x.head == '-')) {
-          BasicFunctions.parseNumber(x).map {
-            case Left(x) => TripleItem.Number(x)
-            case Right(x) => TripleItem.Number(x)
-          }
-        } else {
-          None
-        }
-      }
-
-      def stringToText(x: String): Option[TripleItem] = {
-        if (x.startsWith("\"")) {
-          if (x.endsWith("\"")) {
-            Some(TripleItem.Text(stripMargins(x)))
-          } else {
-            val sepIndex = x.lastIndexOf("\"^^")
-            if (sepIndex >= 0) {
-              val text = x.substring(1, sepIndex)
-              Some(stringToNumber(text).getOrElse(TripleItem.Text(text)))
-            } else {
-              None
-            }
-          }
-        } else {
-          None
-        }
-      }
-
-      for (triple <- source.getLines().map(_.trim.split("\t"))) {
-        if (triple.length == 3) {
-          val trimmedSubject = triple(0).trim
-          val trimmedPredicate = triple(1).trim
-          val strippedSubject = stringToLongUri(trimmedSubject).orElse(stringToPrefixedUri(trimmedSubject)).getOrElse(TripleItem.LongUri(trimmedSubject))
-          val strippedPredicate = stringToLongUri(trimmedPredicate).orElse(stringToPrefixedUri(trimmedPredicate)).getOrElse(TripleItem.LongUri(trimmedPredicate))
-          val strippedObject = triple(2).trim.stripSuffix(".").trim
-          val quad = Triple(
-            strippedSubject,
-            strippedPredicate,
-            stringToLongUri(strippedObject)
-              .orElse(stringToText(strippedObject))
-              .orElse(stringToPrefixedUri(strippedObject))
-              .orElse(stringToNumber(strippedObject))
-              .getOrElse(TripleItem.Text(strippedObject))
-          ).toQuad
-          f(quad)
-        }
+      val parser = tripleParser(rdfSource.parsingMode)
+      for (triple <- source.getLines().flatMap(parser.parseTriple)) {
+        f(triple.toQuad)
       }
     } finally {
       source.close()
@@ -165,7 +188,7 @@ trait Tsv {
     }
   }
 
-  implicit def tsvWriter(rdfSource: RdfSource.Tsv.type): RdfWriter = (col: PrefixesOps[_], outputStreamBuilder: OutputStreamBuilder) => {
+  implicit def tsvWriter(rdfSource: RdfSource.Tsv): RdfWriter = (col: PrefixesOps[_], outputStreamBuilder: OutputStreamBuilder) => {
     val writer = new PrintWriter(new BufferedOutputStream(outputStreamBuilder.build))
     try {
       for (Quad(triple, _) <- col.quads) {
@@ -177,3 +200,5 @@ trait Tsv {
   }
 
 }
+
+object Tsv extends Tsv

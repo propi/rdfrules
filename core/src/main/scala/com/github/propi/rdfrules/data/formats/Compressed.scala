@@ -52,7 +52,7 @@ trait Compressed {
   implicit def compressedToRdfWriter(compressedRdfSource: CompressedRdfSource): RdfWriter = (col: PrefixesOps[_], outputStreamBuilder: OutputStreamBuilder) => compressedRdfSource match {
     case CompressedRdfSource.Basic(rdfSource, compression) => rdfSource match {
       case x: RdfSource.JenaLang => compressedToRdfWriter(x.toRDFFormat.compressedBy(compression)).writeToOutputStream(col, outputStreamBuilder)
-      case RdfSource.Tsv => RdfSource.Tsv.writeToOutputStream(col, compressedOutputStreamBuilder(outputStreamBuilder, compression))
+      case tsv: RdfSource.Tsv => tsv.writeToOutputStream(col, compressedOutputStreamBuilder(outputStreamBuilder, compression))
       case RdfSource.Sql => RdfSource.Sql.writeToOutputStream(col, compressedOutputStreamBuilder(outputStreamBuilder, compression))
       case RdfSource.Cache => RdfSource.Cache.writeToOutputStream(col, compressedOutputStreamBuilder(outputStreamBuilder, compression))
     }

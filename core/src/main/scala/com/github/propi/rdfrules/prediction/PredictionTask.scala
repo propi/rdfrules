@@ -6,6 +6,10 @@ import com.github.propi.rdfrules.index.IndexCollections.ReflexivableHashSet
 import com.github.propi.rdfrules.index.IndexItem.IntTriple
 import com.github.propi.rdfrules.index.{IndexCollections, TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.TripleItemPosition
+import com.github.propi.rdfrules.utils.serialization.{Deserializer, Serializer}
+import com.github.propi.rdfrules.serialization.TripleItemSerialization._
+
+import java.io.ByteArrayInputStream
 
 case class PredictionTask(p: Int, c: TripleItemPosition[Int]) {
   def targetVariable: ConceptPosition = c match {
@@ -47,5 +51,23 @@ object PredictionTask {
   def apply(triple: IntTriple, targetVariable: ConceptPosition): PredictionTask = targetVariable match {
     case TriplePosition.Subject => PredictionTask(triple.p, TripleItemPosition.Object(triple.o))
     case TriplePosition.Object => PredictionTask(triple.p, TripleItemPosition.Subject(triple.o))
+  }
+
+  implicit def predictionTaskSerializer(implicit mapper: TripleItemIndex): Serializer[PredictionTask] = (v: PredictionTask) => {
+    val resolved = Resolved(v)
+    resolved.c match {
+      case TripleItemPosition.Subject(s) => Serializer.serialize((1: Byte, s, resolved.p))
+      case TripleItemPosition.Object(o) => Serializer.serialize((2: Byte, o, resolved.p))
+    }
+  }
+
+  implicit def predictionTaskDeserializer(implicit mapper: TripleItemIndex): Deserializer[PredictionTask] = (v: Array[Byte]) => {
+    val bais = new ByteArrayInputStream(v)
+    val (t, c, p) = Deserializer.deserialize[(Byte, TripleItem, TripleItem.Uri)](bais)
+    if (t == 1) {
+      PredictionTask(mapper.getIndex(p), TripleItemPosition.Subject(mapper.getIndex(c)))
+    } else {
+      PredictionTask(mapper.getIndex(p), TripleItemPosition.Object(mapper.getIndex(c)))
+    }
   }
 }
