@@ -10,7 +10,7 @@ val basicSettings = Seq(
 lazy val root = project
   .in(file("."))
   .settings(basicSettings: _*)
-  .aggregate(core, http, gui, experiments, experimentsAmie2, experimentsAmie3)
+  .aggregate(core, http, gui, experiments, experimentsAmie2, experimentsAmie3, experimentsKgc)
 
 lazy val core = project
   .in(file("core"))
@@ -44,5 +44,12 @@ lazy val experimentsAmie3 = project
   .in(file("experiments_amie3"))
   .settings(basicSettings: _*)
   .settings(packMain := Map("main" -> "com.github.propi.rdfrules.experiments.Amie3Comparison"))
+  .enablePlugins(PackPlugin)
+  .dependsOn(experiments)
+
+lazy val experimentsKgc = project
+  .in(file("experiments_kgc"))
+  .settings(basicSettings: _*)
+  .settings(packMain := Map("main" -> "com.github.propi.rdfrules.experiments.RdfRulesKgc"))
   .enablePlugins(PackPlugin)
   .dependsOn(experiments)

@@ -6,7 +6,6 @@ import com.github.propi.rdfrules.data.ops.PrefixesOps
 import com.github.propi.rdfrules.utils.{BasicFunctions, InputStreamBuilder, OutputStreamBuilder}
 
 import java.io.{BufferedInputStream, BufferedOutputStream, PrintWriter}
-import scala.annotation.tailrec
 import scala.io.Source
 import scala.language.implicitConversions
 
@@ -18,14 +17,6 @@ trait Tsv {
   private def stripResource(x: String) = x.trim.stripPrefix("<").stripSuffix(">").trim // replaceAll("[\\u0000-\\u0020]|[<>\"{}|^`\\\\]", "")
 
   private def stripMargins(x: String): String = x.substring(1, x.length - 1).trim
-
-  @tailrec
-  private def stringifyTripleItem(x: TripleItem): String = x match {
-    case TripleItem.LongUri(x) => s"<${stripResource(x)}>"
-    case x: TripleItem.PrefixedUri => stringifyTripleItem(x.toLongUri)
-    case TripleItem.BlankNode(x) => stringifyTripleItem(TripleItem.LongUri(x))
-    case x => x.toString
-  }
 
   /*implicit def tsvReader(rdfSource: RdfSource.Tsv.type): RdfReader = (inputStreamBuilder: InputStreamBuilder) => new Traversable[Quad] {
     def foreach[U](f: Quad => U): Unit = {
@@ -137,6 +128,31 @@ trait Tsv {
     }
   }
 
+  class Formatter private[Tsv](parsingMode: ParsingMode) {
+    val stringifyTripleItem: TripleItem => String = parsingMode match {
+      case ParsingMode.Raw => {
+        case TripleItem.LongUri(x) => x
+        case x: TripleItem.PrefixedUri => stringifyTripleItem(x.toLongUri)
+        case TripleItem.BlankNode(x) => stringifyTripleItem(TripleItem.LongUri(x))
+        case TripleItem.Text(x) => x
+        case x => x.toString
+      }
+      case ParsingMode.ParsedUris => {
+        case TripleItem.LongUri(x) => s"<${stripResource(x)}>"
+        case x: TripleItem.PrefixedUri => stringifyTripleItem(x.toLongUri)
+        case TripleItem.BlankNode(x) => stringifyTripleItem(TripleItem.LongUri(x))
+        case TripleItem.Text(x) => x
+        case x => x.toString
+      }
+      case ParsingMode.ParsedLiterals => {
+        case TripleItem.LongUri(x) => s"<${stripResource(x)}>"
+        case x: TripleItem.PrefixedUri => stringifyTripleItem(x.toLongUri)
+        case TripleItem.BlankNode(x) => stringifyTripleItem(TripleItem.LongUri(x))
+        case x => x.toString
+      }
+    }
+  }
+
   class Parser private[Tsv](parsingMode: ParsingMode) {
     val parseUri: String => TripleItem.Uri = parsingMode match {
       case ParsingMode.Raw => TripleItem.LongUri
@@ -191,8 +207,9 @@ trait Tsv {
   implicit def tsvWriter(rdfSource: RdfSource.Tsv): RdfWriter = (col: PrefixesOps[_], outputStreamBuilder: OutputStreamBuilder) => {
     val writer = new PrintWriter(new BufferedOutputStream(outputStreamBuilder.build))
     try {
+      val formatter = new Formatter(rdfSource.parsingMode)
       for (Quad(triple, _) <- col.quads) {
-        writer.println(s"${stringifyTripleItem(triple.subject)}\t${stringifyTripleItem(triple.predicate)}\t${stringifyTripleItem(triple.`object`)}")
+        writer.println(s"${formatter.stringifyTripleItem(triple.subject)}\t${formatter.stringifyTripleItem(triple.predicate)}\t${formatter.stringifyTripleItem(triple.`object`)}")
       }
     } finally {
       writer.close()
