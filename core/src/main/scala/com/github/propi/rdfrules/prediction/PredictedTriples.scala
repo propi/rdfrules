@@ -111,10 +111,7 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val parall
 
   def withCoveredTestPredictionTasks: PredictedTriples = {
     val testIndex = index.test.tripleMap
-
-    def isInTest(p: Int, x: Int): Boolean = testIndex.predicates.get(p).exists(pi => pi.subjects.contains(x) || pi.objects.contains(x))
-
-    filter(x => isInTest(x.triple.p, x.triple.s) || isInTest(x.triple.p, x.triple.o))
+    filter(x => testIndex.predicates.get(x.triple.p).exists(pi => pi.subjects.contains(x.triple.s) || pi.objects.contains(x.triple.o)))
   }
 
   def onlyPcaPredictions: PredictedTriples = filter(_.predictedResult == PredictedResult.PcaPositive)

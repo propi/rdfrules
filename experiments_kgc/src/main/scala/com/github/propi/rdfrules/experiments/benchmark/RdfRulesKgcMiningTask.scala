@@ -7,7 +7,7 @@ import com.github.propi.rdfrules.rule.Threshold
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.Debugger
 
-class RdfRulesKgcMiningTask(val name: String, cores: Int, _maxRuleLength: Int, anytime: Boolean)(implicit val debugger: Debugger) extends RdfRulesMiningTask[Ruleset] with TaskPostProcessor[Ruleset, Ruleset] {
+class RdfRulesKgcMiningTask(val name: String, exportPath: String, cores: Int, _maxRuleLength: Int, anytime: Boolean)(implicit val debugger: Debugger) extends RdfRulesMiningTask[Ruleset] with TaskPostProcessor[Ruleset, Ruleset] {
   override val allowConstants: Option[ConstantsAtPosition.ConstantsPosition] = Some(ConstantsAtPosition.ConstantsPosition.LowerCardinalitySide(true))
   override val maxRuleLength: Int = _maxRuleLength
   override val minQpcaConfidence: Double = 0.0
@@ -21,5 +21,8 @@ class RdfRulesKgcMiningTask(val name: String, cores: Int, _maxRuleLength: Int, a
     .addThreshold(Threshold.MinSupport(5))
     .addThreshold(Threshold.MinHeadSize(1))
 
-  protected def postProcess(result: Ruleset): Ruleset = result
+  protected def postProcess(result: Ruleset): Ruleset = {
+    result.`export`(exportPath)
+    result
+  }
 }

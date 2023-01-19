@@ -2,14 +2,14 @@ package com.github.propi.rdfrules.prediction
 
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.index.IndexItem.IntTriple
-import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
-import com.github.propi.rdfrules.rule.{DefaultConfidence, TripleItemPosition}
+import com.github.propi.rdfrules.index.{TrainTestIndex, TripleIndex, TripleItemIndex}
+import com.github.propi.rdfrules.rule.{DefaultConfidence, Measure, Rule, TripleItemPosition}
+import com.github.propi.rdfrules.serialization.TripleSerialization._
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, Serializer}
 import com.github.propi.rdfrules.utils.{ForEach, TopKQueue}
 
 import scala.collection.immutable.ArraySeq
-import scala.collection.mutable
-import com.github.propi.rdfrules.serialization.TripleSerialization._
+import scala.collection.{View, mutable}
 
 class PredictionTaskResult private(val predictionTask: PredictionTask, private val candidates: Iterable[PredictedTriple]) {
   def predictedTriples: ForEach[PredictedTriple] = candidates
@@ -52,6 +52,47 @@ class PredictionTaskResult private(val predictionTask: PredictionTask, private v
   def ranks(injectiveMapping: Boolean)(implicit test: TripleIndex[Int]): Iterator[Option[Int]] = predictionTask.index.iterator(injectiveMapping).map(rank)
 
   def topK(k: Int): PredictionTaskResult = new PredictionTaskResult(predictionTask, candidates.view.take(k))
+
+  def withAddedModePrediction(injectiveMapping: Boolean = true)(implicit index: TrainTestIndex): PredictionTaskResult = {
+    def modeToPredictedTriple(value: Int, size: Int) = {
+      val triple = predictionTask.toTriple(value)
+      val hsize = index.train.tripleMap.predicates(triple.p).size(injectiveMapping)
+      val conf = size.toDouble / hsize
+      PredictedTriple(
+        triple,
+        Instantiation.resolvePredictionResult(triple.s, triple.p, triple.o)(index.merged.tripleMap),
+        Rule(predictionTask.toAtom, IndexedSeq.empty, Measure.Support(size),
+          Measure.BodySize(hsize), Measure.HeadSize(hsize), Measure.HeadSupport(size),
+          Measure.HeadCoverage(conf), Measure.CwaConfidence(conf))
+      )
+    }
+
+    index.train.tripleMap.predicates.get(predictionTask.p).map(pindex => predictionTask.targetVariable match {
+      case TriplePosition.Subject => (modeToPredictedTriple _).tupled(pindex.subjectMode(injectiveMapping))
+      case TriplePosition.Object => (modeToPredictedTriple _).tupled(pindex.objectMode(injectiveMapping))
+    }).map(mode => new View[PredictedTriple] {
+      def iterator: Iterator[PredictedTriple] = {
+        val it = candidates.iterator
+        var modeIsContained = false
+        new Iterator[PredictedTriple] {
+          def hasNext: Boolean = it.hasNext || !modeIsContained
+
+          def next(): PredictedTriple = {
+            if (it.hasNext) {
+              val x = it.next()
+              if (x.triple == mode.triple) modeIsContained = true
+              x
+            } else if (!modeIsContained) {
+              modeIsContained = true
+              mode
+            } else {
+              Iterator.empty.next()
+            }
+          }
+        }
+      }
+    }).map(new PredictionTaskResult(predictionTask, _)).getOrElse(this)
+  }
 
   def filterByFunctions(implicit train: TripleIndex[Int]): PredictionTaskResult = {
     if (predictionTask.index.isEmpty(false)) {

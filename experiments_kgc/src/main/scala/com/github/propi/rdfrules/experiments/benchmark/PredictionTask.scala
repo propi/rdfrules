@@ -18,14 +18,16 @@ class PredictionTask[T](val name: String, test: Dataset, scorer: PredictedTriple
       .withoutQuasiBinding()
       .computeConfidence(0.1)
       .onlyBetterDescendant(_confidence)
+      .computeLift()
+      .filter(_.measures.apply[Measure.Lift].value > 1.0)
       .sorted
+      .cache
+      .withDebugger("Rules predicted", true)
       .predict(Some(test)).withoutTrainTriples.withCoveredTestPredictionTasks
-      .withDebugger("Predicted triples", true)
       .grouped(scorer, TopRules(100))
       .withDebugger("Predicted groupes", true)
       .predictionTasks(predictionTasksBuilder = PredictionTasksBuilder.FromTestSet.FromPredicateCardinalities, topK = 100)
       .withDebugger("Evaluation", true)
-      .nonEmptyPredictions
       .cache
   }
 }

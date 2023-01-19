@@ -3,9 +3,9 @@ package com.github.propi.rdfrules.prediction
 import com.github.propi.rdfrules.data.{TripleItem, TriplePosition}
 import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
 import com.github.propi.rdfrules.index.IndexCollections.ReflexivableHashSet
-import com.github.propi.rdfrules.index.IndexItem.IntTriple
+import com.github.propi.rdfrules.index.IndexItem.{IntTriple, Triple}
 import com.github.propi.rdfrules.index.{IndexCollections, TripleIndex, TripleItemIndex}
-import com.github.propi.rdfrules.rule.TripleItemPosition
+import com.github.propi.rdfrules.rule.{Atom, TripleItemPosition}
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, Serializer}
 import com.github.propi.rdfrules.serialization.TripleItemSerialization._
 
@@ -15,6 +15,16 @@ case class PredictionTask(p: Int, c: TripleItemPosition[Int]) {
   def targetVariable: ConceptPosition = c match {
     case _: TripleItemPosition.Subject[_] => TriplePosition.Object
     case _: TripleItemPosition.Object[_] => TriplePosition.Subject
+  }
+
+  def toTriple(x: Int): IntTriple = c match {
+    case TripleItemPosition.Subject(s) => Triple(s, p, x)
+    case TripleItemPosition.Object(o) => Triple(x, p, o)
+  }
+
+  def toAtom: Atom = c match {
+    case TripleItemPosition.Subject(s) => Atom(Atom.Constant(s), p, Atom.Variable(0))
+    case TripleItemPosition.Object(o) =>  Atom(Atom.Variable(0), p, Atom.Constant(o))
   }
 
   def predictionTaskPattern: PredictionTaskPattern = PredictionTaskPattern(p, targetVariable)

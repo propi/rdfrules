@@ -28,8 +28,6 @@ trait PredictionTaskPostprocessor extends TaskPostProcessor[PredictionTasksResul
   protected def postProcess(result: PredictionTasksResults): Seq[Metric] = {
     processResults("", result.evaluate(
       RankingEvaluationBuilder.fromTest(Vector(1, 3, 10)),
-      RankingEvaluationBuilder.fromPrediction(Vector(1, 3, 10)),
-      CompletenessEvaluationBuilder(),
       StatsBuilder()
     )).concat(processResults("qpca", result.onlyQpcaPredictions.evaluate(CompletenessEvaluationBuilder())))
       .concat(processResults("pca", result.onlyFunctionalPredictions.evaluate(CompletenessEvaluationBuilder())))

@@ -33,6 +33,8 @@ class PredictionTasksResults private(protected val coll: ForEach[PredictionTaskR
 
   def nonEmptyPredictions: PredictionTasksResults = filter(!_.isEmpty)
 
+  def withAddedModePredictions(injectiveMapping: Boolean = true): PredictionTasksResults = map(_.withAddedModePrediction(injectiveMapping))
+
   def nonEmptyTest(injectiveMapping: Boolean = true): PredictionTasksResults = filter(x => !x.predictionTask.index(index.test.tripleMap).isEmpty(injectiveMapping))
 
   def evaluate(evaluator: EvaluationBuilder, evaluators: EvaluationBuilder*): List[EvaluationResult] = {

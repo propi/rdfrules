@@ -201,7 +201,12 @@ trait AtomCounting {
       }
     }
 
-    variableMaps.flatMap(variableMap => sdp(atoms, variableMap))
+    if (atoms.isEmpty) {
+      //variant for zero rules: {} => (?a p C)
+      variableMaps.filter(variableMap => headVars.forall(variableMap.contains)).flatMap(variableMap => sdp(atoms, variableMap))
+    } else {
+      variableMaps.flatMap(variableMap => sdp(atoms, variableMap))
+    }
   }
 
   /**

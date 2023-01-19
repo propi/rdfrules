@@ -5,14 +5,14 @@ import com.github.propi.rdfrules.experiments.benchmark.Benchmark._
 import com.github.propi.rdfrules.experiments.benchmark.MetricResultProcessor.BasicPrinter
 import com.github.propi.rdfrules.experiments.benchmark._
 import com.github.propi.rdfrules.experiments.benchmark.metrics.RulesetMetric
-import com.github.propi.rdfrules.experiments.benchmark.tasks._
+import com.github.propi.rdfrules.prediction.PredictionTasksResults
 import com.github.propi.rdfrules.prediction.aggregator.JointScorer
 import com.github.propi.rdfrules.rule.{DefaultConfidence, Measure}
 import com.github.propi.rdfrules.ruleset.Ruleset
-import com.github.propi.rdfrules.utils.{Debugger, HowLong}
+import com.github.propi.rdfrules.utils.{Debugger, Functor, HowLong}
 import org.apache.commons.cli.{Options, PosixParser}
 
-import java.io.PrintStream
+import java.io.{File, PrintStream}
 import scala.language.postfixOps
 
 /**
@@ -32,9 +32,13 @@ object RdfRulesKgc {
     options.addOption("cores", true, "max number of cores")
     options.addOption("dataset", true, "input TSV dataset")
     options.addOption("output", true, "output file")
+    options.addOption("rlen", true, "rule length")
+    options.addOption("revalidate", false, "revalidate caches")
 
     options.addOption("runcomparativetest", false, "run comparative test")
-    options.addOption("runconfidences", false, "run comparative test")
+    options.addOption("runconfidences", false, "run prediction with different confidence types")
+    options.addOption("runmodes", false, "run prediction with or without zero rules")
+
 
     options.addOption("rdfrulesonly", false, "run only rdf rules tests")
     options.addOption("anyburlonly", false, "run only anyburl tests")
@@ -46,6 +50,9 @@ object RdfRulesKgc {
     val numberOfThreads = cli.getOptionValue("cores", Runtime.getRuntime.availableProcessors().toString).toInt
     val datasetName = cli.getOptionValue("dataset", "wn18rr")
     val outputFile = cli.getOptionValue("output", "experiments/data/results.txt")
+    val outputFolder = outputFile.replaceFirst("/[^/]+$", "")
+    val ruleLength = cli.getOptionValue("rlen", "3").toInt
+    val revalidate = cli.hasOption("revalidate")
     implicit val outputWriter: PrintStream = new PrintStream(outputFile)
     try {
       Debugger() { implicit debugger =>
@@ -84,44 +91,60 @@ object RdfRulesKgc {
           }
         }*/
         //List(false, true).foreach { anytime =>
-        if (cli.hasOption("runconfidences")) {
-            val ruleset = {
-              implicit val rulesToMetrics: Ruleset => Seq[Metric] = rules => List(new RulesetMetric("ruleset", rules))
-              val res = Once executeTask new RdfRulesKgcMiningTask(s"RDFRules mining", numberOfThreads, 4, false) withInput index
-              res andFinallyProcessAndReturnResultWith BasicPrinter()
-            }
-            {
-              implicit val defaultConfidence: DefaultConfidence = DefaultConfidence(Measure.CwaConfidence)
-              Once executeTask new PredictionTask[Seq[Metric]]("RDFRules prediction task, CWA, Joint", test, JointScorer()) with PredictionTaskPostprocessor withInput ruleset andFinallyProcessResultWith BasicPrinter()
-            }
-            {
-              implicit val defaultConfidence: DefaultConfidence = DefaultConfidence(Measure.PcaConfidence)
-              Once executeTask new PredictionTask[Seq[Metric]]("RDFRules prediction task, PCA, Joint", test, JointScorer()) with PredictionTaskPostprocessor withInput ruleset andFinallyProcessResultWith BasicPrinter()
-            }
-            {
-              implicit val defaultConfidence: DefaultConfidence = DefaultConfidence(Measure.QpcaConfidence)
-              Once executeTask new PredictionTask[Seq[Metric]]("RDFRules prediction task, QPCA, Joint", test, JointScorer()) with PredictionTaskPostprocessor withInput ruleset andFinallyProcessResultWith BasicPrinter()
-            }
-        }
-        /**if (cli.hasOption("runlift")) {
-          val ruleset = {
+        lazy val exactRuleset = {
+          val rulesCache = new File(s"$outputFolder/$datasetName-rules.ndjson")
+          if (revalidate || !rulesCache.isFile) {
             implicit val rulesToMetrics: Ruleset => Seq[Metric] = rules => List(new RulesetMetric("ruleset", rules))
-            val res = Once executeTask new RdfRulesKgcMiningTask(s"RDFRules mining", numberOfThreads, 4, false) withInput index
+            val res = Once executeTask new RdfRulesKgcMiningTask(s"RDFRules mining", rulesCache.getAbsolutePath, numberOfThreads, ruleLength, false) withInput index
             res andFinallyProcessAndReturnResultWith BasicPrinter()
+          } else {
+            val res = Ruleset(index, rulesCache).withDebugger().cache
+            res.size
+            res
           }
-          {
-            implicit val defaultConfidence: DefaultConfidence = DefaultConfidence(Measure.CwaConfidence)
-            Once executeTask new PredictionTask[Seq[Metric]]("RDFRules prediction task, CWA, Joint", test, JointScorer()) with PredictionTaskPostprocessor withInput ruleset andFinallyProcessResultWith BasicPrinter()
+        }
+        if (cli.hasOption("runconfidences")) {
+          val ruleset = exactRuleset
+          Functor(DefaultConfidence(Measure.CwaConfidence)).foreach { implicit defaultConfidence =>
+            Once executeTask new PredictionTask[Seq[Metric]]("RDFRules prediction task, CWA, Joint", test, JointScorer()) with ModesPredictionTaskPostprocessor withInput ruleset andFinallyProcessResultWith BasicPrinter()
           }
-          {
-            implicit val defaultConfidence: DefaultConfidence = DefaultConfidence(Measure.PcaConfidence)
-            Once executeTask new PredictionTask[Seq[Metric]]("RDFRules prediction task, PCA, Joint", test, JointScorer()) with PredictionTaskPostprocessor withInput ruleset andFinallyProcessResultWith BasicPrinter()
+          Functor(DefaultConfidence(Measure.PcaConfidence)).foreach { implicit defaultConfidence =>
+            Once executeTask new PredictionTask[Seq[Metric]]("RDFRules prediction task, PCA, Joint", test, JointScorer()) with ModesPredictionTaskPostprocessor withInput ruleset andFinallyProcessResultWith BasicPrinter()
           }
-          {
-            implicit val defaultConfidence: DefaultConfidence = DefaultConfidence(Measure.QpcaConfidence)
-            Once executeTask new PredictionTask[Seq[Metric]]("RDFRules prediction task, QPCA, Joint", test, JointScorer()) with PredictionTaskPostprocessor withInput ruleset andFinallyProcessResultWith BasicPrinter()
+          Functor(DefaultConfidence(Measure.QpcaConfidence)).foreach { implicit defaultConfidence =>
+            Once executeTask new PredictionTask[Seq[Metric]]("RDFRules prediction task, QPCA, Joint", test, JointScorer()) with ModesPredictionTaskPostprocessor withInput ruleset andFinallyProcessResultWith BasicPrinter()
           }
-        }*/
+        }
+        if (cli.hasOption("runmodes")) {
+          val ruleset = exactRuleset
+          implicit val defaultConfidence: DefaultConfidence = DefaultConfidence(Measure.QpcaConfidence)
+          implicit val toMetrics: PredictionTasksResults => Seq[Metric] = _ => Nil
+          val predictions = Once executeTask new PredictionTask[PredictionTasksResults]("RDFRules prediction task, modes", test, JointScorer()) with TaskPostProcessor[PredictionTasksResults, PredictionTasksResults] {
+            protected def postProcess(result: PredictionTasksResults): PredictionTasksResults = result
+          } withInput ruleset andFinallyProcessAndReturnResultWith BasicPrinter()
+          Once executeTask new ReadyPredictionTask[Seq[Metric]]("RDFRules prediction with modes") with ModesPredictionTaskPostprocessor withInput predictions andFinallyProcessResultWith BasicPrinter()
+          Once executeTask new ReadyPredictionTask[Seq[Metric]]("RDFRules prediction without modes") with PredictionTaskPostprocessor withInput predictions andFinallyProcessResultWith BasicPrinter()
+        }
+
+        /** if (cli.hasOption("runlift")) {
+          * val ruleset = {
+          * implicit val rulesToMetrics: Ruleset => Seq[Metric] = rules => List(new RulesetMetric("ruleset", rules))
+          * val res = Once executeTask new RdfRulesKgcMiningTask(s"RDFRules mining", numberOfThreads, 4, false) withInput index
+          * res andFinallyProcessAndReturnResultWith BasicPrinter()
+          * }
+          * {
+          * implicit val defaultConfidence: DefaultConfidence = DefaultConfidence(Measure.CwaConfidence)
+          * Once executeTask new PredictionTask[Seq[Metric]]("RDFRules prediction task, CWA, Joint", test, JointScorer()) with PredictionTaskPostprocessor withInput ruleset andFinallyProcessResultWith BasicPrinter()
+          * }
+          * {
+          * implicit val defaultConfidence: DefaultConfidence = DefaultConfidence(Measure.PcaConfidence)
+          * Once executeTask new PredictionTask[Seq[Metric]]("RDFRules prediction task, PCA, Joint", test, JointScorer()) with PredictionTaskPostprocessor withInput ruleset andFinallyProcessResultWith BasicPrinter()
+          * }
+          * {
+          * implicit val defaultConfidence: DefaultConfidence = DefaultConfidence(Measure.QpcaConfidence)
+          * Once executeTask new PredictionTask[Seq[Metric]]("RDFRules prediction task, QPCA, Joint", test, JointScorer()) with PredictionTaskPostprocessor withInput ruleset andFinallyProcessResultWith BasicPrinter()
+          * }
+          * } */
       }
     } finally {
       outputWriter.close()

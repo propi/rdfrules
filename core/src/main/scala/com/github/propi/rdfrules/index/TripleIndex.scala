@@ -112,9 +112,19 @@ object TripleIndex {
       * Mode probability is needed for lift measure calculation
       */
     final lazy val modeProbability: Double = lowerCardinalitySide match {
-      case TriplePosition.Subject => subjects.valuesIterator.map(_.size).max.toDouble / size(false)
-      case TriplePosition.Object => objects.valuesIterator.map(_.size).max.toDouble / size(false)
+      case TriplePosition.Subject => _subjectMode._2.toDouble / size(false)
+      case TriplePosition.Object => _objectMode._2.toDouble / size(false)
     }
+
+    private def mode(data: HashMap[T, HashSet[T] with Reflexiveable]): (T, Int, Int) = data.pairIterator.map(x => (x._1, x._2.size(false), x._2.size(true))).maxBy(_._2)
+
+    private lazy val _subjectMode: (T, Int, Int) = mode(subjects)
+
+    private lazy val _objectMode: (T, Int, Int) = mode(objects)
+
+    final def subjectMode(injectiveMapping: Boolean): (T, Int) = if (injectiveMapping) _subjectMode._1 -> _subjectMode._3 else _subjectMode._1 -> _subjectMode._2
+
+    final def objectMode(injectiveMapping: Boolean): (T, Int) = if (injectiveMapping) _objectMode._1 -> _objectMode._3 else _objectMode._1 -> _objectMode._2
 
     final lazy val pcaNegatives: Int = higherCardinalitySide match {
       case TriplePosition.Subject =>
