@@ -1,4 +1,4 @@
-package com.github.propi.rdfrules.algorithm.dbscan
+package com.github.propi.rdfrules.algorithm.clustering
 
 import java.util.concurrent.ForkJoinPool
 import com.github.propi.rdfrules.algorithm.Clustering

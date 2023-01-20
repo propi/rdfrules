@@ -1,4 +1,4 @@
-package com.github.propi.rdfrules.algorithm.dbscan
+package com.github.propi.rdfrules.algorithm.clustering
 
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.{Atom, Measure, Rule}
@@ -38,30 +38,46 @@ object SimilarityCounting {
     def *[T](similarityCounting: SimilarityCounting[T]): WeightedSimilarityCounting[T] = WeightedSimilarityCounting(v, similarityCounting)
   }
 
-  object AtomsSimilarityCounting extends SimilarityCounting[Rule] {
+  object AllAtomsSimilarityCounting extends AtomsSimilarityCounting(true)
 
-    private def itemsSimilarity(p1: Int, p2: Int)(item1: Atom.Item, item2: Atom.Item) = (item1, item2) match {
-      case (_: Atom.Variable, _: Atom.Variable) => if (p1 == p2) 1.0 else 0.0
-      case (_: Atom.Variable, _: Atom.Constant) => if (p1 == p2) 0.5 else 0.0
-      case (_: Atom.Constant, _: Atom.Variable) => if (p1 == p2) 0.5 else 0.0
-      case (x: Atom.Constant, y: Atom.Constant) => if (x.value == y.value) 1.0 else 0.0
-    }
+  object BodyAtomsSimilarityCounting extends AtomsSimilarityCounting(false)
 
+  class AtomsSimilarityCounting(withHead: Boolean) extends SimilarityCounting[Rule] {
     private def atomsSimilarity(atom1: Atom, atom2: Atom) = {
-      val countItemsSimilarity = itemsSimilarity(atom1.predicate, atom2.predicate) _
-      (if (atom1.predicate == atom2.predicate) 1.0 else 0.0) + countItemsSimilarity(atom1.subject, atom2.subject) + countItemsSimilarity(atom1.`object`, atom2.`object`)
+      val (psim, countItemsSimilarity): (Double, (Atom.Item, Atom.Item) => Double) = if (atom1.predicate == atom2.predicate) {
+        1.0 -> {
+          case (_: Atom.Variable, _: Atom.Variable) => 1.0
+          case (_: Atom.Variable, _: Atom.Constant) => 0.5
+          case (_: Atom.Constant, _: Atom.Variable) => 0.5
+          case (x: Atom.Constant, y: Atom.Constant) => if (x.value == y.value) 1.0 else 0.0
+        }
+      } else {
+        0.0 -> {
+          case (x: Atom.Constant, y: Atom.Constant) => if (x.value == y.value) 1.0 else 0.0
+          case _ => 0.0
+        }
+      }
+      psim + countItemsSimilarity(atom1.subject, atom2.subject) + countItemsSimilarity(atom1.`object`, atom2.`object`)
     }
 
     def apply(rule1: Rule, rule2: Rule): Double = {
       //select mainRule and secondRule where mainRule.length >= secondRule.length
       val (mainRule, secondRule) = if (rule1.body.size > rule2.body.size) (rule1, rule2) else (rule2, rule1)
       //number of all atom items in longest rule
-      val maxMatches = secondRule.ruleLength * 3
+      val maxMatches = (secondRule.ruleLength - (if (withHead) 0 else 1)) * 3
+      val headSimilarity = if (withHead) atomsSimilarity(mainRule.head, secondRule.head) else 0.0
       //count all possible similarity combinations between atoms in rule1 and atoms in rule2
       //the result is matrix mainRule.length * secondRule.length
-      val index = (Iterator(mainRule.head) ++ mainRule.body.iterator).map { atom1 =>
-        (Iterator(secondRule.head) ++ secondRule.body.iterator).map(atom2 => atomsSimilarity(atom1, atom2)).toIndexedSeq
-      }.toIndexedSeq
+      val index = Array.ofDim[Double](mainRule.body.length, secondRule.body.length)
+      for {
+        (atom1, i) <- mainRule.body.iterator.zipWithIndex
+        (atom2, j) <- secondRule.body.iterator.zipWithIndex
+      } {
+        index(i)(j) = atomsSimilarity(atom1, atom2)
+      }
+      //      val index = (if (withHead) Iterator(mainRule.head) ++ mainRule.body.iterator else mainRule.body.iterator).map { atom1 =>
+      //        (if (withHead) Iterator(secondRule.head) ++ secondRule.body.iterator else secondRule.body.iterator).map(atom2 => atomsSimilarity(atom1, atom2)).toIndexedSeq
+      //      }.toIndexedSeq
       //for each atom of the mainRule find max similarity with an atom of the secondRule
       //val mainAtomMaxSims = index.map(_.max)
       //create a set of indices of the mainRule atoms for faster enum of rest atoms
@@ -75,7 +91,7 @@ object SimilarityCounting {
       //4. at the each similarity of the each permutation add max similarity of the remaining atoms of the mainRule
       //NOW IT IS NOT USED!!! e.g. sim(A, X) + sim(B, Y) + max(sim(C, X), sim(C, Y)), sim(B, X) + sim(A, Y) + max(sim(C, X), sim(C, Y)), sim(A, X) + sim(C, Y) + max(sim(B, X), sim(B, Y)), ...
       //5. finally select the max similarity from permutations
-      val maxSimilarity = index.indices.combinations(secondRule.ruleLength).flatMap(_.permutations).map { mainPermutation =>
+      val maxSimilarity = index.indices.combinations(secondRule.body.length).flatMap(_.permutations).map { mainPermutation =>
         val /*(rlist, */ msim /*)*/ = mainPermutation.iterator.zipWithIndex.map {
           case (i, j) => /*i -> */ index(i)(j)
         }.sum /*.foldLeft(List.empty[Int] -> 0.0) {
@@ -86,7 +102,7 @@ object SimilarityCounting {
         msim
       }.max
       //to get range between 0-1 we need to normalize maxSimilarity by number of atom items in mainRule
-      maxSimilarity / maxMatches
+      (maxSimilarity + headSimilarity) / maxMatches
     }
 
   }

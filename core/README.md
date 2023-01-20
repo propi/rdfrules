@@ -286,7 +286,7 @@ additional measures of significance. The RuleSet object keeps all mined rules in
 filtering, mapping, sorting and computing functions.
 
 ```scala
-import com.github.propi.rdfrules.algorithm.dbscan.{DbScan, SimilarityCounting}
+import com.github.propi.rdfrules.algorithm.clustering.{DbScan, SimilarityCounting}
 import com.github.propi.rdfrules.data._
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.rule.{Measure, Rule}

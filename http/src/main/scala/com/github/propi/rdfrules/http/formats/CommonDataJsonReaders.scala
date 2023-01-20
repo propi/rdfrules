@@ -2,8 +2,8 @@ package com.github.propi.rdfrules.http.formats
 
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.algorithm.consumer.{InMemoryRuleConsumer, OnDiskRuleConsumer, TopKRuleConsumer}
-import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting.{Comb, WeightedSimilarityCounting}
-import com.github.propi.rdfrules.algorithm.dbscan.{DbScan, SimilarityCounting}
+import com.github.propi.rdfrules.algorithm.clustering.SimilarityCounting.{Comb, WeightedSimilarityCounting}
+import com.github.propi.rdfrules.algorithm.clustering.{DbScan, SimilarityCounting}
 import com.github.propi.rdfrules.algorithm.{Clustering, RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.data.{Compression, DiscretizationTask, Prefix, RdfSource, TripleItem}
 import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._

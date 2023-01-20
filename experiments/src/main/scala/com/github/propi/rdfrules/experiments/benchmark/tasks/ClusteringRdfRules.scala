@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.experiments.benchmark.tasks
 
-import com.github.propi.rdfrules.algorithm.dbscan.DbScan
-import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting.AtomsSimilarityCounting
+import com.github.propi.rdfrules.algorithm.clustering.DbScan
+import com.github.propi.rdfrules.algorithm.clustering.SimilarityCounting.AllAtomsSimilarityCounting
 import com.github.propi.rdfrules.experiments.benchmark.{DefaultMiningSettings, RulesetTask, TaskPostProcessor}
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.Debugger
@@ -20,7 +20,7 @@ class ClusteringRdfRules[T](val name: String,
   protected def preProcess(input: Ruleset): Ruleset = input
 
   protected def taskBody(input: Ruleset): Ruleset = {
-    input.makeClusters(DbScan(minNeigbours, minSimilarity, numberOfThreads)(AtomsSimilarityCounting, debugger)).cache
+    input.makeClusters(DbScan(minNeigbours, minSimilarity, numberOfThreads)(AllAtomsSimilarityCounting, debugger)).cache
   }
 
 }

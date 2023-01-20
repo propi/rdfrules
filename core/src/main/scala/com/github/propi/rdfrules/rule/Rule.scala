@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.rule
 
-import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
-import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting._
+import com.github.propi.rdfrules.algorithm.clustering.SimilarityCounting
+import com.github.propi.rdfrules.algorithm.clustering.SimilarityCounting._
 import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.utils.{Stringifier, TypedKeyMap}
 
@@ -101,7 +101,7 @@ object Rule {
 
   implicit def ruleSimpleOrdering(implicit measuresOrdering: Ordering[TypedKeyMap.Immutable[Measure]]): Ordering[FinalRule] = Ordering.by[FinalRule, Rule](_.asInstanceOf[Rule])
 
-  implicit val ruleSimilarityCounting: SimilarityCounting[Rule] = AtomsSimilarityCounting /*(0.5 * AtomsSimilarityCounting) ~
+  implicit val ruleSimilarityCounting: SimilarityCounting[Rule] = AllAtomsSimilarityCounting /*(0.5 * AtomsSimilarityCounting) ~
     (0.1 * LengthSimilarityCounting) ~
     (0.15 * SupportSimilarityCounting) ~
     (0.05 * ConfidenceSimilarityCounting) ~

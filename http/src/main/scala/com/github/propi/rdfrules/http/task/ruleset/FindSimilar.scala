@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.http.task.ruleset
 
-import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
+import com.github.propi.rdfrules.algorithm.clustering.SimilarityCounting
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 import com.github.propi.rdfrules.rule.ResolvedRule
 import com.github.propi.rdfrules.rule.Rule.FinalRule

@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.experiments
 import com.github.propi.rdfrules.algorithm.RuleConsumer
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.algorithm.consumer.TopKRuleConsumer
-import com.github.propi.rdfrules.algorithm.dbscan.DbScan
+import com.github.propi.rdfrules.algorithm.clustering.DbScan
 import com.github.propi.rdfrules.data._
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule._

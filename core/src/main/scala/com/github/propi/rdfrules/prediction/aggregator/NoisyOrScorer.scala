@@ -1,11 +1,11 @@
 package com.github.propi.rdfrules.prediction.aggregator
 
-import com.github.propi.rdfrules.prediction.PredictedTriplesAggregator.ScoreFactory
+import com.github.propi.rdfrules.prediction.PredictedTriplesAggregator.{PostRulesScoreFactory, ScoreFactory}
 import com.github.propi.rdfrules.rule.{DefaultConfidence, Rule}
 
 import scala.collection.mutable
 
-class JointScorer private(implicit defaultConfidence: DefaultConfidence) extends ScoreFactory {
+class NoisyOrScorer private(implicit defaultConfidence: DefaultConfidence) extends ScoreFactory {
 
   def newBuilder: mutable.Builder[Rule.FinalRule, Double] = {
     var res = 1.0
@@ -23,6 +23,8 @@ class JointScorer private(implicit defaultConfidence: DefaultConfidence) extends
 
 }
 
-object JointScorer {
-  def apply()(implicit defaultConfidence: DefaultConfidence): ScoreFactory = new JointScorer
+object NoisyOrScorer {
+  def apply(postRules: Boolean = true)(implicit defaultConfidence: DefaultConfidence): ScoreFactory = {
+    if (postRules) new NoisyOrScorer with PostRulesScoreFactory else new NoisyOrScorer
+  }
 }

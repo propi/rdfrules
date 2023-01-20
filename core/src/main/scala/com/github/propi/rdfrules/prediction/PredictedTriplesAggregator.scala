@@ -4,7 +4,8 @@ import com.github.propi.rdfrules.rule.Rule.FinalRule
 
 import scala.collection.mutable
 
-class PredictedTriplesAggregator private(scoreBuilder: collection.mutable.Builder[FinalRule, Double],
+class PredictedTriplesAggregator private(postRulesScorer: Boolean,
+                                         scoreBuilder: collection.mutable.Builder[FinalRule, Double],
                                          rulesBuilder: collection.mutable.Builder[FinalRule, Iterable[FinalRule]])
   extends collection.mutable.Builder[PredictedTriple, PredictedTriple.Grouped] {
 
@@ -19,17 +20,19 @@ class PredictedTriplesAggregator private(scoreBuilder: collection.mutable.Builde
   def result(): PredictedTriple.Grouped = {
     val pt = first.get
     first = None
-    PredictedTriple(pt.triple, pt.predictedResult, rulesBuilder.result(), scoreBuilder.result())
+    val rules = rulesBuilder.result()
+    if (postRulesScorer) rules.foreach(scoreBuilder.addOne)
+    PredictedTriple(pt.triple, pt.predictedResult, rules, scoreBuilder.result())
   }
 
   def addOne(elem: PredictedTriple): PredictedTriplesAggregator.this.type = {
     if (first.isEmpty) first = Some(elem.toSinglePredictedTriples.next())
     elem match {
       case x: PredictedTriple.Single =>
-        scoreBuilder.addOne(x.rule)
+        if (!postRulesScorer) scoreBuilder.addOne(x.rule)
         rulesBuilder.addOne(x.rule)
       case _: PredictedTriple.Grouped => for (rule <- elem.rules) {
-        scoreBuilder.addOne(rule)
+        if (!postRulesScorer) scoreBuilder.addOne(rule)
         rulesBuilder.addOne(rule)
       }
     }
@@ -44,6 +47,8 @@ object PredictedTriplesAggregator {
   }
 
   trait ScoreFactory extends FromSpecific[FinalRule, Double]
+
+  trait PostRulesScoreFactory
 
   trait RulesFactory extends FromSpecific[FinalRule, Iterable[FinalRule]]
 
@@ -74,7 +79,7 @@ object PredictedTriplesAggregator {
   }
 
   def apply(scoreFactory: ScoreFactory, rulesFactory: RulesFactory): FromSpecific[PredictedTriple, PredictedTriple.Grouped] = new FromSpecific[PredictedTriple, PredictedTriple.Grouped] {
-    def newBuilder: mutable.Builder[PredictedTriple, PredictedTriple.Grouped] = new PredictedTriplesAggregator(scoreFactory.newBuilder, rulesFactory.newBuilder)
+    def newBuilder: mutable.Builder[PredictedTriple, PredictedTriple.Grouped] = new PredictedTriplesAggregator(scoreFactory.isInstanceOf[PostRulesScoreFactory], scoreFactory.newBuilder, rulesFactory.newBuilder)
   }
 
 }

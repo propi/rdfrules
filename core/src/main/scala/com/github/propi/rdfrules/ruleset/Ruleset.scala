@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.ruleset
 
 import com.github.propi.rdfrules.algorithm.Clustering
 import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
-import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
+import com.github.propi.rdfrules.algorithm.clustering.SimilarityCounting
 import com.github.propi.rdfrules.data.Dataset
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
 import com.github.propi.rdfrules.index.{AutoIndex, Index, IndexCollections, TripleIndex, TripleItemIndex}

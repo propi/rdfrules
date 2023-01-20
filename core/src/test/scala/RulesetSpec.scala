@@ -1,6 +1,6 @@
 import java.io.{File, FileInputStream, FileOutputStream}
 import com.github.propi.rdfrules.algorithm.amie.Amie
-import com.github.propi.rdfrules.algorithm.dbscan.DbScan
+import com.github.propi.rdfrules.algorithm.clustering.DbScan
 import com.github.propi.rdfrules.data._
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.index._

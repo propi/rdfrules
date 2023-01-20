@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.http.formats
 import akka.NotUsed
 import akka.stream.scaladsl.Source
 import com.github.propi.rdfrules.algorithm.consumer.InMemoryRuleConsumer
-import com.github.propi.rdfrules.algorithm.dbscan.SimilarityCounting
+import com.github.propi.rdfrules.algorithm.clustering.SimilarityCounting
 import com.github.propi.rdfrules.algorithm.{Clustering, RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.data.{Dataset, DiscretizationTask, Prefix, TripleItem}
 import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
