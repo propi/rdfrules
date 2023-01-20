@@ -14,20 +14,21 @@ class PredictionTask[T](val name: String, test: Dataset, scorer: PredictedTriple
 
   protected def taskBody(input: Ruleset): PredictionTasksResults = {
     implicit val _confidence: Measure.Confidence[Measure.ConfidenceMeasure] = defaultConfidence.confidenceType.get
-    input
+    val res = input
       .withoutQuasiBinding()
-      .computeConfidence(0.1)
+      .computeConfidence(0.1, topK = 1000000)
       .onlyBetterDescendant(_confidence)
       .computeLift()
       .filter(_.measures.apply[Measure.Lift].value > 1.0)
       .sorted
       .cache
-      .withDebugger("Rules predicted", true)
       .predict(Some(test)).withoutTrainTriples.withCoveredTestPredictionTasks
       .grouped(scorer, TopRules(100))
       .withDebugger("Predicted groupes", true)
       .predictionTasks(predictionTasksBuilder = PredictionTasksBuilder.FromTestSet.FromPredicateCardinalities, topK = 100)
       .withDebugger("Evaluation", true)
       .cache
+    println(res.size)
+    res
   }
 }

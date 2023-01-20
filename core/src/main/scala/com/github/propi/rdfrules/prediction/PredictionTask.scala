@@ -60,7 +60,7 @@ object PredictionTask {
 
   def apply(triple: IntTriple, targetVariable: ConceptPosition): PredictionTask = targetVariable match {
     case TriplePosition.Subject => PredictionTask(triple.p, TripleItemPosition.Object(triple.o))
-    case TriplePosition.Object => PredictionTask(triple.p, TripleItemPosition.Subject(triple.o))
+    case TriplePosition.Object => PredictionTask(triple.p, TripleItemPosition.Subject(triple.s))
   }
 
   implicit def predictionTaskSerializer(implicit mapper: TripleItemIndex): Serializer[PredictionTask] = (v: PredictionTask) => {

@@ -188,7 +188,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
   }
 
   def predict(testSet: Option[Dataset] = None, mergeTestAndTrainForPrediction: Boolean = true, onlyTestCoveredPredictions: Boolean = true, predictedResults: Set[PredictedResult] = Set.empty, injectiveMapping: Boolean = true)(implicit debugger: Debugger): PredictedTriples = {
-    Prediction(rules.withDebugger("Predicted rules"), index, testSet, mergeTestAndTrainForPrediction, onlyTestCoveredPredictions, predictedResults, injectiveMapping).setParallelism(parallelism)
+    Prediction(rules.withDebugger("Predicted rules", true), index, testSet, mergeTestAndTrainForPrediction, onlyTestCoveredPredictions, predictedResults, injectiveMapping).setParallelism(parallelism)
   }
 
   def makeClusters(clustering: Clustering[FinalRule]): Ruleset = transform((f: FinalRule => Unit) => clustering.clusters(rules.toIndexedSeq).view.zipWithIndex.flatMap { case (cluster, index) =>

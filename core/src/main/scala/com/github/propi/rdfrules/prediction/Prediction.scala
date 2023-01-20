@@ -19,6 +19,7 @@ object Prediction {
         implicit val thi: TripleIndex[Int] = if (mergeTestAndTrainForPrediction) index.merged.tripleMap else index.test.tripleMap
         implicit val tii: TripleItemIndex = if (mergeTestAndTrainForPrediction) index.merged.tripleItemMap else index.test.tripleItemMap
         val atomCounting = AtomCounting()
+        val atomCountingForPositives = if (onlyTestCoveredPredictions) AtomCounting()(index.test.tripleMap, index.test.tripleItemMap) else atomCounting
         val testIndex = index.test.tripleMap
 
         def isInTest(s: Int, o: Int)(pi: TripleIndex.PredicateIndex[Int]): Boolean = pi.subjects.contains(s) || pi.objects.contains(o)
@@ -46,7 +47,7 @@ object Prediction {
             None
           }
           if (predictionResults.size == 1 && predictionResults(PredictedResult.Positive)) {
-            atomCounting.specifyVariableMap(rule.head, VariableMap(injectiveMapping))
+            atomCountingForPositives.specifyVariableMap(rule.head, VariableMap(injectiveMapping))
               .filter(atomCounting.exists(ruleBody, _))
               .map(variableMap => constantsToTriple(headVars.map(variableMap(_))))
               .map(x => PredictedTriple(x, PredictedResult.Positive, rule))
