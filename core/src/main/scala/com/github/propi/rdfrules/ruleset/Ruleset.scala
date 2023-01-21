@@ -5,8 +5,9 @@ import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
 import com.github.propi.rdfrules.algorithm.clustering.SimilarityCounting
 import com.github.propi.rdfrules.data.Dataset
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
-import com.github.propi.rdfrules.index.{AutoIndex, Index, IndexCollections, TripleIndex, TripleItemIndex}
-import com.github.propi.rdfrules.prediction.{InstantiatedRuleset, Instantiation, PredictedResult, PredictedTriples, Prediction, PredictionTasksBuilder}
+import com.github.propi.rdfrules.index._
+import com.github.propi.rdfrules.prediction._
+import com.github.propi.rdfrules.rule.Measure.DefaultOrdering._
 import com.github.propi.rdfrules.rule.Measure.{Confidence, ConfidenceMeasure}
 import com.github.propi.rdfrules.rule.PatternMatcher.Aliases
 import com.github.propi.rdfrules.rule.Rule.FinalRule
@@ -16,12 +17,12 @@ import com.github.propi.rdfrules.ruleset.ops.{Sortable, Treeable}
 import com.github.propi.rdfrules.serialization.RuleSerialization._
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
-import com.github.propi.rdfrules.utils.{Debugger, ForEach, TypedKeyMap}
+import com.github.propi.rdfrules.utils.{Debugger, ForEach}
 
 import java.io._
+import scala.collection.immutable.ArraySeq
 import scala.collection.mutable
 import scala.math.Ordering.Implicits.seqOrdering
-import Measure.DefaultOrdering._
 
 /**
   * Created by Vaclav Zeman on 6. 10. 2017.
@@ -140,7 +141,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     transform(new ForEach[FinalRule] {
       def foreach(f: FinalRule => Unit): Unit = {
         implicit val tripleMap: TripleIndex[Int] = index.tripleMap
-        rules.map(rule => Rule(rule.head.toGraphAwareAtom, rule.body.map(_.toGraphAwareAtom))(rule.measures)).foreach(f)
+        rules.map(rule => rule.withContent(rule.head.toGraphAwareAtom, rule.body.map(_.toGraphAwareAtom))).foreach(f)
       }
 
       override def knownSize: Int = rules.knownSize
@@ -191,9 +192,22 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     Prediction(rules.withDebugger("Predicted rules", true), index, testSet, mergeTestAndTrainForPrediction, onlyTestCoveredPredictions, predictedResults, injectiveMapping).setParallelism(parallelism)
   }
 
-  def makeClusters(clustering: Clustering[FinalRule]): Ruleset = transform((f: FinalRule => Unit) => clustering.clusters(rules.toIndexedSeq).view.zipWithIndex.flatMap { case (cluster, index) =>
-    cluster.map(x => x.withMeasures(TypedKeyMap(Measure.Cluster(index)) ++= x.measures))
-  }.foreach(f))
+  def makeClusters(clustering: Clustering[FinalRule], groupedByHeadPredicate: Boolean = true)(implicit debugger: Debugger): Ruleset = {
+    if (groupedByHeadPredicate) {
+      transform((f: FinalRule => Unit) => {
+        val groupedRules = rules.groupBy(_.head.predicate)(ArraySeq)
+        ForEach.from(groupedRules).parMap(parallelism) { case (p, prules) =>
+          clustering.clusters(prules, index.tripleItemMap.getTripleItem(p).toString)
+        }.withDebugger("Clustering process").flatMap(ForEach.from).zipWithIndex.flatMap { case (cluster, id) =>
+          ForEach.from(cluster).map(x => x.withMeasures(x.measures + Measure.Cluster(id)))
+        }.foreach(f)
+      })
+    } else {
+      transform((f: FinalRule => Unit) => clustering.clusters(rules.toIndexedSeq).view.zipWithIndex.flatMap { case (cluster, index) =>
+        cluster.map(x => x.withMeasures(x.measures + Measure.Cluster(index)))
+      }.foreach(f))
+    }
+  }
 
   def findSimilar(rule: ResolvedRule, k: Int, dissimilar: Boolean = false)(implicit simf: SimilarityCounting[FinalRule]): Ruleset = if (k < 1) {
     findSimilar(rule, 1, dissimilar)

@@ -13,5 +13,5 @@ trait Clustering[T] {
     * @param data indexed sequence of data
     * @return clustered data
     */
-  def clusters(data: IndexedSeq[T]): IndexedSeq[IndexedSeq[T]]
+  def clusters(data: IndexedSeq[T], taskName: String = ""): IndexedSeq[IndexedSeq[T]]
 }

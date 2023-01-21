@@ -14,11 +14,12 @@ import scala.language.implicitConversions
 case class ResolvedRule private(body: IndexedSeq[ResolvedAtom], head: ResolvedAtom)(val measures: TypedKeyMap.Immutable[Measure]) extends ResolvedRuleContent {
   def toRule(implicit tripleItemIndex: TripleItemIndex): FinalRule = Rule(
     head.toAtom,
-    body.map(_.toAtom)
-  )(measures)
+    body.map(_.toAtom),
+    measures
+  )
 
   def toRuleOpt(implicit tripleItemIndex: TripleItemIndex): Option[FinalRule] = for (h <- head.toAtomOpt) yield {
-    Rule(h, body.flatMap(_.toAtomOpt))(measures)
+    Rule(h, body.flatMap(_.toAtomOpt), measures)
   }
 
   override def toString: String = Stringifier(this)

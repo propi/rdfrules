@@ -125,8 +125,21 @@ object RdfRulesKgc {
           }
         }
 
+        def clustering(id: String, ruleset: Ruleset) = {
+          val rulesCache = new File(s"$outputFolder/${if (id.isEmpty) "" else s"$id-"}$datasetName-clustered-rules.ndjson")
+          val taskName = s"Clustering task: $id"
+          if (revalidate || !rulesCache.isFile) {
+            implicit val rulesToMetrics: Ruleset => Seq[Metric] = rules => List(new RulesetMetric("ruleset", rules))
+            Once executeTask new ClusteringTask(taskName, rulesCache.getAbsolutePath) withInput ruleset andFinallyProcessAndReturnResultWith BasicPrinter()
+          } else {
+            val res = Ruleset(index, rulesCache).withDebugger().cache
+            (taskName, res, List(new RulesetMetric("ruleset", res))) andFinallyProcessAndReturnResultWith BasicPrinter()
+          }
+        }
+
         lazy val exactRuleset = mineRules("")
         lazy val exactConfRuleset = computeConfidence("", exactRuleset)(DefaultConfidence(Measure.QpcaConfidence))
+        lazy val exactClusteredRuleset = clustering("", exactConfRuleset)
 
         if (cli.hasOption("runconfidences")) {
           val ruleset = exactRuleset
@@ -176,9 +189,8 @@ object RdfRulesKgc {
         }
         if (cli.hasOption("runscorers")) {
           implicit val defaultConfidence: DefaultConfidence = DefaultConfidence(Measure.QpcaConfidence)
-          val ruleset = exactConfRuleset
-          Once executeTask new PredictionTask[Seq[Metric]]("RDFRules prediction task, Maximum", test, MaximumScorer(), TopRules(100)) with ModesPredictionTaskPostprocessor withInput ruleset andFinallyProcessResultWith BasicPrinter()
-          Once executeTask new PredictionTask[Seq[Metric]]("RDFRules prediction task, NonRedundantNoisyOr", test, NoisyOrScorer(), NonRedundantTopRules(100)) with ModesPredictionTaskPostprocessor withInput ruleset andFinallyProcessResultWith BasicPrinter()
+          Once executeTask new PredictionTask[Seq[Metric]]("RDFRules prediction task, Maximum", test, MaximumScorer(), TopRules(100)) with ModesPredictionTaskPostprocessor withInput exactConfRuleset andFinallyProcessResultWith BasicPrinter()
+          Once executeTask new PredictionTask[Seq[Metric]]("RDFRules prediction task, NonRedundantNoisyOr", test, NoisyOrScorer(), NonRedundantTopRules(100)) with ModesPredictionTaskPostprocessor withInput exactClusteredRuleset andFinallyProcessResultWith BasicPrinter()
         }
 
         /** if (cli.hasOption("runlift")) {

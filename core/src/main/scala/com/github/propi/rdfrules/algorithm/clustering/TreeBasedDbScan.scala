@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.algorithm.clustering
 import com.github.propi.rdfrules.algorithm.Clustering
 import com.github.propi.rdfrules.utils.Debugger
 
-class HierarchicalClustering[T] private(arity: Int, simThreshold: Double, deepSim: Boolean)(implicit sim: SimilarityCounting[T], debugger: Debugger) extends Clustering[T] {
+class TreeBasedDbScan[T] private(arity: Int, simThreshold: Double, deepSim: Boolean)(implicit sim: SimilarityCounting[T], debugger: Debugger) extends Clustering[T] {
 
   private trait Node {
     private val _children = new Array[Cluster](arity)
@@ -48,9 +48,9 @@ class HierarchicalClustering[T] private(arity: Int, simThreshold: Double, deepSi
     * @param data indexed sequence of data
     * @return clustered data
     */
-  def clusters(data: IndexedSeq[T]): IndexedSeq[IndexedSeq[T]] = {
+  def clusters(data: IndexedSeq[T], taskName: String): IndexedSeq[IndexedSeq[T]] = {
     val root = new Root
-    debugger.debug("Hierarchical clustering process", data.size) { implicit ad =>
+    debugger.debug(s"Hierarchical clustering process${if (taskName.isEmpty) "" else s" for $taskName"}", data.size, true) { implicit ad =>
       for (elem <- data) {
         root.addToChildren(elem)
         ad.done()
@@ -60,8 +60,8 @@ class HierarchicalClustering[T] private(arity: Int, simThreshold: Double, deepSi
   }
 }
 
-object HierarchicalClustering {
+object TreeBasedDbScan {
 
-  def apply[T](arity: Int = 2, simThreshold: Double = 0.8, deepSim: Boolean = false)(implicit sim: SimilarityCounting[T], debugger: Debugger): HierarchicalClustering[T] = new HierarchicalClustering(arity, simThreshold, deepSim)(sim, debugger)
+  def apply[T](arity: Int = 2, simThreshold: Double = 0.8, deepSim: Boolean = false)(implicit sim: SimilarityCounting[T], debugger: Debugger): Clustering[T] = new TreeBasedDbScan(arity, simThreshold, deepSim)(sim, debugger)
 
 }

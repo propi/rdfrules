@@ -55,7 +55,7 @@ class DbScan[T] private(minNeighbours: Int, minSimilarity: Double, parallelism: 
     * @param data indexed sequence of data
     * @return clustered data
     */
-  def clusters(data: IndexedSeq[T]): IndexedSeq[IndexedSeq[T]] = debugger.debug("DBscan clustering process", data.size) { implicit ad =>
+  def clusters(data: IndexedSeq[T], taskName: String): IndexedSeq[IndexedSeq[T]] = debugger.debug(s"DBscan clustering process${if (taskName.isEmpty) "" else s" for $taskName"}", data.size, true) { implicit ad =>
     ad.done()
     makeClusters(data, Vector.empty)
   }

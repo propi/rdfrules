@@ -8,25 +8,25 @@ import com.github.propi.rdfrules.utils.{ForEach, TypedKeyMap}
 /**
   * Created by Vaclav Zeman on 14. 3. 2018.
   */
-abstract class RulesMining(_parallelism: Int, _thresholds: TypedKeyMap[Threshold], _constraints: TypedKeyMap[RuleConstraint], _patterns: List[RulePattern], _experiment: Boolean) {
+abstract class RulesMining(_parallelism: Int, _thresholds: TypedKeyMap.Mutable[Threshold], _constraints: TypedKeyMap.Mutable[RuleConstraint], _patterns: List[RulePattern], _experiment: Boolean) {
 
-  protected def transform(thresholds: TypedKeyMap[Threshold] = _thresholds,
-                          constraints: TypedKeyMap[RuleConstraint] = _constraints,
+  protected def transform(thresholds: TypedKeyMap.Mutable[Threshold] = _thresholds,
+                          constraints: TypedKeyMap.Mutable[RuleConstraint] = _constraints,
                           patterns: List[RulePattern] = _patterns,
                           parallelism: Int = _parallelism,
                           experiment: Boolean = _experiment): RulesMining
 
-  final def addThreshold(threshold: Threshold): RulesMining = transform(thresholds = _thresholds + Threshold.validate(threshold))
+  final def addThreshold(threshold: Threshold): RulesMining = transform(thresholds = _thresholds += Threshold.validate(threshold))
 
-  final def addConstraint(ruleConstraint: RuleConstraint): RulesMining = transform(constraints = _constraints + ruleConstraint)
+  final def addConstraint(ruleConstraint: RuleConstraint): RulesMining = transform(constraints = _constraints += ruleConstraint)
 
   final def addPattern(rulePattern: RulePattern): RulesMining = transform(patterns = rulePattern :: _patterns)
 
   final def withExperiment: RulesMining = transform(experiment = true)
 
-  final def thresholds: TypedKeyMap.Immutable[Threshold] = _thresholds
+  final def thresholds: TypedKeyMap[Threshold] = _thresholds
 
-  final def constraints: TypedKeyMap.Immutable[RuleConstraint] = _constraints
+  final def constraints: TypedKeyMap[RuleConstraint] = _constraints
 
   final def patterns: List[RulePattern] = _patterns
 

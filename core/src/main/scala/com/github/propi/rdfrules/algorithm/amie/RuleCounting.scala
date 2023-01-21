@@ -46,7 +46,7 @@ trait RuleCounting extends AtomCounting {
       //confidence is number of head triples which are connected to other atoms in the rule DIVIDED number of all possible paths from body
       val confidence = if (bodySize == 0) 0.0 else support.toDouble / bodySize
       if (confidence >= minConfidence) {
-        rule.withMeasures(TypedKeyMap(Measure.BodySize(bodySize), Measure.CwaConfidence(confidence)) ++= rule.measures)
+        rule.withMeasures(rule.measures + Measure.BodySize(bodySize) + Measure.CwaConfidence(confidence))
       } else {
         rule
       }
@@ -244,7 +244,7 @@ trait RuleCounting extends AtomCounting {
       val pcaBodySize = countDistinctPairs(bodySet, rule.head, maxPcaBodySize, pcaVariableMaps, pairFilter)
       val pcaConfidence = if (pcaBodySize == 0) 0.0 else support.toDouble / pcaBodySize
       if (pcaConfidence >= minPcaConfidence) {
-        rule.withMeasures(TypedKeyMap(Measure.PcaBodySize(pcaBodySize), Measure.PcaConfidence(pcaConfidence)) ++= rule.measures)
+        rule.withMeasures(rule.measures + Measure.PcaBodySize(pcaBodySize) + Measure.PcaConfidence(pcaConfidence))
       } else {
         rule
       }
@@ -330,7 +330,7 @@ trait RuleCounting extends AtomCounting {
       val qpcaConfidence = if (bodySize == 0) 0.0 else support.toDouble / bodySize
       //println(s"$atomString : $support / $bodySize = $qpcaConfidence")
       if (qpcaConfidence >= minQpcaConfidence) {
-        rule.withMeasures(TypedKeyMap(Measure.QpcaBodySize(bodySize), Measure.QpcaConfidence(qpcaConfidence)) ++= rule.measures)
+        rule.withMeasures(rule.measures + Measure.QpcaBodySize(bodySize) + Measure.QpcaConfidence(qpcaConfidence))
       } else {
         rule
       }

@@ -19,8 +19,8 @@ import scala.language.postfixOps
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
 class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
-                   _thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
-                   _constraints: TypedKeyMap[RuleConstraint] = TypedKeyMap(),
+                   _thresholds: TypedKeyMap.Mutable[Threshold] = TypedKeyMap.Mutable(),
+                   _constraints: TypedKeyMap.Mutable[RuleConstraint] = TypedKeyMap.Mutable(),
                    _patterns: List[RulePattern] = Nil,
                    _experiment: Boolean = false)
                   (implicit debugger: Debugger) extends RulesMining(_parallelism, _thresholds, _constraints, _patterns, _experiment) {
@@ -29,8 +29,8 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
 
   @volatile private var topKActivated: Boolean = false
 
-  protected def transform(thresholds: TypedKeyMap[Threshold],
-                          constraints: TypedKeyMap[RuleConstraint],
+  protected def transform(thresholds: TypedKeyMap.Mutable[Threshold],
+                          constraints: TypedKeyMap.Mutable[RuleConstraint],
                           patterns: List[RulePattern],
                           parallelism: Int,
                           experiment: Boolean): RulesMining = new Amie(parallelism, thresholds, constraints, patterns, experiment)
@@ -204,7 +204,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
                   //println(Stringifier(rule.asInstanceOf[Rule]))
                 }
                 if (ruleIsAdded && rule.isInstanceOf[ClosedRule] && (settings.patterns.isEmpty || settings.patterns.exists(_.matchWith[Rule](rule)))) {
-                  ruleConsumer.send(rule)
+                  ruleConsumer.send(rule.toFinalRule)
                   foundRules.incrementAndGet()
                 }
               }

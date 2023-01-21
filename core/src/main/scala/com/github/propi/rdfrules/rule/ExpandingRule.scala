@@ -2,6 +2,7 @@ package com.github.propi.rdfrules.rule
 
 import com.github.propi.rdfrules.index.TripleIndex
 import com.github.propi.rdfrules.rule.ExpandingRule.HeadTriplesBootstrapper
+import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.utils.{Bootstrapper, MutableRanges, TypedKeyMap}
 
 /**
@@ -12,7 +13,7 @@ sealed trait ExpandingRule extends Rule {
 
   def supportedRanges: Option[MutableRanges]
 
-  final def measures: TypedKeyMap.Immutable[Measure] = throw new UnsupportedOperationException
+  final def measures: TypedKeyMap[Measure] = throw new UnsupportedOperationException
 
   final def headCoverage: Double = support.toDouble / headSize
 
@@ -31,6 +32,17 @@ sealed trait ExpandingRule extends Rule {
     case (Atom.Constant(s), _: Atom.Variable) => thi.predicates(head.predicate).subjects(s).iterator.filter(o => !injectiveMapping || s != o).map(s -> _)
     case (_: Atom.Variable, Atom.Constant(o)) => thi.predicates(head.predicate).objects(o).iterator.filter(s => !injectiveMapping || s != o).map(_ -> o)
     case (Atom.Constant(s), Atom.Constant(o)) => if (injectiveMapping && s == o) Iterator.empty else Iterator(s -> o)
+  }
+
+  final def toFinalRule: FinalRule = {
+    val measures = TypedKeyMap.Mutable[Measure](
+      Measure.Support(support),
+      Measure.HeadSize(headSize),
+      Measure.HeadCoverage(headCoverage),
+      Measure.HeadSupport(headSupport)
+    )
+    if (supportIncreaseRatio > 0.0f) measures += Measure.SupportIncreaseRatio(supportIncreaseRatio)
+    Rule(head, body, measures)
   }
 }
 
@@ -89,12 +101,12 @@ object ExpandingRule {
   }
 
   private class BasicClosedRule(val body: IndexedSeq[Atom],
-                                         val head: Atom,
-                                         val support: Int,
-                                         val headSize: Int,
-                                         val headSupport: Int,
-                                         val variables: List[Atom.Variable]
-                                        ) extends ClosedRule {
+                                val head: Atom,
+                                val support: Int,
+                                val headSize: Int,
+                                val headSupport: Int,
+                                val variables: List[Atom.Variable]
+                               ) extends ClosedRule {
     def supportedRanges: Option[MutableRanges] = None
 
     def supportIncreaseRatio: Float = 0.0f
@@ -144,12 +156,12 @@ object ExpandingRule {
   }
 
   private class BasicDanglingRule(val body: IndexedSeq[Atom],
-                                           val head: Atom,
-                                           val support: Int,
-                                           val headSize: Int,
-                                           val headSupport: Int,
-                                           val danglings: List[Atom.Variable],
-                                           val others: List[Atom.Variable]) extends DanglingRule {
+                                  val head: Atom,
+                                  val support: Int,
+                                  val headSize: Int,
+                                  val headSupport: Int,
+                                  val danglings: List[Atom.Variable],
+                                  val others: List[Atom.Variable]) extends DanglingRule {
     def supportedRanges: Option[MutableRanges] = None
 
     def supportIncreaseRatio: Float = 0.0f

@@ -1,19 +1,15 @@
 package com.github.propi.rdfrules.experiments.benchmark
 
-import com.github.propi.rdfrules.rule.{DefaultConfidence, Measure}
+import com.github.propi.rdfrules.algorithm.clustering.SimilarityCounting.BodyAtomsSimilarityCounting
+import com.github.propi.rdfrules.algorithm.clustering.{SimilarityCounting, TreeBasedDbScan}
+import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.Debugger
 
-class ClusteringTask(val name: String, exportPath: String)(implicit debugger: Debugger, defaultConfidence: DefaultConfidence) extends Task[Ruleset, Ruleset, Ruleset, Ruleset] with TaskPreProcessor[Ruleset, Ruleset] with TaskPostProcessor[Ruleset, Ruleset] {
+class ClusteringTask(val name: String, exportPath: String)(implicit debugger: Debugger) extends Task[Ruleset, Ruleset, Ruleset, Ruleset] with TaskPreProcessor[Ruleset, Ruleset] with TaskPostProcessor[Ruleset, Ruleset] {
   protected def taskBody(input: Ruleset): Ruleset = {
-    implicit val _confidence: Measure.Confidence[Measure.ConfidenceMeasure] = defaultConfidence.confidenceType.get
-    input.withoutQuasiBinding()
-      .computeConfidence(0.1, topK = 1000000)
-      .onlyBetterDescendant(_confidence)
-      .computeLift()
-      .filter(_.measures.apply[Measure.Lift].value > 1.0)
-      .sorted
-      .cache
+    implicit val similarityCounting: SimilarityCounting[FinalRule] = BodyAtomsSimilarityCounting
+    input.makeClusters(TreeBasedDbScan()).cache
   }
 
   protected def preProcess(input: Ruleset): Ruleset = input

@@ -12,16 +12,16 @@ import scala.language.postfixOps
   * Created by Vaclav Zeman on 16. 6. 2017.
   */
 class HeadsMiner private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
-                         _thresholds: TypedKeyMap[Threshold] = TypedKeyMap(),
-                         _constraints: TypedKeyMap[RuleConstraint] = TypedKeyMap(),
+                         _thresholds: TypedKeyMap.Mutable[Threshold] = TypedKeyMap.Mutable(),
+                         _constraints: TypedKeyMap.Mutable[RuleConstraint] = TypedKeyMap.Mutable(),
                          _patterns: List[RulePattern] = Nil,
                          _experiment: Boolean = false)
                         (implicit debugger: Debugger) extends RulesMining(_parallelism, _thresholds, _constraints, _patterns, _experiment) {
 
   self =>
 
-  protected def transform(thresholds: TypedKeyMap[Threshold],
-                          constraints: TypedKeyMap[RuleConstraint],
+  protected def transform(thresholds: TypedKeyMap.Mutable[Threshold],
+                          constraints: TypedKeyMap.Mutable[RuleConstraint],
                           patterns: List[RulePattern],
                           parallelism: Int,
                           experiment: Boolean): RulesMining = new HeadsMiner(parallelism, thresholds, constraints, patterns, experiment)
@@ -31,7 +31,7 @@ class HeadsMiner private(_parallelism: Int = Runtime.getRuntime.availableProcess
     //create amie process with debugger and final triple index
     implicit val settings: AmieSettings = new AmieSettings(this, None)(/*if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) */ debugger /* else Debugger.EmptyDebugger*/ , mapper)
     val process = new AmieProcess
-    process.getHeads.foreach(ruleConsumer.send(_))
+    process.getHeads.foreach(rule => ruleConsumer.send(rule.toFinalRule))
     ruleConsumer.result
   }
 

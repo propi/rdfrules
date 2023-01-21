@@ -261,7 +261,7 @@ object RuleSerialization {
 
   implicit val resolvedRuleDeserializer: Deserializer[ResolvedRule] = (v: Array[Byte]) => {
     val bais = new ByteArrayInputStream(v)
-    val measures = TypedKeyMap(Deserializer.deserialize[Iterable[Measure]](bais).map(x => x: (Key[Measure], Measure)).toSeq: _*)
+    val measures = TypedKeyMap(Deserializer.deserialize[Iterable[Measure]](bais))
     val atoms = Deserializer.deserialize[Iterable[ResolvedAtom]](bais)
     ResolvedRule(atoms.tail.toIndexedSeq, atoms.head)(measures)
   }

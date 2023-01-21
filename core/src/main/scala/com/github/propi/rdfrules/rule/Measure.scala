@@ -118,7 +118,7 @@ object Measure {
     case Measure.Cluster(x) => Some(x)
   }
 
-  implicit def mesureToKeyValue(measure: Measure): (Key[Measure], Measure) = measure.companion -> measure
+  //implicit def mesureToKeyValue(measure: Measure): (Key[Measure], Measure) = measure.companion -> measure
 
   implicit val measureKeyOrdering: Ordering[Key[Measure]] = {
     val map = Iterator[Key[Measure]](Support, HeadCoverage, CwaConfidence, PcaConfidence, QpcaConfidence, Lift, HeadSize, SupportIncreaseRatio, BodySize, PcaBodySize, QpcaBodySize, HeadSupport, Cluster).zipWithIndex.map(x => x._1 -> (x._2 + 1)).toMap
@@ -142,7 +142,7 @@ object Measure {
   }.reverse
 
   object DefaultOrdering {
-    implicit val defaultMeasuresOrdering: Ordering[TypedKeyMap.Immutable[Measure]] = Ordering.by[TypedKeyMap.Immutable[Measure], (Measure, Measure, Measure, Measure, Measure)] { measures =>
+    implicit val defaultMeasuresOrdering: Ordering[TypedKeyMap[Measure]] = Ordering.by[TypedKeyMap[Measure], (Measure, Measure, Measure, Measure, Measure)] { measures =>
       (
         measures.get(Measure.Cluster).getOrElse(Measure.Cluster(0)),
         measures.get(Measure.QpcaConfidence).getOrElse(Measure.QpcaConfidence(0.0)),
@@ -154,7 +154,7 @@ object Measure {
   }
 
   object ConfidenceFirstOrdering {
-    implicit def confidenceFirstMeasuresOrdering(implicit defaultConfidence: DefaultConfidence): Ordering[TypedKeyMap.Immutable[Measure]] = Ordering.by[TypedKeyMap.Immutable[Measure], (Measure, Measure)] { measures =>
+    implicit def confidenceFirstMeasuresOrdering(implicit defaultConfidence: DefaultConfidence): Ordering[TypedKeyMap[Measure]] = Ordering.by[TypedKeyMap[Measure], (Measure, Measure)] { measures =>
       (
         defaultConfidence.typedConfidence(measures).getOrElse(Measure.CwaConfidence(0.0)),
         measures.get(Measure.HeadCoverage).getOrElse(Measure.HeadCoverage(0.0))
