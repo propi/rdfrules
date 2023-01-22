@@ -102,9 +102,9 @@ class PredictionTaskResult private(val predictionTask: PredictionTask, private v
     }
   }
 
-  def filterByQpca(implicit train: TripleIndex[Int]): PredictionTaskResult = {
-    val currentCardinality = predictionTask.index.size(false)
-    val maxCardinalityThreshold = train.predicates.get(predictionTask.p).map(x => if (predictionTask.targetVariable == TriplePosition.Subject) x.averageObjectCardinality else x.averageSubjectCardinality).getOrElse(1)
+  def filterByQpca(implicit index: TrainTestIndex): PredictionTaskResult = {
+    val currentCardinality = predictionTask.index(index.train.tripleMap).size(false)
+    val maxCardinalityThreshold = index.merged.tripleMap.predicates.get(predictionTask.p).map(x => if (predictionTask.targetVariable == TriplePosition.Subject) x.averageObjectCardinality else x.averageSubjectCardinality).getOrElse(1)
     val remainingSlots = maxCardinalityThreshold - currentCardinality
     if (remainingSlots > 0) {
       topK(remainingSlots)
