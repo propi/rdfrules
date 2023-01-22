@@ -17,5 +17,5 @@ object AnyBurlMiningTask extends Task[AnyBurlSettings, AnyBurlSettings, AnyBurlS
     input
   }
 
-  protected def postProcess(result: AnyBurlSettings): IndexedSeq[ResolvedRule] = AnyBurlRulesetFormat.readRules(result.rulesFile.getAbsolutePath).toIndexedSeq
+  protected def postProcess(result: AnyBurlSettings): IndexedSeq[ResolvedRule] = AnyBurlRulesetFormat.readRules(result.rulesFile.getAbsolutePath).filter(_.body.nonEmpty).toIndexedSeq
 }

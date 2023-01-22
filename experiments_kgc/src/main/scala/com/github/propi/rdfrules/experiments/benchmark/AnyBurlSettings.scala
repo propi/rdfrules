@@ -9,6 +9,7 @@ case class AnyBurlSettings(pathTrain: String,
                            snapshotsAt: Int,
                            minSupportThreshold: Int,
                            parallelism: Int,
+                           rlen: Int,
                            eval: Boolean) {
 
 
@@ -28,6 +29,7 @@ case class AnyBurlSettings(pathTrain: String,
       pw.println(s"PATH_PREDICTIONS = $outputFolder/preds-$snapshotsAt")
       pw.println(s"PATH_RULES = $outputFolder/rules-$snapshotsAt")
       pw.println(s"THRESHOLD_CONFIDENCE = 0.1")
+      pw.println(s"MAX_LENGTH_CYCLIC = ${rlen - 1}")
     } finally {
       pw.close()
     }
