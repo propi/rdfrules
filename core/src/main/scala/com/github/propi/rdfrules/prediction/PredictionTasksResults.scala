@@ -47,7 +47,7 @@ class PredictionTasksResults private(protected val coll: ForEach[PredictionTaskR
 
   def onlyFunctionalPredictions: PredictionTasksResults = this.map(_.filterByFunctions(index.train.tripleMap))
 
-  def onlyQpcaPredictions: PredictionTasksResults = this.map(_.filterByQpca(index.train.tripleMap))
+  def onlyQpcaPredictions: PredictionTasksResults = this.map(_.filterByQpca)
 }
 
 object PredictionTasksResults {
