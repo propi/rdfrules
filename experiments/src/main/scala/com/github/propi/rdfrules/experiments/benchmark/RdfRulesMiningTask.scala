@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.experiments.benchmark
 import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.index.Index
-import com.github.propi.rdfrules.rule.{DefaultConfidence, Measure, ResolvedRule, RuleConstraint, Threshold}
+import com.github.propi.rdfrules.rule.{Measure, ResolvedRule, RuleConstraint, Threshold}
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.Debugger
 
@@ -20,7 +20,7 @@ trait RdfRulesMiningTask[T] extends Task[Index, Index, Ruleset, T] with TaskPreP
 
   private def createDefaultMiningTask: RulesMining = Function.chain[RulesMining](List(
     _.setParallelism(numberOfThreads),
-    _.addThreshold(Threshold.MinHeadCoverage(minHeadCoverage)),
+    x => if (minHeadCoverage > 0.0) x.addThreshold(Threshold.MinHeadCoverage(minHeadCoverage)) else x,
     _.addThreshold(Threshold.MaxRuleLength(maxRuleLength)),
     x => localTimeout.map(x.addThreshold(_)).getOrElse(x),
     x => if (injectiveMapping) x.addConstraint(RuleConstraint.InjectiveMapping()) else x,

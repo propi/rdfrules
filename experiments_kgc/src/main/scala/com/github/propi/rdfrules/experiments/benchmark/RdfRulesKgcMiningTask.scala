@@ -12,9 +12,10 @@ class RdfRulesKgcMiningTask(val name: String,
                             cores: Int,
                             _maxRuleLength: Int,
                             anytime: Boolean,
-                            constants: ConstantsAtPosition.ConstantsPosition
+                            constants: Option[ConstantsAtPosition.ConstantsPosition],
+                            noHeadCoverage: Boolean
                            )(implicit val debugger: Debugger) extends RdfRulesMiningTask[Ruleset] with TaskPostProcessor[Ruleset, Ruleset] {
-  override val allowConstants: Option[ConstantsAtPosition.ConstantsPosition] = Some(constants)
+  override val allowConstants: Option[ConstantsAtPosition.ConstantsPosition] = constants
   override val maxRuleLength: Int = _maxRuleLength
   override val minQpcaConfidence: Double = 0.0
   override val minPcaConfidence: Double = 0.0
@@ -22,6 +23,7 @@ class RdfRulesKgcMiningTask(val name: String,
   override val numberOfThreads: Int = cores
   override val localTimeout: Option[Threshold.LocalTimeout] = if (anytime) Some(Threshold.LocalTimeout(0.01, true)) else None
   override val ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(TopKRuleConsumer(2000000, true))
+  override val minHeadCoverage: Double = if (noHeadCoverage) 0.0 else 0.01
 
   override protected def miningTask(rulesMining: RulesMining): RulesMining = rulesMining
     .addThreshold(Threshold.MinSupport(5))

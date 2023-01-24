@@ -9,9 +9,12 @@ class ConfidenceComputingTask(val name: String, exportPath: String)(implicit deb
     implicit val _confidence: Measure.Confidence[Measure.ConfidenceMeasure] = defaultConfidence.confidenceType.get
     input.withoutQuasiBinding()
       .computeConfidence(0.1, topK = 1000000)
-      .onlyBetterDescendant(_confidence)
+      .cache
       .computeLift()
       .filter(_.measures.apply[Measure.Lift].value > 1.0)
+      //.cache
+      //.onlyBetterDescendant(_confidence)
+      //.cache
       .sorted
       .cache
   }

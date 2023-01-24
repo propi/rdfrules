@@ -1,12 +1,8 @@
 package com.github.propi.rdfrules.algorithm.clustering
 
-import java.util.concurrent.ForkJoinPool
 import com.github.propi.rdfrules.algorithm.Clustering
 import com.github.propi.rdfrules.utils.Debugger
 import com.github.propi.rdfrules.utils.Debugger.ActionDebugger
-
-import scala.collection.parallel.CollectionConverters.ImmutableSeqIsParallelizable
-import scala.collection.parallel.ForkJoinTaskSupport
 
 /**
   * Created by Vaclav Zeman on 31. 7. 2017.
@@ -14,9 +10,9 @@ import scala.collection.parallel.ForkJoinTaskSupport
 class DbScan[T] private(minNeighbours: Int, minSimilarity: Double, parallelism: Int)(implicit similarity: SimilarityCounting[T], debugger: Debugger) extends Clustering[T] {
 
   private def searchReachables(point: T, data: Seq[T]) = {
-    val parSeq = data.par
-    parSeq.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(parallelism))
-    parSeq.partition(similarity(point, _) >= minSimilarity)
+    //val parSeq = data.par
+    //parSeq.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(parallelism))
+    data.partition(similarity(point, _) >= minSimilarity)
   }
 
   @scala.annotation.tailrec
@@ -32,8 +28,8 @@ class DbScan[T] private(minNeighbours: Int, minSimilarity: Double, parallelism: 
       ad.done()
       val point = remainingPoints.head
       val (nonClusterReachable, nonClusterOthers) = searchReachables(point, nonCluster)
-      if (nonClusterReachable.size >= minNeighbours || (searchReachables(point, cluster ++ remainingPoints.tail)._1.size + nonClusterReachable.size) >= minNeighbours) {
-        makeCluster(remainingPoints.tail ++ nonClusterReachable, point +: cluster, nonClusterOthers.seq)
+      if (nonClusterReachable.size >= minNeighbours /*|| (searchReachables(point, cluster ++ remainingPoints.tail)._1.size + nonClusterReachable.size) >= minNeighbours*/) {
+        makeCluster(remainingPoints.tail ++ nonClusterReachable, point +: cluster, nonClusterOthers)
       } else {
         makeCluster(remainingPoints.tail, point +: cluster, nonCluster)
       }

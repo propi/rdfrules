@@ -19,8 +19,10 @@ case class AnyBurlSettings(pathTrain: String,
     val pw = new PrintWriter(path, "UTF-8")
     try {
       pw.println(s"PATH_TRAINING = $pathTrain")
-      pw.println(s"PATH_VALID = $pathValid")
-      pw.println(s"PATH_TEST = $pathTest")
+      if (eval) {
+        pw.println(s"PATH_VALID = $pathValid")
+        pw.println(s"PATH_TEST = $pathTest")
+      }
       pw.println(s"PATH_OUTPUT = $outputPath")
       pw.println(s"SNAPSHOTS_AT = $snapshotsAt")
       pw.println(s"THRESHOLD_CORRECT_PREDICTIONS = $minSupportThreshold")

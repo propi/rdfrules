@@ -3,29 +3,54 @@ package com.github.propi.rdfrules.algorithm.clustering
 import com.github.propi.rdfrules.algorithm.Clustering
 import com.github.propi.rdfrules.utils.Debugger
 
+import scala.annotation.tailrec
+
 class TreeBasedDbScan[T] private(arity: Int, simThreshold: Double, deepSim: Boolean)(implicit sim: SimilarityCounting[T], debugger: Debugger) extends Clustering[T] {
 
   private trait Node {
     private val _children = new Array[Cluster](arity)
 
-    final def clusters: Iterator[Iterator[T]] = _children.iterator.filter(_ != null).flatMap(x => Iterator(x.clusterElems) ++ x.clusters)
+    final def children: Iterator[Cluster] = _children.iterator.filter(_ != null)
 
-    final def addToChildren(elem: T): Unit = {
-      val (i, maxsim) = _children.indices.iterator.map { i =>
-        val child = _children(i)
+    final def clusters: Iterator[Iterator[T]] = {
+      val stack = collection.mutable.Stack(children)
+
+      new Iterator[Iterator[T]] {
+        def hasNext: Boolean = stack.nonEmpty && stack.top.hasNext
+
+        def next(): Iterator[T] = {
+          val topIt = stack.top
+          val nextCluster = topIt.next()
+          val res = nextCluster.clusterElems
+          if (!topIt.hasNext) stack.pop()
+          val nextLevel = nextCluster.children
+          if (nextLevel.hasNext) stack.push(nextLevel)
+          res
+        }
+      }
+    }
+
+    final def addToChildren(elem: T): Unit = Node.recAddToChildren(elem, this, 0)
+  }
+
+  private object Node {
+    @tailrec
+    private def recAddToChildren(elem: T, node: Node, depth: Int): Unit = {
+      val (i, maxsim) = node._children.indices.iterator.map { i =>
+        val child = node._children(i)
         if (child == null) {
           i -> simThreshold
         } else {
           i -> child.similarity(elem)
         }
       }.maxBy(_._2)
-      val child = _children(i)
+      val child = node._children(i)
       if (child == null) {
-        _children(i) = new Cluster(elem)
+        node._children(i) = new Cluster(elem)
       } else if (maxsim >= simThreshold) {
         child.addToCluster(elem)
       } else {
-        child.addToChildren(elem)
+        recAddToChildren(elem, child, depth + 1)
       }
     }
   }
