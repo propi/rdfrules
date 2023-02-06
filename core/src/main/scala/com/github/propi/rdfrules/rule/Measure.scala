@@ -201,6 +201,7 @@ object Measure {
       fields("name").convertTo[String] match {
         case "BodySize" => Measure.BodySize(value.convertTo[Int])
         case "CwaConfidence" => Measure.CwaConfidence(value.convertTo[Double])
+        case "Confidence" => Measure.CwaConfidence(value.convertTo[Double])
         case "HeadCoverage" => Measure.HeadCoverage(value.convertTo[Double])
         case "HeadSize" => Measure.HeadSize(value.convertTo[Int])
         case "SupportIncreaseRatio" => Measure.SupportIncreaseRatio(value.convertTo[Float])

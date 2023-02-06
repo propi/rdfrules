@@ -1,7 +1,6 @@
 package com.github.propi.rdfrules.experiments.benchmark
 
-import com.github.propi.rdfrules.algorithm.consumer.TopKRuleConsumer
-import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
+import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition
 import com.github.propi.rdfrules.rule.Threshold
 import com.github.propi.rdfrules.ruleset.Ruleset
@@ -22,7 +21,7 @@ class RdfRulesKgcMiningTask(val name: String,
   override val minConfidence: Double = 0.0
   override val numberOfThreads: Int = cores
   override val localTimeout: Option[Threshold.LocalTimeout] = if (anytime) Some(Threshold.LocalTimeout(0.01, true)) else None
-  override val ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(TopKRuleConsumer(2000000, true))
+  //override val ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(TopKRuleConsumer(2000000, true))
   override val minHeadCoverage: Double = if (noHeadCoverage) 0.0 else 0.01
 
   override protected def miningTask(rulesMining: RulesMining): RulesMining = rulesMining

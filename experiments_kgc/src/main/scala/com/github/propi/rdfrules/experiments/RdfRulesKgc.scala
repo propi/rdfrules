@@ -138,7 +138,7 @@ object RdfRulesKgc {
           }
         }
 
-        lazy val exactRuleset = mineRules("", false, None, true)
+        lazy val exactRuleset = mineRules("", false, Some(ConstantsAtPosition.ConstantsPosition.LowerCardinalitySide()), true)
         lazy val exactConfRuleset = computeConfidence("", exactRuleset)(DefaultConfidence(Measure.QpcaConfidence))
         lazy val exactClusteredRuleset = clustering("", exactConfRuleset)
 
@@ -167,11 +167,11 @@ object RdfRulesKgc {
           }.foreach { ruleset =>
             Once executeTask new PredictionTask[Seq[Metric]]("RDFRules prediction task, NoConstants", test, MaximumScorer(), TopRules(100)) with ModesPredictionTaskPostprocessor withInput ruleset andFinallyProcessResultWith BasicPrinter()
           }
-          Functor(mineRules("constantslower", false, Some(ConstantsAtPosition.ConstantsPosition.LowerCardinalitySide()), true)).map { ruleset =>
+          /*Functor(mineRules("constantslower", false, Some(ConstantsAtPosition.ConstantsPosition.LowerCardinalitySide()), true)).map { ruleset =>
             computeConfidence("constantslower", ruleset)
           }.foreach { ruleset =>
             Once executeTask new PredictionTask[Seq[Metric]]("RDFRules prediction task, ConstantsLowerCadinalitySide", test, MaximumScorer(), TopRules(100)) with ModesPredictionTaskPostprocessor withInput ruleset andFinallyProcessResultWith BasicPrinter()
-          }
+          }*/
         }
         if (cli.hasOption("runanytime")) {
           implicit val defaultConfidence: DefaultConfidence = DefaultConfidence(Measure.QpcaConfidence)
@@ -194,7 +194,20 @@ object RdfRulesKgc {
         }*/
         if (cli.hasOption("runpruning")) {
           implicit val defaultConfidence: DefaultConfidence = DefaultConfidence(Measure.QpcaConfidence)
-          val ruleset = exactConfRuleset.sorted.pruned(onlyFunctionalProperties = false).cache
+          implicit val rulesToMetrics: Ruleset => Seq[Metric] = rules => List(new RulesetMetric("ruleset", rules))
+          val ruleset = Once executeTask new Task[Ruleset, Ruleset, Ruleset, Ruleset] with TaskPreProcessor[Ruleset, Ruleset] with TaskPostProcessor[Ruleset, Ruleset] {
+            val name: String = "Pruning"
+
+            protected def taskBody(input: Ruleset): Ruleset = {
+              val ruleset = exactConfRuleset.sorted.pruned(onlyFunctionalProperties = false).cache
+              ruleset.size
+              ruleset
+            }
+
+            protected def preProcess(input: Ruleset): Ruleset = input
+
+            protected def postProcess(result: Ruleset): Ruleset = result
+          } withInput exactConfRuleset andFinallyProcessAndReturnResultWith BasicPrinter()
           Once executeTask new PredictionTask[Seq[Metric]]("RDFRules prediction task, pruning", test, MaximumScorer(), TopRules(100)) with ModesPredictionTaskPostprocessor withInput ruleset andFinallyProcessResultWith BasicPrinter()
         }
         if (cli.hasOption("runanyburl")) {

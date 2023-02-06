@@ -18,6 +18,8 @@ object ResolvedRuleContent {
 
   private case class BasicResolvedRuleContent(body: IndexedSeq[ResolvedAtom], head: ResolvedAtom) extends ResolvedRuleContent
 
+  def apply(body: IndexedSeq[ResolvedAtom], head: ResolvedAtom): ResolvedRuleContent = BasicResolvedRuleContent(body, head)
+
   implicit def apply(ruleContent: RuleContent)(implicit mapper: TripleItemIndex): ResolvedRuleContent = BasicResolvedRuleContent(
     ruleContent.body.map(ResolvedAtom.apply),
     ruleContent.head
