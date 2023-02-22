@@ -29,14 +29,11 @@ trait FromDatasetBuildable extends Buildable {
       })
     }).filter(quad => parentIndex.forall(!_.contains(quad))))
     dataset = None
+    parent = None
     thi
   }
 
-  protected def buildTripleItemIndex: TripleItemIndex = {
-    val res = TripleItemHashIndex(dataset.map(_.quads).getOrElse(ForEach.empty), parent.map(_.tripleItemMap))
-    parent = None
-    res
-  }
+  protected def buildTripleItemIndex: TripleItemIndex = TripleItemHashIndex(dataset.map(_.quads).getOrElse(ForEach.empty), parent.map(_.tripleItemMap))
 
   protected def buildAll: (TripleItemIndex, TripleIndex[Int]) = {
     val parentIndex = parent.map(_.tripleMap)

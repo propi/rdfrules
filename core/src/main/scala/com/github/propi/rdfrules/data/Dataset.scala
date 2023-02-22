@@ -5,7 +5,7 @@ import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.data.Triple.TripleTraversableView
 import com.github.propi.rdfrules.data.ops._
-import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.index.{Index, IndexContainer, TrainTestIndex}
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.serialization.QuadSerialization._
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
@@ -65,9 +65,24 @@ class Dataset private(val quads: QuadTraversableView, val userDefinedPrefixes: F
 
   def `export`(file: String)(implicit writer: RdfWriter): Unit = `export`(new File(file))
 
-  def mine(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer()))(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = Index(this, false).mine(miner, ruleConsumer)
+  def mine(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer()))(implicit debugger: Debugger): Ruleset = Index(this, false).mineRules(miner, ruleConsumer)
 
-  def index(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = Index(this, false)
+  def index(implicit debugger: Debugger): IndexContainer = IndexContainer.Single(Index(this, false))
+
+  def index(train: Set[TripleItem.Uri], test: Set[TripleItem.Uri])(implicit debugger: Debugger): IndexContainer = {
+    val testCache = collection.mutable.ArrayBuffer.empty[Quad]
+    val trainDataset = transform((f: Quad => Unit) => {
+      testCache.clear()
+      for (quad <- quads) {
+        if (train(quad.graph)) f(quad) else if (test(quad.graph)) testCache.addOne(quad)
+      }
+    })
+    IndexContainer.TrainTest(TrainTestIndex(trainDataset.index.main, Dataset(new ForEach[Quad] {
+      def foreach(f: Quad => Unit): Unit = testCache.foreach(f)
+
+      override def knownSize: Int = testCache.length
+    })))
+  }
 
 }
 

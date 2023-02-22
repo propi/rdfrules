@@ -15,7 +15,6 @@ import scala.language.implicitConversions
   * Created by Vaclav Zeman on 12. 3. 2018.
   */
 trait Index {
-
   implicit val debugger: Debugger
 
   def tripleMap: TripleIndex[Int]
@@ -51,18 +50,27 @@ trait Index {
     override def withEvaluatedLazyVals: Index = this
   }
 
-  final def mine(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer())): Ruleset = {
+  final def mineRules(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer())): Ruleset = {
     implicit val thi: TripleIndex[Int] = tripleMap
     implicit val mapper: TripleItemIndex = tripleItemMap
     ruleConsumer.invoke { ruleConsumer =>
       val result = miner.mine(ruleConsumer)
-      Ruleset(this, result)
+      Ruleset(IndexContainer.Single(this), result)
     }
   }
-
 }
 
 object Index {
+
+  /*  sealed trait PartType
+
+    object PartType {
+      case object Training extends PartType
+
+      case object Test extends PartType
+
+      case object TrainingTest extends PartType
+    }*/
 
   private abstract class FromDatasetIndex(_dataset: Option[Dataset], _parent: Option[Index]) extends Index with Cacheable with FromDatasetBuildable {
     @volatile protected var dataset: Option[Dataset] = _dataset

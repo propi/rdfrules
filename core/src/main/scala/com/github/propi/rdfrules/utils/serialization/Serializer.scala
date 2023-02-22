@@ -1,7 +1,6 @@
 package com.github.propi.rdfrules.utils.serialization
 
 import java.io.{BufferedOutputStream, ByteArrayOutputStream, OutputStream}
-
 import com.github.propi.rdfrules.utils.NumericByteArray._
 
 /**
@@ -31,6 +30,10 @@ object Serializer {
       baos.write(x)
       baos.toByteArray
     }
+  }
+
+  def directSerialize[T](v: T)(implicit serializer: Serializer[T]): Array[Byte] = {
+    serializer.serialize(v)
   }
 
   def by[A, B](f: A => B)(implicit serializer: Serializer[B]): Serializer[A] = (v: A) => serializer.serialize(f(v))

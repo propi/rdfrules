@@ -28,7 +28,7 @@ class PatternsSpec extends AnyFlatSpec with Matchers with Inside with CancelAfte
 
   "Amie" should "should mine with gradual partial pattern" in {
     Debugger() { implicit debugger =>
-      val ruleset = index.withDebugger.mine(amie.addPattern(AtomPattern(predicate = TripleItem.Uri("dealsWith")) =>: AtomPattern(predicate = TripleItem.Uri("imports"))))
+      val ruleset = index.withDebugger.mineRules(amie.addPattern(AtomPattern(predicate = TripleItem.Uri("dealsWith")) =>: AtomPattern(predicate = TripleItem.Uri("imports"))))
       ruleset.size shouldBe 1638
       ruleset.resolvedRules.forall(x => x.body.exists(_.predicate.hasSameUriAs("dealsWith")) && x.head.predicate.hasSameUriAs("imports")) shouldBe true
       ruleset.resolvedRules.map(_.ruleLength).toSet should contain only(2, 3)
@@ -37,19 +37,19 @@ class PatternsSpec extends AnyFlatSpec with Matchers with Inside with CancelAfte
 
   it should "should mine with gradual exact pattern" in {
     Debugger() { implicit debugger =>
-      var ruleset = index.withDebugger.mine(amie.addPattern((AtomPattern(predicate = TripleItem.Uri("dealsWith")) =>: AtomPattern(predicate = TripleItem.Uri("imports"))).withExact()))
+      var ruleset = index.withDebugger.mineRules(amie.addPattern((AtomPattern(predicate = TripleItem.Uri("dealsWith")) =>: AtomPattern(predicate = TripleItem.Uri("imports"))).withExact()))
       ruleset.size shouldBe 52
       ruleset.resolvedRules.forall(x => x.body.length == 1 && x.body.exists(_.predicate.hasSameUriAs("dealsWith")) && x.head.predicate.hasSameUriAs("imports")) shouldBe true
-      ruleset = index.withDebugger.mine(amie.addPattern((AtomPattern(predicate = TripleItem.Uri("hasCapital")) &: AtomPattern(predicate = TripleItem.Uri("dealsWith")) =>: AtomPattern(predicate = TripleItem.Uri("imports"))).withExact()))
+      ruleset = index.withDebugger.mineRules(amie.addPattern((AtomPattern(predicate = TripleItem.Uri("hasCapital")) &: AtomPattern(predicate = TripleItem.Uri("dealsWith")) =>: AtomPattern(predicate = TripleItem.Uri("imports"))).withExact()))
       ruleset.size shouldBe 111
-      ruleset = index.withDebugger.mine(amie.addPattern((AtomPattern(predicate = TripleItem.Uri("dealsWith")) &: AtomPattern(predicate = TripleItem.Uri("hasCapital")) =>: AtomPattern(predicate = TripleItem.Uri("imports"))).withExact()))
+      ruleset = index.withDebugger.mineRules(amie.addPattern((AtomPattern(predicate = TripleItem.Uri("dealsWith")) &: AtomPattern(predicate = TripleItem.Uri("hasCapital")) =>: AtomPattern(predicate = TripleItem.Uri("imports"))).withExact()))
       ruleset.size shouldBe 0
     }
   }
 
   it should "should mine with orderless exact pattern" in {
     Debugger() { implicit debugger =>
-      val ruleset = index.withDebugger.mine(amie.addPattern((AtomPattern(predicate = TripleItem.Uri("dealsWith")) &: AtomPattern(predicate = TripleItem.Uri("hasCapital")) =>: AtomPattern(predicate = TripleItem.Uri("imports"))).withExact().withOrderless()))
+      val ruleset = index.withDebugger.mineRules(amie.addPattern((AtomPattern(predicate = TripleItem.Uri("dealsWith")) &: AtomPattern(predicate = TripleItem.Uri("hasCapital")) =>: AtomPattern(predicate = TripleItem.Uri("imports"))).withExact().withOrderless()))
       ruleset.size shouldBe 111
       ruleset.resolvedRules.forall(x => x.body.length == 2 && x.body.forall(x => x.predicate.hasSameUriAs("dealsWith") || x.predicate.hasSameUriAs("hasCapital")) && x.head.predicate.hasSameUriAs("imports")) shouldBe true
     }
@@ -57,7 +57,7 @@ class PatternsSpec extends AnyFlatSpec with Matchers with Inside with CancelAfte
 
   it should "should mine with orderless partial pattern" in {
     Debugger() { implicit debugger =>
-      val ruleset = index.withDebugger.mine(amie.addPattern((AtomPattern(predicate = TripleItem.Uri("hasCapital")) =>: AtomPattern(predicate = TripleItem.Uri("imports"))).withOrderless()))
+      val ruleset = index.withDebugger.mineRules(amie.addPattern((AtomPattern(predicate = TripleItem.Uri("hasCapital")) =>: AtomPattern(predicate = TripleItem.Uri("imports"))).withOrderless()))
       ruleset.size shouldBe 129
       ruleset.resolvedRules.forall(x => x.body.exists(_.predicate.hasSameUriAs("hasCapital")) && x.head.predicate.hasSameUriAs("imports")) shouldBe true
     }

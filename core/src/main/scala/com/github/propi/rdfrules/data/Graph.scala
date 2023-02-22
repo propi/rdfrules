@@ -6,7 +6,7 @@ import com.github.propi.rdfrules.algorithm.consumer.InMemoryRuleConsumer
 import com.github.propi.rdfrules.data.Quad.QuadTraversableView
 import com.github.propi.rdfrules.data.Triple.TripleTraversableView
 import com.github.propi.rdfrules.data.ops._
-import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.index.{Index, IndexContainer}
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.serialization.TripleSerialization._
 import com.github.propi.rdfrules.utils.{Debugger, ForEach}
@@ -64,9 +64,9 @@ class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView
 
   def toDataset: Dataset = Dataset(this)
 
-  def mine(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer()))(implicit debugger: Debugger = Debugger.EmptyDebugger): Ruleset = toDataset.mine(miner, ruleConsumer)
+  def mine(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer()))(implicit debugger: Debugger): Ruleset = toDataset.mine(miner, ruleConsumer)
 
-  def index(implicit debugger: Debugger = Debugger.EmptyDebugger): Index = toDataset.index()
+  def index(implicit debugger: Debugger): IndexContainer = toDataset.index
 
 }
 

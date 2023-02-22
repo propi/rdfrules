@@ -44,7 +44,7 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
   it should "mine with default params" in {
     val index = Index.apply(dataset1, false)
     val amie = Amie().addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere)).addThreshold(Threshold.MinHeadCoverage(0.01))
-    val rules = index.mine(amie)
+    val rules = index.mineRules(amie)
     rules.size shouldBe 124
   }
 

@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.http.task.data
 
-import com.github.propi.rdfrules.data.Dataset
+import com.github.propi.rdfrules.data.{Dataset, TripleItem}
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 import com.github.propi.rdfrules.index
 import com.github.propi.rdfrules.utils.Debugger
@@ -8,10 +8,13 @@ import com.github.propi.rdfrules.utils.Debugger
 /**
   * Created by Vaclav Zeman on 9. 8. 2018.
   */
-class Index(implicit debugger: Debugger) extends Task[Dataset, index.Index] {
+class Index(trainTest: Option[(TripleItem.Uri, TripleItem.Uri)])(implicit debugger: Debugger) extends Task[Dataset, index.Index] {
   val companion: TaskDefinition = Index
 
-  def execute(input: Dataset): index.Index = input.withPrefixedUris.index
+  def execute(input: Dataset): index.Index = trainTest match {
+    case Some((train, test)) => input.withPrefixedUris.index(train, test)
+    case None => input.withPrefixedUris.index
+  }
 }
 
 object Index extends TaskDefinition {

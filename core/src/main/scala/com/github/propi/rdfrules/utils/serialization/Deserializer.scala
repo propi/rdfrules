@@ -1,7 +1,6 @@
 package com.github.propi.rdfrules.utils.serialization
 
 import java.io.{BufferedInputStream, ByteArrayInputStream, EOFException, InputStream}
-
 import scala.math.Numeric.IntIsIntegral
 import scala.util.{Failure, Success, Try}
 import com.github.propi.rdfrules.utils.NumericByteArray._
@@ -44,6 +43,10 @@ object Deserializer {
       val size = deserialize[Int](is)
       deserialize(is)(deserializer, SerializationSize[T](size))
     }
+  }
+
+  def directDeserialize[T](array: Array[Byte])(implicit deserializer: Deserializer[T]): T = {
+    deserializer.deserialize(array)
   }
 
   def deserializeOpt[T](is: InputStream)(implicit deserializer: Deserializer[T], serializationSize: SerializationSize[T]): Option[T] = Try(deserialize[T](is)) match {

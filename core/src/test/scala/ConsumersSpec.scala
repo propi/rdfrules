@@ -28,7 +28,7 @@ class ConsumersSpec extends AnyFlatSpec with Matchers with Inside with CancelAft
 
   "Amie" should "accept default consumer" in {
     Debugger() { implicit debugger =>
-      val ruleset = index.withDebugger.mine(amie)
+      val ruleset = index.withDebugger.mineRules(amie)
       ruleset.size shouldBe 7595
     }
   }

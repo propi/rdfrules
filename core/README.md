@@ -229,7 +229,7 @@ import com.github.propi.rdfrules.index._
 val miningTask = Amie()
 Debugger() { implicit debugger =>
   val index = Index.fromCache("data.index", false)
-  index.mine(miningTask)
+  index.mineRules(miningTask)
 }
 //optionally you can attach your own logger to manage log messages
 ```
@@ -254,7 +254,7 @@ val preparedMiningTask = miningTask
   //add rule pattern: hasChild(Any, Any) => *
   .addPattern(AtomPattern(predicate = TripleItem.Uri("hasChild")) =>: None)
   .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere))
-index.mine(preparedMiningTask)
+index.mineRules(preparedMiningTask)
 ```
 
 All possibilities of thresholds, patterns and constraints are described in the
@@ -274,7 +274,7 @@ import com.github.propi.rdfrules.ruleset._
 import java.io.FileInputStream
 
 val index = Index.fromCache("data.index", false)
-val ruleset = index.mine(Amie())
+val ruleset = index.mineRules(Amie())
 //or from cache
 Ruleset.fromCache(index, "rules.cache")
 Ruleset.fromCache(index, new FileInputStream("rules.cache"))

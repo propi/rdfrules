@@ -90,7 +90,13 @@ trait RuleCounting extends AtomCounting {
     //logger.debug(s"Lift counting for rule: " + rule)
     (for {
       confidence <- confidence.confidenceOpt(rule.measures)
-      propertyModeProbability <- tripleIndex.predicates.get(rule.head.predicate).map(_.modeProbability)
+      propertyModeProbability <- tripleIndex.predicates.get(rule.head.predicate).flatMap { pindex =>
+        (pindex.lowerCardinalitySide, rule.head.subject, rule.head.`object`) match {
+          case (TriplePosition.Subject, Atom.Constant(x), _) => pindex.subjects.get(x).map(_.size(false).toDouble / pindex.size(false))
+          case (TriplePosition.Object, _, Atom.Constant(x)) => pindex.objects.get(x).map(_.size(false).toDouble / pindex.size(false))
+          case _ => Some(pindex.modeProbability)
+        }
+      }
     } yield {
       rule.withMeasures(rule.measures + Measure.Lift(confidence / propertyModeProbability))
     }).getOrElse(rule)

@@ -48,7 +48,7 @@ trait RdfRulesMiningTask[T] extends Task[Index, Index, Ruleset, T] with TaskPreP
   }
 
   protected def taskBody(input: Index): Ruleset = {
-    val res = countOtherMetrics(input.mine(miningTask(createDefaultMiningTask), ruleConsumer))
+    val res = countOtherMetrics(input.mineRules(miningTask(createDefaultMiningTask), ruleConsumer))
     res.size
     res
   }
