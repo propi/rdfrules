@@ -31,9 +31,9 @@ class PredictionTasksResults private(protected val coll: ForEach[PredictionTaskR
 
   def resolvedPredictionTasksResults: ForEach[(PredictionTask.Resolved, PredictedTriples)] = coll.map(x => PredictionTask.Resolved(x.predictionTask)(index.test.tripleItemMap) -> createPredictedTriples(x.predictedTriples))
 
-  def nonEmptyPredictions: PredictionTasksResults = filter(!_.isEmpty)
-
   def withAddedModePredictions(injectiveMapping: Boolean = true): PredictionTasksResults = map(_.withAddedModePrediction(injectiveMapping))
+
+  def nonEmptyPredictions: PredictionTasksResults = filter(!_.isEmpty)
 
   def nonEmptyTest(injectiveMapping: Boolean = true): PredictionTasksResults = filter(x => !x.predictionTask.index(index.test.tripleMap).isEmpty(injectiveMapping))
 
@@ -45,9 +45,9 @@ class PredictionTasksResults private(protected val coll: ForEach[PredictionTaskR
     List.from(Iterator(evaluator.build) ++ evaluators.iterator.map(_.build))
   }
 
-  def onlyFunctionalPredictions: PredictionTasksResults = this.map(_.filterByFunctions(index.train.tripleMap))
+  def onlyPcaPredictions: PredictionTasksResults = this.map(_.selectByPca(index.train.tripleMap))
 
-  def onlyQpcaPredictions: PredictionTasksResults = this.map(_.filterByQpca)
+  def onlyQpcaPredictions: PredictionTasksResults = this.map(_.selectByQpca)
 }
 
 object PredictionTasksResults {

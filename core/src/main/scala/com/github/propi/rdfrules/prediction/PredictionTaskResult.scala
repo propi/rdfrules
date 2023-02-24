@@ -94,7 +94,7 @@ class PredictionTaskResult private(val predictionTask: PredictionTask, private v
     }).map(new PredictionTaskResult(predictionTask, _)).getOrElse(this)
   }
 
-  def filterByFunctions(implicit train: TripleIndex[Int]): PredictionTaskResult = {
+  def selectByPca(implicit train: TripleIndex[Int]): PredictionTaskResult = {
     if (predictionTask.index.isEmpty(false)) {
       topK(1)
     } else {
@@ -102,7 +102,7 @@ class PredictionTaskResult private(val predictionTask: PredictionTask, private v
     }
   }
 
-  def filterByQpca(implicit index: TrainTestIndex): PredictionTaskResult = {
+  def selectByQpca(implicit index: TrainTestIndex): PredictionTaskResult = {
     val currentCardinality = predictionTask.index(index.train.tripleMap).size(false)
     val maxCardinalityThreshold = index.merged.tripleMap.predicates.get(predictionTask.p).map(x => if (predictionTask.targetVariable == TriplePosition.Subject) x.averageObjectCardinality else x.averageSubjectCardinality).getOrElse(1)
     val remainingSlots = maxCardinalityThreshold - currentCardinality

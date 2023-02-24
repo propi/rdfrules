@@ -30,7 +30,7 @@ trait PredictionTaskPostprocessor extends TaskPostProcessor[PredictionTasksResul
       RankingEvaluationBuilder.fromTest(Vector(1, 3, 10)),
       StatsBuilder()
     )).concat(processResults("qpca", result.onlyQpcaPredictions.evaluate(CompletenessEvaluationBuilder())))
-      .concat(processResults("pca", result.onlyFunctionalPredictions.evaluate(CompletenessEvaluationBuilder())))
+      .concat(processResults("pca", result.onlyPcaPredictions.evaluate(CompletenessEvaluationBuilder())))
       .concat(processResults("top1", result.map(_.topK(1)).evaluate(CompletenessEvaluationBuilder())))
       .concat(processResults("top2", result.map(_.topK(2)).evaluate(CompletenessEvaluationBuilder())))
       .concat(processResults("top3", result.map(_.topK(3)).evaluate(CompletenessEvaluationBuilder())))
