@@ -42,14 +42,14 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
   }
 
   it should "mine with default params" in {
-    val index = Index.apply(dataset1, false)
+    val index = IndexPart.apply(dataset1, false)
     val amie = Amie().addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere)).addThreshold(Threshold.MinHeadCoverage(0.01))
     val rules = index.mineRules(amie)
     rules.size shouldBe 124
   }
 
   it should "mine without duplicit predicates" in {
-    val index = Index.apply(dataset1, false)
+    val index = IndexPart.apply(dataset1, false)
     val amie = Amie()
       .addConstraint(RuleConstraint.WithoutDuplicatePredicates())
       .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere))
@@ -67,7 +67,7 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
   }
 
   it should "mine with only specified predicates" in {
-    val index = Index.apply(dataset1, false)
+    val index = IndexPart.apply(dataset1, false)
     val onlyPredicates = RuleConstraint.OnlyPredicates("imports", "exports", "dealsWith")
     val amie = Amie()
       .addConstraint(RuleConstraint.WithoutDuplicatePredicates())
@@ -88,7 +88,7 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
   }
 
   it should "mine without specified predicates" in {
-    val index = Index.apply(dataset1, false)
+    val index = IndexPart.apply(dataset1, false)
     val onlyPredicates = RuleConstraint.WithoutPredicates("imports", "exports", "dealsWith")
     val amie = Amie()
       .addConstraint(RuleConstraint.WithoutDuplicatePredicates())
@@ -107,7 +107,7 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
   }
 
   it should "mine with instances" in {
-    val index = Index.apply(dataset1, false)
+    val index = IndexPart.apply(dataset1, false)
     Debugger() { implicit debugger =>
       val amie = Amie().addConstraint(RuleConstraint.WithoutDuplicatePredicates()).addThreshold(Threshold.MinHeadCoverage(0.01))
       implicit val tihi: TripleItemIndex = index.tripleItemMap
@@ -155,7 +155,7 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
 
   it should "mine with instances and with duplicit predicates" in {
     Debugger() { implicit debugger =>
-      val index = Index.apply(dataset1, false)
+      val index = IndexPart.apply(dataset1, false)
       val amie = Amie().addThreshold(Threshold.MinHeadCoverage(0.02))
       implicit val tihi: TripleItemIndex = index.tripleItemMap
       implicit val thi: TripleIndex[Int] = index.tripleMap
@@ -173,7 +173,7 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
 
   it should "mine only with object instances" in {
     Debugger() { implicit debugger =>
-      val index = Index.apply(dataset1, false)
+      val index = IndexPart.apply(dataset1, false)
       val amie = Amie()
         .addConstraint(RuleConstraint.WithoutDuplicatePredicates())
         .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Object))
@@ -192,7 +192,7 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
   }
 
   it should "mine with min length" in {
-    val index = Index.apply(dataset1, false)
+    val index = IndexPart.apply(dataset1, false)
     var amie = Amie()
       .addConstraint(RuleConstraint.WithoutDuplicatePredicates())
       .addThreshold(Threshold.MaxRuleLength(2))
@@ -220,7 +220,7 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
   }
 
   it should "mine with min head size" in {
-    val index = Index.apply(dataset1, false)
+    val index = IndexPart.apply(dataset1, false)
     val amie = Amie()
       .addConstraint(RuleConstraint.WithoutDuplicatePredicates())
       .addThreshold(Threshold.MinHeadSize(1000))
@@ -239,7 +239,7 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
 
   it should "mine with topK threshold" in {
     Debugger() { implicit debugger =>
-      val index = Index.apply(dataset1, false)
+      val index = IndexPart.apply(dataset1, false)
       val amie = Amie()
         .addConstraint(RuleConstraint.WithoutDuplicatePredicates())
         .addThreshold(Threshold.MinHeadCoverage(0.01))
@@ -256,7 +256,7 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
   }
 
   it should "count confidence" in {
-    val index = Index.apply(dataset1, false)
+    val index = IndexPart.apply(dataset1, false)
     val amie = Amie()
       .addConstraint(RuleConstraint.WithoutDuplicatePredicates())
       .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere))
@@ -278,7 +278,7 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
       if (msg.contains("timeout limit")) timeoutPrinted.set(true)
     }
     Debugger(customLogger) { implicit debugger =>
-      val index = Index.apply(dataset1, false)
+      val index = IndexPart.apply(dataset1, false)
       val amie = Amie()
         .addThreshold(Threshold.MaxRuleLength(5))
         .addThreshold(Threshold.Timeout(1))
@@ -295,7 +295,7 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
   }
 
   it should "mine with a rule pattern" in {
-    val index = Index.apply(dataset1, false)
+    val index = IndexPart.apply(dataset1, false)
     val amie = Amie().addConstraint(RuleConstraint.WithoutDuplicatePredicates()).addThreshold(Threshold.MinHeadCoverage(0.01))
     //livesIn antecedent
     var pattern: RulePattern = AtomPattern(predicate = TripleItem.Uri("livesIn")) =>: None
@@ -398,7 +398,7 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
   }
 
   it should "mine across two graphs" in {
-    val index = Index.apply(dataset2, false)
+    val index = IndexPart.apply(dataset2, false)
     val amie = Amie()
       .addConstraint(RuleConstraint.WithoutDuplicatePredicates())
       .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere))
@@ -415,7 +415,7 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
   }
 
   it should "mine across two graphs with pattern" in {
-    val index = Index.apply(dataset2, false)
+    val index = IndexPart.apply(dataset2, false)
     val patterns: List[RulePattern] = List(
       AtomPattern(graph = TripleItem.Uri("yago")),
       AtomPattern(graph = AtomPattern.AtomItemPattern.OneOf(TripleItem.Uri("yago"))),

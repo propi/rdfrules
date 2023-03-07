@@ -2,7 +2,8 @@ package com.github.propi.rdfrules.prediction
 
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.index.IndexItem.IntTriple
-import com.github.propi.rdfrules.index.{TrainTestIndex, TripleIndex, TripleItemIndex}
+import com.github.propi.rdfrules.index.ops.TrainTestIndex
+import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.{DefaultConfidence, Measure, Rule, TripleItemPosition}
 import com.github.propi.rdfrules.serialization.TripleSerialization._
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, Serializer}

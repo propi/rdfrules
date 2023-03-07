@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.http.task.ruleset
 
 import com.github.propi.rdfrules.http.task.{CommonCache, TaskDefinition}
-import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.index.IndexPart
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.Debugger
 
@@ -19,7 +19,7 @@ class Cache(path: String, inMemory: Boolean, revalidate: Boolean)(implicit debug
 
   def loadCache(file: File): Option[Ruleset] = None
 
-  override def loadCacheWithIndex(file: File, index: Index): Ruleset = Ruleset.fromCache(index, file)
+  override def loadCacheWithIndex(file: File, index: IndexPart): Ruleset = Ruleset.fromCache(index, file)
 
   override def mapLoadedCache(x: Ruleset): Ruleset = x.withIndex(x.index.withDebugger)
 }

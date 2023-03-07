@@ -18,7 +18,7 @@ class Cache(path: String, inMemory: Boolean, revalidate: Boolean)(implicit debug
 
   def loadCache(file: File): Option[Dataset] = Some(Dataset.fromCache(file))
 
-  override def mapLoadedCache(x: Dataset): Dataset = x.withDebugger
+  override def mapLoadedCache(x: Dataset): Dataset = x.withDebugger()
 }
 
 object Cache extends TaskDefinition {

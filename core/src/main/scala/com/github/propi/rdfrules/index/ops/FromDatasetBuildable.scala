@@ -10,14 +10,14 @@ import com.github.propi.rdfrules.utils.ForEach
   */
 trait FromDatasetBuildable extends Buildable {
 
-  self: Index =>
+  self: IndexPart =>
 
   @volatile protected var dataset: Option[Dataset]
-  @volatile protected var parent: Option[Index]
+  @volatile protected var parentTripleItemIndex: Option[TripleItemIndex]
+  @volatile protected var parentTripleIndexes: Seq[TripleIndex[Int]]
 
   protected def buildTripleIndex: TripleIndex[Int] = {
     val tihi = self.tripleItemMap
-    val parentIndex = parent.map(_.tripleMap)
     val thi = TripleHashIndex(ForEach.from(dataset).flatMap(_.quads.filter(!_.triple.predicate.hasSameUriAs(TripleItem.sameAs)).flatMap { q =>
       ForEach.from(for {
         s <- tihi.getIndexOpt(q.triple.subject)
@@ -27,24 +27,28 @@ trait FromDatasetBuildable extends Buildable {
       } yield {
         IndexItem.Quad(s, p, o, g)
       })
-    }).filter(quad => parentIndex.forall(!_.contains(quad))))
+    }).filter(quad => parentTripleIndexes.forall(!_.contains(quad))))
     dataset = None
-    parent = None
+    parentTripleIndexes = Nil
     thi
   }
 
-  protected def buildTripleItemIndex: TripleItemIndex = TripleItemHashIndex(dataset.map(_.quads).getOrElse(ForEach.empty), parent.map(_.tripleItemMap))
+  protected def buildTripleItemIndex: TripleItemIndex = {
+    val res = TripleItemHashIndex(dataset.map(_.quads).getOrElse(ForEach.empty), parentTripleItemIndex)
+    parentTripleItemIndex = None
+    res
+  }
 
   protected def buildAll: (TripleItemIndex, TripleIndex[Int]) = {
-    val parentIndex = parent.map(_.tripleMap)
-    val res = TripleItemHashIndex.mapQuads(dataset.map(_.quads).getOrElse(ForEach.empty), parent.map(_.tripleItemMap)) { mappedQuads =>
+    val res = TripleItemHashIndex.mapQuads(dataset.map(_.quads).getOrElse(ForEach.empty), parentTripleItemIndex) { mappedQuads =>
       TripleHashIndex(mappedQuads.filter {
-        case quad: IntQuad => parentIndex.forall(!_.contains(quad))
+        case quad: IntQuad => parentTripleIndexes.forall(!_.contains(quad))
         case _ => true
       })
     }
     dataset = None
-    parent = None
+    parentTripleItemIndex = None
+    parentTripleIndexes = Nil
     res
   }
 

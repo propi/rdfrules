@@ -20,7 +20,7 @@ class IndexSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFa
   private lazy val dataset2 = Dataset() + Graph("yago", GraphSpec.dataYago) + Graph("dbpedia", dataDbpedia)(Lang.TTL)
 
   "Index" should "create from dataset and load items" in {
-    val index = Index.apply(dataset1, true)
+    val index = IndexPart.apply(dataset1, true)
     MemoryMeasurer.measureBytes(index) should be(600L +- 100)
     val tihi = index.tripleItemMap
     val items = dataset1.take(5).quads.flatMap(x => List(x.triple.subject, x.triple.predicate, x.triple.`object`)).toSeq
@@ -37,7 +37,7 @@ class IndexSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFa
   }
 
   it should "create from dataset and load index" in {
-    val index = Index.apply(dataset1, false)
+    val index = IndexPart.apply(dataset1, false)
     MemoryMeasurer.measureBytes(index) should be(600L +- 100)
     val thi = index.tripleMap
     thi.size shouldBe dataset1.size
@@ -58,7 +58,7 @@ class IndexSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFa
   }
 
   it should "load dataset with more graphs" in {
-    val index = Index.apply(dataset2, true)
+    val index = IndexPart.apply(dataset2, true)
     MemoryMeasurer.measureBytes(index) should be(3000L +- 500)
     val tihi = index.tripleItemMap
     tihi.iterator.size shouldBe 72263
@@ -78,7 +78,7 @@ class IndexSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFa
 
   it should "work with graphs" in {
     {
-      val index = Index.apply(dataset1, false)
+      val index = IndexPart.apply(dataset1, false)
       implicit val tim: TripleItemIndex = index.tripleItemMap
       val cq = dataset1.quads.head.toCompressedQuad
       val thi = index.tripleMap
@@ -88,7 +88,7 @@ class IndexSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFa
       thi.getGraphs(cq.p, TripleItemPosition.Subject(cq.s)).iterator.toList should contain only cq.g
     }
     {
-      val index2 = Index.apply(dataset2, false)
+      val index2 = IndexPart.apply(dataset2, false)
       implicit val tim: TripleItemIndex = index2.tripleItemMap
       val cq2 = dataset2.toGraphs.map(_.quads.head.toCompressedQuad).toSeq
       cq2.size shouldBe 2
@@ -116,7 +116,7 @@ class IndexSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFa
   }
 
   it should "cache" in {
-    val index = Index.apply(dataset2, false)
+    val index = IndexPart.apply(dataset2, false)
     index.cache(new FileOutputStream("test.index"))
     val file = new File("test.index")
     file.exists() shouldBe true
@@ -124,7 +124,7 @@ class IndexSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFa
   }
 
   it should "be loaded from cache" in {
-    val index = Index.fromCache(new BufferedInputStream(new FileInputStream("test.index")), false)
+    val index = IndexPart.fromCache(new BufferedInputStream(new FileInputStream("test.index")), false)
     val tihi = index.tripleItemMap
     tihi.iterator.size shouldBe 72263
     val thi = index.tripleMap

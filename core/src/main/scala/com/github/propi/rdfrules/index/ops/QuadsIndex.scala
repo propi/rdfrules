@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.index.ops
 
 import com.github.propi.rdfrules.data.Dataset
-import com.github.propi.rdfrules.index.{Index, IndexItem, TripleItemIndex}
+import com.github.propi.rdfrules.index.{IndexPart, IndexItem, TripleItemIndex}
 import com.github.propi.rdfrules.utils.ForEach
 
 /**
@@ -9,17 +9,23 @@ import com.github.propi.rdfrules.utils.ForEach
   */
 trait QuadsIndex {
 
-  self: Index =>
-
-  protected def compressedQuads: ForEach[IndexItem.IntQuad] = new ForEach[IndexItem.IntQuad] {
-    def foreach(f: IndexItem.IntQuad => Unit): Unit = self.tripleMap.quads.foreach(f)
-
-    override lazy val knownSize: Int = self.tripleMap.size(false)
-  }
+  self: IndexPart =>
 
   def toDataset: Dataset = {
     implicit val mapper: TripleItemIndex = tripleItemMap
-    Dataset(compressedQuads.map(_.toQuad))
+    Dataset(self.compressedQuads.map(_.toQuad))
+  }
+
+}
+
+object QuadsIndex {
+
+  implicit class PimpedQuadsIndex(val indexPart: IndexPart) extends AnyVal {
+    def compressedQuads: ForEach[IndexItem.IntQuad] = new ForEach[IndexItem.IntQuad] {
+      def foreach(f: IndexItem.IntQuad => Unit): Unit = indexPart.tripleMap.quads.foreach(f)
+
+      override lazy val knownSize: Int = indexPart.tripleMap.size(false)
+    }
   }
 
 }

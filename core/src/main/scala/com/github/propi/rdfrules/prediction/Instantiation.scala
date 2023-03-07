@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.prediction
 
 import com.github.propi.rdfrules.algorithm.amie.{AtomCounting, VariableMap}
 import com.github.propi.rdfrules.data.TriplePosition
-import com.github.propi.rdfrules.index.{Index, TripleIndex}
+import com.github.propi.rdfrules.index.{IndexPart, TripleIndex}
 import com.github.propi.rdfrules.rule.InstantiatedAtom.PimpedAtom
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.{InstantiatedAtom, InstantiatedRule}
@@ -68,7 +68,7 @@ object Instantiation {
     }
   }
 
-  def apply(rules: ForEach[FinalRule], index: Index, predictionResults: Set[PredictedResult], injectiveMapping: Boolean): ForEach[InstantiatedRule] = (f: InstantiatedRule => Unit) => {
+  def apply(rules: ForEach[FinalRule], index: IndexPart, predictionResults: Set[PredictedResult], injectiveMapping: Boolean): ForEach[InstantiatedRule] = (f: InstantiatedRule => Unit) => {
     implicit val atomCounting: AtomCounting = AtomCounting()(index.tripleMap, index.tripleItemMap)
     for {
       rule <- rules

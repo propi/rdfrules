@@ -2,7 +2,9 @@ package com.github.propi.rdfrules.prediction
 
 import com.github.propi.rdfrules.data.Graph
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
-import com.github.propi.rdfrules.index.{AutoIndex, IndexCollections, TrainTestIndex, TripleItemIndex}
+import com.github.propi.rdfrules.index.IndexCollections.Builder
+import com.github.propi.rdfrules.index.ops.TrainTestIndex
+import com.github.propi.rdfrules.index.{AutoIndex, IndexCollections, TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.prediction.PredictedTriplesAggregator.{EmptyRulesFactory, EmptyScoreFactory, RulesFactory, ScoreFactory}
 import com.github.propi.rdfrules.rule.PatternMatcher.Aliases
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
@@ -26,7 +28,7 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val parall
 
   self =>
 
-  implicit private def mapper: TripleItemIndex = index.test.tripleItemMap
+  implicit private def mapper: TripleItemIndex = index.tripleItemMap
 
   protected def serializer: Serializer[PredictedTriple] = Serializer.by[PredictedTriple, ResolvedPredictedTriple](ResolvedPredictedTriple(_))
 
@@ -50,7 +52,9 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val parall
   def singleTriples: ForEach[PredictedTriple.Single] = coll.flatMap(_.toSinglePredictedTriples)
 
   def filter(pattern: RulePattern, patterns: RulePattern*): PredictedTriples = transform((f: PredictedTriple => Unit) => {
-    implicit val thi: IndexCollections.Builder[Int] = index.train
+    implicit val thi: IndexCollections.Builder[Int] = new Builder[Int] {
+      def build: TripleIndex[Int] = index.train.tripleMap
+    }
     val rulePatternMatcher = implicitly[PatternMatcher[Rule, RulePattern.Mapped]]
     val mappedPatterns = (pattern +: patterns).map(_.withOrderless().mapped)
     triples.filter(triple => mappedPatterns.exists(rulePattern => triple.rules.exists(rule => rulePatternMatcher.matchPattern(rule, rulePattern)(Aliases.empty).isDefined))).foreach(f)

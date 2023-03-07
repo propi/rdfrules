@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.prediction
 
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
-import com.github.propi.rdfrules.index.{Index, TripleIndex, TripleItemIndex}
+import com.github.propi.rdfrules.index.{IndexPart, TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.PatternMatcher.Aliases
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
 import com.github.propi.rdfrules.rule.{InstantiatedRule, PatternMatcher, ResolvedInstantiatedRule, Rule, RulePattern}
@@ -12,7 +12,7 @@ import com.github.propi.rdfrules.utils.serialization.{Deserializer, Serializatio
 /**
   * Created by Vaclav Zeman on 6. 10. 2017.
   */
-class InstantiatedRuleset private(val rules: ForEach[InstantiatedRule], val index: Index)
+class InstantiatedRuleset private(val rules: ForEach[InstantiatedRule], val index: IndexPart)
   extends Transformable[InstantiatedRule, InstantiatedRuleset]
     with Cacheable[InstantiatedRule, InstantiatedRuleset]
     with Debugable[InstantiatedRule, InstantiatedRuleset] {
@@ -30,7 +30,7 @@ class InstantiatedRuleset private(val rules: ForEach[InstantiatedRule], val inde
   protected val serializationSize: SerializationSize[InstantiatedRule] = SerializationSize.by[InstantiatedRule, ResolvedInstantiatedRule]
   protected val dataLoadingText: String = "Instantiated ruleset loading"
 
-  def withIndex(index: Index): InstantiatedRuleset = new InstantiatedRuleset(rules, index)
+  def withIndex(index: IndexPart): InstantiatedRuleset = new InstantiatedRuleset(rules, index)
 
   def filter(pattern: RulePattern, patterns: RulePattern*): InstantiatedRuleset = transform((f: InstantiatedRule => Unit) => {
     implicit val mapper: TripleItemIndex = index.tripleItemMap
@@ -68,6 +68,6 @@ class InstantiatedRuleset private(val rules: ForEach[InstantiatedRule], val inde
 
 object InstantiatedRuleset {
 
-  def apply(index: Index, rules: ForEach[InstantiatedRule]): InstantiatedRuleset = new InstantiatedRuleset(rules, index)
+  def apply(index: IndexPart, rules: ForEach[InstantiatedRule]): InstantiatedRuleset = new InstantiatedRuleset(rules, index)
 
 }

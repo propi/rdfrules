@@ -1,13 +1,13 @@
 package com.github.propi.rdfrules.index.ops
 
-import com.github.propi.rdfrules.index.{Index, TripleIndex, TripleItemIndex}
+import com.github.propi.rdfrules.index.{IndexPart, TripleIndex, TripleItemIndex}
 
 /**
   * Created by Vaclav Zeman on 13. 3. 2018.
   */
 trait PartiallyPreservedInMemory extends Buildable {
 
-  self: Index =>
+  self: IndexPart =>
 
   protected val defaultTripleMap: Option[TripleIndex[Int]]
   protected val defaultTripleItemMap: Option[TripleItemIndex]

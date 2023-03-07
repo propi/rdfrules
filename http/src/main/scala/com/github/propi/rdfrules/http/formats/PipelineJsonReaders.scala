@@ -13,7 +13,7 @@ import com.github.propi.rdfrules.http.task._
 import com.github.propi.rdfrules.http.task.prediction.{GetPrediction, LoadPredictionWithoutIndex}
 import com.github.propi.rdfrules.http.task.ruleset.ComputeConfidence.ConfidenceType
 import com.github.propi.rdfrules.http.task.ruleset.{LoadRuleset, LoadRulesetWithoutIndex}
-import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.index.IndexPart
 import com.github.propi.rdfrules.prediction.{PredictedResult, PredictedTriples, PredictionSource}
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.{Measure, ResolvedRule, Rule, RulePattern}
@@ -403,7 +403,7 @@ object PipelineJsonReaders {
     }
 
     @scala.annotation.tailrec
-    def addTaskFromIndex(pipeline: Pipeline[Index], tail: Seq[JsValue]): Pipeline[Source[JsValue, NotUsed]] = tail match {
+    def addTaskFromIndex(pipeline: Pipeline[IndexPart], tail: Seq[JsValue]): Pipeline[Source[JsValue, NotUsed]] = tail match {
       case Seq(head, tail@_*) =>
         val fields = head.asJsObject.fields
         val params = fields("parameters")
@@ -417,7 +417,7 @@ object PipelineJsonReaders {
           case prediction.LoadPrediction.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.LoadPrediction], tail)
           case x => throw deserializationError(s"Invalid task '$x' can not be bound to Index")
         }
-      case _ => pipeline ~> new ToJsonTask.From[Index]
+      case _ => pipeline ~> new ToJsonTask.From[IndexPart]
     }
 
     @scala.annotation.tailrec

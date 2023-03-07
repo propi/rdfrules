@@ -3,19 +3,17 @@ package com.github.propi.rdfrules.prediction
 import com.github.propi.rdfrules.algorithm.amie.{AtomCounting, VariableMap}
 import com.github.propi.rdfrules.data.Dataset
 import com.github.propi.rdfrules.index._
+import com.github.propi.rdfrules.index.ops.TrainTestIndex
 import com.github.propi.rdfrules.rule.Atom
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.utils.{Debugger, ForEach}
 
 object Prediction {
 
-  def apply(rules: ForEach[FinalRule], train: IndexContainer, test: Option[Dataset], mergeTestAndTrainForPrediction: Boolean, onlyTestCoveredPredictions: Boolean, predictionResults: Set[PredictedResult], injectiveMapping: Boolean)(implicit debugger: Debugger): PredictedTriples = {
+  def apply(rules: ForEach[FinalRule], train: Index, test: Option[Dataset], mergeTestAndTrainForPrediction: Boolean, onlyTestCoveredPredictions: Boolean, predictionResults: Set[PredictedResult], injectiveMapping: Boolean)(implicit debugger: Debugger): PredictedTriples = {
     val index = test match {
-      case Some(test) => TrainTestIndex(train.main, test)
-      case None => train match {
-        case IndexContainer.TrainTest(trainTestIndex) => trainTestIndex
-        case _ => TrainTestIndex(train.main)
-      }
+      case Some(test) => TrainTestIndex(train.main, test, false)
+      case None => TrainTestIndex(train)
     }
     val predictedTriples = new ForEach[PredictedTriple.Single] {
       def foreach(f: PredictedTriple.Single => Unit): Unit = {

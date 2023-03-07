@@ -1,7 +1,8 @@
 package com.github.propi.rdfrules.prediction
 
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
-import com.github.propi.rdfrules.index.{TrainTestIndex, TripleItemIndex}
+import com.github.propi.rdfrules.index.TripleItemIndex
+import com.github.propi.rdfrules.index.ops.TrainTestIndex
 import com.github.propi.rdfrules.prediction.eval.{EvaluationBuilder, EvaluationResult}
 import com.github.propi.rdfrules.utils.ForEach
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}

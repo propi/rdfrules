@@ -86,7 +86,7 @@ triples whereas RDFDataset operates with quads.
 
 ```scala
 import com.github.propi.rdfrules.data.{Dataset, DiscretizationTask, Graph, Histogram, Prefix, Properties, RdfSource}
-import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.index.IndexPart
 import com.github.propi.rdfrules.utils.ForEach
 
 import java.io.FileOutputStream
@@ -148,11 +148,12 @@ import org.apache.jena.riot.RDFFormat
 dataset.export(new FileOutputStream("file.nq"))(RDFFormat.NQUADS_ASCII)
 dataset.export(new FileOutputStream("file.tsv"))(RdfSource.Tsv)
 //finally we can create an Index object from RdfDataset or RdfGraph
-val index: Index = dataset.index()
+val index: IndexPart = dataset.index()
 //or we can specify the index mode. There are two modes: PreservedInMemory and InUseInMemory (for more details see the root page and Index abstraction info)
 dataset.index()
 //we can skip the Index creation and to start rule mining directly (the Index object in PreservedInMemory mode is created automatically)
-dataset.mine(...)
+dataset.mine(
+...)
 ```
 
 Discretization tasks are only facades for implemented discretization algorithms in
@@ -191,8 +192,8 @@ val index = Dataset("/path/to/data.nq").index()
 //create index from graph
 Graph("/path/to/data.nt").index()
 //create index from cache - partially. That means it only loads triple items index without main fact index. The fact index is loaded as soon as it is needed.
-Index.fromCache("index.cache", true)
-Index.fromCache(new FileInputStream("index.cache"), false)
+IndexPart.fromCache("index.cache", true)
+IndexPart.fromCache(new FileInputStream("index.cache"), false)
 //get mapper which maps triple items to number or vice versa
 index.tripleItemMap.getIndex(TripleItem.Uri("hasChild")) // get a number for <hasChild> resource
 index.tripleItemMap.getTripleItem(1) // get a triple item from number 1
@@ -212,7 +213,8 @@ index.cache("data.cache")
 //or with output stream
 index.cache(new FileOutputStream("data.cache"))
 //start a rule mining process where the input parameter is a rule mining task (see below for details)
-index.mine(...)
+index.mine(
+...)
 ```
 
 ## Start the Rule Mining Process
@@ -228,7 +230,7 @@ import com.github.propi.rdfrules.index._
 //create the AMIE+ rule mining task with default parameters (MinHeadSize = 100, MinHeadCoverage = 0.01, MaxRuleLength = 3)
 val miningTask = Amie()
 Debugger() { implicit debugger =>
-  val index = Index.fromCache("data.index", false)
+  val index = IndexPart.fromCache("data.index", false)
   index.mineRules(miningTask)
 }
 //optionally you can attach your own logger to manage log messages
@@ -239,12 +241,12 @@ We can add thresholds, rule patterns and constraints to the created mining task:
 ```scala
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.data._
-import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.index.IndexPart
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule._
 
 val miningTask = Amie()
-val index = Index.fromCache("data.index", false)
+val index = IndexPart.fromCache("data.index", false)
 val preparedMiningTask = miningTask
   .addThreshold(Threshold.MinHeadCoverage(0.1))
   //add rule pattern: * => isMarriedTo(Any, Any)
@@ -269,11 +271,11 @@ The Ruleset object is created by the mining process or can be loaded from cache.
 
 ```scala
 import com.github.propi.rdfrules.algorithm.amie.Amie
-import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.index.IndexPart
 import com.github.propi.rdfrules.ruleset._
 import java.io.FileInputStream
 
-val index = Index.fromCache("data.index", false)
+val index = IndexPart.fromCache("data.index", false)
 val ruleset = index.mineRules(Amie())
 //or from cache
 Ruleset.fromCache(index, "rules.cache")
@@ -288,12 +290,12 @@ filtering, mapping, sorting and computing functions.
 ```scala
 import com.github.propi.rdfrules.algorithm.clustering.{DbScan, SimilarityCounting}
 import com.github.propi.rdfrules.data._
-import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.index.IndexPart
 import com.github.propi.rdfrules.rule.{Measure, Rule}
 import com.github.propi.rdfrules.ruleset._
 import java.io.FileOutputStream
 
-val index = Index.fromCache("data.index", false)
+val index = IndexPart.fromCache("data.index", false)
 val ruleset = Ruleset.fromCache(index, "rules.cache")
 
 ruleset
@@ -342,10 +344,10 @@ ruleset.findDissimilar(rule, 10).foreach(println)
 Finally, we can use mined rules to predict triples, e.g., in order to complete KG with new triples.
 
 ```scala
-import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.index.IndexPart
 import com.github.propi.rdfrules.ruleset.Ruleset
 
-val index = Index.fromCache("data.index", false)
+val index = IndexPart.fromCache("data.index", false)
 val ruleset = Ruleset.fromCache(index, "rules.cache")
 
 val predictedTriples = ruleset.predict()

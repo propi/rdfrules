@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.http.task.prediction
 
 import com.github.propi.rdfrules.http.task.{CommonCache, TaskDefinition}
-import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.index.IndexPart
 import com.github.propi.rdfrules.prediction.PredictedTriples
 import com.github.propi.rdfrules.utils.Debugger
 
@@ -16,7 +16,7 @@ class Cache(path: String, inMemory: Boolean, revalidate: Boolean)(implicit debug
 
   def loadCache(file: File): Option[PredictedTriples] = None
 
-  override def loadCacheWithIndex(file: File, index: Index): PredictedTriples = PredictedTriples.fromCache(index, file)
+  override def loadCacheWithIndex(file: File, index: IndexPart): PredictedTriples = PredictedTriples.fromCache(index, file)
 
   override def mapLoadedCache(x: PredictedTriples): PredictedTriples = x.withIndex(x.index.withDebugger)
 }

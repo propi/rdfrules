@@ -199,7 +199,7 @@ object IndexOps {
 
   }
 
-  implicit class PimpedIndex(val index: Index) extends AnyVal {
+  implicit class PimpedIndex(val index: IndexPart) extends AnyVal {
     def useRichOps[T](f: IndexOps => T): T = {
       f(new IndexOps()(index.tripleItemMap, index.tripleMap))
     }

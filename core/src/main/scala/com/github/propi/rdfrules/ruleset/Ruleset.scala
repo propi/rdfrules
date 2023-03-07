@@ -5,6 +5,7 @@ import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
 import com.github.propi.rdfrules.algorithm.clustering.SimilarityCounting
 import com.github.propi.rdfrules.data.Dataset
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
+import com.github.propi.rdfrules.index.IndexCollections.Builder
 import com.github.propi.rdfrules.index._
 import com.github.propi.rdfrules.prediction._
 import com.github.propi.rdfrules.rule.Measure.DefaultOrdering._
@@ -27,7 +28,7 @@ import scala.math.Ordering.Implicits.seqOrdering
 /**
   * Created by Vaclav Zeman on 6. 10. 2017.
   */
-class Ruleset private(val rules: ForEach[FinalRule], val index: IndexContainer, val parallelism: Int)
+class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val parallelism: Int)
   extends Transformable[FinalRule, Ruleset]
     with Cacheable[FinalRule, Ruleset]
     with Sortable[FinalRule, Ruleset]
@@ -52,13 +53,13 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: IndexContainer, 
 
   protected def dataLoadingText: String = "Ruleset loading"
 
-  def withIndex(index: Index): Ruleset = new Ruleset(rules, IndexContainer.Single(index), parallelism)
-
-  def withIndex(index: TrainTestIndex): Ruleset = new Ruleset(rules, IndexContainer.TrainTest(index), parallelism)
+  def withIndex(index: Index): Ruleset = new Ruleset(rules, index, parallelism)
 
   def filter(pattern: RulePattern, patterns: RulePattern*): Ruleset = transform((f: FinalRule => Unit) => {
     implicit val mapper: TripleItemIndex = index.tripleItemMap
-    implicit val thi: IndexCollections.Builder[Int] = index.main
+    implicit val thi: IndexCollections.Builder[Int] = new Builder[Int] {
+      def build: TripleIndex[Int] = index.main.tripleMap
+    }
     val rulePatternMatcher = implicitly[PatternMatcher[Rule, RulePattern.Mapped]]
     val mappedPatterns = (pattern +: patterns).map(_.withOrderless().mapped)
     rules.filter(rule => mappedPatterns.exists(rulePattern => rulePatternMatcher.matchPattern(rule, rulePattern)(Aliases.empty).isDefined)).foreach(f)
@@ -130,7 +131,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: IndexContainer, 
   }
 
   def withoutQuasiBinding(injectiveMapping: Boolean = true)(implicit debugger: Debugger): Ruleset = {
-    implicit val ti: TripleIndex[Int] = index.tripleMap
+    implicit val ti: TripleIndex[Int] = index.main.tripleMap
     implicit val tii: TripleItemIndex = index.tripleItemMap
     transform(rules.parMap(parallelism)(x => Option(x).filter(!_.hasQuasiBinding(injectiveMapping)))
       .withDebugger("Quasi binding filtering")
@@ -142,7 +143,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: IndexContainer, 
     implicit val ad: Int => (Debugger.ActionDebugger => Unit) => Unit = size => f => Debugger.EmptyDebugger.debug("", size)(f)
     transform(new ForEach[FinalRule] {
       def foreach(f: FinalRule => Unit): Unit = {
-        implicit val tripleMap: TripleIndex[Int] = index.tripleMap
+        implicit val tripleMap: TripleIndex[Int] = index.main.tripleMap
         rules.map(rule => rule.withContent(rule.head.toGraphAwareAtom, rule.body.map(_.toGraphAwareAtom))).foreach(f)
       }
 
@@ -152,7 +153,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: IndexContainer, 
 
   def computeConfidence[T <: ConfidenceMeasure](minConfidence: Double, injectiveMapping: Boolean = true, topK: Int = 0)(implicit confidenceType: Confidence[T], debugger: Debugger): Ruleset = {
     @volatile var threshold = minConfidence
-    implicit val ti: TripleIndex[Int] = index.tripleMap
+    implicit val ti: TripleIndex[Int] = index.main.tripleMap
     implicit val tii: TripleItemIndex = index.tripleItemMap
 
     val withConfidence: FinalRule => FinalRule = confidenceType match {
@@ -178,7 +179,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: IndexContainer, 
   }
 
   def computeLift(confidence: DefaultConfidence = DefaultConfidence())(implicit debugger: Debugger): Ruleset = {
-    implicit val ti: TripleIndex[Int] = index.tripleMap
+    implicit val ti: TripleIndex[Int] = index.main.tripleMap
     implicit val tii: TripleItemIndex = index.tripleItemMap
     val resColl = rules.parMap(parallelism) { rule =>
       rule.withLift(confidence)
@@ -265,17 +266,17 @@ object Ruleset {
 
   private def resolvedReader(file: File)(implicit reader: RulesetReader): RulesetReader = if (reader == RulesetReader.NoReader) RulesetReader(file) else reader
 
-  def apply(index: IndexContainer, rules: ForEach[FinalRule]): Ruleset = new Ruleset(rules, index, Runtime.getRuntime.availableProcessors())
+  def apply(index: Index, rules: ForEach[FinalRule]): Ruleset = new Ruleset(rules, index, Runtime.getRuntime.availableProcessors())
 
-  def apply(index: IndexContainer, rules: ForEach[ResolvedRule])(implicit i1: DummyImplicit): Ruleset = apply(index, rules.flatMap(_.toRuleOpt(index.tripleItemMap)))
+  def apply(index: Index, rules: ForEach[ResolvedRule])(implicit i1: DummyImplicit): Ruleset = apply(index, rules.flatMap(_.toRuleOpt(index.tripleItemMap)))
 
-  def apply(index: IndexContainer, file: File)(implicit reader: RulesetReader): Ruleset = apply(index, resolvedReader(file).fromFile(file))
+  def apply(index: Index, file: File)(implicit reader: RulesetReader): Ruleset = apply(index, resolvedReader(file).fromFile(file))
 
-  def apply(index: IndexContainer, file: String)(implicit reader: RulesetReader): Ruleset = apply(index, new File(file))
+  def apply(index: Index, file: String)(implicit reader: RulesetReader): Ruleset = apply(index, new File(file))
 
-  def apply(index: IndexContainer, is: => InputStream)(implicit reader: RulesetReader): Ruleset = apply(index, reader.fromInputStream(is))
+  def apply(index: Index, is: => InputStream)(implicit reader: RulesetReader): Ruleset = apply(index, reader.fromInputStream(is))
 
-  def apply(rules: ForEach[ResolvedRule]): Ruleset = apply(IndexContainer.Single(AutoIndex()), rules)
+  def apply(rules: ForEach[ResolvedRule]): Ruleset = apply(AutoIndex(), rules)
 
   def apply(file: File)(implicit reader: RulesetReader): Ruleset = apply(resolvedReader(file).fromFile(file))
 
@@ -283,18 +284,18 @@ object Ruleset {
 
   def apply(is: => InputStream)(implicit reader: RulesetReader): Ruleset = apply(reader.fromInputStream(is))
 
-  def fromCache(index: IndexContainer, is: => InputStream): Ruleset = apply(
+  def fromCache(index: Index, is: => InputStream): Ruleset = apply(
     index,
     (f: FinalRule => Unit) => Deserializer.deserializeFromInputStream[ResolvedRule, Unit](is) { reader =>
       Iterator.continually(reader.read()).takeWhile(_.isDefined).map(_.get).flatMap(_.toRuleOpt(index.tripleItemMap)).foreach(f)
     }
   )
 
-  def fromCache(index: IndexContainer, file: File): Ruleset = fromCache(index, new FileInputStream(file))
+  def fromCache(index: Index, file: File): Ruleset = fromCache(index, new FileInputStream(file))
 
-  def fromCache(index: IndexContainer, file: String): Ruleset = fromCache(index, new File(file))
+  def fromCache(index: Index, file: String): Ruleset = fromCache(index, new File(file))
 
-  def fromCache(is: => InputStream): Ruleset = fromCache(IndexContainer.Single(AutoIndex()), is)
+  def fromCache(is: => InputStream): Ruleset = fromCache(AutoIndex(), is)
 
   def fromCache(file: File): Ruleset = fromCache(new FileInputStream(file))
 
