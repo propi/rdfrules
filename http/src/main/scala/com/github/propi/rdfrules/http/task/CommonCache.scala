@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.http.task
 
 import com.github.propi.rdfrules.http.util.BasicExceptions.ValidationException
 import com.github.propi.rdfrules.http.{InMemoryCache, Workspace}
-import com.github.propi.rdfrules.index.IndexPart
+import com.github.propi.rdfrules.index.Index
 
 import java.io.File
 import scala.reflect.ClassTag
@@ -16,7 +16,7 @@ abstract class CommonCache[T](path: String, inMemory: Boolean, revalidate: Boole
 
   def loadCache(file: File): Option[T]
 
-  def loadCacheWithIndex(file: File, index: IndexPart): T = loadCache(file).get
+  def loadCacheWithIndex(file: File, index: Index): T = loadCache(file).get
 
   def mapLoadedCache(x: T): T = x
 
@@ -26,7 +26,7 @@ abstract class CommonCache[T](path: String, inMemory: Boolean, revalidate: Boole
     None
   }
 
-  def useCache(lastIndexTask: Option[Task[Task.NoInput.type, IndexPart]]): Option[Task[Task.NoInput.type, T]] = if (revalidate) {
+  def useCache(lastIndexTask: Option[Task[Task.NoInput.type, Index]]): Option[Task[Task.NoInput.type, T]] = if (revalidate) {
     None
   } else {
     if (inMemory) {
@@ -36,10 +36,10 @@ abstract class CommonCache[T](path: String, inMemory: Boolean, revalidate: Boole
       if (cacheFile.exists()) {
         lastIndexTask match {
           case Some(lastIndexTask) =>
-            Some(lastIndexTask.andThen[T](new Task[IndexPart, T] {
+            Some(lastIndexTask.andThen[T](new Task[Index, T] {
               val companion: TaskDefinition = self.companion
 
-              def execute(input: IndexPart): T = {
+              def execute(input: Index): T = {
                 mapLoadedCache(loadCacheWithIndex(cacheFile, input))
               }
             }))

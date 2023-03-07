@@ -22,7 +22,7 @@ class LoadDataset(path: Option[String], url: Option[URL])(implicit debugger: Deb
         case None => throw ValidationException("NoRdfFormat", "For URL you must specify an RDF format extension, e.g. ?extension=.nt")
       }
     }
-    dataset.withDebugger
+    dataset.withDebugger()
   }
 }
 

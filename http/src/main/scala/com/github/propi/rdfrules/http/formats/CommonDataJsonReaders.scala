@@ -5,6 +5,7 @@ import com.github.propi.rdfrules.algorithm.consumer.{InMemoryRuleConsumer, OnDis
 import com.github.propi.rdfrules.algorithm.clustering.SimilarityCounting.{Comb, WeightedSimilarityCounting}
 import com.github.propi.rdfrules.algorithm.clustering.{DbScan, SimilarityCounting}
 import com.github.propi.rdfrules.algorithm.{Clustering, RuleConsumer, RulesMining}
+import com.github.propi.rdfrules.data.ops.Sampleable
 import com.github.propi.rdfrules.data.{Compression, DiscretizationTask, Prefix, RdfSource, TripleItem}
 import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.task._
@@ -256,7 +257,7 @@ object CommonDataJsonReaders {
     val fields = json.asJsObject.fields
     val weight = fields("weight").convertTo[Double]
     fields("name").convertTo[String] match {
-      case "Atoms" => weight * SimilarityCounting.AtomsSimilarityCounting
+      case "Atoms" => weight * SimilarityCounting.AllAtomsSimilarityCounting
       case "Support" => weight * SimilarityCounting.SupportSimilarityCounting
       case "Confidence" => weight * SimilarityCounting.ConfidenceSimilarityCounting
       case "PcaConfidence" => weight * SimilarityCounting.PcaConfidenceSimilarityCounting
@@ -369,6 +370,13 @@ object CommonDataJsonReaders {
       case "Lift" => ConfidenceType.Lift(fields("min").convertTo[Double])
       case x => deserializationError(s"Invalid name of confidence type: $x")
     }.get
+  }
+
+  implicit val sampleablePartReader: RootJsonReader[Sampleable.Part] = (json: JsValue) => {
+    val selector = json.toSelector
+    selector("ratio").to[Float].map(Sampleable.RelativePart)
+      .orElse(selector("max").to[Int].map(Sampleable.AbsolutePart))
+      .getOrElse(deserializationError(s"Invalid sampleable part"))
   }
 
 }

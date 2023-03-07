@@ -14,7 +14,7 @@ class LoadRulesetWithoutIndex(path: String, format: RulesetSource, parallelism: 
       case Some(compression) => format.compressedBy(compression)
       case None => format
     })
-    parallelism.map(ruleset.setParallelism).getOrElse(ruleset).withDebugger
+    parallelism.map(ruleset.setParallelism).getOrElse(ruleset).withDebugger()
   }
 }
 

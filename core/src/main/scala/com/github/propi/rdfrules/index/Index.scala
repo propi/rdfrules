@@ -25,6 +25,8 @@ trait Index {
 
   final def cache(file: File): Index = cache(() => new FileOutputStream(file))
 
+  final def cache(path: String): Index = cache(new File(path))
+
   final def mineRules(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer())): Ruleset = {
     implicit val thi: TripleIndex[Int] = main.tripleMap
     implicit val mapper: TripleItemIndex = tripleItemMap

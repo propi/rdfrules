@@ -2,9 +2,10 @@ package com.github.propi.rdfrules.http.formats
 
 import akka.NotUsed
 import akka.stream.scaladsl.Source
-import com.github.propi.rdfrules.algorithm.consumer.InMemoryRuleConsumer
 import com.github.propi.rdfrules.algorithm.clustering.SimilarityCounting
+import com.github.propi.rdfrules.algorithm.consumer.InMemoryRuleConsumer
 import com.github.propi.rdfrules.algorithm.{Clustering, RuleConsumer, RulesMining}
+import com.github.propi.rdfrules.data.ops.Sampleable
 import com.github.propi.rdfrules.data.{Dataset, DiscretizationTask, Prefix, TripleItem}
 import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.formats.CommonDataJsonReaders._
@@ -13,7 +14,7 @@ import com.github.propi.rdfrules.http.task._
 import com.github.propi.rdfrules.http.task.prediction.{GetPrediction, LoadPredictionWithoutIndex}
 import com.github.propi.rdfrules.http.task.ruleset.ComputeConfidence.ConfidenceType
 import com.github.propi.rdfrules.http.task.ruleset.{LoadRuleset, LoadRulesetWithoutIndex}
-import com.github.propi.rdfrules.index.IndexPart
+import com.github.propi.rdfrules.index.{Index, IndexPart}
 import com.github.propi.rdfrules.prediction.{PredictedResult, PredictedTriples, PredictionSource}
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.{Measure, ResolvedRule, Rule, RulePattern}
@@ -85,6 +86,15 @@ object PipelineJsonReaders {
     new data.Shrink(json.convertTo[ShrinkSetup])
   }
 
+  implicit val splitReader: RootJsonReader[data.Split] = (json: JsValue) => {
+    val selector = json.toSelector
+    val trainUri = selector("train")("uri").to[TripleItem.Uri].getOrElse(deserializationError(s"Training URI can not be parsed."))
+    val trainPart = selector("train")("part").to[Sampleable.Part].getOrElse(deserializationError(s"No training part defined."))
+    val testUri = selector("test")("uri").to[TripleItem.Uri].getOrElse(deserializationError(s"Test URI can not be parsed."))
+    val testPart = selector("test")("part").to[Sampleable.Part].getOrElse(deserializationError(s"No test part defined."))
+    new data.Split(trainUri -> trainPart, testUri -> testPart)
+  }
+
   implicit val addPrefixesReader: RootJsonReader[data.AddPrefixes] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     new data.AddPrefixes(
@@ -110,9 +120,10 @@ object PipelineJsonReaders {
     new data.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
   }
 
-  implicit def indexReader(implicit debugger: Debugger): RootJsonReader[data.Index] = (_: JsValue) => {
-    //val fields = json.asJsObject.fields
-    new data.Index //(fields("prefixedUris").convertTo[Boolean])
+  implicit def indexReader(implicit debugger: Debugger): RootJsonReader[data.Index] = (json: JsValue) => {
+    val selector = json.toSelector
+    new data.Index(selector("train").toTypedIterable[TripleItem.Uri].toSet, selector("test").toTypedIterable[TripleItem.Uri].toSet)
+    //(fields("prefixedUris").convertTo[Boolean])
   }
 
   implicit val exportQuadsReader: RootJsonReader[data.ExportQuads] = (json: JsValue) => {
@@ -351,7 +362,7 @@ object PipelineJsonReaders {
         case index.LoadIndex.name => addTaskFromIndex(Pipeline(params.convertTo[index.LoadIndex]), tail)
         case ruleset.LoadRulesetWithoutIndex.name => addTaskFromRuleset(Pipeline(params.convertTo[ruleset.LoadRulesetWithoutIndex]), tail)
         case prediction.LoadPredictionWithoutIndex.name => addTaskFromPrediction(Pipeline(params.convertTo[prediction.LoadPredictionWithoutIndex]), tail)
-        case x => throw deserializationError(s"Invalid first task: $x")
+        case x => deserializationError(s"Invalid first task: $x")
       }
     }
 
@@ -374,10 +385,11 @@ object PipelineJsonReaders {
           case data.Prefixes.name => pipeline ~> params.convertTo[data.Prefixes] ~> ToJsonTask.FromPrefixes
           case data.Size.name => pipeline ~> params.convertTo[data.Size] ~> ToJsonTask.FromInt
           case data.Shrink.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Shrink], tail)
+          case data.Split.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Split], tail)
           case data.Properties.name => pipeline ~> params.convertTo[data.Properties] ~> ToJsonTask.FromTypes
           case data.Index.name => addTaskFromIndex(pipeline ~> params.convertTo[data.Index], tail)
           case MergeDatasets.name => addTaskFromDataset(pipeline |~> params.convertTo[MergeDatasets], tail)
-          case x => throw deserializationError(s"Invalid task '$x' can not be bound to Dataset")
+          case x => deserializationError(s"Invalid task '$x' can not be bound to Dataset")
         }
       case _ => pipeline ~> new ToJsonTask.From[Dataset]
     }
@@ -397,13 +409,13 @@ object PipelineJsonReaders {
           case prediction.ExportPrediction.name => pipeline ~> params.convertTo[prediction.ExportPrediction] ~> ToJsonTask.FromUnit
           case prediction.Shrink.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Shrink], tail)
           case prediction.Sort.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Sort], tail)
-          case x => throw deserializationError(s"Invalid task '$x' can not be bound to Prediction")
+          case x => deserializationError(s"Invalid task '$x' can not be bound to Prediction")
         }
       case _ => pipeline ~> new ToJsonTask.From[PredictedTriples]
     }
 
     @scala.annotation.tailrec
-    def addTaskFromIndex(pipeline: Pipeline[IndexPart], tail: Seq[JsValue]): Pipeline[Source[JsValue, NotUsed]] = tail match {
+    def addTaskFromIndex(pipeline: Pipeline[Index], tail: Seq[JsValue]): Pipeline[Source[JsValue, NotUsed]] = tail match {
       case Seq(head, tail@_*) =>
         val fields = head.asJsObject.fields
         val params = fields("parameters")
@@ -415,9 +427,9 @@ object PipelineJsonReaders {
           case index.ExportIndex.name => pipeline ~> params.convertTo[index.ExportIndex] ~> ToJsonTask.FromUnit
           case ruleset.LoadRuleset.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.LoadRuleset], tail)
           case prediction.LoadPrediction.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.LoadPrediction], tail)
-          case x => throw deserializationError(s"Invalid task '$x' can not be bound to Index")
+          case x => deserializationError(s"Invalid task '$x' can not be bound to Index")
         }
-      case _ => pipeline ~> new ToJsonTask.From[IndexPart]
+      case _ => pipeline ~> new ToJsonTask.From[Index]
     }
 
     @scala.annotation.tailrec
@@ -440,14 +452,14 @@ object PipelineJsonReaders {
           case ruleset.Predict.name => addTaskFromPrediction(pipeline ~> params.convertTo[ruleset.Predict], tail)
           case ruleset.Prune.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Prune], tail)
           case ruleset.Instantiate.name => pipeline ~> params.convertTo[ruleset.Instantiate] ~> ToJsonTask.FromInstantiatedRules
-          case x => throw deserializationError(s"Invalid task '$x' can not be bound to Ruleset")
+          case x => deserializationError(s"Invalid task '$x' can not be bound to Ruleset")
         }
       case _ => pipeline ~> new ToJsonTask.From[Ruleset]
     }
 
     json match {
       case JsArray(Vector(head, tail@_*)) => addInput(head, tail)
-      case _ => throw deserializationError("No tasks defined")
+      case _ => deserializationError("No tasks defined")
     }
   }
 
