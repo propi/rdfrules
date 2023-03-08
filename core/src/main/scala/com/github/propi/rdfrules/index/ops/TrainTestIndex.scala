@@ -13,6 +13,8 @@ trait TrainTestIndex extends Index {
   def test: IndexPart
 
   def merged: IndexPart
+
+  def withDebugger(implicit debugger: Debugger): TrainTestIndex
 }
 
 object TrainTestIndex {
@@ -40,7 +42,7 @@ object TrainTestIndex {
 
     def tripleItemMap: TripleItemIndex = test.tripleItemMap
 
-    def withDebugger(implicit debugger: Debugger): Index = new Splitted(train.withDebugger, test.withDebugger, _mergedCache.map(_.withDebugger))
+    def withDebugger(implicit debugger: Debugger): TrainTestIndex = new Splitted(train.withDebugger, test.withDebugger, _mergedCache.map(_.withDebugger))
   }
 
   def apply(train: IndexPart, test: Dataset, partially: Boolean)(implicit debugger: Debugger): TrainTestIndex = {

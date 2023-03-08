@@ -16,7 +16,7 @@ class ComputeConfidence(confidenceType: ConfidenceType)(implicit debugger: Debug
     case ConfidenceType.StandardConfidence(min, topK) => input.computeConfidence[Measure.CwaConfidence](min, true, topK)
     case ConfidenceType.PcaConfidence(min, topK) => input.computeConfidence[Measure.PcaConfidence](min, true, topK)
     case ConfidenceType.QpcaConfidence(min, topK) => input.computeConfidence[Measure.QpcaConfidence](min, true, topK)
-    case ConfidenceType.Lift(min) => input.computeLift(min)
+    case ConfidenceType.Lift => input.computeLift()
   }
 }
 
@@ -32,6 +32,6 @@ object ComputeConfidence extends TaskDefinition {
 
     case class QpcaConfidence(min: Double, topK: Int) extends ConfidenceType
 
-    case class Lift(min: Double) extends ConfidenceType
+    case object Lift extends ConfidenceType
   }
 }

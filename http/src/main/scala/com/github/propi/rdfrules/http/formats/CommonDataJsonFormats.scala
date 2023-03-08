@@ -1,10 +1,10 @@
 package com.github.propi.rdfrules.http.formats
 
-import com.github.propi.rdfrules.data.Prefix
-import com.github.propi.rdfrules.http.task.CompletionStrategy
+import com.github.propi.rdfrules.data.{Prefix, TripleItem}
 import com.github.propi.rdfrules.http.task.ruleset.Prune.PruningStrategy
-import com.github.propi.rdfrules.prediction.PredictedResult
-import com.github.propi.rdfrules.utils.BasicFunctions
+import com.github.propi.rdfrules.prediction.{PredictedResult, PredictionTask, PredictionTaskResult}
+import com.github.propi.rdfrules.rule.TripleItemPosition
+import com.github.propi.rdfrules.utils.JsonSelector.PimpedJsValue
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
@@ -43,20 +43,24 @@ object CommonDataJsonFormats {
     }
   }
 
-  implicit val completionStrategyFormat: RootJsonFormat[CompletionStrategy] = new RootJsonFormat[CompletionStrategy] {
-    def write(obj: CompletionStrategy): JsValue = BasicFunctions.firstToLowerCase(obj.productPrefix).toJson
+  implicit val dataCoveragePruningFormat: RootJsonFormat[PruningStrategy.DataCoveragePruning] = jsonFormat3(PruningStrategy.DataCoveragePruning)
 
-    def read(json: JsValue): CompletionStrategy = {
-      val name = json.convertTo[String]
-      List(
-        CompletionStrategy.PcaPredictions,
-        CompletionStrategy.QpcaPredictions,
-        CompletionStrategy.DistinctPredictions,
-        CompletionStrategy.FunctionalPredictions
-      ).find(x => BasicFunctions.firstToLowerCase(x.productPrefix) == name).getOrElse(deserializationError(s"Invalid completion strategy name: $name"))
+  implicit val tripleItemPositionFormat: RootJsonFormat[TripleItemPosition[TripleItem]] = new RootJsonFormat[TripleItemPosition[TripleItem]] {
+    def read(json: JsValue): TripleItemPosition[TripleItem] = {
+      val selector = json.toSelector
+      selector.get("s").toOpt[TripleItem].map(TripleItemPosition.Subject(_))
+        .orElse(selector.get("o").toOpt[TripleItem].map(TripleItemPosition.Object(_)))
+        .getOrElse(deserializationError("Missing triple item position."))
+    }
+
+    def write(obj: TripleItemPosition[TripleItem]): JsValue = obj match {
+      case TripleItemPosition.Subject(x) => JsObject("s" -> x.toJson)
+      case TripleItemPosition.Object(x) => JsObject("o" -> x.toJson)
     }
   }
 
-  implicit val dataCoveragePruningFormat: RootJsonFormat[PruningStrategy.DataCoveragePruning] = jsonFormat3(PruningStrategy.DataCoveragePruning)
+  implicit val predictionTaskFormat: RootJsonFormat[PredictionTask.Resolved] = jsonFormat2(PredictionTask.Resolved.apply)
+
+  implicit val predictionTaskResultWriter: RootJsonFormat[PredictionTaskResult.Resolved] = jsonFormat2(PredictionTaskResult.Resolved.apply)
 
 }

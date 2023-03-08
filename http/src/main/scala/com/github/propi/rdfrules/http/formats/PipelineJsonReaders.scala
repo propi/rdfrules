@@ -12,12 +12,15 @@ import com.github.propi.rdfrules.http.formats.CommonDataJsonReaders._
 import com.github.propi.rdfrules.http.task.Task.MergeDatasets
 import com.github.propi.rdfrules.http.task._
 import com.github.propi.rdfrules.http.task.prediction.{GetPrediction, LoadPredictionWithoutIndex}
+import com.github.propi.rdfrules.http.task.predictionTasks.Evaluate
+import com.github.propi.rdfrules.http.task.predictionTasks.Evaluate.RankingStrategy
+import com.github.propi.rdfrules.http.task.predictionTasks.Select.SelectionStrategy
 import com.github.propi.rdfrules.http.task.ruleset.ComputeConfidence.ConfidenceType
 import com.github.propi.rdfrules.http.task.ruleset.{LoadRuleset, LoadRulesetWithoutIndex}
-import com.github.propi.rdfrules.index.{Index, IndexPart}
-import com.github.propi.rdfrules.prediction.{PredictedResult, PredictedTriples, PredictionSource}
+import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.prediction._
 import com.github.propi.rdfrules.rule.Rule.FinalRule
-import com.github.propi.rdfrules.rule.{Measure, ResolvedRule, Rule, RulePattern}
+import com.github.propi.rdfrules.rule.{DefaultConfidence, Measure, ResolvedRule, Rule, RulePattern}
 import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.JsonSelector.PimpedJsValue
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
@@ -88,10 +91,10 @@ object PipelineJsonReaders {
 
   implicit val splitReader: RootJsonReader[data.Split] = (json: JsValue) => {
     val selector = json.toSelector
-    val trainUri = selector("train")("uri").to[TripleItem.Uri].getOrElse(deserializationError(s"Training URI can not be parsed."))
-    val trainPart = selector("train")("part").to[Sampleable.Part].getOrElse(deserializationError(s"No training part defined."))
-    val testUri = selector("test")("uri").to[TripleItem.Uri].getOrElse(deserializationError(s"Test URI can not be parsed."))
-    val testPart = selector("test")("part").to[Sampleable.Part].getOrElse(deserializationError(s"No test part defined."))
+    val trainUri = selector("train")("uri").to[TripleItem.Uri]
+    val trainPart = selector("train")("part").to[Sampleable.Part]
+    val testUri = selector("test")("uri").to[TripleItem.Uri]
+    val testPart = selector("test")("part").to[Sampleable.Part]
     new data.Split(trainUri -> trainPart, testUri -> testPart)
   }
 
@@ -122,7 +125,7 @@ object PipelineJsonReaders {
 
   implicit def indexReader(implicit debugger: Debugger): RootJsonReader[data.Index] = (json: JsValue) => {
     val selector = json.toSelector
-    new data.Index(selector("train").toTypedIterable[TripleItem.Uri].toSet, selector("test").toTypedIterable[TripleItem.Uri].toSet)
+    new data.Index(selector.get("train").toTypedIterable[TripleItem.Uri].toSet, selector.get("test").toTypedIterable[TripleItem.Uri].toSet)
     //(fields("prefixedUris").convertTo[Boolean])
   }
 
@@ -175,7 +178,7 @@ object PipelineJsonReaders {
     new index.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
   }
 
-  implicit def infoxToDatasetReader(implicit debugger: Debugger): RootJsonReader[index.ToDataset] = (_: JsValue) => {
+  implicit def indexToDatasetReader(implicit debugger: Debugger): RootJsonReader[index.ToDataset] = (_: JsValue) => {
     new index.ToDataset
   }
 
@@ -183,9 +186,27 @@ object PipelineJsonReaders {
     new prediction.ToDataset
   }
 
+  implicit val predictionTasksToDatasetReader: RootJsonReader[predictionTasks.ToDataset] = (_: JsValue) => {
+    new predictionTasks.ToDataset
+  }
+
+  implicit val predictionTasksToPredictionsReader: RootJsonReader[predictionTasks.ToPredictions] = (_: JsValue) => {
+    new predictionTasks.ToPredictions
+  }
+
+  implicit def predictionToPredictionTasksReader(implicit debugger: Debugger): RootJsonReader[prediction.ToPredictionTasks] = (json: JsValue) => {
+    val selector = json.toSelector
+    implicit val defaultConfidence: DefaultConfidence = selector("confidence").to[DefaultConfidence]
+    new prediction.ToPredictionTasks(
+      selector("generator").to[PredictionTasksBuilder],
+      selector("limit").to[Int],
+      selector("topK").to[Int]
+    )
+  }
+
   implicit def mineReader(implicit debugger: Debugger): RootJsonReader[index.Mine] = (json: JsValue) => {
     val selector = json.toSelector
-    new index.Mine(json.convertTo[RulesMining], selector("ruleConsumers").toTypedIterable[RuleConsumer.Invoker[Ruleset]].reduceOption(_ ~> _).getOrElse(RuleConsumer(InMemoryRuleConsumer())))
+    new index.Mine(json.convertTo[RulesMining], selector.get("ruleConsumers").toOptTypedIterable[RuleConsumer.Invoker[Ruleset]].reduceOption(_ ~> _).getOrElse(RuleConsumer(InMemoryRuleConsumer())))
   }
 
   implicit def loadRulesetReader(implicit debugger: Debugger): RootJsonReader[ruleset.LoadRuleset] = (json: JsValue) => {
@@ -210,7 +231,13 @@ object PipelineJsonReaders {
 
   implicit def predictReader(implicit debugger: Debugger): RootJsonReader[ruleset.Predict] = (json: JsValue) => {
     val selector = json.toSelector
-    new ruleset.Predict(selector("predictedResults").toTypedIterable[PredictedResult].toSet, selector("injectiveMapping").to[Boolean].get)
+    new ruleset.Predict(
+      selector.get("testPath").toOpt[String],
+      selector.get("mergeTestAndTrainForPrediction").toOpt[Boolean].getOrElse(true),
+      selector.get("onlyTestCoveredPredictions").toOpt[Boolean].getOrElse(true),
+      selector.get("predictedResults").toTypedIterable[PredictedResult].toSet,
+      selector.get("injectiveMapping").toOpt[Boolean].getOrElse(true)
+    )
   }
 
   implicit def pruneReader(implicit debugger: Debugger): RootJsonReader[ruleset.Prune] = (json: JsValue) => {
@@ -229,8 +256,8 @@ object PipelineJsonReaders {
         case (measure, TripleItemMatcher.Number(x)) => Some(measure.convertTo[TypedKeyMap.Key[Measure]]) -> x
       }.toSeq,
       fields.get("patterns").map(_.convertTo[JsArray].elements.map(_.convertTo[RulePattern])).getOrElse(Nil),
-      selector("tripleMatchers").toIterable.flatMap { selector =>
-        selector.to[TripleMatcher].zip(selector("inverse").to[Boolean].orElse(Some(false)))
+      selector.get("tripleMatchers").toIterable.flatMap { selector =>
+        selector.toOpt[TripleMatcher].zip(selector.get("inverse").toOpt[Boolean].orElse(Some(false)))
       }.toSeq,
       fields.get("indices").map(_.convertTo[JsArray].elements.map(_.convertTo[Int]).toSet).getOrElse(Set.empty)
     )
@@ -240,10 +267,9 @@ object PipelineJsonReaders {
     val fields = json.asJsObject.fields
     val selector = json.toSelector
     new prediction.Filter(
-      selector("predictedResults").toTypedIterable[PredictedResult].toSet,
-      selector("completionStrategy").to[CompletionStrategy],
-      selector("tripleMatchers").toIterable.flatMap { selector =>
-        selector.to[TripleMatcher].zip(selector("inverse").to[Boolean].orElse(Some(false)))
+      selector.get("predictedResults").toTypedIterable[PredictedResult].toSet,
+      selector.get("tripleMatchers").toIterable.flatMap { selector =>
+        selector.toOpt[TripleMatcher].zip(selector.get("inverse").toOpt[Boolean].orElse(Some(false)))
       }.toSeq,
       fields.get("measures").iterator.flatMap(_.convertTo[JsArray].elements).map { json =>
         val fields = json.asJsObject.fields
@@ -253,13 +279,42 @@ object PipelineJsonReaders {
         case (measure, TripleItemMatcher.Number(x)) => Some(measure.convertTo[TypedKeyMap.Key[Measure]]) -> x
       }.toSeq,
       fields.get("patterns").map(_.convertTo[JsArray].elements.map(_.convertTo[RulePattern])).getOrElse(Nil),
+      selector.get("distinctPredictions").toOpt[Boolean].getOrElse(false),
+      selector.get("withoutTrainTriples").toOpt[Boolean].getOrElse(false),
+      selector.get("onlyCoveredTestPredictionTasks").toOpt[Boolean].getOrElse(false),
       fields.get("indices").map(_.convertTo[JsArray].elements.map(_.convertTo[Int]).toSet).getOrElse(Set.empty)
     )
   }
 
-  implicit val evaluateReader: RootJsonReader[prediction.Evaluate] = (json: JsValue) => {
-    val fields = json.asJsObject.fields
-    new prediction.Evaluate(fields("pca").convertTo[Boolean], fields("injectiveMapping").convertTo[Boolean])
+  implicit val filterPredictionTasksReader: RootJsonReader[predictionTasks.Filter] = (json: JsValue) => {
+    val selector = json.toSelector
+    new predictionTasks.Filter(
+      selector.get("nonEmptyTest").toOpt[Boolean].getOrElse(false),
+      selector.get("nonEmptyPredictions").toOpt[Boolean].getOrElse(false)
+    )
+  }
+
+  implicit val selectPredictionsReader: RootJsonReader[predictionTasks.Select] = (json: JsValue) => {
+    val selector = json.toSelector
+    new predictionTasks.Select(selector("strategy").to[SelectionStrategy])
+  }
+
+  implicit val withModesReader: RootJsonReader[predictionTasks.WithModes] = (_: JsValue) => {
+    new predictionTasks.WithModes()
+  }
+
+  implicit def groupPredictionsReader(implicit debugger: Debugger): RootJsonReader[prediction.Group] = (json: JsValue) => {
+    val selector = json.toSelector
+    new prediction.Group(
+      selector.get("scorer").toOpt[PredictedTriplesAggregator.ScoreFactory].getOrElse(PredictedTriplesAggregator.EmptyScoreFactory),
+      selector.get("consumer").toOpt[PredictedTriplesAggregator.RulesFactory].getOrElse(PredictedTriplesAggregator.EmptyRulesFactory),
+      selector.get("limit").toOpt[Int].getOrElse(-1)
+    )
+  }
+
+  implicit val evaluateReader: RootJsonReader[Evaluate] = (json: JsValue) => {
+    val selector = json.toSelector
+    new Evaluate(selector("ranking").to[RankingStrategy])
   }
 
   implicit val rulesetShrinkReader: RootJsonReader[ruleset.Shrink] = (json: JsValue) => {
@@ -268,6 +323,10 @@ object PipelineJsonReaders {
 
   implicit val predictionShrinkReader: RootJsonReader[prediction.Shrink] = (json: JsValue) => {
     new prediction.Shrink(json.convertTo[ShrinkSetup])
+  }
+
+  implicit val predictionTasksShrinkReader: RootJsonReader[predictionTasks.Shrink] = (json: JsValue) => {
+    new predictionTasks.Shrink(json.convertTo[ShrinkSetup])
   }
 
   implicit val rulesetSortReader: RootJsonReader[ruleset.Sort] = (json: JsValue) => {
@@ -313,9 +372,14 @@ object PipelineJsonReaders {
     new prediction.Cache(fields("path").convertTo[String], fields("inMemory").convertTo[Boolean], fields("revalidate").convertTo[Boolean])
   }
 
+  implicit def cachePredictionTasksReader(implicit debugger: Debugger): RootJsonReader[predictionTasks.Cache] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new predictionTasks.Cache(fields("revalidate").convertTo[Boolean])
+  }
+
   implicit val instantiateReader: RootJsonReader[ruleset.Instantiate] = (json: JsValue) => {
     val selector = json.toSelector
-    new ruleset.Instantiate(selector("predictedResults").toTypedIterable[PredictedResult].toSet, selector("injectiveMapping").to[Boolean].get)
+    new ruleset.Instantiate(selector.get("predictedResults").toTypedIterable[PredictedResult].toSet, selector("injectiveMapping").to[Boolean])
   }
 
   implicit val graphAwareRulesReader: RootJsonReader[ruleset.GraphAwareRules] = (_: JsValue) => {
@@ -332,24 +396,31 @@ object PipelineJsonReaders {
 
   implicit val propertiesCardinalitiesReader: RootJsonReader[index.PropertiesCardinalities] = (json: JsValue) => {
     val selector = json.toSelector
-    new index.PropertiesCardinalities(selector("filter").toTypedIterable[TripleItem.Uri].toSet)
+    new index.PropertiesCardinalities(selector.get("filter").toTypedIterable[TripleItem.Uri].toSet)
   }
 
   implicit val getRulesReader: RootJsonReader[ruleset.GetRules] = (_: JsValue) => {
-    new ruleset.GetRules()
+    new ruleset.GetRules
   }
 
-  implicit val getPredictionReader: RootJsonReader[prediction.GetPrediction] = (json: JsValue) => {
-    val selector = json.toSelector
-    new GetPrediction(selector("group").to[Boolean].getOrElse(false))
+  implicit val getPredictionReader: RootJsonReader[prediction.GetPrediction] = (_: JsValue) => {
+    new GetPrediction
+  }
+
+  implicit val getPredictionTasksReader: RootJsonReader[predictionTasks.GetPredictionTasks] = (_: JsValue) => {
+    new predictionTasks.GetPredictionTasks
   }
 
   implicit val rulesetSizeReader: RootJsonReader[ruleset.Size] = (_: JsValue) => {
-    new ruleset.Size()
+    new ruleset.Size
   }
 
   implicit val predictionSizeReader: RootJsonReader[prediction.Size] = (_: JsValue) => {
-    new prediction.Size()
+    new prediction.Size
+  }
+
+  implicit val predictionTasksSizeReader: RootJsonReader[predictionTasks.Size] = (_: JsValue) => {
+    new predictionTasks.Size
   }
 
   implicit val pipelineReader: RootJsonReader[Debugger => Pipeline[Source[JsValue, NotUsed]]] = (json: JsValue) => { implicit debugger =>
@@ -402,16 +473,38 @@ object PipelineJsonReaders {
         fields("name").convertTo[String] match {
           case prediction.Cache.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Cache], tail)
           case prediction.Filter.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Filter], tail)
+          case prediction.Group.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Group], tail)
           case prediction.GetPrediction.name => pipeline ~> params.convertTo[prediction.GetPrediction] ~> ToJsonTask.FromPredictedTriple
-          case prediction.Evaluate.name => pipeline ~> params.convertTo[prediction.Evaluate] ~> ToJsonTask.FromEvaluationResult
           case prediction.ToDataset.name => addTaskFromDataset(pipeline ~> params.convertTo[prediction.ToDataset], tail)
           case prediction.Size.name => pipeline ~> params.convertTo[prediction.Size] ~> ToJsonTask.FromInt
           case prediction.ExportPrediction.name => pipeline ~> params.convertTo[prediction.ExportPrediction] ~> ToJsonTask.FromUnit
           case prediction.Shrink.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Shrink], tail)
           case prediction.Sort.name => addTaskFromPrediction(pipeline ~> params.convertTo[prediction.Sort], tail)
+          case prediction.ToPredictionTasks.name => addTaskFromPredictionTasks(pipeline ~> params.convertTo[prediction.ToPredictionTasks], tail)
           case x => deserializationError(s"Invalid task '$x' can not be bound to Prediction")
         }
       case _ => pipeline ~> new ToJsonTask.From[PredictedTriples]
+    }
+
+    @scala.annotation.tailrec
+    def addTaskFromPredictionTasks(pipeline: Pipeline[PredictionTasksResults], tail: Seq[JsValue]): Pipeline[Source[JsValue, NotUsed]] = tail match {
+      case Seq(head, tail@_*) =>
+        val fields = head.asJsObject.fields
+        val params = fields("parameters")
+        fields("name").convertTo[String] match {
+          case predictionTasks.Cache.name => addTaskFromPredictionTasks(pipeline ~> params.convertTo[predictionTasks.Cache], tail)
+          case predictionTasks.Filter.name => addTaskFromPredictionTasks(pipeline ~> params.convertTo[predictionTasks.Filter], tail)
+          case predictionTasks.Select.name => addTaskFromPredictionTasks(pipeline ~> params.convertTo[predictionTasks.Select], tail)
+          case predictionTasks.WithModes.name => addTaskFromPredictionTasks(pipeline ~> params.convertTo[predictionTasks.WithModes], tail)
+          case predictionTasks.Evaluate.name => pipeline ~> params.convertTo[predictionTasks.Evaluate] ~> ToJsonTask.FromEvaluationResult
+          case predictionTasks.GetPredictionTasks.name => pipeline ~> params.convertTo[predictionTasks.GetPredictionTasks] ~> ToJsonTask.FromPredictionTaskResult
+          case predictionTasks.ToDataset.name => addTaskFromDataset(pipeline ~> params.convertTo[predictionTasks.ToDataset], tail)
+          case predictionTasks.ToPredictions.name => addTaskFromPrediction(pipeline ~> params.convertTo[predictionTasks.ToPredictions], tail)
+          case predictionTasks.Size.name => pipeline ~> params.convertTo[predictionTasks.Size] ~> ToJsonTask.FromInt
+          case predictionTasks.Shrink.name => addTaskFromPredictionTasks(pipeline ~> params.convertTo[predictionTasks.Shrink], tail)
+          case x => deserializationError(s"Invalid task '$x' can not be bound to Prediction")
+        }
+      case _ => pipeline ~> new ToJsonTask.From[PredictionTasksResults]
     }
 
     @scala.annotation.tailrec

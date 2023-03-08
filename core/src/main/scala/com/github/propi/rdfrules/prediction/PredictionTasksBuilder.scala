@@ -25,9 +25,9 @@ object PredictionTasksBuilder {
 
     case class FromPatterns(predictionTaskPatterns: Set[PredictionTaskPattern]) extends FromPredictedTriple {
       def build(predictedTriple: PredictedTriple)(implicit index: TrainTestIndex): ForEach[PredictionTask] = ForEach(
-        PredictionTaskPattern(predictedTriple.triple.p, TriplePosition.Subject),
-        PredictionTaskPattern(predictedTriple.triple.p, TriplePosition.Object)
-      ).filter(predictionTaskPatterns).flatMap(x => FromTargetVariablePosition(x.targetVariable).build(predictedTriple))
+        PredictionTaskPattern.Mapped(predictedTriple.triple.p, TriplePosition.Subject),
+        PredictionTaskPattern.Mapped(predictedTriple.triple.p, TriplePosition.Object)
+      ).filter(predictionTaskPatterns.map(_.mapped(index.tripleItemMap))).flatMap(x => FromTargetVariablePosition(x.targetVariable).build(predictedTriple))
     }
 
     case object FromPredicateCardinalities extends FromPredictedTriple {
@@ -51,11 +51,14 @@ object PredictionTasksBuilder {
     }
 
     case class FromPatterns(predictionTaskPatterns: Set[PredictionTaskPattern], injectiveMapping: Boolean) extends FromData {
-      def build(implicit index: TrainTestIndex): ForEach[PredictionTask] = FromAll(injectiveMapping).build.filter(x => predictionTaskPatterns(x.predictionTaskPattern))
+      def build(implicit index: TrainTestIndex): ForEach[PredictionTask] = {
+        val mapped = predictionTaskPatterns.map(_.mapped(index.tripleItemMap))
+        FromAll(injectiveMapping).build.filter(x => mapped(x.predictionTaskPattern))
+      }
     }
 
-    case class FromCustomSet(predictionTasks: Set[PredictionTask], injectiveMapping: Boolean) extends FromData {
-      def build(implicit index: TrainTestIndex): ForEach[PredictionTask] = ForEach.from(predictionTasks).filter(!_.index(index.test.tripleMap).isEmpty(injectiveMapping))
+    case class FromCustomSet(predictionTasks: Set[PredictionTask.Resolved], injectiveMapping: Boolean) extends FromData {
+      def build(implicit index: TrainTestIndex): ForEach[PredictionTask] = ForEach.from(predictionTasks).map(_.mapped(index.tripleItemMap)).filter(!_.index(index.test.tripleMap).isEmpty(injectiveMapping))
     }
 
     case object FromPredicateCardinalities extends FromData {

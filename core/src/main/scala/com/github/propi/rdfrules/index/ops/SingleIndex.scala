@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.index.ops
 
 import com.github.propi.rdfrules.index.Index.PartType
-import com.github.propi.rdfrules.index.{Index, IndexPart, TripleItemIndex}
+import com.github.propi.rdfrules.index.{IndexPart, TripleItemIndex}
 import com.github.propi.rdfrules.utils.Debugger
 
 class SingleIndex private[index](val main: IndexPart) extends TrainTestIndex with Cacheable {
@@ -19,5 +19,5 @@ class SingleIndex private[index](val main: IndexPart) extends TrainTestIndex wit
 
   def tripleItemMap: TripleItemIndex = main.tripleItemMap
 
-  def withDebugger(implicit debugger: Debugger): Index = new SingleIndex(main.withDebugger)
+  def withDebugger(implicit debugger: Debugger): TrainTestIndex = new SingleIndex(main.withDebugger)
 }

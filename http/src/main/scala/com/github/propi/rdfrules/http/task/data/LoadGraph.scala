@@ -22,7 +22,7 @@ class LoadGraph(graphName: Option[TripleItem.Uri], path: Option[String], url: Op
         case None => throw ValidationException("NoRdfFormat", "For URL you must specify an RDF format extension, e.g. ?extension=.nt")
       }
     }
-    graphName.map(name => Graph(name, dataset.triples)).getOrElse(Graph(dataset.triples)).toDataset.withDebugger
+    graphName.map(name => Graph(name, dataset.triples)).getOrElse(Graph(dataset.triples)).toDataset.withDebugger()
   }
 }
 

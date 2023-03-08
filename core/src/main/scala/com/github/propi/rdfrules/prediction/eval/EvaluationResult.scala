@@ -1,5 +1,8 @@
 package com.github.propi.rdfrules.prediction.eval
 
+import spray.json._
+import DefaultJsonProtocol._
+
 sealed trait EvaluationResult
 
 object EvaluationResult {
@@ -31,6 +34,29 @@ object EvaluationResult {
     }
 
     override def toString: String = s"accuracy: $accuracy, precision: $precision, recall: $recall, f-measure: $fscore (TP: $tp, FP: $fp, FN: $fn, TN: $tn)"
+  }
+
+  implicit val evaluationResultWriter: JsonWriter[EvaluationResult] = {
+    case Stats(n) => JsObject("type" -> "stats".toJson, "n" -> n.toJson)
+    case x: Ranking => JsObject(
+      "type" -> "ranking".toJson,
+      "hits" -> x.hitsK.map(x => JsObject("k" -> x.k.toJson, "v" -> x.value.toJson)).toJson,
+      "mr" -> x.mr.toJson,
+      "mrr" -> x.mrr.toJson,
+      "total" -> x.total.toJson,
+      "totalCorrect" -> x.totalCorrect.toJson
+    )
+    case x: Completeness => JsObject(
+      "type" -> "completeness".toJson,
+      "tp" -> x.tp.toJson,
+      "fp" -> x.fp.toJson,
+      "fn" -> x.fn.toJson,
+      "tn" -> x.tn.toJson,
+      "precision" -> x.precision.toJson,
+      "recall" -> x.recall.toJson,
+      "accuracy" -> x.accuracy.toJson,
+      "fscore" -> x.fscore.toJson,
+    )
   }
 
 }

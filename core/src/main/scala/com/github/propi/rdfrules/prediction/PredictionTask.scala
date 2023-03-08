@@ -1,13 +1,13 @@
 package com.github.propi.rdfrules.prediction
 
-import com.github.propi.rdfrules.data.{TripleItem, TriplePosition}
 import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
+import com.github.propi.rdfrules.data.{TripleItem, TriplePosition}
 import com.github.propi.rdfrules.index.IndexCollections.ReflexivableHashSet
 import com.github.propi.rdfrules.index.IndexItem.{IntTriple, Triple}
 import com.github.propi.rdfrules.index.{IndexCollections, TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.{Atom, TripleItemPosition}
-import com.github.propi.rdfrules.utils.serialization.{Deserializer, Serializer}
 import com.github.propi.rdfrules.serialization.TripleItemSerialization._
+import com.github.propi.rdfrules.utils.serialization.{Deserializer, Serializer}
 
 import java.io.ByteArrayInputStream
 
@@ -27,7 +27,7 @@ case class PredictionTask(p: Int, c: TripleItemPosition[Int]) {
     case TripleItemPosition.Object(o) =>  Atom(Atom.Variable(0), p, Atom.Constant(o))
   }
 
-  def predictionTaskPattern: PredictionTaskPattern = PredictionTaskPattern(p, targetVariable)
+  def predictionTaskPattern: PredictionTaskPattern.Mapped = PredictionTaskPattern.Mapped(p, targetVariable)
 
   def index(implicit tripleIndex: TripleIndex[Int]): ReflexivableHashSet[Int] = c match {
     case TripleItemPosition.Subject(s) => new ReflexivableHashSet[Int](s, tripleIndex.predicates.get(p).flatMap(_.subjects.get(s)).getOrElse(IndexCollections.emptySet[Int]))
@@ -41,6 +41,8 @@ object PredictionTask {
       case TripleItemPosition.Subject(s) => s"($s $p ?)"
       case TripleItemPosition.Object(o) => s"(? $p $o)"
     }
+
+    def mapped(implicit tripleItemIndex: TripleItemIndex): PredictionTask = PredictionTask(tripleItemIndex.getIndex(p), c.map(tripleItemIndex.getIndex))
   }
 
   object Resolved {

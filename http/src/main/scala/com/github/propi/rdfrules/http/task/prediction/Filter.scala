@@ -1,16 +1,18 @@
 package com.github.propi.rdfrules.http.task.prediction
 
 import com.github.propi.rdfrules.data.TripleItem
-import com.github.propi.rdfrules.http.task.{CompletionStrategy, Task, TaskDefinition, TripleItemMatcher, TripleMatcher}
+import com.github.propi.rdfrules.http.task.{Task, TaskDefinition, TripleItemMatcher, TripleMatcher}
 import com.github.propi.rdfrules.prediction.{PredictedResult, PredictedTriples}
 import com.github.propi.rdfrules.rule.{Measure, RulePattern}
 import com.github.propi.rdfrules.utils.TypedKeyMap
 
 class Filter(predictedResults: Set[PredictedResult],
-             completionStrategy: Option[CompletionStrategy],
              tripleMatchers: Seq[(TripleMatcher, Boolean)],
              measures: Seq[(Option[TypedKeyMap.Key[Measure]], TripleItemMatcher.Number)],
              patterns: Seq[RulePattern],
+             distinctPredictions: Boolean,
+             withoutTrainTriples: Boolean,
+             onlyCoveredTestPredictionTasks: Boolean,
              indices: Set[Int]) extends Task[PredictedTriples, PredictedTriples] {
   val companion: TaskDefinition = Filter
 
@@ -39,13 +41,9 @@ class Filter(predictedResults: Set[PredictedResult],
       case Seq(head, tail@_*) => predictedTriples.filter(head, tail: _*)
       case _ => predictedTriples
     },
-    predictedTriples => completionStrategy match {
-      case Some(CompletionStrategy.DistinctPredictions) => predictedTriples.distinctPredictions
-      case Some(CompletionStrategy.FunctionalPredictions) => predictedTriples.onlyFunctionalPredictions
-      case Some(CompletionStrategy.PcaPredictions) => predictedTriples.onlyPcaPredictions
-      case Some(CompletionStrategy.QpcaPredictions) => predictedTriples.onlyQpcaPredictions
-      case None => predictedTriples
-    }
+    predictedTriples => if (withoutTrainTriples) predictedTriples.withoutTrainTriples else predictedTriples,
+    predictedTriples => if (onlyCoveredTestPredictionTasks) predictedTriples.onlyCoveredTestPredictionTasks else predictedTriples,
+    predictedTriples => if (distinctPredictions) predictedTriples.distinctPredictions else predictedTriples,
   ))(input)
 }
 

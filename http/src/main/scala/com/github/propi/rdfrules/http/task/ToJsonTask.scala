@@ -9,7 +9,8 @@ import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.formats.CommonDataJsonWriters._
 import com.github.propi.rdfrules.http.util.TraversablePublisher._
 import com.github.propi.rdfrules.index.PropertyCardinalities
-import com.github.propi.rdfrules.prediction.ResolvedPredictedTriple
+import com.github.propi.rdfrules.prediction.{PredictionTaskResult, ResolvedPredictedTriple}
+import com.github.propi.rdfrules.prediction.eval.EvaluationResult
 import com.github.propi.rdfrules.rule.{ResolvedInstantiatedRule, ResolvedRule}
 import com.github.propi.rdfrules.utils.ForEach
 import spray.json.DefaultJsonProtocol._
@@ -37,8 +38,8 @@ object ToJsonTask extends TaskDefinition {
     def execute(input: Int): Source[JsValue, NotUsed] = Source.single(JsNumber(input))
   }
 
-  object FromEvaluationResult extends ToJsonTask[CompletenessEvaluationResult] {
-    def execute(input: CompletenessEvaluationResult): Source[JsValue, NotUsed] = Source.single(input.toJson)
+  object FromEvaluationResult extends ToJsonTask[Seq[EvaluationResult]] {
+    def execute(input: Seq[EvaluationResult]): Source[JsValue, NotUsed] = Source.fromIterator(() => input.iterator.map(_.toJson))
   }
 
   object FromQuads extends ToJsonTask[QuadTraversableView] {
@@ -67,6 +68,10 @@ object ToJsonTask extends TaskDefinition {
 
   object FromPredictedTriple extends ToJsonTask[Seq[ResolvedPredictedTriple]] {
     def execute(input: Seq[ResolvedPredictedTriple]): Source[JsValue, NotUsed] = Source.fromIterator(() => input.iterator.map(_.toJson))
+  }
+
+  object FromPredictionTaskResult extends ToJsonTask[Seq[PredictionTaskResult.Resolved]] {
+    def execute(input: Seq[PredictionTaskResult.Resolved]): Source[JsValue, NotUsed] = Source.fromIterator(() => input.iterator.map(_.toJson))
   }
 
   object FromInstantiatedRules extends ToJsonTask[Seq[ResolvedInstantiatedRule]] {

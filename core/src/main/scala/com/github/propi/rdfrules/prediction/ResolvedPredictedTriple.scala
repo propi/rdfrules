@@ -103,11 +103,11 @@ object ResolvedPredictedTriple {
     def read(json: JsValue): ResolvedPredictedTriple = {
       val selector = json.toSelector
       val res = for {
-        triple <- selector("triple").to[Triple]
-        rules <- selector("rules").to[Vector[ResolvedRule]]
-        predictedResult <- selector("predictedResult").to[PredictedResult]
+        triple <- selector.get("triple").toOpt[Triple]
+        rules <- selector.get("rules").toOpt[Vector[ResolvedRule]]
+        predictedResult <- selector.get("predictedResult").toOpt[PredictedResult]
       } yield {
-        (rules, selector("score").to[Double]) match {
+        (rules, selector.get("score").toOpt[Double]) match {
           case (rules, Some(score)) => ResolvedPredictedTriple(triple, predictedResult, rules, score)
           case (Seq(rule), None) => ResolvedPredictedTriple(triple, predictedResult, rule)
           case _ => ResolvedPredictedTriple(triple, predictedResult, rules, 0.0)

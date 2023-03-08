@@ -12,7 +12,7 @@ class LoadPredictionWithoutIndex(path: String, format: PredictionSource)(implici
   def execute(input: Task.NoInput.type): PredictedTriples = PredictedTriples(Workspace.path(path))(Compression.fromPath(path) match {
     case Some(compression) => format.compressedBy(compression)
     case None => format
-  }).withDebugger
+  }).withDebugger()
 
 }
 

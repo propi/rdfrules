@@ -1,22 +1,26 @@
 package com.github.propi.rdfrules.http.formats
 
 import com.github.propi.rdfrules.algorithm.amie.Amie
-import com.github.propi.rdfrules.algorithm.consumer.{InMemoryRuleConsumer, OnDiskRuleConsumer, TopKRuleConsumer}
 import com.github.propi.rdfrules.algorithm.clustering.SimilarityCounting.{Comb, WeightedSimilarityCounting}
 import com.github.propi.rdfrules.algorithm.clustering.{DbScan, SimilarityCounting}
+import com.github.propi.rdfrules.algorithm.consumer.{InMemoryRuleConsumer, OnDiskRuleConsumer, TopKRuleConsumer}
 import com.github.propi.rdfrules.algorithm.{Clustering, RuleConsumer, RulesMining}
+import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
 import com.github.propi.rdfrules.data.ops.Sampleable
 import com.github.propi.rdfrules.data.{Compression, DiscretizationTask, Prefix, RdfSource, TripleItem}
 import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.task._
+import com.github.propi.rdfrules.http.task.predictionTasks.Evaluate.RankingStrategy
+import com.github.propi.rdfrules.http.task.predictionTasks.Select.SelectionStrategy
 import com.github.propi.rdfrules.http.task.ruleset.ComputeConfidence.ConfidenceType
 import com.github.propi.rdfrules.http.task.ruleset.Prune.PruningStrategy
 import com.github.propi.rdfrules.http.util.Conf
 import com.github.propi.rdfrules.http.{Main, Workspace}
-import com.github.propi.rdfrules.prediction.PredictionSource
+import com.github.propi.rdfrules.prediction.aggregator.{MaximumScorer, NoisyOrScorer, NonRedundantTopRules, TopRules}
+import com.github.propi.rdfrules.prediction._
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
-import com.github.propi.rdfrules.rule.{AtomPattern, Measure, Rule, RuleConstraint, RulePattern, Threshold}
+import com.github.propi.rdfrules.rule.{AtomPattern, DefaultConfidence, Measure, Rule, RuleConstraint, RulePattern, Threshold}
 import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.JsonSelector.PimpedJsValue
 import com.github.propi.rdfrules.utils.{Debugger, TypedKeyMap}
@@ -350,33 +354,101 @@ object CommonDataJsonReaders {
   implicit val pruningStrategyReader: RootJsonReader[PruningStrategy] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     val selector = json.toSelector
-    selector("strategy").to[String].map {
+    selector("strategy").to[String] match {
       case "DataCoveragePruning" => json.convertTo[PruningStrategy.DataCoveragePruning]
       case "Maximal" => PruningStrategy.Maximal
       case "Closed" => PruningStrategy.Closed(fields("measure").convertTo[TypedKeyMap.Key[Measure]])
       case "OnlyBetterDescendant" => PruningStrategy.OnlyBetterDescendant(fields("measure").convertTo[TypedKeyMap.Key[Measure]])
       case "WithoutQuasiBinding" => PruningStrategy.WithoutQuasiBinding(fields("injectiveMapping").convertTo[Boolean])
       case x => deserializationError(s"Invalid name of pruning strategy: $x")
-    }.get
+    }
   }
 
   implicit val confidenceTypeReader: RootJsonReader[ConfidenceType] = (json: JsValue) => {
     val fields = json.asJsObject.fields
     val selector = json.toSelector
-    selector("name").to[String].map {
+    selector("name").to[String] match {
       case "StandardConfidence" => ConfidenceType.StandardConfidence(fields("min").convertTo[Double], fields.get("topk").map(_.convertTo[Int]).getOrElse(0))
       case "PcaConfidence" => ConfidenceType.PcaConfidence(fields("min").convertTo[Double], fields.get("topk").map(_.convertTo[Int]).getOrElse(0))
       case "QpcaConfidence" => ConfidenceType.QpcaConfidence(fields("min").convertTo[Double], fields.get("topk").map(_.convertTo[Int]).getOrElse(0))
-      case "Lift" => ConfidenceType.Lift(fields("min").convertTo[Double])
+      case "Lift" => ConfidenceType.Lift
       case x => deserializationError(s"Invalid name of confidence type: $x")
-    }.get
+    }
   }
 
   implicit val sampleablePartReader: RootJsonReader[Sampleable.Part] = (json: JsValue) => {
     val selector = json.toSelector
-    selector("ratio").to[Float].map(Sampleable.RelativePart)
-      .orElse(selector("max").to[Int].map(Sampleable.AbsolutePart))
+    selector.get("ratio").toOpt[Float].map(Sampleable.RelativePart)
+      .orElse(selector.get("max").toOpt[Int].map(Sampleable.AbsolutePart))
       .getOrElse(deserializationError(s"Invalid sampleable part"))
+  }
+
+  implicit val defaultConfidenceReader: RootJsonReader[DefaultConfidence] = (json: JsValue) => {
+    json.convertTo[String] match {
+      case "cwa" => DefaultConfidence(Measure.CwaConfidence)
+      case "pca" => DefaultConfidence(Measure.PcaConfidence)
+      case "qpca" => DefaultConfidence(Measure.QpcaConfidence)
+      case _ => DefaultConfidence()
+    }
+  }
+
+  implicit val scoreFactoryReader: RootJsonReader[PredictedTriplesAggregator.ScoreFactory] = (json: JsValue) => {
+    val selector = json.toSelector
+    implicit val defaultConfidence: DefaultConfidence = selector("confidence").to[DefaultConfidence]
+    selector("type").to[String] match {
+      case "maximum" => MaximumScorer()
+      case "noisyOr" => NoisyOrScorer(selector.get("scoreAfterAggregation").toOpt[Boolean].getOrElse(true))
+      case _ => deserializationError(s"Invalid predictions scorer.")
+    }
+  }
+
+  implicit val rulesFactoryReader: RootJsonReader[PredictedTriplesAggregator.RulesFactory] = (json: JsValue) => {
+    val selector = json.toSelector
+    implicit val defaultConfidence: DefaultConfidence = selector("confidence").to[DefaultConfidence]
+    selector("type").to[String] match {
+      case "topK" => TopRules(selector("topK").to[Int])
+      case "nonRedundantTopK" => NonRedundantTopRules(selector("topK").to[Int])
+      case _ => deserializationError(s"Invalid predictions aggregation consumer.")
+    }
+  }
+
+  implicit val predictionTaskPatternReader: RootJsonReader[PredictionTaskPattern] = (json: JsValue) => {
+    val selector = json.toSelector
+    PredictionTaskPattern(
+      selector("p").to[TripleItem.Uri],
+      selector("targetVariable").to[ConceptPosition]
+    )
+  }
+
+  implicit val predictionTasksBuilderReader: RootJsonReader[PredictionTasksBuilder] = (json: JsValue) => {
+    val selector = json.toSelector
+    implicit val defaultConfidence: DefaultConfidence = selector("confidence").to[DefaultConfidence]
+    selector("type").to[String] match {
+      case "testAll" => PredictionTasksBuilder.FromTestSet.FromAll(true)
+      case "testCardinalities" => PredictionTasksBuilder.FromTestSet.FromPredicateCardinalities
+      case "testPatterns" => PredictionTasksBuilder.FromTestSet.FromPatterns(selector.get("patterns").toTypedIterable[PredictionTaskPattern].toSet, true)
+      case "testCustom" => PredictionTasksBuilder.FromTestSet.FromCustomSet(selector.get("tasks").toTypedIterable[PredictionTask.Resolved].toSet, true)
+      case "predictionCardinalities" => PredictionTasksBuilder.FromPredictedTriple.FromPredicateCardinalities
+      case "predictionPatterns" => PredictionTasksBuilder.FromPredictedTriple.FromPatterns(selector.get("patterns").toTypedIterable[PredictionTaskPattern].toSet)
+      case "predictionPosition" => PredictionTasksBuilder.FromPredictedTriple.FromTargetVariablePosition(selector("targetVariable").to[ConceptPosition])
+      case _ => deserializationError(s"Invalid prediction tasks generator.")
+    }
+  }
+
+  implicit val selectionStrategyReader: RootJsonReader[SelectionStrategy] = (json: JsValue) => {
+    val selector = json.toSelector
+    selector("type").to[String] match {
+      case "pca" => SelectionStrategy.Pca
+      case "qpca" => SelectionStrategy.Qpca
+      case "topK" => SelectionStrategy.TopK(selector("k").to[Int])
+    }
+  }
+
+  implicit val rankingStrategyReader: RootJsonReader[RankingStrategy] = (json: JsValue) => {
+    json.convertTo[String] match {
+      case "test" => RankingStrategy.FromTest
+      case "prediction" => RankingStrategy.FromPrediction
+    }
   }
 
 }

@@ -14,16 +14,6 @@ import spray.json._
   */
 object CommonDataJsonWriters {
 
-  implicit val evaluationResultWriter: RootJsonWriter[CompletenessEvaluationResult] = (obj: CompletenessEvaluationResult) => JsObject(
-    "tp" -> obj.tp.toJson,
-    "fp" -> obj.fp.toJson,
-    "fn" -> obj.fn.toJson,
-    "accuracy" -> obj.accuracy.toJson,
-    "precision" -> obj.precision.toJson,
-    "recall" -> obj.recall.toJson,
-    "fscore" -> obj.fscore.toJson
-  )
-
   implicit val quadWriter: RootJsonWriter[Quad] = (obj: Quad) => JsObject(
     "subject" -> obj.triple.subject.toJson,
     "predicate" -> obj.triple.predicate.toJson,

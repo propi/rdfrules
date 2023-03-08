@@ -49,6 +49,8 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val parall
 
   protected def cachedTransform(col: ForEach[PredictedTriple]): PredictedTriples = transform(col)
 
+  def withIndex(index: TrainTestIndex): PredictedTriples = new PredictedTriples(triples, parallelism)(index)
+
   def singleTriples: ForEach[PredictedTriple.Single] = coll.flatMap(_.toSinglePredictedTriples)
 
   def filter(pattern: RulePattern, patterns: RulePattern*): PredictedTriples = transform((f: PredictedTriple => Unit) => {
@@ -113,12 +115,10 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val parall
 
   def withoutTrainTriples: PredictedTriples = filter(x => !index.train.tripleMap.contains(x.triple))
 
-  def withCoveredTestPredictionTasks: PredictedTriples = {
+  def onlyCoveredTestPredictionTasks: PredictedTriples = {
     val testIndex = index.test.tripleMap
     filter(x => testIndex.predicates.get(x.triple.p).exists(pi => pi.subjects.contains(x.triple.s) || pi.objects.contains(x.triple.o)))
   }
-
-  def onlyPcaPredictions: PredictedTriples = filter(_.predictedResult == PredictedResult.PcaPositive)
 
   def toGraph: Graph = Graph(distinctPredictions.resolvedTriples.map(_.triple))
 

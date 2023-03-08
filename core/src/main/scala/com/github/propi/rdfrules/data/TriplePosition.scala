@@ -17,5 +17,13 @@ object TriplePosition {
 
   case object Object extends ConceptPosition
 
-  implicit val conceptPositionWriter: JsonWriter[ConceptPosition] = (obj: ConceptPosition) => obj.productPrefix.toJson
+  implicit val conceptPositionFormat: RootJsonFormat[ConceptPosition] = new RootJsonFormat[ConceptPosition] {
+    def read(json: JsValue): ConceptPosition = json.convertTo[String].toLowerCase match {
+      case "subject" => Subject
+      case "object" => Object
+      case _ => deserializationError("Invalid concept position.")
+    }
+
+    def write(obj: ConceptPosition): JsValue = obj.productPrefix.toJson
+  }
 }

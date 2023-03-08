@@ -13,7 +13,7 @@ class PredictionTask[T](val name: String, test: Dataset, scorer: PredictedTriple
 
   protected def taskBody(input: Ruleset): PredictionTasksResults = {
     val res = input
-      .predict(Some(test)).withoutTrainTriples.withCoveredTestPredictionTasks
+      .predict(Some(test)).withoutTrainTriples.onlyCoveredTestPredictionTasks
       .grouped(scorer, rulesAggregator)
       .withDebugger("Predicted groupes", true)
       .predictionTasks(predictionTasksBuilder = PredictionTasksBuilder.FromTestSet.FromPredicateCardinalities, topK = 100)

@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.http.task
 
 import com.github.propi.rdfrules.data.Dataset
-import com.github.propi.rdfrules.index.IndexPart
+import com.github.propi.rdfrules.index.Index
 
 import scala.reflect.runtime.universe._
 
@@ -10,7 +10,7 @@ import scala.reflect.runtime.universe._
   */
 class Pipeline[O] private(head: Task[Task.NoInput.type, O],
                           datasets: List[Task.NoInputDatasetTask],
-                          lastIndexTask: Option[Task[Task.NoInput.type, IndexPart]]) {
+                          lastIndexTask: Option[Task[Task.NoInput.type, Index]]) {
 
   def |~>[T](task: Task.NoInputDatasetTask): Pipeline[Dataset] = task match {
     case task: Task.MergeDatasets => head match {
@@ -24,7 +24,7 @@ class Pipeline[O] private(head: Task[Task.NoInput.type, O],
   }
 
   private def pipeWith[T](head: Task[Task.NoInput.type, T], datasets: List[Task.NoInputDatasetTask])(implicit tag: TypeTag[T]): Pipeline[T] = head match {
-    case value if typeOf[Task[Task.NoInput.type, T]] =:= typeOf[Task[Task.NoInput.type, IndexPart]] => new Pipeline[T](head, datasets, Some(value.asInstanceOf[Task[Task.NoInput.type, IndexPart]]))
+    case value if typeOf[Task[Task.NoInput.type, T]] =:= typeOf[Task[Task.NoInput.type, Index]] => new Pipeline[T](head, datasets, Some(value.asInstanceOf[Task[Task.NoInput.type, Index]]))
     case _ => new Pipeline[T](head, datasets, lastIndexTask)
   }
 

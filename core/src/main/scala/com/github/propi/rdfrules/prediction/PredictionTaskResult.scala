@@ -119,6 +119,15 @@ class PredictionTaskResult private(val predictionTask: PredictionTask, private v
 
 object PredictionTaskResult {
 
+  case class Resolved(predictionTask: PredictionTask.Resolved, candidates: IndexedSeq[ResolvedPredictedTriple])
+
+  object Resolved {
+    def apply(predictionTaskResult: PredictionTaskResult)(implicit mapper: TripleItemIndex): Resolved = Resolved(
+      PredictionTask.Resolved(predictionTaskResult.predictionTask),
+      predictionTaskResult.candidates.iterator.map(ResolvedPredictedTriple(_)).toVector
+    )
+  }
+
   def empty(predictionTask: PredictionTask): PredictionTaskResult = new PredictionTaskResult(predictionTask, Nil)
 
   def factory(topK: Int = -1)(implicit defaultConfidence: DefaultConfidence): collection.Factory[(PredictionTask, PredictedTriple), PredictionTaskResult] = new collection.Factory[(PredictionTask, PredictedTriple), PredictionTaskResult] {

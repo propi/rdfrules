@@ -4,36 +4,36 @@ import com.github.propi.rdfrules.rule.Rule.FinalRule
 
 import scala.collection.mutable
 
-class PredictedTriplesAggregator private(postRulesScorer: Boolean,
-                                         scoreBuilder: collection.mutable.Builder[FinalRule, Double],
-                                         rulesBuilder: collection.mutable.Builder[FinalRule, Iterable[FinalRule]])
+class PredictedTriplesAggregator private(scoreAfterAggregation: Boolean,
+                                         scorer: collection.mutable.Builder[FinalRule, Double],
+                                         consumer: collection.mutable.Builder[FinalRule, Iterable[FinalRule]])
   extends collection.mutable.Builder[PredictedTriple, PredictedTriple.Grouped] {
 
   private var first = Option.empty[PredictedTriple.Single]
 
   def clear(): Unit = {
-    scoreBuilder.clear()
-    rulesBuilder.clear()
+    scorer.clear()
+    consumer.clear()
     first = None
   }
 
   def result(): PredictedTriple.Grouped = {
     val pt = first.get
     first = None
-    val rules = rulesBuilder.result()
-    if (postRulesScorer) rules.foreach(scoreBuilder.addOne)
-    PredictedTriple(pt.triple, pt.predictedResult, rules, scoreBuilder.result())
+    val rules = consumer.result()
+    if (scoreAfterAggregation) rules.foreach(scorer.addOne)
+    PredictedTriple(pt.triple, pt.predictedResult, rules, scorer.result())
   }
 
   def addOne(elem: PredictedTriple): PredictedTriplesAggregator.this.type = {
     if (first.isEmpty) first = Some(elem.toSinglePredictedTriples.next())
     elem match {
       case x: PredictedTriple.Single =>
-        if (!postRulesScorer) scoreBuilder.addOne(x.rule)
-        rulesBuilder.addOne(x.rule)
+        if (!scoreAfterAggregation) scorer.addOne(x.rule)
+        consumer.addOne(x.rule)
       case _: PredictedTriple.Grouped => for (rule <- elem.rules) {
-        if (!postRulesScorer) scoreBuilder.addOne(rule)
-        rulesBuilder.addOne(rule)
+        if (!scoreAfterAggregation) scorer.addOne(rule)
+        consumer.addOne(rule)
       }
     }
     this

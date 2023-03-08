@@ -24,7 +24,7 @@ class NoisyOrScorer private(implicit defaultConfidence: DefaultConfidence) exten
 }
 
 object NoisyOrScorer {
-  def apply(postRules: Boolean = true)(implicit defaultConfidence: DefaultConfidence): ScoreFactory = {
-    if (postRules) new NoisyOrScorer with PostRulesScoreFactory else new NoisyOrScorer
+  def apply(scoreAfterAggregation: Boolean = true)(implicit defaultConfidence: DefaultConfidence): ScoreFactory = {
+    if (scoreAfterAggregation) new NoisyOrScorer with PostRulesScoreFactory else new NoisyOrScorer
   }
 }
