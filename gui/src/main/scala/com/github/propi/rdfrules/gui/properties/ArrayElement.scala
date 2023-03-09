@@ -16,7 +16,7 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class ArrayElement private(val name: String, val title: String, val summaryTitle: SummaryTitle, property: Context => Property)(implicit context: Context) extends Property {
+class ArrayElement private(val name: String, val title: String, val summaryTitle: SummaryTitle, property: Context => Property)(implicit context: Context) extends Property.FixedProps {
 
   private val groups: Vars[Property] = Vars.empty
 

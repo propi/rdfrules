@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.experiments.benchmark
 
 import com.github.propi.rdfrules.algorithm.RulesMining
 import com.github.propi.rdfrules.algorithm.amie.Amie
-import com.github.propi.rdfrules.index.IndexPart
+import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.rule.{Measure, ResolvedRule, RuleConstraint, Threshold}
 import com.github.propi.rdfrules.ruleset.Ruleset
 import com.github.propi.rdfrules.utils.Debugger
@@ -10,7 +10,7 @@ import com.github.propi.rdfrules.utils.Debugger
 /**
   * Created by Vaclav Zeman on 14. 5. 2019.
   */
-trait RdfRulesMiningTask[T] extends Task[IndexPart, IndexPart, Ruleset, T] with TaskPreProcessor[IndexPart, IndexPart] with DefaultMiningSettings {
+trait RdfRulesMiningTask[T] extends Task[Index, Index, Ruleset, T] with TaskPreProcessor[Index, Index] with DefaultMiningSettings {
 
   self: TaskPostProcessor[Ruleset, T] =>
 
@@ -34,7 +34,7 @@ trait RdfRulesMiningTask[T] extends Task[IndexPart, IndexPart, Ruleset, T] with 
 
   protected def miningTask(rulesMining: RulesMining): RulesMining = rulesMining
 
-  protected def preProcess(input: IndexPart): IndexPart = input
+  protected def preProcess(input: Index): Index = input
 
   protected def countOtherMetrics(ruleset: Ruleset): Ruleset = {
     Function.chain[Ruleset](List(
@@ -47,7 +47,7 @@ trait RdfRulesMiningTask[T] extends Task[IndexPart, IndexPart, Ruleset, T] with 
     ))(ruleset)
   }
 
-  protected def taskBody(input: IndexPart): Ruleset = {
+  protected def taskBody(input: Index): Ruleset = {
     val res = countOtherMetrics(input.mineRules(miningTask(createDefaultMiningTask), ruleConsumer))
     res.size
     res

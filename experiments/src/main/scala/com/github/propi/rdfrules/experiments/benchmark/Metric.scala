@@ -2,7 +2,7 @@ package com.github.propi.rdfrules.experiments.benchmark
 
 import com.github.propi.rdfrules.data.TripleItem
 import com.github.propi.rdfrules.experiments.benchmark.Metric.Simple
-import com.github.propi.rdfrules.index.IndexPart
+import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.rule.ResolvedRule
 import com.github.propi.rdfrules.utils.BasicFunctions.round
 import com.github.propi.rdfrules.utils.PrettyDuration._
@@ -194,8 +194,8 @@ object Metric {
 
   implicit def rulesToMetrics(rules: IndexedSeq[ResolvedRule]): Seq[Metric] = List(Number("rules", rules.length))
 
-  implicit def indexToMetrics(index: IndexPart): Seq[Metric] = {
-    val thi = index.tripleMap
+  implicit def indexToMetrics(index: Index): Seq[Metric] = {
+    val thi = index.main.tripleMap
     val mapper = index.tripleItemMap
     val totalDisc = thi.predicates.iterator.map(mapper.getTripleItem).collect {
       case TripleItem.LongUri(uri) => uri

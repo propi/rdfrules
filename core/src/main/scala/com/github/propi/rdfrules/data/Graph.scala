@@ -52,6 +52,7 @@ class Graph private(val name: TripleItem.Uri, val triples: TripleTraversableView
   def `export`(os: => OutputStream)(implicit writer: RdfWriter): Unit = writer.writeToOutputStream(this, os)
 
   def `export`(file: File)(implicit writer: RdfWriter): Unit = {
+    implicit val settings: RdfSource.Settings = RdfSource.NoSettings
     val newWriter = if (writer == RdfWriter.NoWriter) RdfWriter(file) else writer
     `export`(new FileOutputStream(file))(newWriter)
   }
@@ -81,6 +82,7 @@ object Graph {
   def apply(name: TripleItem.Uri, is: => InputStream)(implicit reader: RdfReader): Graph = new Graph(name, reader.fromInputStream(is).map(_.triple), ForEach.empty)
 
   def apply(name: TripleItem.Uri, file: File)(implicit reader: RdfReader): Graph = {
+    implicit val settings: RdfSource.Settings = RdfSource.NoSettings
     val newReader = if (reader == RdfReader.NoReader) RdfReader(file) else reader
     new Graph(name, newReader.fromFile(file).map(_.triple), ForEach.empty)
   }

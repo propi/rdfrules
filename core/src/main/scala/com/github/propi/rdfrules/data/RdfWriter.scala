@@ -20,12 +20,14 @@ object RdfWriter {
     def writeToOutputStream(col: PrefixesOps[_], outputStreamBuilder: OutputStreamBuilder): Unit = throw new IllegalStateException("No specified RdfWriter.")
   }
 
-  private def restrictedRdfSource(extension: String): RdfSource = RdfSource(extension) /*extension match {
-    case "nt" | "nq" | "ttl" | "trig" | "trix" | "tsv" => RdfSource(extension)
-    case x => throw new IllegalArgumentException(s"Unsupported RDF format for streaming writing: $x")
-  }*/
+  //  private  /*extension match {
+  //    case "nt" | "nq" | "ttl" | "trig" | "trix" | "tsv" => RdfSource(extension)
+  //    case x => throw new IllegalArgumentException(s"Unsupported RDF format for streaming writing: $x")
+  //  }*/
 
-  def apply(file: File): RdfWriter = {
+  def apply(file: File)(implicit sourceSettings: RdfSource.Settings): RdfWriter = {
+    def restrictedRdfSource(extension: String): RdfSource = RdfSource(extension)
+
     val Ext2 = ".+[.](.+)[.](.+)".r
     val Ext1 = ".+[.](.+)".r
     file.getName.toLowerCase match {

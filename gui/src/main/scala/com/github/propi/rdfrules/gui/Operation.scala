@@ -56,7 +56,7 @@ trait Operation {
 
   def setValue(data: js.Dynamic): Unit = {
     for (prop <- properties.value) {
-      val propData = data.selectDynamic(prop.name)
+      val propData = data.selectDynamic(prop.nameVar.value)
       if (!js.isUndefined(propData)) prop.setValue(propData)
     }
   }
@@ -105,7 +105,7 @@ trait Operation {
   }
 
   protected def propertiesToJson: js.Dictionary[js.Any] = {
-    js.Dictionary(properties.value.iterator.map(x => x.name -> x.toJson).filter(x => !js.isUndefined(x._2)).toList: _*)
+    js.Dictionary(properties.value.iterator.map(x => x.nameVar.value -> x.toJson).filter(x => !js.isUndefined(x._2)).toList: _*)
   }
 
   @tailrec

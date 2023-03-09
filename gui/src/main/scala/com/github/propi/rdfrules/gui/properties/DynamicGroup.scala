@@ -17,7 +17,7 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class DynamicGroup private(val name: String, val title: String, val summaryTitle: SummaryTitle, properties: Context => Constants[Property])(implicit context: Context) extends Property {
+class DynamicGroup private(val name: String, val title: String, val summaryTitle: SummaryTitle, properties: Context => Constants[Property])(implicit context: Context) extends Property.FixedProps {
 
   private val groups: Vars[Constants[Property]] = Vars.empty
 
@@ -36,14 +36,14 @@ class DynamicGroup private(val name: String, val title: String, val summaryTitle
     for (x <- data.asInstanceOf[js.Array[js.Dynamic]]) {
       val props = properties(context(title))
       for (prop <- props.value) {
-        val propData = x.selectDynamic(prop.name)
+        val propData = x.selectDynamic(prop.nameVar.value)
         if (!js.isUndefined(propData)) prop.setValue(propData)
       }
       groups.value += props
     }
   }
 
-  def toJson: js.Any = js.Array(groups.value.map(properties => js.Dictionary(properties.value.map(x => x.name -> x.toJson).filter(x => !js.isUndefined(x._2)).toList: _*)).toList: _*)
+  def toJson: js.Any = js.Array(groups.value.map(properties => js.Dictionary(properties.value.map(x => x.nameVar.value -> x.toJson).filter(x => !js.isUndefined(x._2)).toList: _*)).toList: _*)
 
   @html
   def valueView: NodeBinding[Div] = {

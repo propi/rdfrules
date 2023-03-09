@@ -16,7 +16,7 @@ import scala.scalajs.js.JSConverters.JSRichIterableOnce
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class Rule extends Property {
+class Rule extends Property.FixedProps {
 
   private val rules: Vars[Rules.Rule] = Vars.empty
 

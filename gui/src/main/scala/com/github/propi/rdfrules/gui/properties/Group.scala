@@ -16,7 +16,7 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class Group private(val name: String, val title: String, val summaryTitle: SummaryTitle, propertiesBuilder: Context => Constants[Property])(implicit context: Context) extends Property {
+class Group private(val name: String, val title: String, val summaryTitle: SummaryTitle, propertiesBuilder: Context => Constants[Property])(implicit context: Context) extends Property.FixedProps {
 
   private val properties = propertiesBuilder(context(title))
 
@@ -28,12 +28,12 @@ class Group private(val name: String, val title: String, val summaryTitle: Summa
 
   def setValue(data: js.Dynamic): Unit = {
     for (prop <- properties.value) {
-      val propData = data.selectDynamic(prop.name)
+      val propData = data.selectDynamic(prop.nameVar.value)
       if (!js.isUndefined(propData)) prop.setValue(propData)
     }
   }
 
-  def toJson: js.Any = js.Dictionary(properties.value.map(x => x.name -> x.toJson).filter(x => !js.isUndefined(x._2)).toList: _*)
+  def toJson: js.Any = js.Dictionary(properties.value.map(x => x.nameVar.value -> x.toJson).filter(x => !js.isUndefined(x._2)).toList: _*)
 
   @html
   def valueView: NodeBinding[Div] = {

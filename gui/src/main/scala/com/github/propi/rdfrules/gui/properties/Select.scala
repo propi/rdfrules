@@ -18,7 +18,7 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class Select(val name: String, val title: String, items: Constants[(String, String)], default: Option[String] = None, onSelect: (String, String) => Unit = (_, _) => {}, val summaryTitle: SummaryTitle = SummaryTitle.Empty)(implicit context: Context) extends Property {
+class Select(val name: String, val title: String, items: Constants[(String, String)], default: Option[String] = None, onSelect: (String, String) => Unit = (_, _) => {}, val summaryTitle: SummaryTitle = SummaryTitle.Empty)(implicit context: Context) extends Property.FixedProps {
 
   val descriptionVar: Binding.Var[String] = Var(context(title).description)
 

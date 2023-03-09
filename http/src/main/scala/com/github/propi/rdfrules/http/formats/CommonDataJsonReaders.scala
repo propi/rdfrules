@@ -16,8 +16,8 @@ import com.github.propi.rdfrules.http.task.ruleset.ComputeConfidence.ConfidenceT
 import com.github.propi.rdfrules.http.task.ruleset.Prune.PruningStrategy
 import com.github.propi.rdfrules.http.util.Conf
 import com.github.propi.rdfrules.http.{Main, Workspace}
-import com.github.propi.rdfrules.prediction.aggregator.{MaximumScorer, NoisyOrScorer, NonRedundantTopRules, TopRules}
 import com.github.propi.rdfrules.prediction._
+import com.github.propi.rdfrules.prediction.aggregator.{MaximumScorer, NoisyOrScorer, NonRedundantTopRules, TopRules}
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule.{AtomPattern, DefaultConfidence, Measure, Rule, RuleConstraint, RulePattern, Threshold}
@@ -72,10 +72,10 @@ object CommonDataJsonReaders {
     case json => deserializationError(s"Json value '$json' can not be deserialized as the compression type.")
   }
 
-  implicit val rdfSourceReader: RootJsonReader[RdfSource] = {
-    case JsString(x) => RdfSource(x)
-    case json => deserializationError(s"Json value '$json' can not be deserialized as the RDF source.")
-  }
+  //  implicit val rdfSourceReader: RootJsonReader[RdfSource] = {
+  //    case JsString(x) => RdfSource(x)
+  //    case json => deserializationError(s"Json value '$json' can not be deserialized as the RDF source.")
+  //  }
 
   implicit val quadMatcherReader: RootJsonReader[QuadMatcher] = (json: JsValue) => {
     val fields = json.asJsObject.fields
@@ -448,6 +448,19 @@ object CommonDataJsonReaders {
     json.convertTo[String] match {
       case "test" => RankingStrategy.FromTest
       case "prediction" => RankingStrategy.FromPrediction
+    }
+  }
+
+  implicit val sourceSettingsReader: RootJsonReader[RdfSource.Settings] = (json: JsValue) => {
+    if (json == JsNull) {
+      RdfSource.NoSettings
+    } else {
+      json.convertTo[String] match {
+        case "tsvRaw" => RdfSource.Tsv.ParsingMode.Raw
+        case "tsvParsedUris" => RdfSource.Tsv.ParsingMode.ParsedUris
+        case "tsvParsedLiterals" => RdfSource.Tsv.ParsingMode.ParsedLiterals
+        case _ => RdfSource.NoSettings
+      }
     }
   }
 

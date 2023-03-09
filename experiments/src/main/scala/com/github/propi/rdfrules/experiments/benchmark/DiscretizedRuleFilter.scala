@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.experiments.benchmark
 
 import com.github.propi.rdfrules.data.TripleItem
-import com.github.propi.rdfrules.index.{IndexPart, TripleItemIndex}
+import com.github.propi.rdfrules.index.{Index, TripleItemIndex}
 import com.github.propi.rdfrules.rule.{Atom, Rule, RuleConstraint}
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 
@@ -34,8 +34,8 @@ case class DiscretizedRuleFilter(discretizedPredicates: Seq[TripleItem.Uri]) ext
 
 object DiscretizedRuleFilter extends Key[DiscretizedRuleFilter] {
 
-  def apply(index: IndexPart): DiscretizedRuleFilter = {
-    val discretizedPredicates = index.tripleMap.predicates.iterator.map(index.tripleItemMap.getTripleItem).collect {
+  def apply(index: Index): DiscretizedRuleFilter = {
+    val discretizedPredicates = index.main.tripleMap.predicates.iterator.map(index.tripleItemMap.getTripleItem).collect {
       case x@TripleItem.LongUri(uri) if uri.contains("_discretized_level_") => x
       case x: TripleItem.PrefixedUri if x.toLongUri.uri.contains("_discretized_level_") => x
     }.toList

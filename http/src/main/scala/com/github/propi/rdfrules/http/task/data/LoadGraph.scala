@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.http.task.data
 
-import com.github.propi.rdfrules.data.{Dataset, Graph, RdfReader, TripleItem}
+import com.github.propi.rdfrules.data.{Dataset, Graph, RdfReader, RdfSource, TripleItem}
 import com.github.propi.rdfrules.http.Workspace
 import com.github.propi.rdfrules.http.task.{Task, TaskDefinition}
 import com.github.propi.rdfrules.http.util.BasicExceptions.ValidationException
@@ -11,7 +11,7 @@ import java.net.URL
 /**
   * Created by Vaclav Zeman on 7. 8. 2018.
   */
-class LoadGraph(graphName: Option[TripleItem.Uri], path: Option[String], url: Option[URL])(implicit debugger: Debugger) extends Task.NoInputDatasetTask {
+class LoadGraph(graphName: Option[TripleItem.Uri], path: Option[String], url: Option[URL])(implicit debugger: Debugger, sourceSettings: RdfSource.Settings) extends Task.NoInputDatasetTask {
   val companion: TaskDefinition = LoadGraph
 
   def execute(input: Task.NoInput.type): Dataset = {

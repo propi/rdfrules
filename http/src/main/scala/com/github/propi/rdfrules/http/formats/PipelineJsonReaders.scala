@@ -6,7 +6,7 @@ import com.github.propi.rdfrules.algorithm.clustering.SimilarityCounting
 import com.github.propi.rdfrules.algorithm.consumer.InMemoryRuleConsumer
 import com.github.propi.rdfrules.algorithm.{Clustering, RuleConsumer, RulesMining}
 import com.github.propi.rdfrules.data.ops.Sampleable
-import com.github.propi.rdfrules.data.{Dataset, DiscretizationTask, Prefix, TripleItem}
+import com.github.propi.rdfrules.data.{Dataset, DiscretizationTask, Prefix, RdfSource, TripleItem}
 import com.github.propi.rdfrules.http.formats.CommonDataJsonFormats._
 import com.github.propi.rdfrules.http.formats.CommonDataJsonReaders._
 import com.github.propi.rdfrules.http.task.Task.MergeDatasets
@@ -36,6 +36,7 @@ object PipelineJsonReaders {
 
   implicit def loadGraphReader(implicit debugger: Debugger): RootJsonReader[data.LoadGraph] = (json: JsValue) => {
     val fields = json.asJsObject.fields
+    implicit val settings: RdfSource.Settings = fields.get("settings").map(_.convertTo[RdfSource.Settings]).getOrElse(RdfSource.NoSettings)
     new data.LoadGraph(
       fields.get("graphName").map(_.convertTo[TripleItem.Uri]),
       fields.get("path").map(_.convertTo[String]),
@@ -45,6 +46,7 @@ object PipelineJsonReaders {
 
   implicit def loadDatasetReader(implicit debugger: Debugger): RootJsonReader[data.LoadDataset] = (json: JsValue) => {
     val fields = json.asJsObject.fields
+    implicit val settings: RdfSource.Settings = fields.get("settings").map(_.convertTo[RdfSource.Settings]).getOrElse(RdfSource.NoSettings)
     new data.LoadDataset(
       fields.get("path").map(_.convertTo[String]),
       fields.get("url").map(_.convertTo[URL])
@@ -91,10 +93,12 @@ object PipelineJsonReaders {
 
   implicit val splitReader: RootJsonReader[data.Split] = (json: JsValue) => {
     val selector = json.toSelector
-    val trainUri = selector("train")("uri").to[TripleItem.Uri]
-    val trainPart = selector("train")("part").to[Sampleable.Part]
-    val testUri = selector("test")("uri").to[TripleItem.Uri]
-    val testPart = selector("test")("part").to[Sampleable.Part]
+    val train = selector("train")
+    val test = selector("test")
+    val trainUri = train("uri").to[TripleItem.Uri]
+    val trainPart = train("part").to[Sampleable.Part]
+    val testUri = test("uri").to[TripleItem.Uri]
+    val testPart = test("part").to[Sampleable.Part]
     new data.Split(trainUri -> trainPart, testUri -> testPart)
   }
 

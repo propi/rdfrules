@@ -17,7 +17,7 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-abstract class Text(val name: String, val title: String, default: String, validator: Validator[String], val summaryTitle: SummaryTitle)(implicit context: Context) extends Property {
+abstract class Text(val name: String, val title: String, default: String, validator: Validator[String], val summaryTitle: SummaryTitle)(implicit context: Context) extends Property.FixedProps {
 
   private val text: Var[String] = Var(default)
 

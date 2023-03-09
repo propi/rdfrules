@@ -60,6 +60,7 @@ class Dataset private(val quads: QuadTraversableView, val userDefinedPrefixes: F
   def `export`(os: => OutputStream)(implicit writer: RdfWriter): Unit = writer.writeToOutputStream(this, os)
 
   def `export`(file: File)(implicit writer: RdfWriter): Unit = {
+    implicit val settings: RdfSource.Settings = RdfSource.NoSettings
     val newWriter = if (writer == RdfWriter.NoWriter) RdfWriter(file) else writer
     `export`(new FileOutputStream(file))(newWriter)
   }
@@ -96,6 +97,7 @@ object Dataset {
   def apply(is: => InputStream)(implicit reader: RdfReader): Dataset = new Dataset(reader.fromInputStream(is), ForEach.empty)
 
   def apply(file: File)(implicit reader: RdfReader): Dataset = {
+    implicit val settings: RdfSource.Settings = RdfSource.NoSettings
     val newReader = if (reader == RdfReader.NoReader) RdfReader(file) else reader
     new Dataset(newReader.fromFile(file), ForEach.empty)
   }

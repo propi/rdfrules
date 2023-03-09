@@ -14,7 +14,7 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class Hidden[T](val name: String, value: String)(implicit f: String => T, g: T => js.Any) extends Property {
+class Hidden[T](val name: String, value: String)(implicit f: String => T, g: T => js.Any) extends Property.FixedProps {
 
   val summaryTitle: SummaryTitle = SummaryTitle.Empty
 

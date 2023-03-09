@@ -20,7 +20,7 @@ import scala.scalajs.js
   */
 class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation {
 
-  private object RuleConsumers extends Property {
+  private object RuleConsumers extends Property.FixedProps {
     val name: String = "ruleConsumers"
     val title: String = "Rule consumer"
     val descriptionVar: Var[String] = Var(context(title).description)
@@ -106,12 +106,12 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
     def toJson: js.Any = {
       val consumers = js.Array[js.Any]()
       if (hasTopK) {
-        consumers.push(js.Dictionary("name" -> "topK", properties.value(1).name -> properties.value(1).toJson, properties.value(2).name -> properties.value(2).toJson))
+        consumers.push(js.Dictionary("name" -> "topK", properties.value(1).nameVar.value -> properties.value(1).toJson, properties.value(2).nameVar.value -> properties.value(2).toJson))
       } else if (!hasOnDisk || selectedFormat != "ndjson") {
         consumers.push(js.Dictionary("name" -> "inMemory"))
       }
       if (hasOnDisk) {
-        consumers.push(js.Dictionary("name" -> "onDisk", properties.value(4).name -> properties.value(4).toJson, properties.value(5).name -> properties.value(5).toJson))
+        consumers.push(js.Dictionary("name" -> "onDisk", properties.value(4).nameVar.value -> properties.value(4).toJson, properties.value(5).nameVar.value -> properties.value(5).toJson))
       }
       consumers
     }

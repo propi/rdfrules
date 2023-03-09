@@ -15,8 +15,8 @@ import scala.scalajs.js
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
 trait Property {
-  val name: String
-  val title: String
+  val nameVar: Var[String]
+  val titleVar: Var[String]
   val descriptionVar: Var[String]
   val summaryTitle: SummaryTitle
 
@@ -65,7 +65,7 @@ trait Property {
             </div>
           </div>
           <div class="text">
-            {title}
+            {titleVar.bind}
           </div>
         </div>
       </th>
@@ -79,6 +79,13 @@ trait Property {
 }
 
 object Property {
+
+  trait FixedProps extends Property {
+    val title: String
+    val name: String
+    lazy val titleVar: Var[String] = Var(title)
+    lazy val nameVar: Var[String] = Var(name)
+  }
 
   sealed trait SummaryTitle {
     def isEmpty: Boolean = false

@@ -28,7 +28,7 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
                               val name: String,
                               val title: String = "Choose a file from the workspace",
                               validator: Validator[String] = NoValidator[String](),
-                              val summaryTitle: SummaryTitle = SummaryTitle.Empty)(implicit context: Context) extends Property {
+                              val summaryTitle: SummaryTitle = SummaryTitle.Empty)(implicit context: Context) extends Property.FixedProps {
 
   private implicit val ec: ExecutionContext = scala.scalajs.concurrent.JSExecutionContext.queue
 

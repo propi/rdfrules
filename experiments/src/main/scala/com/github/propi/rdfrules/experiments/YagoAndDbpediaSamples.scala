@@ -53,7 +53,7 @@ object YagoAndDbpediaSamples {
         .makeClusters(DbScan(minNeighbours = 1))
         .sortBy(Measure.Cluster, Measure.PcaConfidence, Measure.Lift, Measure.HeadCoverage)
         .cache(Example.resultDir + "rules-example3.cache")
-      val ruleset = Ruleset.fromCache(dataset.index(), Example.resultDir + "rules-example3.cache")
+      val ruleset = Ruleset.fromCache(dataset.index, Example.resultDir + "rules-example3.cache")
       ruleset.export(Example.resultDir + "rules-example3.txt")
       ruleset.export(Example.resultDir + "rules-example3.json")
       ruleset
@@ -91,7 +91,7 @@ object YagoAndDbpediaSamples {
         .sorted
         .graphAwareRules
         .cache(Example.resultDir + "rules-example5.cache")
-      Ruleset.fromCache(dataset.index(), Example.resultDir + "rules-example5.cache")
+      Ruleset.fromCache(dataset.index, Example.resultDir + "rules-example5.cache")
     }
   }
 

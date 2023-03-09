@@ -69,9 +69,9 @@ object RdfRulesKgc {
           s"experiments/data/$datasetName/trainValid.tsv"
         }
         lazy val index = {
-          val index = Graph(trainValidPath).index().withEvaluatedLazyVals
+          val index = Graph(trainValidPath).index
           HowLong.howLong("RDFRules indexing", memUsage = true, forceShow = true) {
-            index.tripleMap.size(true)
+            index.main.tripleMap.evaluateAllLazyVals()
           }
           index
         }

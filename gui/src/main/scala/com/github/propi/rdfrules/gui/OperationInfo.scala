@@ -62,6 +62,7 @@ object OperationInfo {
       DatasetTransformation.FilterQuads,
       DatasetTransformation.ShrinkQuads,
       DatasetTransformation.Discretize,
+      DatasetTransformation.Split,
       DatasetTransformation.CacheDataset,
       DatasetTransformation.Index,
       ExportQuads,
@@ -207,6 +208,11 @@ object OperationInfo {
   sealed trait FilterQuads extends Transformation {
     val name: String = "FilterQuads"
     val title: String = "Filter quads"
+  }
+
+  sealed trait Split extends Transformation {
+    val name: String = "Split"
+    val title: String = "Split"
   }
 
   sealed trait ShrinkQuads extends Transformation {
@@ -375,6 +381,10 @@ object OperationInfo {
 
     object FilterQuads extends OperationInfo.FilterQuads with DatasetTransformation with DatasetToDataset {
       def buildOperation(from: Operation): Operation = new operations.FilterQuads(from, this)
+    }
+
+    object Split extends OperationInfo.Split with DatasetTransformation with DatasetToDataset {
+      def buildOperation(from: Operation): Operation = new operations.Split(from, this)
     }
 
     object ShrinkQuads extends OperationInfo.ShrinkQuads with DatasetTransformation with DatasetToDataset {

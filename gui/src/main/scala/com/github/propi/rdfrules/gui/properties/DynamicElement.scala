@@ -15,8 +15,8 @@ import scala.scalajs.js
   * Created by Vaclav Zeman on 17. 9. 2018.
   */
 class DynamicElement(properties: Constants[Property], hidden: Boolean = false) extends Property {
-  val name: String = properties.value.head.name
-  val title: String = properties.value.head.title
+  val nameVar: Var[String] = Var("")
+  val titleVar: Var[String] = Var("")
   val summaryTitle: SummaryTitle = SummaryTitle.Empty
   val descriptionVar: Var[String] = Var("")
 
@@ -64,11 +64,15 @@ class DynamicElement(properties: Constants[Property], hidden: Boolean = false) e
       if (hidden) {
         isHidden.value = true
       }
+      nameVar.value = ""
       descriptionVar.value = ""
+      titleVar.value = ""
       errorMsg.value = None
     } else {
       val el = properties.value(x)
       descriptionVar.value = el.descriptionVar.value
+      nameVar.value = el.nameVar.value
+      titleVar.value = el.titleVar.value
       errorMsg.value = el.errorMsg.value
       if (hidden) {
         isHidden.value = false
