@@ -13,6 +13,10 @@ import scala.collection.mutable
   */
 object ReactiveBinding {
 
+  type BindingVal[T] = Binding[T] {
+    def value: T
+  }
+
   @html
   def empty: Binding[Div] = <div></div>
 

@@ -11,6 +11,9 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 class LoadGraph(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = {
     val validator = RegExp(".+[.](ttl|nt|nq|json|jsonld|xml|rdf|owl|trig|trix|tsv|sql|cache)([.](gz|bz2))?$", true)
+    //    Binding {
+    //      println(f.test.bind)
+    //    }.watch()
     Constants(
       new ChooseFileFromWorkspace(Workspace.loadFiles, false, "path", validator = validator, summaryTitle = "file"),
       new OptionalText[String]("url", "URL", summaryTitle = "url", validator = validator),

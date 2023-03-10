@@ -2,9 +2,11 @@ package com.github.propi.rdfrules.gui
 
 import com.github.propi.rdfrules.gui.Property.SummaryTitle
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding
+import com.github.propi.rdfrules.gui.utils.ReactiveBinding.BindingVal
 import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.{Constant, Var}
 import org.lrng.binding.html
+import org.lrng.binding.html.NodeBinding
 import org.scalajs.dom.html.{Div, Span, TableRow}
 import org.scalajs.dom.{Event, MouseEvent}
 
@@ -15,8 +17,8 @@ import scala.scalajs.js
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
 trait Property {
-  val nameVar: Var[String]
-  val titleVar: Var[String]
+  val nameVar: BindingVal[String]
+  val titleVar: BindingVal[String]
   val descriptionVar: Var[String]
   val summaryTitle: SummaryTitle
 
@@ -83,8 +85,8 @@ object Property {
   trait FixedProps extends Property {
     val title: String
     val name: String
-    lazy val titleVar: Var[String] = Var(title)
-    lazy val nameVar: Var[String] = Var(name)
+    lazy val titleVar: Constant[String] = Constant(title)
+    lazy val nameVar: Constant[String] = Constant(name)
   }
 
   sealed trait SummaryTitle {

@@ -5,7 +5,6 @@ import com.github.propi.rdfrules.experiments.InputData.getInputTsvDataset
 import com.github.propi.rdfrules.experiments.benchmark.Benchmark._
 import com.github.propi.rdfrules.experiments.benchmark.MetricResultProcessor.BasicPrinter
 import com.github.propi.rdfrules.experiments.benchmark.MetricsAggregator.StatsAggregator
-import com.github.propi.rdfrules.experiments.benchmark._
 import com.github.propi.rdfrules.experiments.benchmark.postprocessors.RulesTaskPostprocessor
 import com.github.propi.rdfrules.experiments.benchmark.tasks._
 import com.github.propi.rdfrules.rule.ResolvedRule
@@ -57,9 +56,9 @@ object Amie3Comparison {
     try {
       Debugger() { implicit debugger =>
         lazy val index = {
-          val index = Graph(inputTsvDataset).index().withEvaluatedLazyVals
+          val index = Graph(inputTsvDataset).index
           HowLong.howLong("RDFRules indexing", memUsage = true, forceShow = true) {
-            index.tripleMap.size(true)
+            index.main.tripleMap.evaluateAllLazyVals()
           }
           index
         }
