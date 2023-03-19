@@ -17,33 +17,36 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class DynamicGroup private(val name: String, val title: String, val summaryTitle: SummaryTitle, properties: Context => Constants[Property])(implicit context: Context) extends Property.FixedProps {
+class DynamicGroup private(_name: String, _title: String, val summaryTitle: SummaryTitle, properties: Context => Constants[Property])(implicit context: Context) extends Property.FixedProps {
 
   private val groups: Vars[Constants[Property]] = Vars.empty
+
+  val title: Constant[String] = Constant(_title)
+  val name: Constant[String] = Constant(_name)
+  val isHidden: Binding[Boolean] = Constant(false)
+  val description: Var[String] = Var(context(_title).description)
 
   override def hasSummary: Binding[Boolean] = {
     Constant(summaryTitle.isEmpty).ifM(Constant(false), groups.existsBinding(_.existsBinding(_.hasSummary)))
   }
 
-  val descriptionVar: Binding.Var[String] = Var(context(title).description)
-
   def getGroups: Iterable[Constants[Property]] = groups.value
 
-  def validate(): Option[String] = groups.value.iterator.flatMap(_.value.iterator).map(_.validate()).find(_.nonEmpty).flatten.map(x => s"There is an error within '$title' properties: $x")
+  def validate(): Option[String] = groups.value.iterator.flatMap(_.value.iterator).map(_.validate()).find(_.nonEmpty).flatten.map(x => s"There is an error within '${title.value}' properties: $x")
 
   def setValue(data: js.Dynamic): Unit = {
     groups.value.clear()
     for (x <- data.asInstanceOf[js.Array[js.Dynamic]]) {
-      val props = properties(context(title))
+      val props = properties(context(title.value))
       for (prop <- props.value) {
-        val propData = x.selectDynamic(prop.nameVar.value)
+        val propData = x.selectDynamic(prop.getName)
         if (!js.isUndefined(propData)) prop.setValue(propData)
       }
       groups.value += props
     }
   }
 
-  def toJson: js.Any = js.Array(groups.value.map(properties => js.Dictionary(properties.value.map(x => x.nameVar.value -> x.toJson).filter(x => !js.isUndefined(x._2)).toList: _*)).toList: _*)
+  def toJson: js.Any = js.Array(groups.value.map(properties => js.Dictionary(properties.value.map(x => x.getName -> x.toJson).filter(x => !js.isUndefined(x._2)).toList: _*)).toList: _*)
 
   @html
   def valueView: NodeBinding[Div] = {
@@ -59,7 +62,7 @@ class DynamicGroup private(val name: String, val title: String, val summaryTitle
         </tr>{for (property <- group) yield {
         property.view.bind
       }}
-      </table>}<a class="add" onclick={_: Event => groups.value += properties(context(title))}>
+      </table>}<a class="add" onclick={_: Event => groups.value += properties(context(title.value))}>
       <i class="material-icons">add_circle_outline</i>
     </a>
     </div>

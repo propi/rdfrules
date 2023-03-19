@@ -16,7 +16,9 @@ class LoadGraph(graphName: Option[TripleItem.Uri], path: Option[String], url: Op
 
   def execute(input: Task.NoInput.type): Dataset = {
     val dataset = path match {
-      case Some(path) => Dataset(Workspace.path(path))
+      case Some(path) =>
+        val _path = Workspace.path(path)
+        Dataset(_path)(RdfReader(_path))
       case None => url match {
         case Some(url) => Dataset(url.openStream())(RdfReader(url.toString))
         case None => throw ValidationException("NoRdfFormat", "For URL you must specify an RDF format extension, e.g. ?extension=.nt")

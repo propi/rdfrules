@@ -5,6 +5,7 @@ import com.github.propi.rdfrules.gui.Endpoint.UploadProgress
 import com.github.propi.rdfrules.gui.Property.SummaryTitle
 import com.github.propi.rdfrules.gui.{Property, Workspace}
 import com.github.propi.rdfrules.gui.Workspace.FileValue
+import com.github.propi.rdfrules.gui.utils.ReactiveBinding.BindingVal
 import com.github.propi.rdfrules.gui.utils.Validate.{NoValidator, Validator, _}
 import com.thoughtworks.binding.Binding.{Constant, Var}
 import com.thoughtworks.binding.Binding
@@ -25,12 +26,21 @@ import scala.scalajs.js
   */
 class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
                               fileCreationEnabled: Boolean,
-                              val name: String,
-                              val title: String = "Choose a file from the workspace",
+                              _name: String,
+                              _title: String = "Choose a file from the workspace",
                               validator: Validator[String] = NoValidator[String](),
                               val summaryTitle: SummaryTitle = SummaryTitle.Empty)(implicit context: Context) extends Property.FixedProps {
 
   private implicit val ec: ExecutionContext = scala.scalajs.concurrent.JSExecutionContext.queue
+
+  private val loadedFiles: Var[Option[FileValue.Directory]] = Var(None)
+  private val progressBar: Var[UploadProgress] = Var(UploadProgress(0.0, None))
+  private val selectedFile: Var[Option[FileValue.File]] = Var(None)
+
+  val title: Constant[String] = Constant(_title)
+  val name: Constant[String] = Constant(_name)
+  val description: Var[String] = Var(context(_title).description)
+  val isHidden: Binding[Boolean] = Constant(false)
 
   private def processLoadedFiles(workspace: Workspace.FileValue.Directory): Unit = {
     loadedFiles.value = Some(workspace)
@@ -42,12 +52,6 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
 
   files.foreach(processLoadedFiles)
 
-  private val loadedFiles: Var[Option[FileValue.Directory]] = Var(None)
-  private val progressBar: Var[UploadProgress] = Var(UploadProgress(0.0, None))
-  private val selectedFile: Var[Option[FileValue.File]] = Var(None)
-
-  val descriptionVar: Binding.Var[String] = Var(context(title).description)
-
   def setValue(data: js.Dynamic): Unit = {
     val path = data.asInstanceOf[String].trim
     selectedFile.value = loadedFiles.value.map(_.prependPath(path)).orElse {
@@ -56,6 +60,8 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
   }
 
   def getSelectedFile: Option[FileValue.File] = selectedFile.value
+
+  def getSelectedFileBinding: BindingVal[Option[FileValue.File]] = selectedFile
 
   def validate(): Option[String] = {
     val msg = validator.validate(selectedFile.value.map(_.path).getOrElse("")).errorMsg

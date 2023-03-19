@@ -5,7 +5,7 @@ import com.github.propi.rdfrules.gui.Property.SummaryTitle
 import com.github.propi.rdfrules.gui.results.Rules
 import com.github.propi.rdfrules.gui.utils.ReactiveBinding
 import com.thoughtworks.binding.Binding
-import com.thoughtworks.binding.Binding.{Var, Vars}
+import com.thoughtworks.binding.Binding.{Constant, Var, Vars}
 import org.lrng.binding.html
 import org.lrng.binding.html.NodeBinding
 import org.scalajs.dom.html.{Div, Span}
@@ -20,12 +20,11 @@ class Rule extends Property.FixedProps {
 
   private val rules: Vars[Rules.Rule] = Vars.empty
 
-  val name: String = "rules"
-  val title: String = "Rules"
-  val descriptionVar: Var[String] = Var("")
+  val title: Constant[String] = Constant("Rules")
+  val name: Constant[String] = Constant("rules")
+  val isHidden: Var[Boolean] = Var(true)
+  val description: Var[String] = Var("")
   val summaryTitle: SummaryTitle = SummaryTitle.Empty
-
-  isHidden.value = true
 
   def summaryContentView: Binding[Span] = ReactiveBinding.emptySpan
 

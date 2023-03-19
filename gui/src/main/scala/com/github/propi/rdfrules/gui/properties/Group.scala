@@ -16,11 +16,14 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class Group private(val name: String, val title: String, val summaryTitle: SummaryTitle, propertiesBuilder: Context => Constants[Property])(implicit context: Context) extends Property.FixedProps {
+class Group private(_name: String, _title: String, val summaryTitle: SummaryTitle, propertiesBuilder: Context => Constants[Property])(implicit context: Context) extends Property.FixedProps {
 
-  private val properties = propertiesBuilder(context(title))
+  private val properties = propertiesBuilder(context(_title))
 
-  val descriptionVar: Binding.Var[String] = Var(context(title).description)
+  val title: Constant[String] = Constant(_title)
+  val name: Constant[String] = Constant(_name)
+  val isHidden: Binding[Boolean] = Constant(false)
+  val description: Var[String] = Var(context(_title).description)
 
   override def hasSummary: Binding[Boolean] = Constant(summaryTitle.isEmpty).ifM(Constant(false), properties.existsBinding(_.hasSummary))
 
@@ -28,12 +31,12 @@ class Group private(val name: String, val title: String, val summaryTitle: Summa
 
   def setValue(data: js.Dynamic): Unit = {
     for (prop <- properties.value) {
-      val propData = data.selectDynamic(prop.nameVar.value)
+      val propData = data.selectDynamic(prop.getName)
       if (!js.isUndefined(propData)) prop.setValue(propData)
     }
   }
 
-  def toJson: js.Any = js.Dictionary(properties.value.map(x => x.nameVar.value -> x.toJson).filter(x => !js.isUndefined(x._2)).toList: _*)
+  def toJson: js.Any = js.Dictionary(properties.value.map(x => x.getName -> x.toJson).filter(x => !js.isUndefined(x._2)).toList: _*)
 
   @html
   def valueView: NodeBinding[Div] = {

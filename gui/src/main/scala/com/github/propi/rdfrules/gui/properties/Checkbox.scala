@@ -18,11 +18,14 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class Checkbox(val name: String, val title: String, default: Boolean = false, onChecked: Boolean => Unit = _ => {}, val summaryTitle: SummaryTitle = SummaryTitle.Empty)(implicit context: Context) extends Property.FixedProps {
+class Checkbox(_name: String, _title: String, default: Boolean = false, onChecked: Boolean => Unit = _ => {}, val summaryTitle: SummaryTitle = SummaryTitle.Empty)(implicit context: Context) extends Property.FixedProps {
 
   private val _isChecked: Var[Boolean] = Var(default)
 
-  val descriptionVar: Binding.Var[String] = Var(context(title).description)
+  val description: Var[String] = Var(context(_title).description)
+  val title: Constant[String] = Constant(_title)
+  val name: Constant[String] = Constant(_name)
+  val isHidden: Binding[Boolean] = Constant(false)
 
   def setValue(data: Boolean): Unit = {
     _isChecked.value = data

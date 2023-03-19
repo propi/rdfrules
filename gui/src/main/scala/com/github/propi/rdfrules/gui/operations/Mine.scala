@@ -8,7 +8,7 @@ import com.github.propi.rdfrules.gui.utils.ReactiveBinding.PimpedBindingSeq
 import com.github.propi.rdfrules.gui.utils.StringConverters._
 import com.github.propi.rdfrules.gui.{Operation, OperationInfo, Property, Workspace}
 import com.thoughtworks.binding.Binding
-import com.thoughtworks.binding.Binding.{Constants, Var}
+import com.thoughtworks.binding.Binding.{Constant, Constants, Var}
 import org.lrng.binding.html
 import org.scalajs.dom.html.{Div, Span}
 import com.thoughtworks.binding.Binding.BindingInstances.monadSyntax._
@@ -21,16 +21,17 @@ import scala.scalajs.js
 class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation {
 
   private object RuleConsumers extends Property.FixedProps {
-    val name: String = "ruleConsumers"
-    val title: String = "Rule consumer"
-    val descriptionVar: Var[String] = Var(context(title).description)
+    val name: Constant[String] = Constant("ruleConsumers")
+    val title: Constant[String] = Constant("Rule consumer")
+    val description: Var[String] = Var(context(title.value).description)
     val summaryTitle: SummaryTitle = SummaryTitle.Empty
+    val isHidden: Binding[Boolean] = Constant(false)
 
     private var hasTopK: Boolean = false
     private var hasOnDisk: Boolean = false
     private var selectedFormat: String = "ndjson"
 
-    private val properties = context.use(title) { implicit context =>
+    private val properties = context.use(title.value) { implicit context =>
       val (k, allowOverflow) = context.use("Top-k") { implicit context =>
         val k = new DynamicElement(Constants(new FixedText[Double]("k", "k-value", validator = GreaterThanOrEqualsTo[Int](1), summaryTitle = "top")), hidden = true)
         val allowOverflow = new DynamicElement(Constants(new Checkbox("allowOverflow", "Allow overflow")), hidden = true)
@@ -106,12 +107,12 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
     def toJson: js.Any = {
       val consumers = js.Array[js.Any]()
       if (hasTopK) {
-        consumers.push(js.Dictionary("name" -> "topK", properties.value(1).nameVar.value -> properties.value(1).toJson, properties.value(2).nameVar.value -> properties.value(2).toJson))
+        consumers.push(js.Dictionary("name" -> "topK", properties.value(1).getName -> properties.value(1).toJson, properties.value(2).getName -> properties.value(2).toJson))
       } else if (!hasOnDisk || selectedFormat != "ndjson") {
         consumers.push(js.Dictionary("name" -> "inMemory"))
       }
       if (hasOnDisk) {
-        consumers.push(js.Dictionary("name" -> "onDisk", properties.value(4).nameVar.value -> properties.value(4).toJson, properties.value(5).nameVar.value -> properties.value(5).toJson))
+        consumers.push(js.Dictionary("name" -> "onDisk", properties.value(4).getName -> properties.value(4).toJson, properties.value(5).getName -> properties.value(5).toJson))
       }
       consumers
     }
@@ -148,7 +149,7 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
     val constraints = DynamicGroup("constraints", "Constraints", SummaryTitle.NoTitle) { implicit context =>
       val value = new DynamicElement(Constants(
         context.use("OnlyPredicates or WithoutPredicates")(implicit context => ArrayElement("values", "Values")(implicit context => new OptionalText[String]("value", "Value", validator = RegExp("<.*>|\\w+:.*"))))
-      ))
+      ), true)
       Constants(
         new Select("name", "Name", Constants("WithoutConstants" -> "Without constants", "OnlyObjectConstants" -> "With constants at the object position", "OnlySubjectConstants" -> "With constants at the subject position", "OnlyLowerCardinalitySideConstants" -> "With constants at the lower cardinality side", "OnlyLowerCardinalitySideAtHeadConstants" -> "With constants at the lower cardinality side only in the head", "WithoutDuplicitPredicates" -> "Without duplicit predicates", "OnlyPredicates" -> "Only predicates", "WithoutPredicates" -> "Without predicates"), onSelect = {
           case ("OnlyPredicates", _) | ("WithoutPredicates", _) => value.setElement(0)

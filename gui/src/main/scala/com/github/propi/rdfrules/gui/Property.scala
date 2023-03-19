@@ -1,12 +1,9 @@
 package com.github.propi.rdfrules.gui
 
 import com.github.propi.rdfrules.gui.Property.SummaryTitle
-import com.github.propi.rdfrules.gui.utils.ReactiveBinding
-import com.github.propi.rdfrules.gui.utils.ReactiveBinding.BindingVal
 import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.{Constant, Var}
 import org.lrng.binding.html
-import org.lrng.binding.html.NodeBinding
 import org.scalajs.dom.html.{Div, Span, TableRow}
 import org.scalajs.dom.{Event, MouseEvent}
 
@@ -17,13 +14,12 @@ import scala.scalajs.js
   * Created by Vaclav Zeman on 21. 7. 2018.
   */
 trait Property {
-  val nameVar: BindingVal[String]
-  val titleVar: BindingVal[String]
-  val descriptionVar: Var[String]
+  val name: Binding[String]
+  val title: Binding[String]
+  val description: Binding[String]
   val summaryTitle: SummaryTitle
-
-  val errorMsg: ReactiveBinding.Var[Option[String]] = ReactiveBinding.Var(None)
-  val isHidden: Var[Boolean] = Var(false)
+  val errorMsg: Binding[Option[String]]
+  val isHidden: Binding[Boolean]
 
   def hasSummary: Binding[Boolean] = Constant(summaryTitle.nonEmpty)
 
@@ -31,11 +27,17 @@ trait Property {
 
   def valueView: Binding[Div]
 
-  def isValid: Boolean = errorMsg.value.isEmpty
-
   def validate(): Option[String]
 
   def setValue(data: js.Dynamic): Unit
+
+  def getName: String
+
+  def getTitle: String
+
+  def getErrorMsg: Option[String]
+
+  def getDescription: String
 
   @html
   def summaryView: Binding[Span] = <span class="property-summary">
@@ -59,15 +61,15 @@ trait Property {
       <th>
         <div class="title">
           <div class="hints">
-            <div class={"error" + (if (errorMsg.binding.bind.isEmpty) " hidden" else "")} onmousemove={e: MouseEvent => Main.canvas.openHint(errorMsg.value.getOrElse(""), e)} onmouseout={_: MouseEvent => Main.canvas.closeHint()} onclick={_: Event => Main.canvas.fixHint()}>
+            <div class={"error" + (if (errorMsg.bind.isEmpty) " hidden" else "")} onmousemove={e: MouseEvent => Main.canvas.openHint(getErrorMsg.getOrElse(""), e)} onmouseout={_: MouseEvent => Main.canvas.closeHint()} onclick={_: Event => Main.canvas.fixHint()}>
               <i class="material-icons">error</i>
             </div>
-            <div class={"description" + (if (descriptionVar.bind.isEmpty) " hidden" else "")} onmousemove={e: MouseEvent => Main.canvas.openHint(descriptionVar.value, e)} onmouseout={_: MouseEvent => Main.canvas.closeHint()} onclick={_: Event => Main.canvas.fixHint()}>
+            <div class={"description" + (if (description.bind.isEmpty) " hidden" else "")} onmousemove={e: MouseEvent => Main.canvas.openHint(getDescription, e)} onmouseout={_: MouseEvent => Main.canvas.closeHint()} onclick={_: Event => Main.canvas.fixHint()}>
               <i class="material-icons">help</i>
             </div>
           </div>
           <div class="text">
-            {titleVar.bind}
+            {title.bind}
           </div>
         </div>
       </th>
@@ -83,10 +85,19 @@ trait Property {
 object Property {
 
   trait FixedProps extends Property {
-    val title: String
-    val name: String
-    lazy val titleVar: Constant[String] = Constant(title)
-    lazy val nameVar: Constant[String] = Constant(name)
+    val title: Constant[String]
+    val name: Constant[String]
+    val description: Var[String]
+
+    val errorMsg: Var[Option[String]] = Var(None)
+
+    final def getErrorMsg: Option[String] = errorMsg.value
+
+    final def getDescription: String = description.value
+
+    final def getName: String = name.value
+
+    final def getTitle: String = title.value
   }
 
   sealed trait SummaryTitle {
