@@ -12,7 +12,7 @@ import org.scalajs.dom.{Event, window}
 
 import scala.concurrent.Future
 import scala.scalajs.js
-import scala.scalajs.js.JSON
+import scala.scalajs.js.{JSON, Math}
 
 /**
   * Created by Vaclav Zeman on 14. 9. 2018.
@@ -118,7 +118,7 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
       </span>
     </div>
     <div class="measures">
-      {record._1.measures.map(x => s"${x.name}: ${x.value}").mkString(", ")}
+      {record._1.measures.mapApproximativeMeasures.map(x => s"${x.name}: ${x.value}").mkString(", ")}
     </div>
     <div class="rule-tools">
       <a href="#" onclick={e: Event => instantiate(e, record._1)}>Instantiate</a>
@@ -207,6 +207,37 @@ object Rules {
     val head: Atom
     val body: js.Array[Atom]
     val measures: js.Array[Measure]
+  }
+
+  implicit class PimpedMeasures(val measures: js.Array[Measure]) extends AnyVal {
+    def isApproximative: Option[Boolean] = measures.find(_.name == "SupportIncreaseRatio").map(_.value != 1.0)
+
+    def mapApproximativeMeasures: Iterator[Measure] = isApproximative match {
+      case Some(true) =>
+        val mappedMeasures = measures.iterator.filter(_.name != "SupportIncreaseRatio").map { measure =>
+          if (measure.name == "Support" || measure.name == "HeadCoverage") {
+            new Measure {
+              val name: String = s"~${measure.name}"
+              val value: Double = measure.value
+            }
+          } else {
+            measure
+          }
+        }
+        val samples = Some(measures.foldLeft(0.0 -> 0.0) { case (r@(hs, sir), measure) =>
+          measure.name match {
+            case "SupportIncreaseRatio" => hs -> measure.value
+            case "HeadSupport" => measure.value -> sir
+            case _ => r
+          }
+        }).filter(x => x._1 > 0.0 && x._2 > 0.0).map(x => new Measure {
+          val name: String = "Samples"
+          val value: Double = Math.round(x._1 / x._2)
+        })
+        mappedMeasures ++ samples
+      case Some(false) => measures.iterator.filter(_.name != "SupportIncreaseRatio")
+      case None => measures.iterator
+    }
   }
 
   implicit class PimpedAtomItem(val atomItem: AtomItem) extends AnyVal {

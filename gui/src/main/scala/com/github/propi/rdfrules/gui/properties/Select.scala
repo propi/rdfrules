@@ -18,7 +18,7 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class Select(_name: String, _title: String, items: Constants[(String, String)], default: Option[String] = None, onSelect: (String, String) => Unit = (_, _) => {}, val summaryTitle: SummaryTitle = SummaryTitle.Empty)(implicit context: Context) extends Property.FixedProps {
+class Select(_name: String, _title: String, items: Constants[(String, String)], default: Option[String] = None, onSelect: (String, String) => Unit = (_, _) => {}, val summaryTitle: SummaryTitle = SummaryTitle.Empty, nonEmpty: Boolean = true)(implicit context: Context) extends Property.FixedProps {
 
   val title: Constant[String] = Constant(_title)
   val name: Constant[String] = Constant(_name)
@@ -42,7 +42,15 @@ class Select(_name: String, _title: String, items: Constants[(String, String)], 
 
   override def hasSummary: Binding[Boolean] = Constant(summaryTitle.isEmpty).ifM(Constant(false), selectedItem.map(_.nonEmpty))
 
-  def validate(): Option[String] = None
+  def validate(): Option[String] = {
+    val msg = if (nonEmpty && selectedItem.value.isEmpty) {
+      Some(s"Select box '${title.value}' can not be empty.")
+    } else {
+      None
+    }
+    errorMsg.value = msg
+    msg
+  }
 
   def setValue(data: js.Dynamic): Unit = {
     val x = data.toString

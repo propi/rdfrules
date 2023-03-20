@@ -121,29 +121,47 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
   val properties: Constants[Property] = {
     val thresholds = DynamicGroup("thresholds", "Thresholds", SummaryTitle.NoTitle) { implicit context =>
       val summaryTitle = SummaryTitle.Variable(Var(""))
-      val value = new DynamicElement(Constants(
+      val value1 = new DynamicElement(Constants(
         context.use("MinHeadCoverage")(implicit context => new FixedText[Double]("value", "Value", "0.1", GreaterThanOrEqualsTo(0.001).map[String] & LowerThanOrEqualsTo(1.0).map[String], summaryTitle)),
         context.use("MinHeadSize or MinSupport or Timeout")(implicit context => new FixedText[Double]("value", "Value", validator = GreaterThanOrEqualsTo[Int](1), summaryTitle = summaryTitle)),
         context.use("MaxRuleLength")(implicit context => new FixedText[Double]("value", "Value", validator = GreaterThanOrEqualsTo[Int](2), summaryTitle = summaryTitle)),
-        context.use("MinAtomSize")(implicit context => new FixedText[Double]("value", "Value", default = "-1", summaryTitle = summaryTitle))
-      ))
+        context.use("MinAtomSize")(implicit context => new FixedText[Double]("value", "Value", default = "-1", summaryTitle = summaryTitle)),
+        context.use("LocalTimeout")(implicit context => new FixedText[Double]("value", "Refinement timeout (ms)", "1000", GreaterThanOrEqualsTo[Int](0), "Refinement timeout"))
+      ), true)
+      val value2 = new DynamicElement(Constants(
+        context.use("LocalTimeout")(implicit context => new FixedText[Double]("me", "Margin of error", "0", GreaterThanOrEqualsTo(0.0).map[String] & LowerThanOrEqualsTo(1.0).map[String], "Margin of error"))
+      ), true)
+      val value3 = new DynamicElement(Constants(
+        context.use("LocalTimeout")(implicit context => new Checkbox("dme", "Dynamic margin of error", summaryTitle = "DME"))
+      ), true)
+
+      def activateParams(num: Int, other: Boolean): Unit = {
+        value1.setElement(num)
+        val otherIndex = if (other) 0 else -1
+        value2.setElement(otherIndex)
+        value3.setElement(otherIndex)
+      }
+
       Constants(
         new Select(
           "name",
           "Name",
-          Constants("MinHeadSize" -> "Min head size", "MinAtomSize" -> "Min atom size", "MinHeadCoverage" -> "Min head coverage", "MinSupport" -> "Min support", "MaxRuleLength" -> "Max rule length", "Timeout" -> "Timeout"),
+          Constants("MinHeadSize" -> "Min head size", "MinAtomSize" -> "Min atom size", "MinHeadCoverage" -> "Min head coverage", "MinSupport" -> "Min support", "MaxRuleLength" -> "Max rule length", "Timeout" -> "Timeout", "LocalTimeout" -> "Rule refinement timeout and/or sampling"),
           onSelect = (selectedItem, selectedValue) => {
             summaryTitle.title.value = selectedValue
             selectedItem match {
-              case "MinHeadCoverage" => value.setElement(0)
-              case "MinHeadSize" | "MinSupport" | "Timeout" => value.setElement(1)
-              case "MaxRuleLength" => value.setElement(2)
-              case "MinAtomSize" => value.setElement(3)
-              case _ => value.setElement(-1)
+              case "MinHeadCoverage" => activateParams(0, false)
+              case "MinHeadSize" | "MinSupport" | "Timeout" => activateParams(1, false)
+              case "MaxRuleLength" => activateParams(2, false)
+              case "MinAtomSize" => activateParams(3, false)
+              case "LocalTimeout" => activateParams(4, true)
+              case _ => activateParams(-1, false)
             }
           }
         ),
-        value
+        value1,
+        value2,
+        value3
       )
     }
     val constraints = DynamicGroup("constraints", "Constraints", SummaryTitle.NoTitle) { implicit context =>
