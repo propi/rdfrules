@@ -27,7 +27,7 @@ class Group private(_name: String, _title: String, val summaryTitle: SummaryTitl
 
   override def hasSummary: Binding[Boolean] = Constant(summaryTitle.isEmpty).ifM(Constant(false), properties.existsBinding(_.hasSummary))
 
-  def validate(): Option[String] = properties.value.iterator.map(_.validate()).find(_.nonEmpty).flatten.map(x => s"There is an error within '$title' properties: $x")
+  def validate(): Option[String] = properties.value.iterator.map(_.validate()).find(_.nonEmpty).flatten.map(x => s"There is an error within '${title.value}' properties: $x")
 
   def setValue(data: js.Dynamic): Unit = {
     for (prop <- properties.value) {

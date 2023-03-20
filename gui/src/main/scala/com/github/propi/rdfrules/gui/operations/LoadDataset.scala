@@ -1,9 +1,13 @@
 package com.github.propi.rdfrules.gui.operations
 
-import com.github.propi.rdfrules.gui.properties.{ChooseFileFromWorkspace, OptionalText, Text}
+import com.github.propi.rdfrules.gui.Workspace.FileValue
+import com.github.propi.rdfrules.gui.properties.{ChooseFileFromWorkspace, DynamicElementBinding, OptionalText, Select, Text}
 import com.github.propi.rdfrules.gui.utils.CommonValidators.RegExp
 import com.github.propi.rdfrules.gui.{Operation, OperationInfo, Property, Workspace}
 import com.thoughtworks.binding.Binding.{Constants, Var}
+import com.thoughtworks.binding.Binding.BindingInstances.monadSyntax._
+
+import scala.language.reflectiveCalls
 
 /**
   * Created by Vaclav Zeman on 21. 7. 2018.
@@ -11,9 +15,23 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
 class LoadDataset(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = {
     val validator = RegExp(".+[.](ttl|nt|nq|json|jsonld|xml|rdf|owl|trig|trix|tsv|sql|cache)([.](gz|bz2))?$", true)
+    val fileChooser = new ChooseFileFromWorkspace(Workspace.loadFiles, false, "path", validator = validator, summaryTitle = "file")
+    val url = new OptionalText[String]("url", "URL", validator = validator, summaryTitle = "url")
+
+    def settingsSelector(x: Option[FileValue.File], y: String): Int = {
+      if (x.map(_.path).orElse(Some(y)).exists(_.matches(".+[.]tsv([.](gz|bz2))?"))) 0 else -1
+    }
+
+    val settings = new DynamicElementBinding(
+      Constants(new Select("settings", "TSV parser", Constants("tsvRaw" -> "Raw", "tsvParsedUris" -> "Parsed URIs", "tsvParsedLiterals" -> "Parsed URIs and literals"), Some("tsvParsedUris"))),
+      fileChooser.getSelectedFileBinding -> url.getTextBinding,
+      true
+    )(x => settingsSelector(x._1.value, x._2.value), x => x._1.tuple(x._2).map(x => settingsSelector(x._1, x._2)))
+
     Constants(
-      new ChooseFileFromWorkspace(Workspace.loadFiles, false, "path", validator = validator, summaryTitle = "file"),
-      new OptionalText[String]("url", "URL", validator = validator, summaryTitle = "url")//,
+      fileChooser,
+      url,
+      settings
       /*new Select("format", "RDF format", Constants("ttl" -> "Turtle", "nt" -> "N-Triples", "nq" -> "N-Quads", "xml" -> "RDF/XML", "json" -> "JSON-LD", "trig" -> "TriG", "trix" -> "TriX", "tsv" -> "TSV", "sql" -> "SQL", "cache" -> "Cache"))*/
     )
   }

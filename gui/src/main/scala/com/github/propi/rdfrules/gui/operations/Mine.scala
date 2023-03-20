@@ -87,7 +87,7 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
       </table>
     </div>
 
-    def validate(): Option[String] = properties.value.iterator.map(_.validate()).find(_.nonEmpty).flatten.map(x => s"There is an error within '$title' properties: $x")
+    def validate(): Option[String] = properties.value.iterator.map(_.validate()).find(_.nonEmpty).flatten.map(x => s"There is an error within '${title.value}' properties: $x")
 
     def setValue(data: js.Dynamic): Unit = {
       for (x <- data.asInstanceOf[js.Array[js.Dynamic]]) {

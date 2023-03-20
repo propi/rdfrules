@@ -15,6 +15,7 @@ trait NumericByteArray {
     case x: Long => ByteBuffer.allocate(8).putLong(x).array()
     case x: Float => ByteBuffer.allocate(4).putFloat(x).array()
     case x: Double => ByteBuffer.allocate(8).putDouble(x).array()
+    case x: Byte => ByteBuffer.allocate(1).put(x).array()
     case _ => throw new IllegalArgumentException
   }
 
@@ -24,6 +25,7 @@ trait NumericByteArray {
     case _: Long => ByteBuffer.wrap(byteArray).getLong.asInstanceOf[T]
     case _: Float => ByteBuffer.wrap(byteArray).getFloat.asInstanceOf[T]
     case _: Double => ByteBuffer.wrap(byteArray).getDouble.asInstanceOf[T]
+    case _: Byte => ByteBuffer.wrap(byteArray).get().asInstanceOf[T]
     case _ => throw new IllegalArgumentException
   }
 

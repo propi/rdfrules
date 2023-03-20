@@ -16,24 +16,36 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class ArrayElement private(val name: String, val title: String, val summaryTitle: SummaryTitle, property: Context => Property)(implicit context: Context) extends Property.FixedProps {
+class ArrayElement private(_name: String, _title: String, val summaryTitle: SummaryTitle, property: Context => Property)(implicit context: Context) extends Property {
 
   private val groups: Vars[Property] = Vars.empty
 
-  val descriptionVar: Binding.Var[String] = Var(context(title).description)
+  val description: Var[String] = Var(context(_title).description)
+  val title: Constant[String] = Constant(_title)
+  val name: Constant[String] = Constant(_name)
+  val isHidden: Binding[Boolean] = Constant(false)
+  val errorMsg: Binding[Option[String]] = groups.findBinding(_.errorMsg.map(_.nonEmpty)).flatMap {
+    case Some(property) => property.errorMsg.tuple(property.title).map(x => x._1.map(createErrorMsg(x._2, _)))
+    case None => Constant(None)
+  }
+
+  private def createErrorMsg(title: String, msg: String) = s"There is an error within '$title' properties: $msg"
+
+  def getName: String = name.value
+
+  def getTitle: String = title.value
+
+  def getErrorMsg: Option[String] = groups.value.iterator.map(_.getErrorMsg).find(_.nonEmpty).flatten.map(x => createErrorMsg(title.value, x))
+
+  def getDescription: String = description.value
 
   override def hasSummary: Binding[Boolean] = Constant(summaryTitle.isEmpty).ifM(Constant(false), groups.existsBinding(_.hasSummary))
 
-  def validate(): Option[String] = {
-    val msg = groups.value.iterator.map(_.validate()).find(_.nonEmpty).flatten.map(x => s"There is an error within '$title' properties: $x")
-    errorMsg.value = msg
-    msg
-  }
+  def validate(): Option[String] = groups.value.iterator.map(_.validate()).find(_.nonEmpty).flatten.map(x => createErrorMsg(title.value, x))
 
   def setValue(data: js.Dynamic): Unit = {
     for (x <- data.asInstanceOf[js.Array[js.Dynamic]]) {
-      val newProperty = property(context(title))
-      newProperty.errorMsg.addListener((_: Option[String], _: Option[String]) => validate())
+      val newProperty = property(context(title.value))
       newProperty.setValue(x)
       groups.value += newProperty
     }
@@ -55,9 +67,8 @@ class ArrayElement private(val name: String, val title: String, val summaryTitle
         <i class="material-icons">remove_circle_outline</i>
       </a>
       </div>}<a class="add" onclick={_: Event =>
-      val newProperty = property(context(title))
-      groups.value += newProperty
-      newProperty.errorMsg.addListener((_: Option[String], _: Option[String]) => validate())}>
+      val newProperty = property(context(title.value))
+      groups.value += newProperty}>
       <i class="material-icons">add_circle_outline</i>
     </a>
     </div>

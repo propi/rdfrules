@@ -66,7 +66,7 @@ object Cacheable {
       TripleItemInt(res._2, res._3)
     case Some(1) =>
       IndexPartType(Deserializer.directDeserialize[(Byte, Index.PartType)](v)._2)
-    case Some(3) =>
+    case Some(2) =>
       Quad(Deserializer.directDeserialize[(Byte, IndexItem.IntQuad)](v)._2)
     case _ => throw new Deserializer.DeserializationException("Non parsable index ser item")
   }
