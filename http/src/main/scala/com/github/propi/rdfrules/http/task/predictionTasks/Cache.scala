@@ -6,7 +6,7 @@ import com.github.propi.rdfrules.utils.Debugger
 
 import java.io.File
 
-class Cache(revalidate: Boolean)(implicit debugger: Debugger) extends CommonCache[PredictionTasksResults]("", true, revalidate) {
+class Cache(path: String, revalidate: Boolean)(implicit debugger: Debugger) extends CommonCache[PredictionTasksResults](path, true, revalidate) {
   val companion: TaskDefinition = Cache
 
   def cacheInMemory(x: PredictionTasksResults): PredictionTasksResults = x.cache

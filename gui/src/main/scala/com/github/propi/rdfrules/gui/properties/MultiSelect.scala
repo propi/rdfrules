@@ -18,11 +18,11 @@ import scala.scalajs.js.JSConverters.JSRichIterableOnce
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class MultiSelect(_name: String, _title: String, items: Constants[(String, String)], default: Seq[String] = Nil, placeholder: String = "", onchange: Seq[(String, String)] => Unit = _ => (), val summaryTitle: SummaryTitle = SummaryTitle.Empty)(implicit context: Context) extends Property.FixedProps {
+class MultiSelect(_name: String, _title: String, items: Constants[(String, String)], default: Seq[String] = Nil, placeholder: String = "", onchange: Seq[(String, String)] => Unit = _ => (), val summaryTitle: SummaryTitle = SummaryTitle.Empty)(implicit context: Context) extends Property.FixedProps with Property.FixedHidden {
 
   val title: Constant[String] = Constant(_title)
   val name: Constant[String] = Constant(_name)
-  val isHidden: Binding[Boolean] = Constant(false)
+  val isHidden: Constant[Boolean] = Constant(false)
   val description: Var[String] = Var(context(_title).description)
 
   private val multiselect = new Multiselect(items, default.toSet, placeholder, onchange)

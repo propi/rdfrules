@@ -57,5 +57,7 @@ class Rule extends Property.FixedProps {
     }
   }
 
+  def getIsHidden: Boolean = isHidden.value
+
   def toJson: js.Any = rules.value.toJSArray
 }

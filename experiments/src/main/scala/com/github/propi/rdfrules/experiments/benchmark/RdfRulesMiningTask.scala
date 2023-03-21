@@ -43,7 +43,7 @@ trait RdfRulesMiningTask[T] extends Task[Index, Index, Ruleset, T] with TaskPreP
       x => if (minPcaConfidence <= 0.0) x else x.computeConfidence[Measure.PcaConfidence](minPcaConfidence, injectiveMapping).cache,
       x => if (minQpcaConfidence <= 0.0) x else x.computeConfidence[Measure.QpcaConfidence](minQpcaConfidence, injectiveMapping).cache,
       x => if (!countLift) x else x.computeLift().cache,
-      x => if (skylinePruning) x.onlyBetterDescendant(Measure.PcaConfidence).cache else x,
+      x => if (skylinePruning) x.skylinePruning(Measure.PcaConfidence).cache else x,
     ))(ruleset)
   }
 

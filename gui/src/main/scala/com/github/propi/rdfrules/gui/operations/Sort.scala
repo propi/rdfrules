@@ -14,10 +14,11 @@ class Sort(fromOperation: Operation, val info: OperationInfo) extends Operation 
       new Select("measure", "Measure", Constants(
         "RuleLength" -> "Rule length",
         "HeadSize" -> "Head size",
+        "HeadSupport" -> "Head support",
         "Support" -> "Support",
         "HeadCoverage" -> "Head coverage",
         "BodySize" -> "Body size",
-        "Confidence" -> "Confidence",
+        "Confidence" -> "CWA confidence",
         "PcaConfidence" -> "PCA confidence",
         "PcaBodySize" -> "PCA body size",
         "QpcaConfidence" -> "QPCA confidence",

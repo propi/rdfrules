@@ -333,11 +333,11 @@ Perform a pruning strategy with all rules in the ruleset
 
 ##### Properties
 
-- **Strategy**: Data coverage pruning - from the list of rules we gradually take such rules which cover all generated triples from the input dataset. Closed - we take only rules within closure, it means all sub-rules of a selected rule are less frequent than the selected rule. Maximal - rules which do not have any frequent sub-rules. OnlyBetterDescendant - all rules which have lower selected measure than its parent are pruned.
+- **Strategy**: Data coverage pruning - from the list of rules we gradually take such rules which cover all generated triples from the input dataset. Closed - we take only rules within closure, it means all sub-rules of a selected rule are less frequent than the selected rule. Maximal - rules which do not have any frequent sub-rules. SkylinePruning - all rules which have lower selected measure than its parents are pruned.
 - **Data coverage pruning**:
   - **Only functional properties**: Generate only functional properties. That means only one object can be predicted for pair (subject, predicate).
   - **Only existing triples**: If checked, the common CBA strategy will be used. That means we take only such predicted triples, which are contained in the input dataset. This strategy takes maximally as much memory as the number of triples in the input dataset. If false, we take all predicted triples (including triples which are not contained in the input dataset and are newly generated). For deduplication a HashSet is used and therefore the memory may increase unexpectedly because we need to save all unique generated triples into memory..
-- **Closed or OnlyBetterDescendant**:
+- **Closed or SkylinePruning**:
   - **Measure**: Some measure by which to do this pruning strategy.
 
 #### Compute confidence

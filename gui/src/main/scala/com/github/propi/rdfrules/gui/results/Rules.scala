@@ -210,33 +210,32 @@ object Rules {
   }
 
   implicit class PimpedMeasures(val measures: js.Array[Measure]) extends AnyVal {
-    def isApproximative: Option[Boolean] = measures.find(_.name == "SupportIncreaseRatio").map(_.value != 1.0)
+    def isApproximative: Boolean = measures.exists(_.name == "SupportIncreaseRatio")
 
-    def mapApproximativeMeasures: Iterator[Measure] = isApproximative match {
-      case Some(true) =>
-        val mappedMeasures = measures.iterator.filter(_.name != "SupportIncreaseRatio").map { measure =>
-          if (measure.name == "Support" || measure.name == "HeadCoverage") {
-            new Measure {
-              val name: String = s"~${measure.name}"
-              val value: Double = measure.value
-            }
-          } else {
-            measure
+    def mapApproximativeMeasures: Iterator[Measure] = if (isApproximative) {
+      val mappedMeasures = measures.iterator.filter(_.name != "SupportIncreaseRatio").map { measure =>
+        if (measure.name == "Support" || measure.name == "HeadCoverage") {
+          new Measure {
+            val name: String = s"~${measure.name}"
+            val value: Double = measure.value
           }
+        } else {
+          measure
         }
-        val samples = Some(measures.foldLeft(0.0 -> 0.0) { case (r@(hs, sir), measure) =>
-          measure.name match {
-            case "SupportIncreaseRatio" => hs -> measure.value
-            case "HeadSupport" => measure.value -> sir
-            case _ => r
-          }
-        }).filter(x => x._1 > 0.0 && x._2 > 0.0).map(x => new Measure {
-          val name: String = "Samples"
-          val value: Double = Math.round(x._1 / x._2)
-        })
-        mappedMeasures ++ samples
-      case Some(false) => measures.iterator.filter(_.name != "SupportIncreaseRatio")
-      case None => measures.iterator
+      }
+      val samples = Some(measures.foldLeft(0.0 -> 0.0) { case (r@(hs, sir), measure) =>
+        measure.name match {
+          case "SupportIncreaseRatio" => hs -> measure.value
+          case "HeadSupport" => measure.value -> sir
+          case _ => r
+        }
+      }).filter(x => x._1 > 0.0 && x._2 > 0.0).map(x => new Measure {
+        val name: String = "Samples"
+        val value: Double = Math.round(x._1 / x._2)
+      })
+      mappedMeasures ++ samples
+    } else {
+      measures.iterator
     }
   }
 

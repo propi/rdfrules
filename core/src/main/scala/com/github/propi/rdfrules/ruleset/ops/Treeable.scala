@@ -96,7 +96,7 @@ trait Treeable extends Sortable[FinalRule, Ruleset] {
     * @param measure some measure by which to do this pruning strategy
     * @return
     */
-  def onlyBetterDescendant(measure: Key[Measure])(implicit debugger: Debugger): Ruleset = {
+  def skylinePruning(measure: Key[Measure])(implicit debugger: Debugger): Ruleset = {
     val ordering = implicitly[Ordering[Measure]]
     transform(tree.filter(x => x.parents.forall(y => ordering.gt(x.rule.measures(measure), y.rule.measures(measure)))).map(_.rule))
   }

@@ -18,14 +18,14 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-abstract class Text(_name: String, _title: String, default: String, validator: Validator[String], val summaryTitle: SummaryTitle)(implicit context: Context) extends Property.FixedProps {
+abstract class Text(_name: String, _title: String, default: String, validator: Validator[String], val summaryTitle: SummaryTitle)(implicit context: Context) extends Property.FixedProps with Property.FixedHidden {
 
   private val text: Var[String] = Var(default)
 
   val title: Constant[String] = Constant(_title)
   val name: Constant[String] = Constant(_name)
   val description: Var[String] = Var(context(_title).description)
-  val isHidden: Binding[Boolean] = Constant(false)
+  val isHidden: Constant[Boolean] = Constant(false)
 
   final def getText: String = text.value
 

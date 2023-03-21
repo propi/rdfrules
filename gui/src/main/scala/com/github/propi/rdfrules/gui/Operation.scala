@@ -185,7 +185,7 @@ trait Operation {
     val classHidden = if (_nextOperation.nonEmpty && _previousOperation.isEmpty) " hidden" else ""
     val classHasNext = if (_nextOperation.nonEmpty) " has-next" else ""
     s"${info.`type`.toString} operation ${info.name}$classHidden$classHasNext"} onclick={_: Event =>
-      if (properties.value.nonEmpty) {
+      if (properties.value.exists(!_.getIsHidden)) {
         errorMsg.value = None
         Main.canvas.openModal(viewProperties)
       }}>

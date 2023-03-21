@@ -17,13 +17,13 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class DynamicGroup private(_name: String, _title: String, val summaryTitle: SummaryTitle, properties: Context => Constants[Property])(implicit context: Context) extends Property.FixedProps {
+class DynamicGroup private(_name: String, _title: String, val summaryTitle: SummaryTitle, properties: Context => Constants[Property])(implicit context: Context) extends Property.FixedProps with Property.FixedHidden {
 
   private val groups: Vars[Constants[Property]] = Vars.empty
 
   val title: Constant[String] = Constant(_title)
   val name: Constant[String] = Constant(_name)
-  val isHidden: Binding[Boolean] = Constant(false)
+  val isHidden: Constant[Boolean] = Constant(false)
   val description: Var[String] = Var(context(_title).description)
 
   override def hasSummary: Binding[Boolean] = {

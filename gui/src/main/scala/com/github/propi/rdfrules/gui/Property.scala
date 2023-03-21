@@ -39,6 +39,8 @@ trait Property {
 
   def getDescription: String
 
+  def getIsHidden: Boolean
+
   @html
   def summaryView: Binding[Span] = <span class="property-summary">
     {if (summaryTitle == SummaryTitle.NoTitle) {
@@ -98,6 +100,12 @@ object Property {
     final def getName: String = name.value
 
     final def getTitle: String = title.value
+  }
+
+  trait FixedHidden extends Property {
+    val isHidden: Constant[Boolean]
+
+    def getIsHidden: Boolean = isHidden.value
   }
 
   sealed trait SummaryTitle {

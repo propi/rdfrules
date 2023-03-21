@@ -203,8 +203,8 @@ object PipelineJsonReaders {
     implicit val defaultConfidence: DefaultConfidence = selector("confidence").to[DefaultConfidence]
     new prediction.ToPredictionTasks(
       selector("generator").to[PredictionTasksBuilder],
-      selector("limit").to[Int],
-      selector("topK").to[Int]
+      selector.get("limit").toOpt[Int].getOrElse(-1),
+      selector.get("topK").toOpt[Int].getOrElse(-1)
     )
   }
 
@@ -378,7 +378,7 @@ object PipelineJsonReaders {
 
   implicit def cachePredictionTasksReader(implicit debugger: Debugger): RootJsonReader[predictionTasks.Cache] = (json: JsValue) => {
     val fields = json.asJsObject.fields
-    new predictionTasks.Cache(fields("revalidate").convertTo[Boolean])
+    new predictionTasks.Cache(fields("path").convertTo[String], fields("revalidate").convertTo[Boolean])
   }
 
   implicit val instantiateReader: RootJsonReader[ruleset.Instantiate] = (json: JsValue) => {

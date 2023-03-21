@@ -11,7 +11,7 @@ import com.thoughtworks.binding.Binding.{Constants, Var}
   */
 class MakeClusters(fromOperation: Operation, val info: OperationInfo) extends Operation {
   val properties: Constants[Property] = Constants(
-    new OptionalText[Int]("minNeighbours", "Min neighbours", default = "2", validator = GreaterThanOrEqualsTo[Int](2)),
+    new OptionalText[Int]("minNeighbours", "Min neighbours", default = "2", validator = GreaterThanOrEqualsTo[Int](1)),
     new OptionalText[Double]("minSimilarity", "Min similarity", default = "0.85", validator = GreaterThanOrEqualsTo(0.0).map[String] & LowerThanOrEqualsTo(1.0).map[String])
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))

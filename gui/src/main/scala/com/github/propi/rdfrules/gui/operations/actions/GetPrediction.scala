@@ -1,6 +1,6 @@
 package com.github.propi.rdfrules.gui.operations.actions
 
-import com.github.propi.rdfrules.gui.properties.{Checkbox, Hidden}
+import com.github.propi.rdfrules.gui.properties.Hidden
 import com.github.propi.rdfrules.gui.results.PredictedTriples
 import com.github.propi.rdfrules.gui.{ActionProgress, Operation, OperationInfo, Property}
 import com.thoughtworks.binding.Binding.{Constants, Var}
@@ -15,10 +15,7 @@ class GetPrediction(fromOperation: Operation) extends Operation {
 
   private val showRules = new Hidden[Boolean]("showRules", "true")(_.toBoolean, x => x)
 
-  val properties: Constants[Property] = Constants(
-    new Checkbox("group", "Group by triples", true),
-    showRules
-  )
+  val properties: Constants[Property] = Constants(showRules)
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 
   override def buildActionProgress(id: Future[String]): Option[ActionProgress] = Some(new PredictedTriples(info.title, id, showRules.getValue))

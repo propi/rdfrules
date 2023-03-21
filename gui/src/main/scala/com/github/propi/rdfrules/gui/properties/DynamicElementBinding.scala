@@ -64,6 +64,11 @@ class DynamicElementBinding[T](properties: Constants[Property], protected val ac
     if (_active < 0) "" else properties.value(_active).getDescription
   }
 
+  def getIsHidden: Boolean = {
+    val _active = getActive
+    if (_active < 0) true else properties.value(_active).getIsHidden
+  }
+
   def validate(): Option[String] = {
     val _active = getActive
     if (_active >= 0) {

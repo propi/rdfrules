@@ -245,6 +245,7 @@ object CommonDataJsonReaders {
   implicit val measureKeyReader: RootJsonReader[TypedKeyMap.Key[Measure]] = (json: JsValue) => json.convertTo[String] match {
     case "HeadSize" => Measure.HeadSize
     case "Support" => Measure.Support
+    case "HeadSupport" => Measure.HeadSupport
     case "HeadCoverage" => Measure.HeadCoverage
     case "BodySize" => Measure.BodySize
     case "Confidence" => Measure.CwaConfidence
@@ -358,7 +359,7 @@ object CommonDataJsonReaders {
       case "DataCoveragePruning" => json.convertTo[PruningStrategy.DataCoveragePruning]
       case "Maximal" => PruningStrategy.Maximal
       case "Closed" => PruningStrategy.Closed(fields("measure").convertTo[TypedKeyMap.Key[Measure]])
-      case "OnlyBetterDescendant" => PruningStrategy.OnlyBetterDescendant(fields("measure").convertTo[TypedKeyMap.Key[Measure]])
+      case "SkylinePruning" => PruningStrategy.SkylinePruning(fields("measure").convertTo[TypedKeyMap.Key[Measure]])
       case "WithoutQuasiBinding" => PruningStrategy.WithoutQuasiBinding(fields("injectiveMapping").convertTo[Boolean])
       case x => deserializationError(s"Invalid name of pruning strategy: $x")
     }
@@ -422,7 +423,7 @@ object CommonDataJsonReaders {
 
   implicit val predictionTasksBuilderReader: RootJsonReader[PredictionTasksBuilder] = (json: JsValue) => {
     val selector = json.toSelector
-    implicit val defaultConfidence: DefaultConfidence = selector("confidence").to[DefaultConfidence]
+    //implicit val defaultConfidence: DefaultConfidence = selector("confidence").to[DefaultConfidence]
     selector("type").to[String] match {
       case "testAll" => PredictionTasksBuilder.FromTestSet.FromAll(true)
       case "testCardinalities" => PredictionTasksBuilder.FromTestSet.FromPredicateCardinalities

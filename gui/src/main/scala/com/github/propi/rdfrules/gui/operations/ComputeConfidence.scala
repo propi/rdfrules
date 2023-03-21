@@ -14,9 +14,9 @@ class ComputeConfidence(fromOperation: Operation, val info: OperationInfo) exten
     val min = new DynamicElement(Constants(
       context.use("CWA confidence")(implicit context => new FixedText[Double]("min", "Min confidence", "0.5", RegExp("1(\\.0+)?|0\\.00[1-9]\\d*|0\\.0?[1-9]\\d*"), "min")),
       context.use("PCA confidence")(implicit context => new FixedText[Double]("min", "Min PCA confidence", "0.5", RegExp("1(\\.0+)?|0\\.00[1-9]\\d*|0\\.0?[1-9]\\d*"), "min")),
-      context.use("QPCA confidence")(implicit context => new FixedText[Double]("min", "Min QPCA confidence", "0.5", RegExp("1(\\.0+)?|0\\.00[1-9]\\d*|0\\.0?[1-9]\\d*"), "min")),
-      context.use("Lift")(implicit context => new FixedText[Double]("min", "Min confidence", "0.5", RegExp("1(\\.0+)?|0\\.00[1-9]\\d*|0\\.0?[1-9]\\d*"), "min"))
-    ))
+      context.use("QPCA confidence")(implicit context => new FixedText[Double]("min", "Min QPCA confidence", "0.5", RegExp("1(\\.0+)?|0\\.00[1-9]\\d*|0\\.0?[1-9]\\d*"), "min"))//,
+      //context.use("Lift")(implicit context => new FixedText[Double]("min", "Min confidence", "0.5", RegExp("1(\\.0+)?|0\\.00[1-9]\\d*|0\\.0?[1-9]\\d*"), "min"))
+    ), true)
     val topK = new DynamicElement(Constants(
       new OptionalText[Int]("topk", "Top-k", validator = GreaterThanOrEqualsTo[Int](1), summaryTitle = "top")
     ), true)
@@ -31,7 +31,7 @@ class ComputeConfidence(fromOperation: Operation, val info: OperationInfo) exten
         Constants("StandardConfidence" -> "CWA confidence", "PcaConfidence" -> "PCA confidence", "QpcaConfidence" -> "QPCA confidence", "Lift" -> "Lift"),
         Some("StandardConfidence"),
         {
-          case ("Lift", _) => activeStrategy(3, false)
+          case ("Lift", _) => activeStrategy(-1, false)
           case ("PcaConfidence", _) => activeStrategy(1, true)
           case ("QpcaConfidence", _) => activeStrategy(2, true)
           case _ => activeStrategy(0, true)

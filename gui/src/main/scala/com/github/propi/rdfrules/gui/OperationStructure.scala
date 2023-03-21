@@ -24,4 +24,8 @@ object OperationStructure {
     override def toString: String = "Prediction"
   }
 
+  object PredictionTasks extends OperationStructure {
+    override def toString: String = "PredictionTasks"
+  }
+
 }

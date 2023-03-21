@@ -50,7 +50,8 @@ object CommonDataJsonWriters {
   implicit val predictedTripleWriter: RootJsonWriter[ResolvedPredictedTriple] = (obj: ResolvedPredictedTriple) => JsObject(
     "triple" -> obj.triple.toJson,
     "predictedResult" -> obj.predictedResult.toJson,
-    "rules" -> obj.rules.toJson
+    "score" -> obj.score.toJson,
+    "rules" -> obj.rules.toJson,
   )
 
   implicit val resolvedInstantiatedAtomWriter: RootJsonWriter[ResolvedInstantiatedAtom] = (obj: ResolvedInstantiatedAtom) => JsObject(

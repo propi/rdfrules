@@ -22,12 +22,12 @@ class FilterPrediction(fromOperation: Operation, val info: OperationInfo) extend
         PredictedResult.PcaPositive.toString -> PredictedResult.PcaPositive.label
       ),
       summaryTitle = Property.SummaryTitle.NoTitle),
-    new Select("completionStrategy", "Completion strategy", Constants(
-      "distinctPredictions" -> "Distinct predictions",
-      "functionalPredictions" -> "Only functional predictions",
-      "pcaPredictions" -> "Only PCA predictions",
-      "qpcaPredictions" -> "Only QPCA predictions"
-    ), summaryTitle = "completion"),
+//    new Select("completionStrategy", "Completion strategy", Constants(
+//      "distinctPredictions" -> "Distinct predictions",
+//      "functionalPredictions" -> "Only functional predictions",
+//      "pcaPredictions" -> "Only PCA predictions",
+//      "qpcaPredictions" -> "Only QPCA predictions"
+//    ), summaryTitle = "completion"),
     DynamicGroup("tripleMatchers", "Triple filter", SummaryTitle.NoTitle) { implicit context =>
       Constants(
         new OptionalText[String]("subject", "Subject", validator = RegExp("<.*>|.*:.*", true), summaryTitle = "subject"),
@@ -43,10 +43,11 @@ class FilterPrediction(fromOperation: Operation, val info: OperationInfo) extend
         new Select("name", "Name", Constants(
           "RuleLength" -> "Rule length",
           "HeadSize" -> "Head size",
+          "HeadSupport" -> "Head support",
           "Support" -> "Support",
           "HeadCoverage" -> "Head coverage",
           "BodySize" -> "Body size",
-          "Confidence" -> "Confidence",
+          "Confidence" -> "CWA confidence",
           "PcaConfidence" -> "PCA confidence",
           "PcaBodySize" -> "PCA body size",
           "QpcaConfidence" -> "QPCA confidence",
@@ -55,7 +56,10 @@ class FilterPrediction(fromOperation: Operation, val info: OperationInfo) extend
         ), onSelect = (_, value) => summaryTitle.value = value),
         new FixedText[String]("value", "Value", validator = RegExp("\\d+(\\.\\d+)?|[><]=? \\d+(\\.\\d+)?|[\\[\\(]\\d+(\\.\\d+)?;\\d+(\\.\\d+)?[\\]\\)]"), summaryTitle = SummaryTitle.Variable(summaryTitle))
       )
-    }
+    },
+    new Checkbox("distinctPredictions", "Only unique predictions", summaryTitle = "unique"),
+    new Checkbox("withoutTrainTriples", "Without training triples", summaryTitle = "no training triples"),
+    new Checkbox("onlyCoveredTestPredictionTasks", "Only test set prediction tasks", summaryTitle = "test prediction tasks")
   )
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))
 }

@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.gui.results
 import com.github.propi.rdfrules.gui._
 import com.github.propi.rdfrules.gui.components.Multiselect
 import com.github.propi.rdfrules.gui.results.InstantiatedRules.InstantiatedAtom
-import com.github.propi.rdfrules.gui.results.PredictedTriples.PredictedTriple
+import com.github.propi.rdfrules.gui.results.PredictedTriples.{PredictedTriple, viewPredictedResultMark, viewPredictedTripleScore, viewTriple}
 import com.github.propi.rdfrules.gui.results.Rules._
 import com.thoughtworks.binding.Binding
 import com.thoughtworks.binding.Binding.BindingInstances.monadSyntax._
@@ -101,32 +101,16 @@ class PredictedTriples(val title: String, val id: Future[String], showRules: Boo
       </span>
     </div>
     <div class="measures">
-      {rule.measures.map(x => s"${x.name}: ${x.value}").mkString(", ")}
+      {rule.measures.mapApproximativeMeasures.map(x => s"${x.name}: ${x.value}").mkString(", ")}
     </div>
   </li>
-
-  @html
-  def viewTriple(record: InstantiatedAtom): Binding[Div] = <div class="quad">
-    <div class="subject">
-      {Rules.viewAtomItem(record.subject)}
-    </div>
-    <div class="predicate">
-      {Rules.viewAtomItem(record.predicate)}
-    </div>
-    <div class="object">
-      {Rules.viewAtomItem(record.`object`)}
-    </div>
-  </div>
 
   @html
   def viewRecord(record: (PredictedTriple, Int)): Binding[Div] = <div class="predicted-triple">
     <div class="record">
       <div class="num">
         {(record._2 + 1).toString + ":"}
-      </div>
-      <div class={s"predicted-result ${record._1.predictedResult.toLowerCase}"} title={PredictedResult(record._1.predictedResult).map(_.label).getOrElse("")}>
-        {PredictedResult(record._1.predictedResult).map(_.symbol).getOrElse("!")}
-      </div>{viewTriple(record._1.triple).bind}
+      </div>{viewPredictedResultMark(record._1.predictedResult).bind}{viewTriple(record._1.triple.subject, record._1.triple.predicate, record._1.triple.`object`).bind}{viewPredictedTripleScore(record._1.score).bind}
     </div>{if (withRules.bind) {
       val n = Var(3)
       <ul class="rules">
@@ -135,9 +119,8 @@ class PredictedTriples(val title: String, val id: Future[String], showRules: Boo
       }}{if (record._1.rules.length > n.bind) {
         <li class="more">
           <a href="#" onclick={e: Event =>
-          e.preventDefault()
-          n.value = n.value + 5
-          }>show more</a>
+            e.preventDefault()
+            n.value = n.value + 5}>show more</a>
         </li>
       } else {
         <!-- empty content -->
@@ -186,6 +169,30 @@ object PredictedTriples {
     val triple: InstantiatedAtom
     val rules: js.Array[Rule]
     val predictedResult: String
+    val score: Double
   }
+
+  @html
+  def viewPredictedResultMark(predictedResult: String): Binding[Div] = <div class={s"predicted-result ${predictedResult.toLowerCase}"} title={PredictedResult(predictedResult).map(_.label).getOrElse("")}>
+    {PredictedResult(predictedResult).map(_.symbol).getOrElse("!")}
+  </div>
+
+  @html
+  def viewPredictedTripleScore(score: Double): Binding[Div] = <div class="predicted-triple-score">
+    {if (score == 0.0) "" else s"Score: $score"}
+  </div>
+
+  @html
+  def viewTriple(s: js.Dynamic, p: js.Dynamic, o: js.Dynamic): Binding[Div] = <div class="quad">
+    <div class="subject">
+      {Rules.viewAtomItem(s)}
+    </div>
+    <div class="predicate">
+      {Rules.viewAtomItem(p)}
+    </div>
+    <div class="object">
+      {Rules.viewAtomItem(o)}
+    </div>
+  </div>
 
 }

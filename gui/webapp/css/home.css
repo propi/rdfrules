@@ -643,6 +643,13 @@ main {
 .action-progress .result .predicted-triple .record .predicted-result {
   margin-right: 0.2em;
 }
+.action-progress .result .predicted-triple .record .predicted-triple-score {
+  margin-left: 1em;
+  font-size: 0.8em;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+}
 .action-progress .result .type {
   margin-bottom: 0.5em;
 }

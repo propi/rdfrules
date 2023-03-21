@@ -31,6 +31,7 @@ class Sort(measures: Seq[(Option[TypedKeyMap.Key[Measure]], Boolean)]) extends T
         case Measure.QpcaBodySize => rule: FinalRule => Measure.QpcaBodySize(rule.measures.get(Measure.QpcaBodySize).map(_.value).getOrElse(0) * revNum(x._2))
         case Measure.QpcaConfidence => rule: FinalRule => Measure.QpcaConfidence(rule.measures.get(Measure.QpcaConfidence).map(_.value).getOrElse(0.0) * revNum(x._2))
         case Measure.Support => rule: FinalRule => Measure.Support(rule.measures.get(Measure.Support).map(_.value).getOrElse(0) * revNum(x._2))
+        case Measure.HeadSupport => rule: FinalRule => Measure.HeadSupport(rule.measures.get(Measure.HeadSupport).map(_.value).getOrElse(0) * revNum(x._2))
         case Measure.Cluster => rule: FinalRule => Measure.Cluster(rule.measures.get(Measure.Cluster).map(_.number).getOrElse(0) * revNum(x._2))
       }.getOrElse((rule: FinalRule) => Measure.Cluster(rule.ruleLength * revNum(x._2))))
       input.sortBy { rule =>

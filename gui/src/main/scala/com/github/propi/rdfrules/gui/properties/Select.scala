@@ -18,12 +18,12 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class Select(_name: String, _title: String, items: Constants[(String, String)], default: Option[String] = None, onSelect: (String, String) => Unit = (_, _) => {}, val summaryTitle: SummaryTitle = SummaryTitle.Empty, nonEmpty: Boolean = true)(implicit context: Context) extends Property.FixedProps {
+class Select(_name: String, _title: String, items: Constants[(String, String)], default: Option[String] = None, onSelect: (String, String) => Unit = (_, _) => {}, val summaryTitle: SummaryTitle = SummaryTitle.Empty, nonEmpty: Boolean = true)(implicit context: Context) extends Property.FixedProps with Property.FixedHidden {
 
   val title: Constant[String] = Constant(_title)
   val name: Constant[String] = Constant(_name)
   val description: Var[String] = Var(context(_title).description)
-  val isHidden: Binding[Boolean] = Constant(false)
+  val isHidden: Constant[Boolean] = Constant(false)
 
   private val selectedItem: Var[Option[String]] = Var(default)
   private val preparedItems: Constants[(String, String)] = if (default.isEmpty) {

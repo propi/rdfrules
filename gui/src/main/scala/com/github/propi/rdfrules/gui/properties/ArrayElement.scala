@@ -16,14 +16,14 @@ import scala.scalajs.js
 /**
   * Created by Vaclav Zeman on 13. 9. 2018.
   */
-class ArrayElement private(_name: String, _title: String, val summaryTitle: SummaryTitle, property: Context => Property)(implicit context: Context) extends Property {
+class ArrayElement private(_name: String, _title: String, val summaryTitle: SummaryTitle, property: Context => Property)(implicit context: Context) extends Property.FixedHidden {
 
   private val groups: Vars[Property] = Vars.empty
 
   val description: Var[String] = Var(context(_title).description)
   val title: Constant[String] = Constant(_title)
   val name: Constant[String] = Constant(_name)
-  val isHidden: Binding[Boolean] = Constant(false)
+  val isHidden: Constant[Boolean] = Constant(false)
   val errorMsg: Binding[Option[String]] = groups.findBinding(_.errorMsg.map(_.nonEmpty)).flatMap {
     case Some(property) => property.errorMsg.tuple(property.title).map(x => x._1.map(createErrorMsg(x._2, _)))
     case None => Constant(None)

@@ -20,12 +20,12 @@ import scala.scalajs.js
   */
 class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation {
 
-  private object RuleConsumers extends Property.FixedProps {
+  private object RuleConsumers extends Property.FixedProps with Property.FixedHidden {
     val name: Constant[String] = Constant("ruleConsumers")
     val title: Constant[String] = Constant("Rule consumer")
     val description: Var[String] = Var(context(title.value).description)
     val summaryTitle: SummaryTitle = SummaryTitle.Empty
-    val isHidden: Binding[Boolean] = Constant(false)
+    val isHidden: Constant[Boolean] = Constant(false)
 
     private var hasTopK: Boolean = false
     private var hasOnDisk: Boolean = false

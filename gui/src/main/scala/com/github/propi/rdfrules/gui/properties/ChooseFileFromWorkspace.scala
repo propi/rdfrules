@@ -29,7 +29,7 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
                               _name: String,
                               _title: String = "Choose a file from the workspace",
                               validator: Validator[String] = NoValidator[String](),
-                              val summaryTitle: SummaryTitle = SummaryTitle.Empty)(implicit context: Context) extends Property.FixedProps {
+                              val summaryTitle: SummaryTitle = SummaryTitle.Empty)(implicit context: Context) extends Property.FixedProps with Property.FixedHidden {
 
   private implicit val ec: ExecutionContext = scala.scalajs.concurrent.JSExecutionContext.queue
 
@@ -40,7 +40,7 @@ class ChooseFileFromWorkspace(files: Future[FileValue.Directory],
   val title: Constant[String] = Constant(_title)
   val name: Constant[String] = Constant(_name)
   val description: Var[String] = Var(context(_title).description)
-  val isHidden: Binding[Boolean] = Constant(false)
+  val isHidden: Constant[Boolean] = Constant(false)
 
   private def processLoadedFiles(workspace: Workspace.FileValue.Directory): Unit = {
     loadedFiles.value = Some(workspace)
