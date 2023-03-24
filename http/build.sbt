@@ -2,7 +2,7 @@ name := "http"
 
 organization := "com.github.propi.rdfrules"
 
-version := "1.6.1"
+version := "1.7.2"
 
 scalaVersion := "2.13.8"
 
