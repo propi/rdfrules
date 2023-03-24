@@ -61,7 +61,11 @@ class PredictionTasks(val title: String, val id: Future[String]) extends ActionP
     <ol class="candidates">
       {for (candidate <- Constants(record._1.candidates.iterator.take(n.bind).toSeq: _*)) yield {
       <li class="candidate">
-        {viewPredictedResultMark(candidate.predictedResult).bind}{viewTriple(candidate.triple.subject, candidate.triple.predicate, candidate.triple.`object`).bind}{viewPredictedTripleScore(candidate.score).bind}
+        <div>
+          {viewPredictedResultMark(candidate.predictedResult).bind}<span class="candidate-body">
+          {if (record._1.predictionTask.c.s.isEmpty) Rules.viewAtomItem(candidate.triple.subject) else Rules.viewAtomItem(candidate.triple.`object`)}
+        </span>{viewPredictedTripleScore(candidate.score).bind}
+        </div>
       </li>
     }}{if (record._1.candidates.length > n.bind) {
       <li class="more">

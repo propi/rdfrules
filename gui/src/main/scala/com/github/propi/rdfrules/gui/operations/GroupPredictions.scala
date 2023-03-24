@@ -59,7 +59,7 @@ class GroupPredictions(fromOperation: Operation, val info: OperationInfo) extend
       new Checkbox("useConsumer", "Use rules consumer", onChecked = isChecked => activateStrategy(None, Some(isChecked))),
       consumer,
       confidence,
-      new OptionalText[Int]("limit", "Limit", validator = GreaterThanOrEqualsTo[Int](1))
+      new OptionalText[Int]("limit", "Limit", validator = GreaterThanOrEqualsTo[Int](1), summaryTitle = "limit")
     )
   }
 

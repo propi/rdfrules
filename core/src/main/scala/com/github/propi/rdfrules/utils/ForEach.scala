@@ -247,6 +247,19 @@ trait ForEach[+T] {
     res
   }
 
+  def scanLeft[A, B >: T](z: A)(g: (A, B) => (A, B)): ForEach[(A, B)] = new ForEach[(A, B)] {
+    def foreach(f: ((A, B)) => Unit): Unit = {
+      var interres = z
+      for (x <- self) {
+        val res = g(interres, x)
+        f(res)
+        interres = res._1
+      }
+    }
+
+    override def knownSize: Int = self.knownSize
+  }
+
   def flatMap[A](g: T => ForEach[A]): ForEach[A] = (f: A => Unit) => self.foreach(g(_).foreach(f))
 
   def reduce[A >: T](f: (A, A) => A): A = reduceOption(f).get

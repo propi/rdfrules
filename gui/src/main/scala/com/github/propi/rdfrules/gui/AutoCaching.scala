@@ -59,6 +59,7 @@ object AutoCaching {
         case OperationStructure.Index => Some(OperationInfo.IndexTransformation.CacheIndex.buildOperation(operation, Some(cacheId)))
         case OperationStructure.Ruleset => Some(OperationInfo.RulesetTransformation.CacheRuleset.buildOperation(operation, Some(cacheId)))
         case OperationStructure.Prediction => Some(OperationInfo.PredictionTransformation.CachePrediction.buildOperation(operation, Some(cacheId)))
+        case OperationStructure.PredictionTasks => Some(OperationInfo.PredictionTasksTransformation.CachePredictionTasks.buildOperation(operation, Some(cacheId)))
         case _ => None
       }
     }
@@ -113,8 +114,6 @@ object AutoCaching {
                 operation.info == OperationInfo.DatasetTransformation.Index ||
                 //after mining it is cached
                 operation.info == OperationInfo.IndexTransformation.Mine ||
-                //after prediction it is cached
-                operation.info == OperationInfo.RulesetTransformation.Predict ||
                 //last ruleset operation is cached (before action or transformation to other structure)
                 (operation.info.targetStructure == OperationStructure.Ruleset && operation.getNextOperation.exists(x => x.info.isTransforming))
             // ||

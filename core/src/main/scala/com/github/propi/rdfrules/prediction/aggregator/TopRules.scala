@@ -29,5 +29,5 @@ class TopRules private(topK: Int)(implicit defaultConfidence: DefaultConfidence)
 }
 
 object TopRules {
-  def apply(topK: Int = -1)(implicit defaultConfidence: DefaultConfidence): TopRules = new TopRules(topK)(defaultConfidence)
+  def apply(topK: Int = -1)(implicit defaultConfidence: DefaultConfidence = DefaultConfidence()): TopRules = new TopRules(topK)(defaultConfidence)
 }

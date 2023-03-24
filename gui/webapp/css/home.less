@@ -613,6 +613,7 @@ main {
         font-size: 0.8em;
         padding-left: 2em;
       }
+
       .more {
         list-style: none;
       }
@@ -720,6 +721,24 @@ main {
           align-items: center;
         }
       }
+
+      .candidates {
+        margin-left: 2em;
+
+        .candidate {
+          font-size: 0.8em;
+
+          > div {
+            display: flex;
+            gap: 0.5em;
+            margin-left: 0.5em;
+          }
+        }
+
+        .more {
+          font-size: 0.8em;
+        }
+      }
     }
 
     .type {
@@ -804,6 +823,12 @@ main {
 
     .model {
       margin-top: 1.5em;
+    }
+
+    .evaluation {
+      display: flex;
+      flex-direction: column;
+      gap: 1em;
     }
 
     .confusion-matrix {

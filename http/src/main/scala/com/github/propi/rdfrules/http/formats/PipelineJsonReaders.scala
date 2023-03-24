@@ -293,14 +293,21 @@ object PipelineJsonReaders {
   implicit val filterPredictionTasksReader: RootJsonReader[predictionTasks.Filter] = (json: JsValue) => {
     val selector = json.toSelector
     new predictionTasks.Filter(
-      selector.get("nonEmptyTest").toOpt[Boolean].getOrElse(false),
+      selector.get("predictedResults").toTypedIterable[PredictedResult].toSet,
+      selector.get("tripleMatchers").toIterable.flatMap { selector =>
+        selector.toOpt[TripleMatcher]
+      }.toSeq,
       selector.get("nonEmptyPredictions").toOpt[Boolean].getOrElse(false)
     )
   }
 
   implicit val selectPredictionsReader: RootJsonReader[predictionTasks.Select] = (json: JsValue) => {
     val selector = json.toSelector
-    new predictionTasks.Select(selector("strategy").to[SelectionStrategy])
+    new predictionTasks.Select(
+      selector.get("strategy").toOpt[SelectionStrategy],
+      selector.get("minScore").toOpt[Double].getOrElse(0.0),
+      selector.get("predictedResults").toTypedIterable[PredictedResult].toSet
+    )
   }
 
   implicit val withModesReader: RootJsonReader[predictionTasks.WithModes] = (_: JsValue) => {
@@ -407,12 +414,14 @@ object PipelineJsonReaders {
     new ruleset.GetRules
   }
 
-  implicit val getPredictionReader: RootJsonReader[prediction.GetPrediction] = (_: JsValue) => {
-    new GetPrediction
+  implicit val getPredictionReader: RootJsonReader[prediction.GetPrediction] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new GetPrediction(fields("maxRules").convertTo[Int])
   }
 
-  implicit val getPredictionTasksReader: RootJsonReader[predictionTasks.GetPredictionTasks] = (_: JsValue) => {
-    new predictionTasks.GetPredictionTasks
+  implicit val getPredictionTasksReader: RootJsonReader[predictionTasks.GetPredictionTasks] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new predictionTasks.GetPredictionTasks(fields("maxCandidates").convertTo[Int])
   }
 
   implicit val rulesetSizeReader: RootJsonReader[ruleset.Size] = (_: JsValue) => {

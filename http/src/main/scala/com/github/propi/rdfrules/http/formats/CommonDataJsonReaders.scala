@@ -416,8 +416,8 @@ object CommonDataJsonReaders {
   implicit val predictionTaskPatternReader: RootJsonReader[PredictionTaskPattern] = (json: JsValue) => {
     val selector = json.toSelector
     PredictionTaskPattern(
-      selector("p").to[TripleItem.Uri],
-      selector("targetVariable").to[ConceptPosition]
+      selector.get("p").toOpt[TripleItem.Uri],
+      selector.get("targetVariable").toOpt[ConceptPosition]
     )
   }
 
@@ -431,7 +431,6 @@ object CommonDataJsonReaders {
       case "testCustom" => PredictionTasksBuilder.FromTestSet.FromCustomSet(selector.get("tasks").toTypedIterable[PredictionTask.Resolved].toSet, true)
       case "predictionCardinalities" => PredictionTasksBuilder.FromPredictedTriple.FromPredicateCardinalities
       case "predictionPatterns" => PredictionTasksBuilder.FromPredictedTriple.FromPatterns(selector.get("patterns").toTypedIterable[PredictionTaskPattern].toSet)
-      case "predictionPosition" => PredictionTasksBuilder.FromPredictedTriple.FromTargetVariablePosition(selector("targetVariable").to[ConceptPosition])
       case _ => deserializationError(s"Invalid prediction tasks generator.")
     }
   }
@@ -442,6 +441,7 @@ object CommonDataJsonReaders {
       case "pca" => SelectionStrategy.Pca
       case "qpca" => SelectionStrategy.Qpca
       case "topK" => SelectionStrategy.TopK(selector("k").to[Int])
+      case _ => deserializationError(s"Invalid type of selection strategy.")
     }
   }
 
@@ -449,6 +449,7 @@ object CommonDataJsonReaders {
     json.convertTo[String] match {
       case "test" => RankingStrategy.FromTest
       case "prediction" => RankingStrategy.FromPrediction
+      case _ => deserializationError(s"Invalid type of ranking strategy.")
     }
   }
 

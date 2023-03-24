@@ -19,6 +19,8 @@ class PredictionTaskResult private(val predictionTask: PredictionTask, private v
 
   def size: Int = candidates.size
 
+  def filterCandidates(f: PredictedTriple => Boolean) = new PredictionTaskResult(predictionTask, candidates.view.filter(f))
+
   def isEmpty: Boolean = candidates.isEmpty
 
   def correctPredictedTriplesRanks: Vector[Int] = predictedTriples.zipWithIndex.foldLeft(Vector.empty[Int]) { case (ranks, (predictedTriple, k)) =>

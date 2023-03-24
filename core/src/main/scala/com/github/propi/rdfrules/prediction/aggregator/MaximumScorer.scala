@@ -22,5 +22,5 @@ class MaximumScorer private(implicit defaultConfidence: DefaultConfidence) exten
 }
 
 object MaximumScorer {
-  def apply()(implicit defaultConfidence: DefaultConfidence): ScoreFactory = new MaximumScorer
+  def apply()(implicit defaultConfidence: DefaultConfidence = DefaultConfidence()): ScoreFactory = new MaximumScorer
 }

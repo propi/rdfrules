@@ -650,6 +650,20 @@ main {
   display: flex;
   align-items: center;
 }
+.action-progress .result .predicted-triple .candidates {
+  margin-left: 2em;
+}
+.action-progress .result .predicted-triple .candidates .candidate {
+  font-size: 0.8em;
+}
+.action-progress .result .predicted-triple .candidates .candidate > div {
+  display: flex;
+  gap: 0.5em;
+  margin-left: 0.5em;
+}
+.action-progress .result .predicted-triple .candidates .more {
+  font-size: 0.8em;
+}
 .action-progress .result .type {
   margin-bottom: 0.5em;
 }
@@ -715,6 +729,11 @@ main {
 }
 .action-progress .result .model {
   margin-top: 1.5em;
+}
+.action-progress .result .evaluation {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
 }
 .action-progress .result .confusion-matrix {
   margin-top: 1em;

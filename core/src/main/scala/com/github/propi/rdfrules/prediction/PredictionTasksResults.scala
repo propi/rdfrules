@@ -7,6 +7,8 @@ import com.github.propi.rdfrules.prediction.eval.{EvaluationBuilder, EvaluationR
 import com.github.propi.rdfrules.utils.ForEach
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 
+import scala.language.implicitConversions
+
 class PredictionTasksResults private(protected val coll: ForEach[PredictionTaskResult], val parallelism: Int)(implicit val index: TrainTestIndex)
   extends Transformable[PredictionTaskResult, PredictionTasksResults] with Debugable[PredictionTaskResult, PredictionTasksResults] with Cacheable[PredictionTaskResult, PredictionTasksResults] {
 
@@ -30,7 +32,11 @@ class PredictionTasksResults private(protected val coll: ForEach[PredictionTaskR
 
   def predictionTaskResults: ForEach[PredictionTaskResult] = coll
 
-  def resolvedPredictionTasksResults: ForEach[(PredictionTask.Resolved, PredictedTriples)] = coll.map(x => PredictionTask.Resolved(x.predictionTask)(index.test.tripleItemMap) -> createPredictedTriples(x.predictedTriples))
+  implicit private def resolvePredictionTaskResult(predictionTaskResult: PredictionTaskResult): PredictionTaskResult.Resolved = PredictionTaskResult.Resolved(predictionTaskResult)(index.test.tripleItemMap)
+
+  def resolvedPredictionTasksResults: ForEach[PredictionTaskResult.Resolved] = coll.map(resolvePredictionTaskResult)
+
+  def filterResolved(f: PredictionTaskResult.Resolved => Boolean): PredictionTasksResults = transform(predictionTaskResults.filter(x => f(x)))
 
   def withAddedModePredictions(injectiveMapping: Boolean = true): PredictionTasksResults = map(_.withAddedModePrediction(injectiveMapping))
 

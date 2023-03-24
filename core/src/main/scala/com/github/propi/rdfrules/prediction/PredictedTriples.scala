@@ -64,17 +64,9 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val parall
 
   implicit private def resolvePredictedTriple(predictedTriple: PredictedTriple): ResolvedPredictedTriple = ResolvedPredictedTriple(predictedTriple)
 
-  def filterResolved(f: ResolvedPredictedTriple => Boolean): PredictedTriples = transform((f2: PredictedTriple => Unit) => {
-    triples.filter(x => f(x)).foreach(f2)
-  })
+  def filterResolved(f: ResolvedPredictedTriple => Boolean): PredictedTriples = transform(triples.filter(x => f(x)))
 
-  def resolvedTriples: ForEach[ResolvedPredictedTriple] = new ForEach[ResolvedPredictedTriple] {
-    def foreach(f: ResolvedPredictedTriple => Unit): Unit = {
-      triples.foreach(x => f(x))
-    }
-
-    override def knownSize: Int = triples.knownSize
-  }
+  def resolvedTriples: ForEach[ResolvedPredictedTriple] = coll.map(resolvePredictedTriple)
 
   def foreach(f: ResolvedPredictedTriple => Unit): Unit = resolvedTriples.foreach(f)
 
@@ -94,7 +86,7 @@ class PredictedTriples private(val triples: ForEach[PredictedTriple], val parall
 
   def predictionTasks(predictionTasksBuilder: PredictionTasksBuilder = PredictionTasksBuilder.FromTestSet.FromPredicateCardinalities,
                       limit: Int = -1,
-                      topK: Int = -1)(implicit defaultConfidence: DefaultConfidence, debugger: Debugger): PredictionTasksResults = {
+                      topK: Int = -1)(implicit defaultConfidence: DefaultConfidence = DefaultConfidence(), debugger: Debugger): PredictionTasksResults = {
     val coll: ForEach[PredictionTaskResult] = predictionTasksBuilder match {
       case builder: PredictionTasksBuilder.FromPredictedTriple => triples.flatMap(x => builder.build(x).map(_ -> x)).groupedBy(limit)(_._1)(PredictionTaskResult.factory(topK)).map(_._2)
       case builder: PredictionTasksBuilder.FromData => (f: PredictionTaskResult => Unit) => {

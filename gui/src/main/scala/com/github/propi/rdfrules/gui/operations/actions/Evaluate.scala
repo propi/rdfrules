@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.gui.operations.actions
 
 import com.github.propi.rdfrules.gui._
-import com.github.propi.rdfrules.gui.properties.{Checkbox, Hidden}
+import com.github.propi.rdfrules.gui.properties.Select
 import com.github.propi.rdfrules.gui.results.EvaluationResult
 import com.thoughtworks.binding.Binding.{Constants, Var}
 
@@ -15,8 +15,10 @@ class Evaluate(fromOperation: Operation) extends Operation {
 
   val properties: Constants[Property] = {
     Constants(
-      new Checkbox("pca", "Partial Completeness Assumption (PCA)", true),
-      new Hidden[Boolean]("injectiveMapping", "true")(_.toBoolean, x => x)
+      new Select("ranking", "Evaluation target", Constants(
+        "test" -> "Test set",
+        "prediction" -> "Predictions"
+      ), Some("test"))
     )
   }
   val previousOperation: Var[Option[Operation]] = Var(Some(fromOperation))

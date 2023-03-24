@@ -121,7 +121,7 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
       implicit val mapper: TripleItemIndex = index.tripleItemMap
       implicit val defaultConfidence: DefaultConfidence = DefaultConfidence()
       val predictedResults: Set[PredictedResult] = if (onlyExistingTriples) Set(PredictedResult.Positive) else Set.empty
-      val predictionResult = if (onlyFunctionalProperties) predict(predictedResults = predictedResults, injectiveMapping = injectiveMapping).predictionTasks(PredictionTasksBuilder.FromPredictedTriple.FromPredicateCardinalities).onlyPcaPredictions.predictedTriples else predict(predictedResults = predictedResults, injectiveMapping = injectiveMapping).distinctPredictions
+      val predictionResult = if (onlyFunctionalProperties) predict(predictedResults = predictedResults, injectiveMapping = injectiveMapping).predictionTasks(PredictionTasksBuilder.FromPredictedTriple.FromPredicateCardinalities).topKPredictions(1).predictedTriples else predict(predictedResults = predictedResults, injectiveMapping = injectiveMapping).distinctPredictions
       val hashSet = collection.mutable.LinkedHashSet.empty[FinalRule]
       for (rule <- predictionResult.singleTriples.map(_.rule)) {
         hashSet += rule

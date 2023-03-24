@@ -24,10 +24,11 @@ object PredictionTasksBuilder {
     }
 
     case class FromPatterns(predictionTaskPatterns: Set[PredictionTaskPattern]) extends FromPredictedTriple {
-      def build(predictedTriple: PredictedTriple)(implicit index: TrainTestIndex): ForEach[PredictionTask] = ForEach(
-        PredictionTaskPattern.Mapped(predictedTriple.triple.p, TriplePosition.Subject),
-        PredictionTaskPattern.Mapped(predictedTriple.triple.p, TriplePosition.Object)
-      ).filter(predictionTaskPatterns.map(_.mapped(index.tripleItemMap))).flatMap(x => FromTargetVariablePosition(x.targetVariable).build(predictedTriple))
+      def build(predictedTriple: PredictedTriple)(implicit index: TrainTestIndex): ForEach[PredictionTask] = {
+        val (task1, task2) = predictedTriple.predictionTasks
+        val mapped = predictionTaskPatterns.map(_.mapped(index.tripleItemMap))
+        ForEach(task1, task2).filter(x => mapped.exists(_.matchPreditionTask(x)))
+      }
     }
 
     case object FromPredicateCardinalities extends FromPredictedTriple {
@@ -53,7 +54,7 @@ object PredictionTasksBuilder {
     case class FromPatterns(predictionTaskPatterns: Set[PredictionTaskPattern], injectiveMapping: Boolean) extends FromData {
       def build(implicit index: TrainTestIndex): ForEach[PredictionTask] = {
         val mapped = predictionTaskPatterns.map(_.mapped(index.tripleItemMap))
-        FromAll(injectiveMapping).build.filter(x => mapped(x.predictionTaskPattern))
+        FromAll(injectiveMapping).build.filter(x => mapped.exists(_.matchPreditionTask(x)))
       }
     }
 
