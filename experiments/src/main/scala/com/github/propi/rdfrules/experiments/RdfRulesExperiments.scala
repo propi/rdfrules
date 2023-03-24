@@ -3,7 +3,8 @@ package com.github.propi.rdfrules.experiments
 import com.github.propi.rdfrules.algorithm.RuleConsumer
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.algorithm.consumer.TopKRuleConsumer
-import com.github.propi.rdfrules.data.{Graph, TripleItem}
+import com.github.propi.rdfrules.data.RdfSource.Tsv.ParsingMode
+import com.github.propi.rdfrules.data.{Graph, RdfReader, RdfSource, TripleItem}
 import com.github.propi.rdfrules.experiments.InputData.getInputTsvDataset
 import com.github.propi.rdfrules.experiments.benchmark.Benchmark._
 import com.github.propi.rdfrules.experiments.benchmark.MetricResultProcessor.BasicPrinter
@@ -70,11 +71,11 @@ object RdfRulesExperiments {
     try {
       Debugger() { implicit debugger =>
         if (cli.hasOption("rungraphs")) {
-          val yago1 = Graph("experiments/data/yagoFacts.tsv.bz2")
-          val yago2 = Graph("experiments/data/yagoLiteralFacts.tsv.bz2")
+          val yago1 = Graph("experiments/data/yagoFacts.tsv.bz2")(RdfSource.Tsv(ParsingMode.ParsedLiterals))
+          val yago2 = Graph("experiments/data/yagoLiteralFacts.tsv.bz2")(RdfSource.Tsv(ParsingMode.ParsedLiterals))
           val dbpedia1 = Graph("experiments/data/mappingbased_literals_sample.ttl.bz2")
-          val dbpedia2 = Graph("experiments/data/mappingbased_objects_sample.tsv.bz2")
-          val yagoDbpedia = Graph("experiments/data/yagoDBpediaInstances.tsv.bz2")
+          val dbpedia2 = Graph("experiments/data/mappingbased_objects_sample.tsv.bz2")(RdfSource.Tsv(ParsingMode.ParsedLiterals))
+          val yagoDbpedia = Graph("experiments/data/yagoDBpediaInstances.tsv.bz2")(RdfSource.Tsv(ParsingMode.ParsedLiterals))
           Once executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: graphs-mining YAGO, minHeadCoverage = 0.01", 0.01, Some(ConstantsPosition.Object), numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput (yago1.toDataset + yago2).index andFinallyProcessResultWith BasicPrinter()
           Once executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: graphs-mining DBpedia, minHeadCoverage = 0.01", 0.01, Some(ConstantsPosition.Object), numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput (dbpedia1.toDataset + dbpedia2).index andFinallyProcessResultWith BasicPrinter()
           Once executeTask new MinHcRdfRules[IndexedSeq[ResolvedRule]](s"RDFRules: graphs-mining YAGO+DBpedia, minHeadCoverage = 0.01", 0.01, Some(ConstantsPosition.Object), numberOfThreads = numberOfThreads) with RulesTaskPostprocessor withInput (yago1.toDataset + yago2 + dbpedia1 + dbpedia2 + yagoDbpedia).index andFinallyProcessResultWith BasicPrinter()
@@ -84,6 +85,7 @@ object RdfRulesExperiments {
           val yagoDbpedia = Graph("experiments/data/yagoDBpediaInstancesAll.tsv.bz2")
         }*/
         else if (cli.hasOption("rundiscretization")) {
+          implicit val reader: RdfReader = if (inputTsvDataset.matches("[.]tsv([.]|$)")) RdfSource.Tsv(ParsingMode.ParsedLiterals) else RdfReader.NoReader
           for (minHc <- minHcs) {
             val index = Graph(inputTsvDataset).index
             Once executeTask new MinHcRdfRules[Seq[Metric]](s"RDFRules: mine without discretization, minHc: $minHc", minHc, Some(ConstantsPosition.Object), numberOfThreads = numberOfThreads) with NewTriplesPostprocessor {
@@ -100,6 +102,7 @@ object RdfRulesExperiments {
           }
         } else {
           lazy val index = {
+            implicit val reader: RdfReader = if (inputTsvDataset.matches("[.]tsv([.]|$)")) RdfSource.Tsv(ParsingMode.ParsedLiterals) else RdfReader.NoReader
             val index = Graph(inputTsvDataset).index
             HowLong.howLong("RDFRules indexing", memUsage = true, forceShow = true) {
               index.main.tripleMap.evaluateAllLazyVals()

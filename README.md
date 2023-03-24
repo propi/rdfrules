@@ -1,32 +1,32 @@
 # RDFRules
 
-RDFRules is a powerful analytical tool for rule mining from RDF knowledge graphs. It offers a complex rule mining solution including RDF data pre-processing, rules post-processing and prediction abilities from rules. The core of RDFRules is written in the Scala language. Besides the Scala API, RDFRules also provides REST web service with graphical user interface via a web browser. RDFRules uses the [AMIE+](https://www.mpi-inf.mpg.de/departments/databases-and-information-systems/research/yago-naga/amie/) algorithm with several extensions as a basis for a complete rule mining solution.
+RDFRules is a powerful analytical tool for rule mining from RDF knowledge graphs. It offers a complex rule mining solution including RDF data pre-processing, rules post-processing and prediction abilities from rules. The core of RDFRules is written in the Scala language. Besides the Scala API, RDFRules also provides REST web service with graphical user interface via a web browser. RDFRules uses the [AMIE](https://www.mpi-inf.mpg.de/departments/databases-and-information-systems/research/yago-naga/amie/) algorithm with several extensions as a basis for a complete rule mining solution.
 
 LIVE DEMO: [https://br-dev.lmcloud.vse.cz/rdfrules/](https://br-dev.lmcloud.vse.cz/rdfrules/)
 
 ## Getting started
 
-Requirements: Java 8+
+Requirements: Java 11+
 
 RDFRules is divided into five main modules. They are:
  - [Scala API](core): It is sutable for Scala programmers and for use RDFRules as a framework to invoke mining processes from Scala code.
  - [Web Service or Batch Processing](http): It is suitable for modular web-based applications and remote access via HTTP. Individual tasks can be also started in batch processing mode without any user interactions.
  - [GUI](gui): It is suitable for anyone who wants to use the tool quickly and easily without any needs for further programming.
- - [Experiments](experiments): This module contains some examples using Scala API. There is also a script for the complex benchmark comparing RDFRules with the original AMIE+ implementation using several threads and mining modes. Some results of performed experiments are placed in the [results](experiments/results) folder.
+ - [Experiments](experiments): This module contains some examples using Scala API. There is also a script for the complex benchmark comparing RDFRules with the original AMIE implementation using several threads and mining modes. Some results of performed experiments are placed in the [results](experiments/results) folder.
  
  Detailed information about these modules with deployment instructions are described in their subfolders.
  
  ### Quick and easy run of RDFRules
  
- 1. Download the latest [release](https://github.com/propi/rdfrules/releases) in the .zip format (currently v1.6.1) and unpack it into a folder.
- 2. Go to the unpacked RDFRules home folder (with /bin, /webapp and /lib folders) and run RDFRules HTTP API
+ 1. Download the latest [release](https://github.com/propi/rdfrules/releases) in the .zip format (currently v1.7.2) and unpack it into a folder.
+ 2. Go to the unpacked RDFRules home folder (with /bin, /webapp and /lib folders) and run RDFRules HTTP API (compiled under Java 11)
     - On Linux: ```sh bin/main```
     - On Windows: ```.\bin\main.bat```
  3. Open GUI via ```http://localhost:8851/``` or ```./webapp/index.html``` in a modern Internet browser.
 
 #### Batch processing
 
-If you need to run an RDFRules task as a scheduled job then define a json task (read more about task definitions in the [http](http) submodule), save it to a file and run the process by following command:
+If you need to run an RDFRules task as a scheduled job then define a json task (read more about task definitions in the [http](http) submodule). We recommend to use the GUI to construct a task. Save your task to a file and run the process by following command:
 - On Linux: ```sh bin/main task.json```
 - On Windows: ```.\bin\main.bat task.json```
 
@@ -34,6 +34,23 @@ A result in the json format is printed into stdout with other logs. If you need 
 - On Linux: ```sh bin/main task.json result.json```
 - On Windows: ```.\bin\main.bat task.json result.json```
 
+#### Compile executable files from source code
+
+RDFRules is written in Scala 2.13, therefore you need to first install [SBT](https://www.scala-sbt.org/) - interactive build tool for Scala. Then clone this repository and go to the root `./rdfrules` folder. If you want to pack HTTP module to executable files, run the following sbt command in the root folder:
+
+```
+sbt> project http
+sbt> pack
+```
+
+If you want to compile the GUI source files, input following commands:
+
+```
+sbt> project gui
+sbt> fullOptJS
+```
+
+The compiled javascript file needed for GUI is placed in `gui/target/scala-2.13/gui-opt/main.js`. You need to edit `gui/webapp/index.html` where the right path to the compiled main javascript file and the HTTP API URL should be set. Then you can use `gui/webapp/index.html` in your favorite internet browser to open the RDFRules GUI.
 
  ## Design and Architecture
  
@@ -69,6 +86,7 @@ The *RDFGraph* object is a container for RDF triples and is built once we load a
 | map quads  | Return a new *RDFGraph* object with updated triples.                                                  |
 | filter     | Return a new *RDFGraph* object with filtered triples.                                                 |
 | shrink     | Return a new shrinked *RDFGraph* object.                                                              |
+| split      | Split the loaded KG into several parts with sampling.                                                 |
 | discretize | Return a new *RDFGraph* object with discretized numeric literals by a predefined *task* and *filter*. |
 | merge      | Merge all loaded graphs into one RDFDataset.                                                          |
 
@@ -139,20 +157,42 @@ The *Prediction* object is a container of all predicted triples by a ruleset. It
 
 #### Transformations
 
-| Operation     | Description                                                                                                                                    |
-|---------------|------------------------------------------------------------------------------------------------------------------------------------------------|
-| filter        | Return a new *Prediction* object with filtered predicted triples by measures of significance, rule patterns, triple filters and other options. |
-| shrink        | Return a new shrinked *Prediction* object.                                                                                                     |
-| sort          | Return a new *Prediction* object with sorted predicted triples by their rules and their measures of significance.                              |
-| to dataset    | Transform all predicted triples into the *RDFGraph* object                                                                                     |
+| Operation           | Description                                                                                                                                    |
+|---------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
+| filter              | Return a new *Prediction* object with filtered predicted triples by measures of significance, rule patterns, triple filters and other options. |
+| shrink              | Return a new shrinked *Prediction* object.                                                                                                     |
+| sort                | Return a new *Prediction* object with sorted predicted triples by their rules and their measures of significance.                              |
+| group               | Aggregate and score triples predicted by many rules.                                                                                           |
+| to prediction tasks | Generate prediction tasks by a user-defined strategy.                                                                                          |
+| to dataset          | Transform all predicted triples into the *RDFGraph* object                                                                                     |
 
 #### Actions
 
 | Operation    | Description                                                                                                                                                                     |
 |--------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | get and show | Get and show predicted triples with bound rules.                                                                                                                                |
-| evaluate     | Evaluate this prediction by aggregating of all positives, negatives and PCA positives examples. It return confusion matrix with precision, recall and other evaluation metrics. |
 | export       | Export this *Prediction* object into a file in some selected output format.                                                                                                     |
+
+### PredictionTasks
+
+The *PredictionTasks* object is a special container of all predicted triples divided into generated prediction tasks. Each prediction task (e.g. `<Alice> <wasBornIn> ?`) has a list of sorted candidates by their score. This structure allows to select candidates by a chosen selection strategy, and construct a dataset from predicted candidates. 
+
+#### Transformations
+
+| Operation         | Description                                                           |
+|-------------------|-----------------------------------------------------------------------|
+| filter            | Return a new *PredictionTasks* object with filtered prediction tasks. |
+| shrink            | Return a new shrinked *PredictionTasks* object.                       |
+| select candidates | Select candidates from each prediction task by a selection strategy.  |
+| to prediction     | Convert this object back to the *Prediction* object.                  |
+| to dataset        | Transform all predicted triples into the *RDFGraph* object            |
+
+#### Actions
+
+| Operation    | Description                                                                                                                                                                           |
+|--------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| get and show | Get and show prediction tasks with candidates.                                                                                                                                        |
+| evaluate     | Evaluate all prediction tasks. It returns ranking metrics (such as hits@k, mean reciprocal rank), and completeness/quality metrics with confusion matrix (such as precision, recall). | 
 
 ## Pre-processing
 
@@ -184,19 +224,20 @@ There are six parameters that are passing to the rule mining process. They are: 
 
 ### Measures of Significance
 
-| Measure        | Description                                                                                                                                                              |
-|----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| HeadSize       | The *head size* of a rule is a measure which indicates a number of triples (or instances) for a head property.                                                           |
-| Support        | Number of correctly predicted triples.                                                                                                                                   |
-| HeadCoverage   | This is the relative value of the support measure depending on the head size. ```HC = Support / HeadSize```                                                              |
-| BodySize       | Number of all predicted triples.                                                                                                                                         |
-| Confidence     | The *standard confidence* is a measure comparing the body size to the support value and is interpreted as a probability of the head occurrence given the specific body.  |
-| PcaBodySize    | Number of all predicted triples conforming PCA.                                                                                                                          |
-| PcaConfidence  | This kind of confidence measure is more appropriate for OWA, since a missing fact for a subject variable in the head is not assumed to be a counter-example.             |
+| Measure        | Description                                                                                                                                                                                                    |
+|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| HeadSize       | The *head size* of a rule is a measure which indicates a number of triples (or instances) for a head property.                                                                                                 |
+| Support        | Number of correctly predicted triples.                                                                                                                                                                         |
+| HeadCoverage   | This is the relative value of the support measure depending on the head size. ```HC = Support / HeadSize```                                                                                                    |
+| BodySize       | Number of all predicted triples.                                                                                                                                                                               |
+| Confidence     | The *standard confidence* is a measure comparing the body size to the support value and is interpreted as a probability of the head occurrence given the specific body.                                        |
+| PcaBodySize    | Number of all predicted triples conforming PCA.                                                                                                                                                                |
+| PcaConfidence  | This kind of confidence measure is more appropriate for OWA, since a predicted missing fact may not assume to be a negative example.                                                                           |
+| QpcaBodySize   | Number of all predicted triples conforming QPCA.                                                                                                                                                               |
+| QpcaConfidence | This kind of confidence measure improves the PCA confidence. It can reduce the number of generated negative examples by a computed property cardinality.                                                       |
 |
-| HeadConfidence | Probability of the head occurrence by a random choice across the overall dataset.                                                                                        |
-| Lift           | The ratio between the *standard confidence* and the *head confidence*. With this measure we are able to discover a dependency between the head and the body of the rule. |
-| Cluster        | We can make rule clusters by their similarities. This measure only specifies a number of cluster to which the rule belongs.                                              |
+| Lift           | The ratio between the *standard confidence* and the probability of the most frequent item of the given head. With this measure we are able to discover a dependency between the head and the body of the rule. |
+| Cluster        | We can make rule clusters by their similarities. This measure only specifies a number of cluster to which the rule belongs.                                                                                    |
 
 ![Measures of significance in example](measures.png)
 
@@ -204,14 +245,15 @@ There are six parameters that are passing to the rule mining process. They are: 
 
 There are several main pruning thresholds which influence the speed of the rules enumeration process:
 
-| Threshold       | Description                                                  |
-|-----------------|--------------------------------------------------------------|
-| MinHeadSize     | A minimum number of triples matching the rule head.          |
-| MinAtomSize     | A minimum number of triples matching each atom in the rules. |
-| MinHeadCoverage | A minimal head coverage.                                     |
-| MaxRuleLength   | A maximal length of a rule.                                  |
-| TopK            | A maximum number of returned rules sorted by head coverage.  |
-| Timeout         | A maximum mining time in minutes.                            |
+| Threshold       | Description                                                   |
+|-----------------|---------------------------------------------------------------|
+| MinHeadSize     | A minimum number of triples matching the rule head.           |
+| MinAtomSize     | A minimum number of triples matching each atom in the rules.  |
+| MinHeadCoverage | A minimal head coverage.                                      |
+| MaxRuleLength   | A maximal length of a rule.                                   |
+| TopK            | A maximum number of returned rules sorted by head coverage.   |
+| GlobalTimeout   | A maximum mining time in minutes.                             |
+| LocalTimeout    | A maximum rule refinement time in milliseconds with sampling. |
 
 ### Rule Patterns
 
@@ -248,7 +290,7 @@ Here is a list of implemented constraints that can be used:
 
 ## Post-processing
 
-During the mining process the RDFRules count only basic measures of significance: head size, support and head coverage. If you want to compute other measures (like confidences and lift) you can do it explicitly in the post-processing phase. The RDFRules tool also supports rules clustering by the DBScan algorithm. It uses pre-defined similarity functions comparing rule contents and computed measures of significance.
+During the mining process the RDFRules calculates only basic measures of significance: head size, support and head coverage. If you want to compute other measures (such as confidences and lift) you can do it explicitly in the post-processing phase. The RDFRules tool also supports rules clustering by the DBScan algorithm. It uses pre-defined similarity functions comparing rule contents and computed measures of significance. A large rule set can be reduced by pruning strategies (such as data coverege pruning, skyline pruning, quasi-binding pruning)
 
 All mined rules can also be filtered or sorted by used-defined functions and finally exported either into a human-readable text format or into a machine-readable JSON format.
 
