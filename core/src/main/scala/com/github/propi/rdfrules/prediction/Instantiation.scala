@@ -60,7 +60,7 @@ object Instantiation {
     val bodySet = rule.bodySet
     for {
       variableMap <- ac.paths(bodySet, VariableMap(injectiveMapping))
-      instantiatedHead <- variableMap.specifyAtom(rule.head).toInstantiatedAtom
+      instantiatedHead <- variableMap.specifyAtom(rule.head).toInstantiatedAtom if !injectiveMapping || !variableMap.containsAtom(instantiatedHead)
       instantiatedBody <- rule.body.foldLeft(Option(Vector.empty[InstantiatedAtom]))((atoms, atom) => atoms.flatMap(atoms => variableMap.specifyAtom(atom).toInstantiatedAtom.map(atoms :+ _)))
       predictionResult = resolvePredictionResult(instantiatedHead)(ac.tripleIndex)
     } yield {

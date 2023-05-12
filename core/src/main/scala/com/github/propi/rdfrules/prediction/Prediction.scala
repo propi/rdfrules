@@ -27,9 +27,6 @@ object Prediction {
 
         val res = rules.flatMap { rule =>
           val ruleBody = rule.bodySet
-          val headVars = List(rule.head.subject, rule.head.`object`).collect {
-            case x: Atom.Variable => x
-          }
           val constantsToTriple: Seq[Atom.Constant] => IndexItem.IntTriple = (rule.head.subject, rule.head.`object`) match {
             case (_: Atom.Variable, _: Atom.Variable) => constants => IndexItem.Triple(constants.head.value, rule.head.predicate, constants.last.value)
             case (_: Atom.Variable, Atom.Constant(o)) => constants => IndexItem.Triple(constants.head.value, rule.head.predicate, o)
@@ -54,7 +51,7 @@ object Prediction {
               .map(x => PredictedTriple(x, PredictedResult.Positive, rule))
           } else {*/
           atomCounting
-            .selectDistinctPairs(ruleBody, headVars, Iterator(VariableMap(injectiveMapping)), pairFilter)
+            .selectDistinctPairs(ruleBody, rule.head, Iterator(VariableMap(injectiveMapping)), pairFilter)
             .map(constantsToTriple)
             .map(x => PredictedTriple(x, Instantiation.resolvePredictionResult(x.s, x.p, x.o), rule))
             .filter(x => predictionResults.isEmpty || predictionResults(x.predictedResult))

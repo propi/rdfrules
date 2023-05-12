@@ -331,7 +331,7 @@ object RuleFilter {
   class QuasiBindingFilter(body: Set[Atom], injectiveMapping: Boolean, atomCounting: AtomCounting) extends RuleFilter {
     def apply(newAtom: Atom, support: Int): FilterResult = {
       if (newAtom.subject.isInstanceOf[Atom.Constant] || newAtom.`object`.isInstanceOf[Atom.Constant]) {
-        atomCounting.countDistinctPairs(body + newAtom, newAtom, 1.0, injectiveMapping) > 1
+        atomCounting.countDistinctPairs(body + newAtom, Atom(newAtom.subject, atomCounting.tripleItemIndex.zero, newAtom.`object`), 1.0, injectiveMapping) > 1
       } else {
         true
       }

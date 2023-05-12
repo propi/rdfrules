@@ -319,9 +319,7 @@ trait RuleCounting extends AtomCounting {
       lazy val atomString = bodySet.iterator.map(ResolvedAtom(_)).map(Stringifier(_)).mkString(" ^ ")
       var thresholdTime = System.currentTimeMillis() + 30000
       var i = 0
-      val predictions = selectDistinctPairs(bodySet, List(rule.head.subject, rule.head.`object`).collect {
-        case x: Atom.Variable => x
-      }, Iterator(VariableMap(injectiveMapping)))
+      val predictions = selectDistinctPairs(bodySet, rule.head, Iterator(VariableMap(injectiveMapping)))
       while (predictions.hasNext && bodySize <= maxNegatives && !debugger.isInterrupted) {
         incrementNegatives(predictions.next())
         i += 1
