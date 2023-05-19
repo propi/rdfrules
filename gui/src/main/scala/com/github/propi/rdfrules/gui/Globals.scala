@@ -20,4 +20,6 @@ object Globals extends js.Object {
   def saveAs(blob: Blob, filename: String): Unit = js.native
 
   def escapeHTML(text: String): String = js.native
+
+  def numberWithCommas(x: Double): String = js.native
 }

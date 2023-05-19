@@ -151,6 +151,20 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     })
   }
 
+  private def computeSupport(minSupport: Either[Int, Double], injectiveMapping: Boolean)(implicit debugger: Debugger): Ruleset = {
+    implicit val ti: TripleIndex[Int] = index.main.tripleMap
+    implicit val tii: TripleItemIndex = index.tripleItemMap
+
+    transform(rules.parMap(parallelism)(x => minSupport.fold(x.withSupport(_, injectiveMapping), x.withSupport(_, injectiveMapping)))
+      .withDebugger(s"Support computing", true)
+      .filter(_.isDefined)
+      .map(_.get))
+  }
+
+  def computeSupport(minSupport: Int, injectiveMapping: Boolean = true)(implicit debugger: Debugger): Ruleset = computeSupport(Left(minSupport), injectiveMapping)
+
+  def computeHeadCoverage(minHeadCoverage: Double, injectiveMapping: Boolean = true)(implicit debugger: Debugger): Ruleset = computeSupport(Right(minHeadCoverage), injectiveMapping)
+
   def computeConfidence[T <: ConfidenceMeasure](minConfidence: Double, injectiveMapping: Boolean = true, topK: Int = 0)(implicit confidenceType: Confidence[T], debugger: Debugger): Ruleset = {
     @volatile var threshold = minConfidence
     implicit val ti: TripleIndex[Int] = index.main.tripleMap

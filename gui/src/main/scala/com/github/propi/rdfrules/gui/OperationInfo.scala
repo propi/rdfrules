@@ -62,6 +62,7 @@ object OperationInfo {
       DatasetTransformation.FilterQuads,
       DatasetTransformation.ShrinkQuads,
       DatasetTransformation.Discretize,
+      DatasetTransformation.DiscretizeInBulk,
       DatasetTransformation.Split,
       DatasetTransformation.CacheDataset,
       DatasetTransformation.Index,
@@ -93,6 +94,7 @@ object OperationInfo {
       RulesetTransformation.ShrinkRules,
       RulesetTransformation.Sort,
       RulesetTransformation.ComputeConfidence,
+      RulesetTransformation.ComputeSupport,
       RulesetTransformation.MakeClusters,
       RulesetTransformation.GraphAwareRules,
       RulesetTransformation.CacheRuleset,
@@ -245,6 +247,11 @@ object OperationInfo {
   sealed trait Discretize extends Transformation {
     val name: String = "Discretize"
     val title: String = "Discretize"
+  }
+
+  sealed trait DiscretizeInBulk extends Transformation {
+    val name: String = "DiscretizeInBulk"
+    val title: String = "Discretize in bulk"
   }
 
   sealed trait CacheDataset extends Transformation {
@@ -462,6 +469,10 @@ object OperationInfo {
       def buildOperation(from: Operation): Operation = new operations.Discretize(from, this)
     }
 
+    object DiscretizeInBulk extends OperationInfo.DiscretizeInBulk with DatasetTransformation with DatasetToDataset {
+      def buildOperation(from: Operation): Operation = new operations.DiscretizeInBulk(from, this)
+    }
+
     object CacheDataset extends OperationInfo.CacheDataset with DatasetTransformation with DatasetToDataset {
       def buildOperation(from: Operation): Operation = buildOperation(from, None)
 
@@ -669,6 +680,13 @@ object OperationInfo {
       val title: String = "Compute confidence"
 
       def buildOperation(from: Operation): Operation = new operations.ComputeConfidence(from, this)
+    }
+
+    object ComputeSupport extends RulesetTransformation with RulesetToRuleset {
+      val name: String = "ComputeSupport"
+      val title: String = "Recompute support"
+
+      def buildOperation(from: Operation): Operation = new operations.ComputeSupport(from, this)
     }
 
     object MakeClusters extends RulesetTransformation with RulesetToRuleset {

@@ -43,6 +43,21 @@ trait Discretizable[Coll] extends QuadsOps[Coll] {
     }
   }
 
+  def mapNumbersToIntervals(f: Quad => IndexedSeq[Interval]): Coll = transformQuads(quads.map { quad =>
+    val intervals = f(quad)
+    if (intervals.nonEmpty) {
+      quad.triple.`object` match {
+        case TripleItem.NumberDouble(x) => intervals
+          .find(_.isInInterval(x))
+          .map(x => quad.copy(triple = quad.triple.copy(`object` = TripleItem.Interval(x))))
+          .getOrElse(quad)
+        case _ => quad
+      }
+    } else {
+      quad
+    }
+  })
+
   /**
     * Transform triples by a discretization task.
     * Partially streaming transformation depending on the discretization task.
@@ -53,20 +68,7 @@ trait Discretizable[Coll] extends QuadsOps[Coll] {
     */
   def discretize(task: DiscretizationTask)(f: Quad => Boolean): Coll = {
     lazy val intervals = discretizeAndGetIntervals(task)(f)
-    val col = quads.map { quad =>
-      if (f(quad)) {
-        quad.triple.`object` match {
-          case TripleItem.NumberDouble(x) => intervals
-            .find(_.isInInterval(x))
-            .map(x => quad.copy(triple = quad.triple.copy(`object` = TripleItem.Interval(x))))
-            .getOrElse(quad)
-          case _ => quad
-        }
-      } else {
-        quad
-      }
-    }
-    transformQuads(col)
+    mapNumbersToIntervals(q => if (f(q)) intervals else IndexedSeq.empty)
   }
 
 }

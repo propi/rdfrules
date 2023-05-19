@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.algorithm.amie
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.Rule.FinalRule
-import com.github.propi.rdfrules.rule.{Atom, DefaultConfidence, Measure, ResolvedAtom}
+import com.github.propi.rdfrules.rule.{Atom, DefaultConfidence, Measure, ResolvedAtom, ResolvedRuleContent}
 import com.github.propi.rdfrules.utils._
 
 /**
@@ -14,6 +14,31 @@ trait RuleCounting extends AtomCounting {
   val rule: FinalRule
 
   def hasQuasiBinding(injectiveMapping: Boolean): Boolean = hasQuasiBinding(rule.bodySet + rule.head, injectiveMapping)
+
+  def withSupport(minHeadCoverage: Double, injectiveMapping: Boolean)(implicit debugger: Debugger): Option[FinalRule] = {
+    withSupport((rule.headSize * minHeadCoverage).round.toInt, injectiveMapping)
+  }
+
+  def withSupport(minSupport: Int, injectiveMapping: Boolean)(implicit debugger: Debugger): Option[FinalRule] = {
+    val bodySet = rule.bodySet
+    var thresholdTime = System.currentTimeMillis() + 30000
+    val (supp, _) = specifyVariableMap(rule.head, VariableMap(injectiveMapping)).map(exists(bodySet, _)).scanLeft(
+      0 -> rule.headSupport
+    ) { case ((supp, remaining), positive) =>
+      (supp + (if (positive) 1 else 0)) -> (remaining - 1)
+    }.takeWhile { case (supp, remaining) =>
+      if (thresholdTime < System.currentTimeMillis()) {
+        thresholdTime = System.currentTimeMillis() + 30000
+        debugger.logger.info(s"Long counting of rule support: ${ResolvedRuleContent(rule)} --- (${BigDecimal(rule.headSize - remaining).toString} of ${BigDecimal(rule.headSupport).toString} - ${BasicFunctions.round(((rule.headSize - remaining) / rule.headSupport.toDouble) * 100, 2)}%)")
+      }
+      !debugger.isInterrupted && supp + remaining >= minSupport
+    }.reduceLeftOption((_, x) => x).getOrElse(0 -> 0)
+    if (supp >= minSupport && !debugger.isInterrupted) {
+      Some(rule.withMeasures(rule.measures + Measure.Support(supp) + Measure.HeadCoverage(supp.toDouble / rule.headSize) - Measure.SupportIncreaseRatio))
+    } else {
+      None
+    }
+  }
 
   /**
     * Count confidence for the rule
@@ -48,7 +73,7 @@ trait RuleCounting extends AtomCounting {
       if (confidence >= minConfidence) {
         rule.withMeasures(rule.measures + Measure.BodySize(bodySize) + Measure.CwaConfidence(confidence))
       } else {
-        rule
+        rule.withMeasures(rule.measures - Measure.BodySize - Measure.CwaConfidence)
       }
     }
   }
@@ -99,7 +124,7 @@ trait RuleCounting extends AtomCounting {
       }
     } yield {
       rule.withMeasures(rule.measures + Measure.Lift(confidence / propertyModeProbability))
-    }).getOrElse(rule)
+    }).getOrElse(rule.withMeasures(rule.measures - Measure.Lift))
   }
 
   /*private def bodySizeLowerBound(pca: Option[(Int, TripleItemPosition[Atom.Variable])], injectiveMapping: Boolean) = {
@@ -252,7 +277,7 @@ trait RuleCounting extends AtomCounting {
       if (pcaConfidence >= minPcaConfidence) {
         rule.withMeasures(rule.measures + Measure.PcaBodySize(pcaBodySize) + Measure.PcaConfidence(pcaConfidence))
       } else {
-        rule
+        rule.withMeasures(rule.measures - Measure.PcaBodySize - Measure.PcaConfidence)
       }
     }
   }
@@ -336,7 +361,7 @@ trait RuleCounting extends AtomCounting {
       if (qpcaConfidence >= minQpcaConfidence) {
         rule.withMeasures(rule.measures + Measure.QpcaBodySize(bodySize) + Measure.QpcaConfidence(qpcaConfidence))
       } else {
-        rule
+        rule.withMeasures(rule.measures - Measure.QpcaBodySize - Measure.QpcaConfidence)
       }
     }
   }

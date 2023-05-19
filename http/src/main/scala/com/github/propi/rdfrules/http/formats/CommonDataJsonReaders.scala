@@ -13,6 +13,7 @@ import com.github.propi.rdfrules.http.task._
 import com.github.propi.rdfrules.http.task.predictionTasks.Evaluate.RankingStrategy
 import com.github.propi.rdfrules.http.task.predictionTasks.Select.SelectionStrategy
 import com.github.propi.rdfrules.http.task.ruleset.ComputeConfidence.ConfidenceType
+import com.github.propi.rdfrules.http.task.ruleset.ComputeSupport.SupportType
 import com.github.propi.rdfrules.http.task.ruleset.Prune.PruningStrategy
 import com.github.propi.rdfrules.http.util.Conf
 import com.github.propi.rdfrules.http.{Main, Workspace}
@@ -374,6 +375,16 @@ object CommonDataJsonReaders {
       case "QpcaConfidence" => ConfidenceType.QpcaConfidence(fields("min").convertTo[Double], fields.get("topk").map(_.convertTo[Int]).getOrElse(0))
       case "Lift" => ConfidenceType.Lift
       case x => deserializationError(s"Invalid name of confidence type: $x")
+    }
+  }
+
+  implicit val supportTypeReader: RootJsonReader[SupportType] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    val selector = json.toSelector
+    selector("name").to[String] match {
+      case "Support" => SupportType.Support(fields("min").convertTo[Int])
+      case "HeadCoverage" => SupportType.HeadCoverage(fields("min").convertTo[Double])
+      case x => deserializationError(s"Invalid name of support type: $x")
     }
   }
 

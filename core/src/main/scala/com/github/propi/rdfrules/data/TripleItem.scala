@@ -222,23 +222,43 @@ object TripleItem {
   }
 
   implicit val tripleItemJsonFormat: RootJsonFormat[TripleItem] = new RootJsonFormat[TripleItem] {
+    private val intervalKeys = Array("left", "right", "leftIsOpen", "rightIsOpen")
+
     def write(obj: TripleItem): JsValue = obj match {
       case TripleItem.NumberDouble(x) => JsNumber(x)
       case TripleItem.BooleanValue(x) => JsBoolean(x)
+      case TripleItem.Interval(interval) => JsObject(
+        intervalKeys(0) -> interval.minValue.value.toJson,
+        intervalKeys(1) -> interval.maxValue.value.toJson,
+        intervalKeys(2) -> interval.isLeftBoundOpened().booleanValue().toJson,
+        intervalKeys(3) -> interval.isRightBoundOpened().booleanValue().toJson
+      )
       case x: TripleItem.Uri => x.toJson
       case x: TripleItem => JsString(x.toString)
     }
 
     def read(json: JsValue): TripleItem = {
       val TextPattern = "\"(.*)\"".r
-      val IntervalMatcher = new {
+      /*val IntervalMatcher = new {
         def unapply(arg: String): Option[TripleItem.Interval] = TripleItem.Interval(arg)
-      }
+      }*/
       json match {
         case JsNumber(x) => TripleItem.Number(x)
         case JsBoolean(x) => TripleItem.BooleanValue(x)
         case JsString(TextPattern(x)) => TripleItem.Text(x)
-        case JsString(IntervalMatcher(x)) => x
+        case JsObject(fields) if intervalKeys.forall(fields.contains) =>
+          TripleItem.Interval(DiscretizationInterval(
+            if (fields(intervalKeys(2)).convertTo[Boolean]) {
+              IntervalBound.Exclusive(fields(intervalKeys(0)).convertTo[Double])
+            } else {
+              IntervalBound.Inclusive(fields(intervalKeys(0)).convertTo[Double])
+            },
+            if (fields(intervalKeys(3)).convertTo[Boolean]) {
+              IntervalBound.Exclusive(fields(intervalKeys(1)).convertTo[Double])
+            } else {
+              IntervalBound.Inclusive(fields(intervalKeys(1)).convertTo[Double])
+            }
+          ))
         case x => x.convertTo[TripleItem.Uri]
       }
     }

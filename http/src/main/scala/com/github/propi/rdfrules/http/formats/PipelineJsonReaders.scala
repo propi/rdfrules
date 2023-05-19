@@ -16,6 +16,7 @@ import com.github.propi.rdfrules.http.task.predictionTasks.Evaluate
 import com.github.propi.rdfrules.http.task.predictionTasks.Evaluate.RankingStrategy
 import com.github.propi.rdfrules.http.task.predictionTasks.Select.SelectionStrategy
 import com.github.propi.rdfrules.http.task.ruleset.ComputeConfidence.ConfidenceType
+import com.github.propi.rdfrules.http.task.ruleset.ComputeSupport.SupportType
 import com.github.propi.rdfrules.http.task.ruleset.{LoadRuleset, LoadRulesetWithoutIndex}
 import com.github.propi.rdfrules.index.Index
 import com.github.propi.rdfrules.prediction._
@@ -118,6 +119,14 @@ object PipelineJsonReaders {
     new data.Discretize(
       json.convertTo[QuadMatcher],
       fields.get("inverse").exists(_.convertTo[Boolean]),
+      fields("task").convertTo[DiscretizationTask]
+    )
+  }
+
+  implicit def discretizeInBulkReader(implicit debugger: Debugger): RootJsonReader[data.DiscretizeInBulk] = (json: JsValue) => {
+    val fields = json.asJsObject.fields
+    new data.DiscretizeInBulk(
+      fields("predicates").convertTo[Set[TripleItem.Uri]],
       fields("task").convertTo[DiscretizationTask]
     )
   }
@@ -314,7 +323,7 @@ object PipelineJsonReaders {
     new predictionTasks.WithModes()
   }
 
-  implicit def groupPredictionsReader(implicit debugger: Debugger): RootJsonReader[prediction.Group] = (json: JsValue) => {
+  implicit val groupPredictionsReader: RootJsonReader[prediction.Group] = (json: JsValue) => {
     val selector = json.toSelector
     new prediction.Group(
       selector.get("scorer").toOpt[PredictedTriplesAggregator.ScoreFactory].getOrElse(PredictedTriplesAggregator.EmptyScoreFactory),
@@ -361,6 +370,10 @@ object PipelineJsonReaders {
 
   implicit def computeConfidenceReader(implicit debugger: Debugger): RootJsonReader[ruleset.ComputeConfidence] = (json: JsValue) => {
     new ruleset.ComputeConfidence(json.convertTo[ConfidenceType])
+  }
+
+  implicit def computeSupportReader(implicit debugger: Debugger): RootJsonReader[ruleset.ComputeSupport] = (json: JsValue) => {
+    new ruleset.ComputeSupport(json.convertTo[SupportType])
   }
 
   implicit def makeClustersReader(implicit debugger: Debugger): RootJsonReader[ruleset.MakeClusters] = (json: JsValue) => {
@@ -459,6 +472,7 @@ object PipelineJsonReaders {
           case data.AddPrefixes.name => addTaskFromDataset(pipeline ~> params.convertTo[data.AddPrefixes], tail)
           case data.Cache.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Cache], tail)
           case data.Discretize.name => addTaskFromDataset(pipeline ~> params.convertTo[data.Discretize], tail)
+          case data.DiscretizeInBulk.name => addTaskFromDataset(pipeline ~> params.convertTo[data.DiscretizeInBulk], tail)
           case data.ExportQuads.name => pipeline ~> params.convertTo[data.ExportQuads] ~> ToJsonTask.FromUnit
           case data.FilterQuads.name => addTaskFromDataset(pipeline ~> params.convertTo[data.FilterQuads], tail)
           case data.GetQuads.name => pipeline ~> params.convertTo[data.GetQuads] ~> ToJsonTask.FromQuads
@@ -546,6 +560,7 @@ object PipelineJsonReaders {
         fields("name").convertTo[String] match {
           case ruleset.Cache.name | s"${ruleset.Cache.name}Action" => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Cache], tail)
           case ruleset.ComputeConfidence.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.ComputeConfidence], tail)
+          case ruleset.ComputeSupport.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.ComputeSupport], tail)
           case ruleset.ExportRules.name => pipeline ~> params.convertTo[ruleset.ExportRules] ~> ToJsonTask.FromUnit
           case ruleset.FilterRules.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.FilterRules], tail)
           case ruleset.FindSimilar.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.FindSimilar], tail)

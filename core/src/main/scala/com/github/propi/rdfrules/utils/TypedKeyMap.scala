@@ -40,18 +40,24 @@ object TypedKeyMap {
 
   sealed trait Immutable[T <: Value] extends TypedKeyMap[T] {
     def +(value: T): Immutable[T]
+
+    def -(key: Key[T]): Immutable[T]
   }
 
   class WrappedMap[T <: Value] private[TypedKeyMap](m: collection.Map[Key[T], T]) extends Immutable[T] {
     protected def hmap: collection.Map[Key[T], T] = m
 
     def +(value: T): Immutable[T] = new ImmutableMap(m.toMap.updated(value.companion.asInstanceOf[Key[T]], value))
+
+    def -(key: Key[T]): Immutable[T] = new ImmutableMap(m.toMap - key)
   }
 
   class ImmutableMap[T <: Value] private[TypedKeyMap](m: Map[Key[T], T]) extends Immutable[T] {
     protected def hmap: collection.Map[Key[T], T] = m
 
     def +(value: T): Immutable[T] = new ImmutableMap(m.updated(value.companion.asInstanceOf[Key[T]], value))
+
+    def -(key: Key[T]): Immutable[T] = new ImmutableMap(m - key)
   }
 
   trait Value {

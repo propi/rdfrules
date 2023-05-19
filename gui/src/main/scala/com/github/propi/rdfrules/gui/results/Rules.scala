@@ -163,9 +163,27 @@ class Rules(val title: String, val id: Future[String]) extends ActionProgress wi
 
 object Rules {
 
+  private val intervalKeys = Array("left", "right", "leftIsOpen", "rightIsOpen")
+
   def viewAtom(atom: Atom): String = s"( ${viewAtomItem(atom.subject)} ${viewAtomItem(atom.predicate)} ${viewAtomItem(atom.`object`)}${atom.graphs.toOption.map(x => if (x.length == 1) viewAtomItem(x.head) else x.map(viewAtomItem).mkString(", ")).map(" " + _).getOrElse("")} )"
 
   def viewAtomItem(atomItem: AtomItem): String = viewAtomItem(atomItem.value)
+
+  private def getBracket(isLeft: Boolean, isOpen: Boolean): String = isLeft -> isOpen match {
+    case (true, true) => "("
+    case (true, false) => "["
+    case (false, true) => ")"
+    case (false, false) => "]"
+  }
+
+  private def readableNum(x: Double): String = {
+    val n = if (x > 1000.0) {
+      x.round.toDouble
+    } else {
+      x
+    }
+    Globals.numberWithCommas(n)
+  }
 
   def viewAtomItem(atomItem: js.Dynamic): String = {
     if (js.typeOf(atomItem) == "object" && !js.isUndefined(atomItem.prefix)) {
@@ -175,6 +193,8 @@ object Rules {
       } else {
         s"${pu.prefix}:${pu.localName}"
       }
+    } else if (js.typeOf(atomItem) == "object" && intervalKeys.forall(x => !js.isUndefined(atomItem.selectDynamic(x)))) {
+      s"${getBracket(true, atomItem.selectDynamic(intervalKeys(2)).asInstanceOf[Boolean])} ${readableNum(atomItem.selectDynamic(intervalKeys(0)).asInstanceOf[Double])} ; ${readableNum(atomItem.selectDynamic(intervalKeys(1)).asInstanceOf[Double])} ${getBracket(false, atomItem.selectDynamic(intervalKeys(3)).asInstanceOf[Boolean])}"
     } else {
       atomItem.toString
     }

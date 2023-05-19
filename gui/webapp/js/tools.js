@@ -2,6 +2,12 @@ function stripText(x) {
   return x.normalize('NFD').replace(/[\u0300-\u036f]/g, "");
 }
 
+function numberWithCommas(x) {
+  const parts = x.toString().split(".");
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return parts.join(".");
+}
+
 function getParameterByName(name, url = window.location.href) {
   name = name.replace(/[\[\]]/g, '\\$&');
   const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'), results = regex.exec(url);
