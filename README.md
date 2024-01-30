@@ -391,3 +391,5 @@ RDFRules is licensed under [GNU General Public License v3.0](http://www.gnu.org/
 Thanks to these organizations for supporting us:
 
 [![VŠE](vselogo.png)](https://www.vse.cz/)
+
+[CIMPLE](https://www.chistera.eu/projects/cimple) (TAČR TH74010002)
