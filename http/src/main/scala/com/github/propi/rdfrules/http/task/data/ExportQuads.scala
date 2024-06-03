@@ -11,13 +11,13 @@ import com.github.propi.rdfrules.http.util.BasicExceptions.ValidationException
 class ExportQuads(path: String) extends Task[Dataset, Unit] with Task.Prevalidate {
   val companion: TaskDefinition = ExportQuads
 
-  def validate(): Option[ValidationException] = if (!Workspace.filePathIsWritable(path)) {
+  def validate(): Option[ValidationException] = if (!Workspace.filePathIsWritable(path, false)) {
     Some(ValidationException("DirectoryIsNotWritable", "The directory for placing the file is not writable."))
   } else {
     None
   }
 
-  def execute(input: Dataset): Unit = input.export(Workspace.path(path))
+  def execute(input: Dataset): Unit = input.export(Workspace.writablePath(path))
 }
 
 object ExportQuads extends TaskDefinition {

@@ -20,7 +20,7 @@ abstract class CommonCache[T](path: String, inMemory: Boolean, revalidate: Boole
 
   def mapLoadedCache(x: T): T = x
 
-  def validate(): Option[ValidationException] = if (!inMemory && !Workspace.filePathIsWritable(path)) {
+  def validate(): Option[ValidationException] = if (!inMemory && !Workspace.filePathIsWritable(path, false)) {
     Some(ValidationException("DirectoryIsNotWritable", "The directory for placing the file is not writable."))
   } else {
     None
@@ -57,7 +57,7 @@ abstract class CommonCache[T](path: String, inMemory: Boolean, revalidate: Boole
       InMemoryCache.put(path, cachedModel)
       cachedModel
     } else {
-      cacheOnDisk(input, Workspace.path(path))
+      cacheOnDisk(input, Workspace.writablePath(path))
     }
   }
 

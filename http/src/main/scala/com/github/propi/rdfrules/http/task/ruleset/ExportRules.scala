@@ -12,13 +12,13 @@ import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
 class ExportRules(path: String, format: RulesetSource) extends Task[Ruleset, Unit] with Task.Prevalidate {
   val companion: TaskDefinition = ExportRules
 
-  def validate(): Option[ValidationException] = if (!Workspace.filePathIsWritable(path)) {
+  def validate(): Option[ValidationException] = if (!Workspace.filePathIsWritable(path, false)) {
     Some(ValidationException("DirectoryIsNotWritable", "The directory for placing the file is not writable."))
   } else {
     None
   }
 
-  def execute(input: Ruleset): Unit = input.export(Workspace.path(path))(Compression.fromPath(path) match {
+  def execute(input: Ruleset): Unit = input.export(Workspace.writablePath(path))(Compression.fromPath(path) match {
     case Some(compression) => format.compressedBy(compression)
     case None => format
   })

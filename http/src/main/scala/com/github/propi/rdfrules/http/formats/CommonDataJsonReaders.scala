@@ -232,9 +232,14 @@ object CommonDataJsonReaders {
     fields("name").convertTo[String] match {
       case "inMemory" => RuleConsumer(InMemoryRuleConsumer())
       case "onDisk" =>
-        val file = new File(Workspace.path(fields("file").convertTo[String]))
-        val format = fields("format").convertTo[RulesetSource]
-        RuleConsumer.withMapper[Ruleset](implicit mapper => OnDiskRuleConsumer(format(file)))
+        val path = fields("file").convertTo[String]
+        if (Workspace.filePathIsWritable(path, false)) {
+          val file = new File(Workspace.writablePath(path))
+          val format = fields("format").convertTo[RulesetSource]
+          RuleConsumer.withMapper[Ruleset](implicit mapper => OnDiskRuleConsumer(format(file)))
+        } else {
+          deserializationError(s"Path '$path' is not writable.")
+        }
       case "topK" =>
         val k = fields("k").convertTo[Int]
         val allowOverflow = fields.get("allowOverflow").exists(_.convertTo[Boolean])

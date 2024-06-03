@@ -13,6 +13,7 @@ import com.github.propi.rdfrules.http.util.Conf
 import com.typesafe.config.ConfigMemorySize
 import com.typesafe.scalalogging.Logger
 
+import scala.annotation.tailrec
 import scala.collection.immutable.ArraySeq
 import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.{ExecutionContext, Future}
@@ -44,18 +45,27 @@ object Workspace {
     val paths = Conf[Seq[String]](Main.confPrefix + ".workspace.writable.path").value.iterator
     val lifetimes = Conf[Seq[Duration]](Main.confPrefix + ".workspace.writable.lifetime").value.iterator
     paths.zipAll(lifetimes, "", Duration.Inf).map { case (path, lifetime) =>
-      val subDir = new File(directory, path)
+      val (normPath, recursive) = if (path.endsWith("/*")) {
+        path.stripSuffix("/*") -> true
+      } else {
+        path -> false
+      }
+      val subDir = new File(directory, normPath)
       if (!subDir.isDirectory && !subDir.mkdirs()) {
         throw ValidationException("InvalidWorkspace", "The workspace sub directory can not be created.")
       }
-      WritableDirectory(subDir, lifetime)
+      WritableDirectory(subDir, lifetime, recursive)
     }.toList
   }
 
   private def deleteExpired(duration: Duration, tree: IndexedSeq[FileTree]): Unit = {
-    for (x@FileTree.File(_) <- tree if new Date(x.file.lastModified()).toInstant.plusSeconds(duration.toSeconds).isBefore(Instant.now())) {
-      logger.info(s"The file '${x.file.getCanonicalPath}' was expired and therefore was deleted.")
-      x.file.delete()
+    tree.foreach {
+      case x: FileTree.File =>
+        if (new Date(x.file.lastModified()).toInstant.plusSeconds(duration.toSeconds).isBefore(Instant.now())) {
+        logger.info(s"The file '${x.file.getCanonicalPath}' was expired and therefore was deleted.")
+        x.file.delete()
+      }
+      case x: FileTree.Directory => deleteExpired(duration, x.subfiles)
     }
   }
 
@@ -77,7 +87,7 @@ object Workspace {
   private def getTreeInDirectory(directory: File): FileTree = {
     if (directory.isDirectory) {
       val subfiles = directory.listFiles().map(getTreeInDirectory).sortBy(x => (if (x.isInstanceOf[FileTree.Directory]) 0 else 1) -> x.name)
-      FileTree.Directory(directory.getName, writableDirs.exists(_.path.getCanonicalPath == directory.getCanonicalPath), ArraySeq.unsafeWrapArray(subfiles))(directory)
+      FileTree.Directory(directory.getName, filePathIsWritable(directory, true), ArraySeq.unsafeWrapArray(subfiles))(directory)
     } else {
       FileTree.File(directory.getName)(directory)
     }
@@ -92,12 +102,24 @@ object Workspace {
     file.getAbsolutePath
   }
 
+  def writablePath(relativePath: String): String = {
+    val x = path(relativePath)
+    writableFile(new File(x))
+    x
+  }
+
+  private def writableFile(file: File): File = {
+    val parent = file.getParentFile
+    if (!parent.isDirectory) parent.mkdirs()
+    file
+  }
+
   def uploadIfWritable(directory: String, filename: String, source: Source[ByteString, Any])(implicit ec: ExecutionContext, mat: Materializer): Future[IOResult] = Future {
     val dir = new File(path(directory))
     val normFilename = filename.trim.replaceAll("[^\\p{Alpha}\\p{Digit}.]", "_")
-    if (writableDirs.exists(_.path.getCanonicalPath == dir.getCanonicalPath) && dir.listFiles().count(_.isFile) < maxFilesInDirectory) {
+    if (filePathIsWritable(dir, true) && dir.listFiles().count(_.isFile) < maxFilesInDirectory) {
       if (normFilename.nonEmpty && normFilename.length <= 150) {
-        val file = new File(dir, normFilename)
+        val file = writableFile(new File(dir, normFilename))
         val result = source.limitWeighted(maxUploadedFileSize)(_.length).runWith(FileIO.toPath(file.toPath))
         result.failed.foreach(_ => file.delete())
         result
@@ -109,21 +131,33 @@ object Workspace {
     }
   }.flatten
 
+  @tailrec
+  private def deleteEmptyFoldersRecursively(file: File): Unit = {
+    if (file.isDirectory) {
+      if (file.getCanonicalPath != this.directory.getCanonicalPath && !this.writableDirs.exists(_.path.getCanonicalPath == file.getCanonicalPath) && file.delete()) {
+        deleteEmptyFoldersRecursively(file.getParentFile)
+      }
+    } else {
+      deleteEmptyFoldersRecursively(file.getParentFile)
+    }
+  }
+
   def deleteFileIfWritable(filePath: String): Boolean = {
     val file = new File(path(filePath))
-    if (file.isFile && filePathIsWritable(file)) {
-      file.delete()
+    if (file.isFile && filePathIsWritable(file, false) && file.delete()) {
+      deleteEmptyFoldersRecursively(file)
+      true
     } else {
       false
     }
   }
 
-  def filePathIsWritable(path: String): Boolean = {
-    filePathIsWritable(new File(Workspace.path(path)))
+  def filePathIsWritable(path: String, isDir: Boolean): Boolean = {
+    filePathIsWritable(new File(Workspace.path(path)), isDir)
   }
 
-  def filePathIsWritable(path: File): Boolean = {
-    writableDirs.exists(_.path.getCanonicalPath == path.getParentFile.getCanonicalPath)
+  def filePathIsWritable(path: File, isDir: Boolean): Boolean = {
+    writableDirs.exists(x => (x.recursive && path.getCanonicalPath.startsWith(s"${x.path.getCanonicalPath}${File.separator}")) || (!isDir && x.path.getCanonicalPath == path.getParentFile.getCanonicalPath) || x.path.getCanonicalPath == path.getCanonicalPath)
   }
 
   sealed trait FileTree {
@@ -138,6 +172,6 @@ object Workspace {
 
   }
 
-  case class WritableDirectory(path: File, lifetime: Duration)
+  case class WritableDirectory(path: File, lifetime: Duration, recursive: Boolean)
 
 }

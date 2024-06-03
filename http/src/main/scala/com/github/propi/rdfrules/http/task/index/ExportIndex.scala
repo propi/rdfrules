@@ -11,13 +11,13 @@ import com.github.propi.rdfrules.index.Index
 class ExportIndex(path: String) extends Task[Index, Unit] with Task.Prevalidate {
   val companion: TaskDefinition = ExportIndex
 
-  def validate(): Option[ValidationException] = if (!Workspace.filePathIsWritable(path)) {
+  def validate(): Option[ValidationException] = if (!Workspace.filePathIsWritable(path, false)) {
     Some(ValidationException("DirectoryIsNotWritable", "The directory for placing the file is not writable."))
   } else {
     None
   }
 
-  def execute(input: Index): Unit = input.cache(Workspace.path(path))
+  def execute(input: Index): Unit = input.cache(Workspace.writablePath(path))
 }
 
 object ExportIndex extends TaskDefinition {

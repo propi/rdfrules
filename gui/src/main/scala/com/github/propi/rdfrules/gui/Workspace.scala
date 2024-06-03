@@ -54,7 +54,7 @@ object Workspace {
           } match {
             case Some(dir) => dir.prependPath(trimmedSuffix)
             case None =>
-              val newDir = Directory(trimmedPrefix, s"$path/$trimmedPrefix", false, Vars.empty)
+              val newDir = Directory(trimmedPrefix, s"${this.path}/$trimmedPrefix", false, Vars.empty)
               files.value.prepend(newDir)
               newDir.prependPath(trimmedSuffix)
           }
