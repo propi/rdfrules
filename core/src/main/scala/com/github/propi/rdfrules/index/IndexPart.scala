@@ -137,6 +137,14 @@ object IndexPart {
     }
   }
 
+  def apply(dataset: Dataset, parent: IndexPart, partially: Boolean)(implicit _debugger: Debugger): IndexPart = {
+    if (partially) {
+      new FromDatasetPartiallyPreservedIndex(Some(dataset), Some(parent.tripleItemMap), List(parent.tripleMap), None, None)
+    } else {
+      new FromDatasetFullyPreservedIndex(Some(dataset), Some(parent.tripleItemMap), List(parent.tripleMap), None)
+    }
+  }
+
   //  def apply(tripleMap: TripleIndex[Int], tripleItemMap: TripleItemIndex)(implicit debugger: Debugger): IndexPart = new FromIndicesIndex(tripleMap, tripleItemMap)
   //
   //  def fromCache(is: => InputStream, partially: Boolean)(implicit _debugger: Debugger): IndexPart = {

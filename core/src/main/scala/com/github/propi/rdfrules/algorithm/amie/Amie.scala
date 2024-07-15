@@ -3,7 +3,7 @@ package com.github.propi.rdfrules.algorithm.amie
 import com.github.propi.rdfrules.algorithm.amie.RuleRefinement.PimpedRule
 import com.github.propi.rdfrules.algorithm.consumer.TopKRuleConsumer
 import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
-import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
+import com.github.propi.rdfrules.index.{IntervalsIndex, TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.ExpandingRule.{ClosedRule, HeadTriplesBootstrapper}
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
@@ -43,7 +43,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
     *         Rules contains only these measures: head size, head coverage and support
     *         Rules are not ordered
     */
-  def mine(ruleConsumer: RuleConsumer)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): ForEach[FinalRule] = {
+  def mine(ruleConsumer: RuleConsumer)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex, intervals: IntervalsIndex): ForEach[FinalRule] = {
     val logger = debugger.logger
     val headTriplesGenerator: (Option[HeadTriplesBootstrapper] => ForEach[FinalRule]) => ForEach[FinalRule] = if (thresholds.get[Threshold.LocalTimeout].exists(x => x.hasDuration || x.hasMarginError)) {
       f => Bootstrapper[(Int, Option[TripleItemPosition[Int]]), (Int, Int), ForEach[FinalRule]]()(x => f(Some(x)))
@@ -51,7 +51,7 @@ class Amie private(_parallelism: Int = Runtime.getRuntime.availableProcessors(),
       f => f(None)
     }
     headTriplesGenerator { bootstrapper =>
-      implicit val settings: AmieSettings = new AmieSettings(this, bootstrapper)(/*if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) */ debugger /* else Debugger.EmptyDebugger*/ , mapper)
+      implicit val settings: AmieSettings = new AmieSettings(this, bootstrapper)(/*if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) */ debugger /* else Debugger.EmptyDebugger*/ , mapper, intervals)
       val observedRuleConsumer = ruleConsumer.withListener {
         case TopKRuleConsumer.MinHeadCoverageUpdatedEvent(minHeadCoverage) =>
           topKActivated = true

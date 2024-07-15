@@ -1,7 +1,7 @@
 package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.algorithm.{RuleConsumer, RulesMining}
-import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
+import com.github.propi.rdfrules.index.{IntervalsIndex, TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.{Debugger, ForEach, TypedKeyMap}
@@ -26,10 +26,10 @@ class HeadsMiner private(_parallelism: Int = Runtime.getRuntime.availableProcess
                           parallelism: Int,
                           experiment: Boolean): RulesMining = new HeadsMiner(parallelism, thresholds, constraints, patterns, experiment)
 
-  def mine(ruleConsumer: RuleConsumer)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex): ForEach[FinalRule] = {
+  def mine(ruleConsumer: RuleConsumer)(implicit tripleIndex: TripleIndex[Int], mapper: TripleItemIndex, intervals: IntervalsIndex): ForEach[FinalRule] = {
     //val logger = debugger.logger
     //create amie process with debugger and final triple index
-    implicit val settings: AmieSettings = new AmieSettings(this, None)(/*if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) */ debugger /* else Debugger.EmptyDebugger*/ , mapper)
+    implicit val settings: AmieSettings = new AmieSettings(this, None)(/*if (logger.underlying.isDebugEnabled && !logger.underlying.isTraceEnabled) */ debugger /* else Debugger.EmptyDebugger*/ , mapper, intervals)
     val process = new AmieProcess
     process.getHeads.foreach(rule => ruleConsumer.send(rule.toFinalRule))
     ruleConsumer.result

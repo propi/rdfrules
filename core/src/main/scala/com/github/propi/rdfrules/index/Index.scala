@@ -13,6 +13,8 @@ import java.io._
 trait Index {
   def main: IndexPart
 
+  def intervalsIndex: IntervalsIndex
+
   def part(partType: PartType): Option[IndexPart]
 
   def parts: Iterator[(PartType, IndexPart)]
@@ -23,6 +25,8 @@ trait Index {
 
   def withDebugger(implicit debugger: Debugger): Index
 
+  def discretize(task: AutoDiscretizationTask): Index
+
   final def cache(file: File): Index = cache(() => new FileOutputStream(file))
 
   final def cache(path: String): Index = cache(new File(path))
@@ -30,6 +34,7 @@ trait Index {
   final def mineRules(miner: RulesMining, ruleConsumer: RuleConsumer.Invoker[Ruleset] = RuleConsumer(InMemoryRuleConsumer())): Ruleset = {
     implicit val thi: TripleIndex[Int] = main.tripleMap
     implicit val mapper: TripleItemIndex = tripleItemMap
+    implicit val ii: IntervalsIndex = intervalsIndex
     ruleConsumer.invoke { ruleConsumer =>
       val result = miner.mine(ruleConsumer)
       Ruleset(this, result)

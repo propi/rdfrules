@@ -6,9 +6,21 @@ import com.github.propi.rdfrules.utils.Debugger
 
 import java.io.InputStream
 
-class CachedPartialIndex private[index](_tripleItemIndex: Option[TripleItemIndex], _tripleIndexes: Option[Seq[(Index.PartType, IndexPart)]], is: () => InputStream)(implicit debugger: Debugger) extends Index with Cacheable {
+class CachedPartialIndex private[index](_tripleItemIndex: Option[TripleItemIndex], _tripleIndexes: Option[Seq[(Index.PartType, IndexPart)]], is: () => InputStream)(implicit debugger: Debugger) extends Index with Cacheable with IntervalIndexAutoLoader with DiscretizationOps {
+
   @volatile private var _tripleItemIndexCache: Option[TripleItemIndex] = _tripleItemIndex
   @volatile private var _tripleIndexesCache: Option[Seq[(Index.PartType, IndexPart)]] = _tripleIndexes
+
+  def withMainPart(indexPart: IndexPart): Index = {
+    val _tripleIndexes = tripleIndexes.tail.foldLeft(Vector(tripleIndexes.head._1 -> indexPart)) { case (col, (partType, indexPart)) =>
+      col :+ (partType -> IndexPart(indexPart.toDataset, col.last._2, true))
+    }
+    new CachedPartialIndex(
+      Some(_tripleIndexes.last._2.tripleItemMap),
+      Some(_tripleIndexes),
+      is
+    )
+  }
 
   lazy val tripleItemMap: TripleItemIndex = _tripleItemIndex match {
     case Some(x) => x

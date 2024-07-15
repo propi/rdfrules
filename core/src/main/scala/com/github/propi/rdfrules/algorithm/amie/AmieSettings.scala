@@ -1,13 +1,13 @@
 package com.github.propi.rdfrules.algorithm.amie
 
 import com.github.propi.rdfrules.algorithm.RulesMining
-import com.github.propi.rdfrules.index.TripleItemIndex
+import com.github.propi.rdfrules.index.{IntervalsIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.ExpandingRule.HeadTriplesBootstrapper
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule.{Atom, ExpandingRule, RuleConstraint, RulePattern, Threshold}
 import com.github.propi.rdfrules.utils.Debugger
 
-class AmieSettings(rulesMining: RulesMining, val bootstrapper: Option[HeadTriplesBootstrapper])(implicit debugger: Debugger, mapper: TripleItemIndex) {
+class AmieSettings(rulesMining: RulesMining, val bootstrapper: Option[HeadTriplesBootstrapper])(implicit debugger: Debugger, mapper: TripleItemIndex, val intervals: IntervalsIndex) {
   @volatile private var _minHeadCoverage: Double = rulesMining.thresholds.get[Threshold.MinHeadCoverage].map(_.value).getOrElse(0.0)
 
   val parallelism: Int = rulesMining.parallelism

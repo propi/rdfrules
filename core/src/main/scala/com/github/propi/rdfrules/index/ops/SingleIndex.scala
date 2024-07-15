@@ -1,10 +1,13 @@
 package com.github.propi.rdfrules.index.ops
 
 import com.github.propi.rdfrules.index.Index.PartType
-import com.github.propi.rdfrules.index.{IndexPart, TripleItemIndex}
+import com.github.propi.rdfrules.index.{Index, IndexPart, TripleItemIndex}
 import com.github.propi.rdfrules.utils.Debugger
 
-class SingleIndex private[index](val main: IndexPart) extends TrainTestIndex with Cacheable {
+class SingleIndex private[index](val main: IndexPart) extends TrainTestIndex with Cacheable with IntervalIndexAutoLoader with DiscretizationOps {
+
+  def withMainPart(indexPart: IndexPart): Index = new SingleIndex(indexPart)
+
   def testIsTrain: Boolean = true
 
   def train: IndexPart = main
@@ -20,4 +23,5 @@ class SingleIndex private[index](val main: IndexPart) extends TrainTestIndex wit
   def tripleItemMap: TripleItemIndex = main.tripleItemMap
 
   def withDebugger(implicit debugger: Debugger): TrainTestIndex = new SingleIndex(main.withDebugger)
+
 }

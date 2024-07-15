@@ -3,6 +3,7 @@ package com.github.propi.rdfrules.algorithm.amie
 import com.github.propi.rdfrules.rule.ExpandingRule.{ClosedRule, DanglingRule}
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule.{Atom, FreshAtom}
+import com.github.propi.rdfrules.utils.RichIterator.PimpedIterator
 
 trait FreshAtomGenerator extends RuleEnhancement with AtomCounting {
 
@@ -26,6 +27,22 @@ trait FreshAtomGenerator extends RuleEnhancement with AtomCounting {
       }
     }
     hmap
+  }
+
+  private lazy val isValidFreshPredicateWithinIntervalGroup: Int => Boolean = {
+    if (intervals.isEmpty) {
+      _ => true
+    } else {
+      val usedPredicates = (rule.body.iterator.map(_.predicate) :+ rule.head.predicate).toSet
+      val usedPredicatesOfIntervalPredicates = usedPredicates.flatMap(intervals.parent)
+      if (usedPredicatesOfIntervalPredicates.isEmpty) {
+        _ => true
+      } else {
+        // if fresh predicate is in usedPredicates then it is a valid predicate (because it must be same interval predicate)
+        // if fresh predicate is a new predicate and the new predicate is in the same interval group as another predicate, then it is not valid predicate.
+        x => usedPredicates(x) || !intervals.parent(x).exists(usedPredicatesOfIntervalPredicates)
+      }
+    }
   }
 
   /**
@@ -62,9 +79,10 @@ trait FreshAtomGenerator extends RuleEnhancement with AtomCounting {
       //then new predicate must be greater than or equal to p (this prevents duplicate generated rules)
       maxPredicates.get(freshAtom.variables).forall(predicate >= _) &&
       //we allow such predicates which reach a minimum atom size threshold
-      testAtomSize.forall(_ (predicateIndex.size(injectiveMapping))) &&
+      testAtomSize.forall(_(predicateIndex.size(injectiveMapping))) &&
       //we disable duplicate atoms in the rule or duplicate predicates if they are forbidden.
-      (if (withDuplicitPredicates) !isDuplicateAtom(freshAtom, predicate) else isUniquePredicate(predicate))
+      (if (withDuplicitPredicates) !isDuplicateAtom(freshAtom, predicate) else isUniquePredicate(predicate)) &&
+      isValidFreshPredicateWithinIntervalGroup(predicate)
   }
 
   /**

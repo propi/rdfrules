@@ -19,7 +19,7 @@ trait TrainTestIndex extends Index {
 
 object TrainTestIndex {
 
-  class Splitted private[index](val train: IndexPart, val test: IndexPart, _merged: Option[IndexPart]) extends Index with Cacheable with TrainTestIndex {
+  private class Splitted(val train: IndexPart, val test: IndexPart, _merged: Option[IndexPart]) extends Index with Cacheable with TrainTestIndex with IntervalIndexAutoLoader with DiscretizationOps {
     @volatile private var _mergedCache: Option[IndexPart] = _merged
 
     lazy val merged: IndexPart = _merged match {
@@ -27,6 +27,11 @@ object TrainTestIndex {
       case None =>
         _mergedCache = Some(IndexPart(MergedTripleIndex(train.tripleMap, test.tripleMap), test.tripleItemMap))
         _mergedCache.get
+    }
+
+    def withMainPart(indexPart: IndexPart): Index = {
+      implicit val debugger: Debugger = indexPart.debugger
+      apply(indexPart, test.toDataset, true)
     }
 
     def testIsTrain: Boolean = false
