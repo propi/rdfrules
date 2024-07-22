@@ -1,10 +1,9 @@
 package com.github.propi.rdfrules.index.ops
 
 import com.github.propi.rdfrules.data
-import com.github.propi.rdfrules.data.{DiscretizationTask, Quad, TripleItem}
-import com.github.propi.rdfrules.index.ops.CollectionBuilders.intCollectionBuilder
-import com.github.propi.rdfrules.index.ops.DiscretizationOps.IndexOps
+import com.github.propi.rdfrules.data.{Dataset, DiscretizationTask, Quad, TripleItem}
 import com.github.propi.rdfrules.index._
+import com.github.propi.rdfrules.index.ops.DiscretizationOps.IndexOps
 import com.github.propi.rdfrules.rule.Threshold.{MinHeadCoverage, MinHeadSize}
 import com.github.propi.rdfrules.utils.{Debugger, ForEach}
 import eu.easyminer.discretization.Consumer
@@ -14,27 +13,35 @@ import eu.easyminer.discretization.impl.{Interval, Producer}
 
 trait DiscretizationOps extends Index with Transformable {
 
-  def discretize(task: AutoDiscretizationTask): Index = {
+  def discretize(task: AutoDiscretizationTask): Dataset = {
     val mapper = tripleItemMap
     val mainPart = main
     val tm = mainPart.tripleMap
     implicit val debugger: Debugger = mainPart.debugger
     val indexRichOps = new IndexOps()(mapper, tm)
-    val minSupportLower = if (task.minSupportLowerBoundOn) {
-      indexRichOps.getMinSupportLower(task.minHeadSize, task.minHeadCoverage, task.maxRuleLength)
-    } else {
-      tm.predicates.iterator.map(p => p -> 1).toMap
+    debugger.debug("Index auto discretization", 4, true) { ad =>
+      val minSupportLower = if (task.minSupportLowerBoundOn) {
+        indexRichOps.getMinSupportLower(task.minHeadSize, task.minHeadCoverage, task.maxRuleLength.value)
+      } else {
+        tm.predicates.iterator.map(p => p -> 1).toMap
+      }
+      ad.done("Min support lower bound computed", true)
+      val minSupportUpper = if (task.minSupportUpperBoundOn) {
+        indexRichOps.getMinSupportUpper(task.minHeadSize, task.minHeadCoverage, task.maxRuleLength.value)
+      } else {
+        tm.predicates.iterator.map(p => p -> Int.MaxValue).toMap
+      }
+      ad.done("Min support upper bound computed", true)
+      val predicates = indexRichOps.getNumericPredicates(task.predicates, minSupportLower).toList
+      ad.done("Numerical predicates have been fetched. Now discretization tree is building...", true)
+      val trees = indexRichOps.getDiscretizedTrees(predicates.iterator.map(_._1), minSupportLower, 2).toList
+      ad.done("Discretization tree built", true)
+      val newQuads = ForEach.from(trees).flatMap(y => indexRichOps.discretizedTreeQuads(y._1.asInstanceOf[TripleItem.Uri], minSupportUpper(mapper.getIndex(y._1)), y._2))
+      this.parts.iterator.map(_._2.toDataset).reduce(_ + _) + Dataset(newQuads)
+      //mainPart.toDataset + Dataset(newQuads)
+      //val (tihi, thi) = TripleItemHashIndex.mapQuads(mainPart.toDataset.quads.concat(newQuads))(TripleHashIndex(_))
+      //withMainPart(IndexPart(thi, tihi))
     }
-    val minSupportUpper = if (task.minSupportUpperBoundOn) {
-      indexRichOps.getMinSupportUpper(task.minHeadSize, task.minHeadCoverage, task.maxRuleLength)
-    } else {
-      tm.predicates.iterator.map(p => p -> Int.MaxValue).toMap
-    }
-    val predicates = indexRichOps.getNumericPredicates(task.predicates, minSupportLower).toList
-    val trees = indexRichOps.getDiscretizedTrees(predicates.iterator.map(_._1), minSupportLower, 2).toList
-    val newQuads = ForEach.from(trees).flatMap(y => indexRichOps.discretizedTreeQuads(y._1.asInstanceOf[TripleItem.Uri], minSupportUpper(mapper.getIndex(y._1)), y._2))
-    val (tihi, thi) = TripleItemHashIndex.mapQuads(mainPart.toDataset.quads.concat(newQuads))(TripleHashIndex(_))
-    withMainPart(IndexPart(thi, tihi))
   }
 
 }

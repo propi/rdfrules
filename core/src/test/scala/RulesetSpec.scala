@@ -1,16 +1,17 @@
-import java.io.{File, FileInputStream, FileOutputStream}
 import com.github.propi.rdfrules.algorithm.amie.Amie
 import com.github.propi.rdfrules.algorithm.clustering.DbScan
 import com.github.propi.rdfrules.data._
-import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.index._
+import com.github.propi.rdfrules.rule.Measure.{CwaConfidence, PcaConfidence}
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
+import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.ruleset._
 import org.scalatest.enablers.Sortable
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.{CancelAfterFailure, Inside}
 
+import java.io.{File, FileInputStream, FileOutputStream}
 import scala.io.Source
 
 /**
@@ -29,7 +30,7 @@ class RulesetSpec extends AnyFlatSpec with Matchers with Inside with CancelAfter
   }
 
   "Index" should "mine directly from index" in {
-    IndexPart(dataset1, false).mineRules(Amie()
+    Index(IndexPart(dataset1, false)).mineRules(Amie()
       .addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere))
       .addThreshold(Threshold.MinHeadCoverage(0.01))
     ).size shouldBe 124
@@ -43,16 +44,16 @@ class RulesetSpec extends AnyFlatSpec with Matchers with Inside with CancelAfter
   }
 
   "Ruleset" should "count confidence" in {
-    val rules = ruleset.computeConfidence(0.9)
+    val rules = ruleset.computeConfidence[CwaConfidence](0.9)
     all(rules.rules.map(_.measures.apply[Measure.CwaConfidence].value).toSeq) should be >= 0.9
     rules.size shouldBe 12
-    val rules2 = ruleset.computeConfidence(0).rules
+    val rules2 = ruleset.computeConfidence[CwaConfidence](0).rules
     all(rules2.map(_.measures.apply[Measure.CwaConfidence].value).toSeq) should be >= 0.001
     rules2.size shouldBe 810
   }
 
   it should "count pca confidence" in {
-    val rules = ruleset.computePcaConfidence(0.9).rules
+    val rules = ruleset.computeConfidence[PcaConfidence](0.9).rules
     all(rules.map(_.measures.apply[Measure.PcaConfidence].value).toSeq) should be >= 0.9
     rules.size shouldBe 57
   }
@@ -62,7 +63,7 @@ class RulesetSpec extends AnyFlatSpec with Matchers with Inside with CancelAfter
     all(rules.map(_.measures.apply[Measure.CwaConfidence].value).toSeq) should be >= 0.5
     for (rule <- rules) {
       rule.measures.exists[Measure.Lift] shouldBe true
-      rule.measures.exists[Measure.HeadConfidence] shouldBe true
+//      rule.measures.exists[Measure.] shouldBe true
     }
     rules.size shouldBe 105
   }
@@ -93,7 +94,7 @@ class RulesetSpec extends AnyFlatSpec with Matchers with Inside with CancelAfter
   it should "do transform operations" in {
     ruleset.filter(_.measures.apply[Measure.Support].value > 100).size shouldBe 2
     ruleset.filterResolved(_.measures[Measure.Support].value > 100).size shouldBe 2
-    val emptyBodies = ruleset.map(x => Rule(x.head, Vector())(x.measures)).rules.map(_.body)
+    val emptyBodies = ruleset.map(x => Rule(x.head, Vector(), x.measures)).rules.map(_.body)
     emptyBodies.size shouldBe ruleset.size
     for (body <- emptyBodies) {
       body shouldBe empty

@@ -13,7 +13,7 @@ import java.io.{File, FileInputStream, FileOutputStream}
   */
 class GraphSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFailure {
 
-  private lazy val graph = Graph(dataYago)(RdfSource.Tsv)
+  private lazy val graph = Graph(dataYago)(RdfSource.Tsv(RdfSource.Tsv.ParsingMode.Raw))
   private lazy val graphDbpedia = Graph(dataDbpedia)(Lang.TTL)
 
   "Graph object" should "be loaded" in {

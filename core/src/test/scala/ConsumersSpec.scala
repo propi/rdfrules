@@ -16,7 +16,7 @@ class ConsumersSpec extends AnyFlatSpec with Matchers with Inside with CancelAft
     Debugger() { implicit debugger =>
       val index = Dataset(Graph("yago", GraphSpec.dataYago)).index
       index.tripleItemMap
-      index.tripleMap
+      index.main.tripleMap
       index
     }
   }

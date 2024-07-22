@@ -18,7 +18,7 @@ import com.github.propi.rdfrules.http.task.predictionTasks.Select.SelectionStrat
 import com.github.propi.rdfrules.http.task.ruleset.ComputeConfidence.ConfidenceType
 import com.github.propi.rdfrules.http.task.ruleset.ComputeSupport.SupportType
 import com.github.propi.rdfrules.http.task.ruleset.{LoadRuleset, LoadRulesetWithoutIndex}
-import com.github.propi.rdfrules.index.Index
+import com.github.propi.rdfrules.index.{AutoDiscretizationTask, Index}
 import com.github.propi.rdfrules.prediction._
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.{DefaultConfidence, Measure, ResolvedRule, Rule, RulePattern}
@@ -215,6 +215,10 @@ object PipelineJsonReaders {
       selector.get("limit").toOpt[Int].getOrElse(-1),
       selector.get("topK").toOpt[Int].getOrElse(-1)
     )
+  }
+
+  implicit val autoDiscretizationReader: RootJsonReader[index.Discretize] = (json: JsValue) => {
+    new index.Discretize(json.convertTo[AutoDiscretizationTask])
   }
 
   implicit def mineReader(implicit debugger: Debugger): RootJsonReader[index.Mine] = (json: JsValue) => {
@@ -542,6 +546,7 @@ object PipelineJsonReaders {
         fields("name").convertTo[String] match {
           case index.Cache.name => addTaskFromIndex(pipeline ~> params.convertTo[index.Cache], tail)
           case index.Mine.name => addTaskFromRuleset(pipeline ~> params.convertTo[index.Mine], tail)
+          case index.Discretize.name => addTaskFromDataset(pipeline ~> params.convertTo[index.Discretize], tail)
           case index.ToDataset.name => addTaskFromDataset(pipeline ~> params.convertTo[index.ToDataset], tail)
           case index.PropertiesCardinalities.name => pipeline ~> params.convertTo[index.PropertiesCardinalities] ~> ToJsonTask.FromPropertiesCardinalities
           case index.ExportIndex.name => pipeline ~> params.convertTo[index.ExportIndex] ~> ToJsonTask.FromUnit

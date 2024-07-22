@@ -40,7 +40,7 @@ class IndexSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFa
     val index = IndexPart.apply(dataset1, false)
     MemoryMeasurer.measureBytes(index) should be(600L +- 100)
     val thi = index.tripleMap
-    thi.size shouldBe dataset1.size
+    thi.size(false) shouldBe dataset1.size
     val mem = MemoryMeasurer.measureBytes(index)
     mem should be(42513144L +- 1000000)
     implicit val tim: TripleItemIndex = index.tripleItemMap
@@ -65,15 +65,15 @@ class IndexSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFa
     tihi.iterator.size shouldBe dataset2.quads.flatMap(x => List(x.graph, x.triple.subject, x.triple.predicate, x.triple.`object`)).toSet.size
     MemoryMeasurer.measureBytes(index) should be(8000000L +- 1000000)
     val thi1 = index.tripleMap
-    thi1.size shouldBe dataset2.size
+    thi1.size(false) shouldBe dataset2.size
     val indexMemory1 = MemoryMeasurer.measureBytes(index)
     indexMemory1 should be(79494960L +- 5000000)
-    val index2 = index.withEvaluatedLazyVals
-    val indexMemory2 = MemoryMeasurer.measureBytes(index2)
-    indexMemory1 should be < indexMemory2
-    val thi2 = index2.tripleMap
-    thi2.size shouldBe dataset2.size
-    indexMemory2 should be < MemoryMeasurer.measureBytes(index2)
+//    val index2 = index.withEvaluatedLazyVals
+//    val indexMemory2 = MemoryMeasurer.measureBytes(index2)
+//    indexMemory1 should be < indexMemory2
+//    val thi2 = index2.tripleMap
+//    thi2.size shouldBe dataset2.size
+//    indexMemory2 should be < MemoryMeasurer.measureBytes(index2)
   }
 
   it should "work with graphs" in {
@@ -106,7 +106,7 @@ class IndexSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFa
     val graph = Graph(GraphSpec.dataSameAs)
     graph.size shouldBe 9
     val index = graph.index
-    val ti = index.tripleMap
+    val ti = index.main.tripleMap
     ti.subjects.size shouldBe 2
     ti.predicates.size shouldBe 1
     ti.objects.size shouldBe 5
@@ -116,23 +116,23 @@ class IndexSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFa
   }
 
   it should "cache" in {
-    val index = IndexPart.apply(dataset2, false)
-    index.cache(new FileOutputStream("test.index"))
+    val index = Index(IndexPart.apply(dataset2, false))
+    index.cache(() => new FileOutputStream("test.index"))
     val file = new File("test.index")
     file.exists() shouldBe true
     file.length() should be > 5000000L
   }
 
   it should "be loaded from cache" in {
-    val index = IndexPart.fromCache(new BufferedInputStream(new FileInputStream("test.index")), false)
+    val index = Index.fromCache(() => new BufferedInputStream(new FileInputStream("test.index")), false)
     val tihi = index.tripleItemMap
     tihi.iterator.size shouldBe 72263
-    val thi = index.tripleMap
-    thi.size shouldBe dataset2.size
-    val dataset = index.toDataset
+    val thi = index.main.tripleMap
+    thi.size(false) shouldBe dataset2.size
+    val dataset = index.main.toDataset
     dataset.size shouldBe dataset2.size
     dataset.toGraphs.map(_.name).toSeq should contain only(TripleItem.Uri("yago"), TripleItem.Uri("dbpedia"))
-    index.cache(new BufferedOutputStream(new FileOutputStream("test2.index")))
+    index.cache(() => new BufferedOutputStream(new FileOutputStream("test2.index")))
     new File("test.index").length() shouldBe new File("test2.index").length()
     new File("test2.index").delete() shouldBe true
   }

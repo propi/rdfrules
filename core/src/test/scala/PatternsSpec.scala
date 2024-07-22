@@ -16,7 +16,7 @@ class PatternsSpec extends AnyFlatSpec with Matchers with Inside with CancelAfte
     Debugger() { implicit debugger =>
       val index = Dataset(Graph("yago", GraphSpec.dataYago)).index
       index.tripleItemMap
-      index.tripleMap
+      index.main.tripleMap
       index
     }
   }

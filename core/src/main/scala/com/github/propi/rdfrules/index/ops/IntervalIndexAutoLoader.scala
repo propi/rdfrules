@@ -47,6 +47,8 @@ trait IntervalIndexAutoLoader extends Index {
         def isEmpty: Boolean = index.isEmpty
 
         def parent(x: Int): Option[Int] = index.get(x)
+
+        def iterator: Iterator[(Int, Int)] = index.iterator
       }
     }
   }

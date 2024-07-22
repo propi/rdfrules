@@ -25,7 +25,7 @@ trait Index {
 
   def withDebugger(implicit debugger: Debugger): Index
 
-  def discretize(task: AutoDiscretizationTask): Index
+  def discretize(task: AutoDiscretizationTask): Dataset
 
   final def cache(file: File): Index = cache(() => new FileOutputStream(file))
 

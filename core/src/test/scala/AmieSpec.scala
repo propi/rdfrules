@@ -4,6 +4,7 @@ import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
 import com.github.propi.rdfrules.algorithm.consumer.{InMemoryRuleConsumer, TopKRuleConsumer}
 import com.github.propi.rdfrules.data._
 import com.github.propi.rdfrules.index._
+import com.github.propi.rdfrules.rule.AtomPattern.AtomItemPattern
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.{CustomLogger, Debugger}
@@ -42,7 +43,7 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
   }
 
   it should "mine with default params" in {
-    val index = IndexPart.apply(dataset1, false)
+    val index = Index(IndexPart.apply(dataset1, false))
     val amie = Amie().addConstraint(RuleConstraint.ConstantsAtPosition(ConstantsPosition.Nowhere)).addThreshold(Threshold.MinHeadCoverage(0.01))
     val rules = index.mineRules(amie)
     rules.size shouldBe 124
@@ -266,7 +267,7 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
     val rules = InMemoryRuleConsumer() { consumer =>
       thi.subjects
       thi.objects
-      amie.mine(consumer).map(_.withCwaConfidence(0.2)).filter(_.measures.exists[Measure.CwaConfidence]).toIndexedSeq
+      amie.mine(consumer).map(_.withCwaConfidence(0.2, true)).filter(_.measures.exists[Measure.CwaConfidence]).toIndexedSeq
     }
     rules.size shouldBe 7
     rules.forall(_.measures.apply[Measure.CwaConfidence].value >= 0.2) shouldBe true
@@ -369,7 +370,7 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
     rules.map(_.ruleLength) should contain only 2
     rules.size shouldBe 50
     //oneOf pattern
-    pattern = AtomPattern(predicate = OneOf(TripleItem.Uri("livesIn"), TripleItem.Uri("diedIn"))) =>: None
+    pattern = AtomPattern(predicate = OneOf(AtomItemPattern.Constant(TripleItem.Uri("livesIn")), AtomItemPattern.Constant(TripleItem.Uri("diedIn")))) =>: None
     rules = InMemoryRuleConsumer() { consumer =>
       amie.addPattern(pattern).mine(consumer).toIndexedSeq
     }
@@ -378,7 +379,7 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
     }
     rules.size shouldBe 11443
     //noneOf pattern
-    pattern = AtomPattern(predicate = NoneOf(TripleItem.Uri("participatedIn"), TripleItem.Uri("imports"))) =>: None
+    pattern = AtomPattern(predicate = NoneOf(AtomItemPattern.Constant(TripleItem.Uri("participatedIn")), AtomItemPattern.Constant(TripleItem.Uri("imports")))) =>: None
     rules = InMemoryRuleConsumer() { consumer =>
       amie.addPattern(pattern).addThreshold(Threshold.MaxRuleLength(2)).mine(consumer).toIndexedSeq
     }
@@ -418,8 +419,8 @@ class AmieSpec extends AnyFlatSpec with Matchers with Inside with CancelAfterFai
     val index = IndexPart.apply(dataset2, false)
     val patterns: List[RulePattern] = List(
       AtomPattern(graph = TripleItem.Uri("yago")),
-      AtomPattern(graph = AtomPattern.AtomItemPattern.OneOf(TripleItem.Uri("yago"))),
-      AtomPattern(graph = AtomPattern.AtomItemPattern.NoneOf(TripleItem.Uri("dbpedia")))
+      AtomPattern(graph = AtomPattern.AtomItemPattern.OneOf(AtomItemPattern.Constant(TripleItem.Uri("yago")))),
+      AtomPattern(graph = AtomPattern.AtomItemPattern.NoneOf(AtomItemPattern.Constant(TripleItem.Uri("dbpedia"))))
     )
     implicit val tihi: TripleItemIndex = index.tripleItemMap
     implicit val thi: TripleIndex[Int] = index.tripleMap

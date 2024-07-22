@@ -17,6 +17,7 @@ import com.github.propi.rdfrules.http.task.ruleset.ComputeSupport.SupportType
 import com.github.propi.rdfrules.http.task.ruleset.Prune.PruningStrategy
 import com.github.propi.rdfrules.http.util.Conf
 import com.github.propi.rdfrules.http.{Main, Workspace}
+import com.github.propi.rdfrules.index.AutoDiscretizationTask
 import com.github.propi.rdfrules.prediction._
 import com.github.propi.rdfrules.prediction.aggregator.{MaximumScorer, NoisyOrScorer, NonRedundantTopRules, TopRules}
 import com.github.propi.rdfrules.rule.Rule.FinalRule
@@ -480,6 +481,18 @@ object CommonDataJsonReaders {
         case _ => RdfSource.NoSettings
       }
     }
+  }
+
+  implicit val autoDiscretizationTaskReader: RootJsonReader[AutoDiscretizationTask] = (json: JsValue) => {
+    val selector = json.toSelector
+    AutoDiscretizationTask.Common(
+      selector("minSupportLowerBoundOn").to[Boolean],
+      selector("minSupportUpperBoundOn").to[Boolean],
+      Threshold.MinHeadSize(selector("minHeadSize").to[Int]),
+      Threshold.MinHeadCoverage(selector("minHeadCoverage").to[Double]),
+      Threshold.MaxRuleLength(selector("maxRuleLength").to[Int]),
+      selector("predicates").toTypedIterable[TripleItem.Uri]
+    )
   }
 
 }
