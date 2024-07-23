@@ -117,7 +117,7 @@ object Debugger {
     private def dump(): Unit = {
       val snapshot = actionDebugger.takeSnapshot
       if (lastNum != snapshot.absoluteProgress) {
-        val windowTime = System.currentTimeMillis() - lastDump
+        val windowTime = System.currentTimeMillis() - lastDump + 1
         val windowNum = snapshot.absoluteProgress - lastNum
         val rating = s"(${round((windowNum.toDouble / windowTime) * 1000, 2)} per sec)"
         logger.info(s"$snapshot $rating" + (if (snapshot.currentMessage.nonEmpty) " -- " + snapshot.currentMessage else ""))

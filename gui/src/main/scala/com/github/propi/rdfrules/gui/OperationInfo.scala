@@ -84,6 +84,7 @@ object OperationInfo {
       IndexTransformation.LoadRulesetWithRules,
       IndexTransformation.LoadPrediction,
       PropertiesCardinalities,
+      IndexTransformation.AutoDiscretization,
       ExportIndex,
     )
   }
@@ -262,6 +263,11 @@ object OperationInfo {
   sealed trait IndexToDataset extends Transformation {
     val name: String = "IndexToDataset"
     val title: String = "To dataset"
+  }
+
+  sealed trait AutoDiscretization extends Transformation {
+    val name: String = "AutoDiscretization"
+    val title: String = "Discretize"
   }
 
   sealed trait PredictionToDataset extends Transformation {
@@ -515,6 +521,14 @@ object OperationInfo {
 
     object IndexToDataset extends OperationInfo.IndexToDataset with DatasetTransformation {
       def buildOperation(from: Operation): Operation = new operations.IndexToDataset(from, this)
+
+      def sourceStructure: OperationStructure = OperationStructure.Index
+
+      def targetStructure: OperationStructure = OperationStructure.Dataset
+    }
+
+    object AutoDiscretization extends OperationInfo.AutoDiscretization with DatasetTransformation {
+      def buildOperation(from: Operation): Operation = new operations.AutoDiscretization(from, this)
 
       def sourceStructure: OperationStructure = OperationStructure.Index
 
