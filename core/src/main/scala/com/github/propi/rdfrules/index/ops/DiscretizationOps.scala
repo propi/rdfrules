@@ -102,9 +102,9 @@ object DiscretizationOps {
         (f: Quad => Unit) => {
           for {
             (p, predicateIndex) <- predicateIndex
-            g = thi.getGraphs(p).iterator.next()
             (s, objects) <- predicateIndex.subjects.pairIterator
             o <- objects.iterator
+            g <- thi.getGraphs(s, p, o).iterator
           } {
             f(IndexItem.Quad(s, p, o, g).toQuad)
           }
