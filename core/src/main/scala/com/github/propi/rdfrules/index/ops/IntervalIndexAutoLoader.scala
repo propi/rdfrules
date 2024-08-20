@@ -8,7 +8,6 @@ trait IntervalIndexAutoLoader extends Index {
 
   lazy val intervalsIndex: IntervalsIndex = {
     this.main.debugger.debug("Intervals index loading", parts.map(_._2).map(_.tripleMap.predicates.size).sum * 2, true) { ad =>
-      val AutoDiscretizationPattern = "(.*)#discretized_level_\\d+".r
       val index = parts.map(_._2).flatMap { indexPart =>
         val mapper = indexPart.tripleItemMap
         val pindex = indexPart.tripleMap.predicates
@@ -18,11 +17,7 @@ trait IntervalIndexAutoLoader extends Index {
           }.nonEmpty
           val res = if (hasIntervals) {
             mapper.getTripleItem(p) match {
-              case pUri: TripleItem.Uri =>
-                pUri.uri match {
-                  case AutoDiscretizationPattern(parent) => Some(parent -> p)
-                  case _ => Some(pUri.uri -> p)
-                }
+              case pUri: TripleItem.Uri => DiscretizationOps.DiscretizedPredicate(pUri).map(_.originalPredicate.uri -> p).orElse(Some(pUri.uri -> p))
               case _ => None
             }
           } else {

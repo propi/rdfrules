@@ -2,7 +2,7 @@ name := "core"
 
 organization := "com.github.propi.rdfrules"
 
-version := "1.7.2"
+version := "1.8.0"
 
 scalaVersion := "2.13.8"
 

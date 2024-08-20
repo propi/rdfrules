@@ -18,7 +18,7 @@ RDFRules is divided into five main modules. They are:
  
  ### Quick and easy run of RDFRules
  
- 1. Download the latest [release](https://github.com/propi/rdfrules/releases) in the .zip format (currently v1.7.2) and unpack it into a folder.
+ 1. Download the latest [release](https://github.com/propi/rdfrules/releases) in the .zip format (currently v1.8.0) and unpack it into a folder.
  2. Go to the unpacked RDFRules home folder (with /bin, /webapp and /lib folders) and run RDFRules HTTP API (compiled under Java 11)
     - On Linux: ```sh bin/main```
     - On Windows: ```.\bin\main.bat```

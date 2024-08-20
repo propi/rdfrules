@@ -457,4 +457,24 @@ object ForEach {
     def toMap: Map[A, B] = x.to(Map)
   }
 
+  implicit class PimpedFactory[A, C](val x: Factory[A, C]) extends AnyVal {
+    def wrap[T](f: T => A): Factory[T, C] = new Factory[T, C] {
+      def fromSpecific(it: IterableOnce[T]): C = x.fromSpecific(it.iterator.map(f))
+
+      def newBuilder: mutable.Builder[T, C] = {
+        val builder = x.newBuilder
+        new mutable.Builder[T, C] {
+          def clear(): Unit = builder.clear()
+
+          def result(): C = builder.result()
+
+          def addOne(elem: T): this.type = {
+            builder.addOne(f(elem))
+            this
+          }
+        }
+      }
+    }
+  }
+
 }

@@ -101,6 +101,7 @@ object OperationInfo {
       RulesetTransformation.CacheRuleset,
       RulesetTransformation.Predict,
       RulesetTransformation.Prune,
+      RulesetTransformation.RulesetToDatasetWithIntervals,
       ExportRules,
       GetRules,
       RulesetSize,
@@ -263,6 +264,11 @@ object OperationInfo {
   sealed trait IndexToDataset extends Transformation {
     val name: String = "IndexToDataset"
     val title: String = "To dataset"
+  }
+
+  sealed trait RulesetToDatasetWithIntervals extends Transformation {
+    val name: String = "ToDatasetWithIntervals"
+    val title: String = "To dataset with intervals"
   }
 
   sealed trait AutoDiscretization extends Transformation {
@@ -656,6 +662,14 @@ object OperationInfo {
   }
 
   object RulesetTransformation {
+
+    object RulesetToDatasetWithIntervals extends OperationInfo.RulesetToDatasetWithIntervals with DatasetTransformation {
+      def buildOperation(from: Operation): Operation = new operations.RulesetToDatasetWithIntervals(from, this)
+
+      def sourceStructure: OperationStructure = OperationStructure.Ruleset
+
+      def targetStructure: OperationStructure = OperationStructure.Dataset
+    }
 
     object FilterRules extends OperationInfo.FilterRules with RulesetTransformation with RulesetToRuleset {
       def buildOperation(from: Operation): Operation = new operations.FilterRules(from, this)

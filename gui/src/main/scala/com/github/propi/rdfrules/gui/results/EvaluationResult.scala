@@ -25,13 +25,13 @@ class EvaluationResult(val title: String, val id: Future[String]) extends Action
       </div>
       <div class="ranking">
         <div>
-          {s"Total entities: ${ranking.total}"}
+          {s"Total candidates: ${ranking.total}"}
         </div>
         <div>
-          {s"Total correct entities: ${ranking.totalCorrect}"}
+          {s"Total correct candidates: ${ranking.totalCorrect}"}
         </div>
         <div>
-          {s"Accuracy: ${(ranking.totalCorrect.toDouble / ranking.total) * 100}%"}
+          {s"Ratio of correct candidates: ${(ranking.totalCorrect.toDouble / ranking.total) * 100}%"}
         </div>
         <div>
           {s"Mean rank: ${ranking.mr}"}
@@ -55,11 +55,11 @@ class EvaluationResult(val title: String, val id: Future[String]) extends Action
         <table class="confusion-matrix">
           <tr>
             <td></td>
-            <th>KG: Included</th>
-            <th>KG: Missing</th>
+            <th>In KG</th>
+            <th>Not in KG</th>
           </tr>
           <tr>
-            <th>Predicted: Included</th>
+            <th>Predicted</th>
             <td class="true">
               {completeness.tp.toString}
             </td>
@@ -68,7 +68,7 @@ class EvaluationResult(val title: String, val id: Future[String]) extends Action
             </td>
           </tr>
           <tr>
-            <th>Predicted: Missing</th>
+            <th>Not predicted</th>
             <td class="false">
               {completeness.fn.toString}
             </td>

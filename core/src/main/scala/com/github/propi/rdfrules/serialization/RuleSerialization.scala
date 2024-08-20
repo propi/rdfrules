@@ -6,7 +6,6 @@ import com.github.propi.rdfrules.rule.ResolvedAtom.ResolvedItem
 import com.github.propi.rdfrules.rule.{Measure, ResolvedAtom, ResolvedInstantiatedAtom, ResolvedInstantiatedRule, ResolvedRule}
 import com.github.propi.rdfrules.serialization.TripleItemSerialization._
 import com.github.propi.rdfrules.utils.TypedKeyMap
-import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 import com.github.propi.rdfrules.utils.serialization.Serializer._
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 

@@ -19,22 +19,35 @@ trait RuleCounting extends AtomCounting {
     withSupport((rule.headSize * minHeadCoverage).round.toInt, injectiveMapping)
   }
 
+  def withHeadSupport(injectiveMapping: Boolean): FinalRule = {
+    val tm = tripleIndex.predicates(rule.head.predicate)
+    val headSize = tm.size(injectiveMapping)
+    val headSupport = rule.head.subject -> rule.head.`object` match {
+      case (_: Atom.Variable, _: Atom.Variable) => headSize
+      case (Atom.Constant(c), _: Atom.Variable) => tm.subjects.get(c).map(_.size(injectiveMapping)).getOrElse(0)
+      case (_: Atom.Variable, Atom.Constant(c)) => tm.objects.get(c).map(_.size(injectiveMapping)).getOrElse(0)
+      case (Atom.Constant(s), Atom.Constant(o)) => if (tm.subjects.get(s).exists(_.contains(o))) 1 else 0
+    }
+    rule.withMeasures(rule.measures + Measure.HeadSize(headSize) + Measure.HeadSupport(headSupport))
+  }
+
   def withSupport(minSupport: Int, injectiveMapping: Boolean)(implicit debugger: Debugger): Option[FinalRule] = {
-    val bodySet = rule.bodySet
+    val preparedRule = if (rule.headSupport == 0) withHeadSupport(injectiveMapping) else rule
+    val bodySet = preparedRule.bodySet
     var thresholdTime = System.currentTimeMillis() + 30000
-    val (supp, _) = specifyVariableMap(rule.head, VariableMap(injectiveMapping)).map(exists(bodySet, _)).scanLeft(
-      0 -> rule.headSupport
+    val (supp, _) = specifyVariableMap(preparedRule.head, VariableMap(injectiveMapping)).map(exists(bodySet, _)).scanLeft(
+      0 -> preparedRule.headSupport
     ) { case ((supp, remaining), positive) =>
       (supp + (if (positive) 1 else 0)) -> (remaining - 1)
     }.takeWhile { case (supp, remaining) =>
       if (thresholdTime < System.currentTimeMillis()) {
         thresholdTime = System.currentTimeMillis() + 30000
-        debugger.logger.info(s"Long counting of rule support: ${ResolvedRuleContent(rule)} --- (${BigDecimal(rule.headSize - remaining).toString} of ${BigDecimal(rule.headSupport).toString} - ${BasicFunctions.round(((rule.headSize - remaining) / rule.headSupport.toDouble) * 100, 2)}%)")
+        debugger.logger.info(s"Long counting of rule support: ${ResolvedRuleContent(preparedRule)} --- (${BigDecimal(preparedRule.headSize - remaining).toString} of ${BigDecimal(preparedRule.headSupport).toString} - ${BasicFunctions.round(((preparedRule.headSize - remaining) / preparedRule.headSupport.toDouble) * 100, 2)}%)")
       }
       !debugger.isInterrupted && supp + remaining >= minSupport
     }.reduceLeftOption((_, x) => x).getOrElse(0 -> 0)
     if (supp >= minSupport && !debugger.isInterrupted) {
-      Some(rule.withMeasures(rule.measures + Measure.Support(supp) + Measure.HeadCoverage(supp.toDouble / rule.headSize) - Measure.SupportIncreaseRatio))
+      Some(preparedRule.withMeasures(preparedRule.measures + Measure.Support(supp) + Measure.HeadCoverage(supp.toDouble / preparedRule.headSize) - Measure.SupportIncreaseRatio))
     } else {
       None
     }

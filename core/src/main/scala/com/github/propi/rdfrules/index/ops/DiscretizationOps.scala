@@ -3,8 +3,10 @@ package com.github.propi.rdfrules.index.ops
 import com.github.propi.rdfrules.data
 import com.github.propi.rdfrules.data.{Dataset, DiscretizationTask, Quad, TripleItem}
 import com.github.propi.rdfrules.index._
+import com.github.propi.rdfrules.index.ops.DiscretizationOps.DiscretizedPredicate.suffixPattern
 import com.github.propi.rdfrules.index.ops.DiscretizationOps.IndexOps
 import com.github.propi.rdfrules.rule.Threshold.{MinHeadCoverage, MinHeadSize}
+import com.github.propi.rdfrules.utils.BasicExtractors.AnyToInt
 import com.github.propi.rdfrules.utils.{Debugger, ForEach}
 import eu.easyminer.discretization.Consumer
 import eu.easyminer.discretization.algorithm.Discretization
@@ -47,6 +49,26 @@ trait DiscretizationOps extends Index with Transformable {
 }
 
 object DiscretizationOps {
+
+  case class DiscretizedPredicate(originalPredicate: TripleItem.Uri, level: Int) {
+    def suffix = s"$suffixPattern$level"
+
+    def discretizedPredicate: TripleItem.Uri = originalPredicate match {
+      case TripleItem.LongUri(uri) => TripleItem.LongUri(s"$uri$suffix")
+      case x: TripleItem.PrefixedUri => x.copy(localName = s"${x.localName}$suffix")
+      case TripleItem.BlankNode(id) => TripleItem.BlankNode(s"$id$suffix")
+    }
+  }
+
+  object DiscretizedPredicate {
+    private val suffixPattern = "#discretized_level_"
+    private val AutoDiscretizationPattern = s"(.*)$suffixPattern(\\d+)".r
+
+    def apply(p: TripleItem.Uri): Option[DiscretizedPredicate] = p.uri match {
+      case AutoDiscretizationPattern(parent, AnyToInt(level)) => Some(DiscretizedPredicate(TripleItem.LongUri(parent), level))
+      case _ => None
+    }
+  }
 
   private sealed trait DiscretizedTree {
     val interval: Interval.WithFrequency
@@ -110,18 +132,12 @@ object DiscretizationOps {
           }
         }
       }
-      val buildPredicate: String => TripleItem.Uri = predicate match {
-        case TripleItem.LongUri(uri) => suffix => TripleItem.LongUri(uri + suffix)
-        case x: TripleItem.PrefixedUri => suffix => x.copy(localName = x.localName + suffix)
-        case TripleItem.BlankNode(id) => suffix => TripleItem.BlankNode(id + suffix)
-      }
 
       @scala.annotation.tailrec
       def addLevelToIndex(level: Int, intervals: Iterable[DiscretizedTree]): Unit = {
         if (intervals.nonEmpty) {
           if (level > 0) {
-            val suffix = s"#discretized_level_$level"
-            val newPredicate = buildPredicate(suffix)
+            val newPredicate = DiscretizedPredicate(predicate, level).discretizedPredicate
             val cutOffIntervals = intervals.filter(!isCutOff(_))
             for {
               quad <- predicateQuads

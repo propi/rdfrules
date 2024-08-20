@@ -13,6 +13,8 @@ trait Transformable[T, Coll] {
 
   def map(f: T => T): Coll = transform(coll.map(f))
 
+  def flatMap(f: T => ForEach[T]): Coll = transform(coll.flatMap(f))
+
   def filter(f: T => Boolean): Coll = transform(coll.filter(f))
 
   def filterIndices(indices: Set[Int]): Coll = transform(coll.zipWithIndex.filter(x => indices(x._2)).map(_._1))

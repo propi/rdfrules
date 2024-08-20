@@ -3,19 +3,21 @@ package com.github.propi.rdfrules.ruleset
 import com.github.propi.rdfrules.algorithm.Clustering
 import com.github.propi.rdfrules.algorithm.amie.RuleCounting._
 import com.github.propi.rdfrules.algorithm.clustering.SimilarityCounting
-import com.github.propi.rdfrules.data.Dataset
 import com.github.propi.rdfrules.data.ops.{Cacheable, Debugable, Transformable}
+import com.github.propi.rdfrules.data.{Dataset, TripleItem}
 import com.github.propi.rdfrules.index.IndexCollections.Builder
 import com.github.propi.rdfrules.index._
+import com.github.propi.rdfrules.index.ops.DiscretizationOps.DiscretizedPredicate
 import com.github.propi.rdfrules.prediction._
 import com.github.propi.rdfrules.rule.Measure.DefaultOrdering._
 import com.github.propi.rdfrules.rule.Measure.{Confidence, ConfidenceMeasure}
 import com.github.propi.rdfrules.rule.PatternMatcher.Aliases
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.RulePatternMatcher._
-import com.github.propi.rdfrules.rule.{DefaultConfidence, Measure, PatternMatcher, ResolvedRule, Rule, RulePattern}
+import com.github.propi.rdfrules.rule.{DefaultConfidence, Measure, PatternMatcher, ResolvedAtom, ResolvedRule, Rule, RulePattern}
 import com.github.propi.rdfrules.ruleset.ops.{Sortable, Treeable}
 import com.github.propi.rdfrules.serialization.RuleSerialization._
+import com.github.propi.rdfrules.utils.RichIterator.PimpedIterator
 import com.github.propi.rdfrules.utils.TypedKeyMap.Key
 import com.github.propi.rdfrules.utils.serialization.{Deserializer, SerializationSize, Serializer}
 import com.github.propi.rdfrules.utils.{Debugger, ForEach}
@@ -54,6 +56,21 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
   protected def dataLoadingText: String = "Ruleset loading"
 
   def withIndex(index: Index): Ruleset = new Ruleset(rules, index, parallelism)
+
+  def toDatasetWithIntervals(implicit debugger: Debugger): Dataset = {
+    val intervals = resolvedRules.withDebugger("Intervals searching").flatMap(x => x.body.iterator :+ x.head).map(x => x.predicate -> x.`object`).collect {
+      case (p, ResolvedAtom.ResolvedItem.Constant(i: TripleItem.Interval)) => p -> i
+    }.groupBy[TripleItem.Uri, collection.Set[(TripleItem.Uri, TripleItem.Interval)]](x => DiscretizedPredicate(x._1).map(_.originalPredicate).getOrElse(x._1))(collection.mutable.HashSet)
+    index.parts.iterator.map(_._2.toDataset.flatMap { x =>
+      val quadsWithIntervals = for {
+        TripleItem.NumberDouble(o) <- Iterator(x.triple.`object`)
+        i <- intervals.get(x.triple.predicate).iterator.flatten if i._2.interval.isInInterval(o)
+      } yield {
+        x.copy(triple = x.triple.copy(predicate = i._1, `object` = i._2))
+      }
+      ForEach.from(x +: quadsWithIntervals)
+    }).reduce(_ + _)
+  }
 
   def filter(pattern: RulePattern, patterns: RulePattern*): Ruleset = transform((f: FinalRule => Unit) => {
     implicit val mapper: TripleItemIndex = index.tripleItemMap

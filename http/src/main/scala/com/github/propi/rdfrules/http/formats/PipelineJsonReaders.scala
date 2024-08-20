@@ -195,6 +195,10 @@ object PipelineJsonReaders {
     new index.ToDataset
   }
 
+  implicit def rulesetToDatasetWithIntervalsReader(implicit debugger: Debugger): RootJsonReader[ruleset.ToDatasetWithIntervals] = (_: JsValue) => {
+    new ruleset.ToDatasetWithIntervals
+  }
+
   implicit val predictionToDatasetReader: RootJsonReader[prediction.ToDataset] = (_: JsValue) => {
     new prediction.ToDataset
   }
@@ -576,6 +580,7 @@ object PipelineJsonReaders {
           case ruleset.Shrink.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Shrink], tail)
           case ruleset.Sort.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Sort], tail)
           case ruleset.Predict.name => addTaskFromPrediction(pipeline ~> params.convertTo[ruleset.Predict], tail)
+          case ruleset.ToDatasetWithIntervals.name => addTaskFromDataset(pipeline ~> params.convertTo[ruleset.ToDatasetWithIntervals], tail)
           case ruleset.Prune.name => addTaskFromRuleset(pipeline ~> params.convertTo[ruleset.Prune], tail)
           case ruleset.Instantiate.name => pipeline ~> params.convertTo[ruleset.Instantiate] ~> ToJsonTask.FromInstantiatedRules
           case x => deserializationError(s"Invalid task '$x' can not be bound to Ruleset")
