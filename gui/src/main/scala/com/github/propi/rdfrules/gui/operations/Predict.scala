@@ -26,6 +26,23 @@ class Predict(fromOperation: Operation, val info: OperationInfo) extends Operati
           PredictedResult.PcaPositive.toString -> PredictedResult.PcaPositive.label
         ),
         summaryTitle = Property.SummaryTitle.NoTitle),
+      Group("headVariablePreMapping", "Head variable pre mapping") { implicit context =>
+        val target = new DynamicElement(Constants(new Select("target", "Mapping variable position", Constants(
+          "subject" -> "Subject",
+          "object" -> "Object"
+        ), nonEmpty = false)), true)
+        Constants(
+          new Select("type", "Type", Constants(
+            "noMapping" -> "No mapping",
+            "fromTestSetAtHigherCardinalitySite" -> "Variable mapping from test set at the higher cardinality site",
+            "fromTestSetAtCustomPosition" -> "Variable mapping from test set at a custom position"
+          ), default = Some("noMapping"), (key, _) => key match {
+            case "fromTestSetAtCustomPosition" => target.setElement(0)
+            case _ => target.setElement(-1)
+          }),
+          target
+        )
+      },
       new Checkbox("injectiveMapping", "Injective mapping", true),
       new Hidden[Boolean]("mergeTestAndTrainForPrediction", "true")(_.toBoolean, x => x),
       new Hidden[Boolean]("onlyTestCoveredPredictions", "false")(_.toBoolean, x => x),

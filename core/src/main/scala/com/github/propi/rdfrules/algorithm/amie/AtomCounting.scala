@@ -1,5 +1,7 @@
 package com.github.propi.rdfrules.algorithm.amie
 
+import com.github.propi.rdfrules.data.TriplePosition
+import com.github.propi.rdfrules.data.TriplePosition.ConceptPosition
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.{Atom, FreshAtom, InstantiatedAtom, ResolvedAtom}
 import com.github.propi.rdfrules.utils.{BasicFunctions, Debugger, Stringifier}
@@ -315,6 +317,32 @@ trait AtomCounting {
     val specifyVariableMapWithAtom = specifyVariableMapForAtom(atom)
     specifyAtom(atom, variableMap).map { specifiedAtom =>
       specifyVariableMapWithAtom(specifiedAtom, variableMap)
+    }
+  }
+
+  def specifyVariableMapAtPosition(position: ConceptPosition, atom: Atom, variableMap: VariableMap): Iterator[VariableMap] = {
+    val zeroConstant = Atom.Constant(tripleItemIndex.zero)
+
+    def constantOrZero(item: Atom.Item): Atom.Constant = item match {
+      case o: Atom.Constant => o
+      case _ => zeroConstant
+    }
+
+    position match {
+      case TriplePosition.Subject =>
+        atom.subject match {
+          case _: Atom.Constant => Iterator(variableMap)
+          case v: Atom.Variable =>
+            val o = constantOrZero(atom.`object`)
+            tripleIndex.predicates.get(atom.predicate).iterator.flatMap(_.subjects.iterator).map(s => variableMap + (v -> Atom.Constant(s), atom.predicate, o))
+        }
+      case TriplePosition.Object =>
+        atom.`object` match {
+          case _: Atom.Constant => Iterator(variableMap)
+          case v: Atom.Variable =>
+            val s = constantOrZero(atom.subject)
+            tripleIndex.predicates.get(atom.predicate).iterator.flatMap(_.objects.iterator).map(o => variableMap + (v -> s, atom.predicate, Atom.Constant(o)))
+        }
     }
   }
 

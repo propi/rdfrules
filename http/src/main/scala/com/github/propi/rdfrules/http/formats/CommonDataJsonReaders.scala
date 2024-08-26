@@ -18,6 +18,7 @@ import com.github.propi.rdfrules.http.task.ruleset.Prune.PruningStrategy
 import com.github.propi.rdfrules.http.util.Conf
 import com.github.propi.rdfrules.http.{Main, Workspace}
 import com.github.propi.rdfrules.index.AutoDiscretizationTask
+import com.github.propi.rdfrules.prediction.Prediction.HeadVariablePreMapping
 import com.github.propi.rdfrules.prediction._
 import com.github.propi.rdfrules.prediction.aggregator.{MaximumScorer, NoisyOrScorer, NonRedundantTopRules, TopRules}
 import com.github.propi.rdfrules.rule.Rule.FinalRule
@@ -493,6 +494,15 @@ object CommonDataJsonReaders {
       Threshold.MaxRuleLength(selector("maxRuleLength").to[Int]),
       selector("predicates").toTypedIterable[TripleItem.Uri]
     )
+  }
+
+  implicit val headVariablePreMappingReader: RootJsonReader[HeadVariablePreMapping] = (json: JsValue) => {
+    val selector = json.toSelector
+    selector("type").to[String] match {
+      case "noMapping" => HeadVariablePreMapping.NoMapping
+      case "fromTestSetAtHigherCardinalitySite" => HeadVariablePreMapping.VariableMappingFromTestSetAtHigherCardinalitySite
+      case "fromTestSetAtCustomPosition" => HeadVariablePreMapping.VariableMappingFromTestSetAtCustomPosition(selector("target").to[ConceptPosition])
+    }
   }
 
 }

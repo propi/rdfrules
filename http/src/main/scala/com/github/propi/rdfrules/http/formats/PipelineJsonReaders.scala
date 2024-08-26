@@ -19,6 +19,8 @@ import com.github.propi.rdfrules.http.task.ruleset.ComputeConfidence.ConfidenceT
 import com.github.propi.rdfrules.http.task.ruleset.ComputeSupport.SupportType
 import com.github.propi.rdfrules.http.task.ruleset.{LoadRuleset, LoadRulesetWithoutIndex}
 import com.github.propi.rdfrules.index.{AutoDiscretizationTask, Index}
+import com.github.propi.rdfrules.prediction.Prediction.HeadVariablePreMapping
+import com.github.propi.rdfrules.prediction.Prediction.HeadVariablePreMapping.NoMapping
 import com.github.propi.rdfrules.prediction._
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.{DefaultConfidence, Measure, ResolvedRule, Rule, RulePattern}
@@ -257,7 +259,8 @@ object PipelineJsonReaders {
       selector.get("mergeTestAndTrainForPrediction").toOpt[Boolean].getOrElse(true),
       selector.get("onlyTestCoveredPredictions").toOpt[Boolean].getOrElse(true),
       selector.get("predictedResults").toTypedIterable[PredictedResult].toSet,
-      selector.get("injectiveMapping").toOpt[Boolean].getOrElse(true)
+      selector.get("injectiveMapping").toOpt[Boolean].getOrElse(true),
+      selector.get("headVariablePreMapping").toOpt[HeadVariablePreMapping].getOrElse(NoMapping)
     )
   }
 

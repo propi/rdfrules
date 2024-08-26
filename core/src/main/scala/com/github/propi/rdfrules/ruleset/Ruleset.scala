@@ -8,6 +8,7 @@ import com.github.propi.rdfrules.data.{Dataset, TripleItem}
 import com.github.propi.rdfrules.index.IndexCollections.Builder
 import com.github.propi.rdfrules.index._
 import com.github.propi.rdfrules.index.ops.DiscretizationOps.DiscretizedPredicate
+import com.github.propi.rdfrules.prediction.Prediction.HeadVariablePreMapping
 import com.github.propi.rdfrules.prediction._
 import com.github.propi.rdfrules.rule.Measure.DefaultOrdering._
 import com.github.propi.rdfrules.rule.Measure.{Confidence, ConfidenceMeasure}
@@ -222,8 +223,8 @@ class Ruleset private(val rules: ForEach[FinalRule], val index: Index, val paral
     InstantiatedRuleset(index.main, Instantiation(rules, index.main, predictionResults, injectiveMapping))
   }
 
-  def predict(testSet: Option[Dataset] = None, mergeTestAndTrainForPrediction: Boolean = true, onlyTestCoveredPredictions: Boolean = true, predictedResults: Set[PredictedResult] = Set.empty, injectiveMapping: Boolean = true)(implicit debugger: Debugger): PredictedTriples = {
-    Prediction(rules.withDebugger("Predicted rules", true), index, testSet, mergeTestAndTrainForPrediction, onlyTestCoveredPredictions, predictedResults, injectiveMapping).setParallelism(parallelism)
+  def predict(testSet: Option[Dataset] = None, mergeTestAndTrainForPrediction: Boolean = true, onlyTestCoveredPredictions: Boolean = true, predictedResults: Set[PredictedResult] = Set.empty, injectiveMapping: Boolean = true, headVariablePreMapping: HeadVariablePreMapping = HeadVariablePreMapping.NoMapping)(implicit debugger: Debugger): PredictedTriples = {
+    Prediction(rules.withDebugger("Predicted rules", true), index, testSet, mergeTestAndTrainForPrediction, onlyTestCoveredPredictions, predictedResults, injectiveMapping, headVariablePreMapping).setParallelism(parallelism)
   }
 
   def makeClusters(clustering: Clustering[FinalRule], groupedByHeadPredicate: Boolean = true)(implicit debugger: Debugger): Ruleset = {
