@@ -25,13 +25,13 @@ class EvaluationResult(val title: String, val id: Future[String]) extends Action
       </div>
       <div class="ranking">
         <div>
-          {s"Total candidates: ${ranking.total}"}
+          {s"Total entities (E): ${ranking.total}"}
         </div>
         <div>
-          {s"Total correct candidates: ${ranking.totalCorrect}"}
+          {s"Total correctly predicted entities (TP): ${ranking.totalCorrect}"}
         </div>
         <div>
-          {s"Ratio of correct candidates: ${(ranking.totalCorrect.toDouble / ranking.total) * 100}%"}
+          {s"Covered entities by correct prediction (TP / E): ${(ranking.totalCorrect.toDouble / ranking.total) * 100}%"}
         </div>
         <div>
           {s"Mean rank: ${ranking.mr}"}
