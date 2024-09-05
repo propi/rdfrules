@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "baseObject": {
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "graphPath": {
+      "title": "Choose a file from the workspace",
+      "description": "Load a file from the workspace on the server side. The dataset format is detected automatically by the file extension. Supported extensions are .ttl (turtle), .nt (n-triples), .nq (n-quads), .json | .jsonld (JSON-LD), .xml | .rdf | .owl (RDF/XML), .trig (TriG), .trix (TriX), .tsv, .sql, .cache (internal binary format). All formats can be compressed by GZIP or BZ2 (e.g. data.ttl.gz).",
+      "type": "string",
+      "pattern": "^.+[.](ttl|nt|nq|json|jsonld|xml|rdf|owl|trig|trix|tsv|sql|cache)([.](gz|bz2))?$"
+    },
+    "graphUrl": {
+      "title": "URL",
+      "description": "A URL to a remote file to be loaded. If this is specified then the workspace file is ommited.",
+      "type": "string",
+      "format": "uri"
+    },
+    "graphName": {
+      "title": "Graph name",
+      "description": "Name for this loaded graph. It must have the URI notation in angle brackets, e.g., <dbpedia> or `<http://dbpedia.org>`.",
+      "type": "string",
+      "pattern": "^<.*>$"
+    },
+    "sourceSettings": {
+      "title": "TSV parser",
+      "description": "If you choose a tsv source file, you should select a mode of parsing (raw - everything is uri, parsedUris - try to distinguish between URIs and constants, parsedLiterals - constants are formated to string, numbers, intervals, boolean)",
+      "enum": ["tsvRaw", "tsvParsedUris", "tsvParsedLiterals"]
+    },
+    "quadFilter": {
+      "$ref": "#/$defs/baseObject",
+      "properties": {
+        "subject": {
+          "type": "string"
+        },
+        "predicate": {
+          "type": "string"
+        },
+        "object": {
+          "type": "string"
+        },
+        "graph": {
+          "type": "string"
+        },
+        "inverse": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "LoadGraph": {
+      "title": "Load graph",
+      "description": "Load graph (set of triples) from a file in the workspace or from a remote file available via URL. The source is in some RDF or relational SQL format and is supposed as a single graph.",
+      "$ref": "#/$defs/baseObject",
+      "properties": {
+        "name": {
+          "const": "LoadGraph"
+        },
+        "parameters": {
+          "$ref": "#/$defs/baseObject",
+          "properties": {
+            "path": {
+              "$ref": "#/$defs/graphPath"
+            },
+            "url": {
+              "$ref": "#/$defs/graphUrl"
+            },
+            "graphName": {
+              "$ref": "#/$defs/graphName"
+            },
+            "settings": {
+              "$ref": "#/$defs/sourceSettings"
+            }
+          }
+        }
+      },
+      "x-source": null,
+      "x-target": "dataset"
+    },
+    "FilterQuads": {
+      "title": "Filter quads",
+      "description": "Filter all quads by user-defined conditions.",
+      "$ref": "#/$defs/baseObject",
+      "properties": {
+        "name": {
+          "const": "FilterQuads"
+        },
+        "parameters": {
+          "$ref": "#/$defs/baseObject",
+          "properties": {
+            "or": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/quadFilter"
+              }
+            }
+          }
+        }
+      },
+      "x-source": "dataset",
+      "x-target": "dataset"
+    }
+  },
+  "type": "array",
+  "items": {
+    "anyOf": [
+      { "$ref": "#/$defs/LoadGraph" },
+      { "$ref": "#/$defs/FilterQuads" }
+    ]
+  }
+}
