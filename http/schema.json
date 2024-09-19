@@ -11,6 +11,21 @@
       "type": "string",
       "pattern": "^.+[.](ttl|nt|nq|json|jsonld|xml|rdf|owl|trig|trix|tsv|sql|cache)([.](gz|bz2))?$"
     },
+    "indexPath": {
+      "title": "Choose a file from the workspace",
+      "description": "You can load a serialized index file from the workspace on the server side (just click onto a file name).",
+      "type": "string"
+    },
+    "rulesetPath": {
+      "title": "Choose a file from the workspace",
+      "description": "You can load a serialized ruleset file from the workspace on the server side (just click onto a file name).",
+      "type": "string"
+    },
+    "predictionPath": {
+      "title": "Choose a file from the workspace",
+      "description": "You can load a serialized prediction file from the workspace on the server side (just click onto a file name).",
+      "type": "string"
+    },
     "graphUrl": {
       "title": "URL",
       "description": "A URL to a remote file to be loaded. If this is specified then the workspace file is ommited.",
@@ -27,6 +42,18 @@
       "title": "TSV parser",
       "description": "If you choose a tsv source file, you should select a mode of parsing (raw - everything is uri, parsedUris - try to distinguish between URIs and constants, parsedLiterals - constants are formated to string, numbers, intervals, boolean)",
       "enum": ["tsvRaw", "tsvParsedUris", "tsvParsedLiterals"]
+    },
+    "rulesFormat": {
+      "title": "Rules format",
+      "description": "The ruleset format.",
+      "type": "array",
+      "items": {"type": "string", "enum": ["ndjson", "json", "cache"]}
+    },
+    "predictionsFormat": {
+      "title": "Prediction format",
+      "description": "The prediction format.",
+      "type": "array",
+      "items": {"type": "string", "enum": ["ndjson", "json", "cache"]}
     },
     "quadFilter": {
       "$ref": "#/$defs/baseObject",
@@ -78,13 +105,115 @@
       "x-source": null,
       "x-target": "dataset"
     },
-    "FilterQuads": {
-      "title": "Filter quads",
-      "description": "Filter all quads by user-defined conditions.",
+    "LoadDataset": {
+      "title": "Load dataset",
+      "description": "Load dataset (set of quads) from a file in the workspace or from a remote file available via URL. The source is in some RDF or relational SQL format and can involve several graphs.",
       "$ref": "#/$defs/baseObject",
       "properties": {
         "name": {
-          "const": "FilterQuads"
+          "const": "LoadDataset"
+        },
+        "parameters": {
+          "$ref": "#/$defs/baseObject",
+          "properties": {
+            "path": {
+              "$ref": "#/$defs/graphPath"
+            },
+            "url": {
+              "$ref": "#/$defs/graphUrl"
+            },
+            "settings": {
+              "$ref": "#/$defs/sourceSettings"
+            }
+          }
+        }
+      },
+      "x-source": null,
+      "x-target": "dataset"
+    },
+    "LoadIndex": {
+      "title": "Load index",
+      "description": "Load a serialized fact index from a file in the workspace.",
+      "$ref": "#/$defs/baseObject",
+      "properties": {
+        "name": {
+          "const": "LoadIndex"
+        },
+        "parameters": {
+          "$ref": "#/$defs/baseObject",
+          "properties": {
+            "path": {
+              "$ref": "#/$defs/indexPath"
+            },
+            "partially": {
+              "type": "boolean",
+              "description": "If the index is used only for mapping of triple items then the fact indices of triples are not loaded."
+            }
+          },
+          "required": ["path", "partially"]
+        }
+      },
+      "x-source": null,
+      "x-target": "index"
+    },
+    "LoadRulesetWithoutIndex": {
+      "title": "Load ruleset",
+      "description": "Load serialized ruleset from a file in the workspace without a fact index. No operations requiring a fact index are not permitted.",
+      "$ref": "#/$defs/baseObject",
+      "properties": {
+        "name": {
+          "const": "LoadRulesetWithoutIndex"
+        },
+        "parameters": {
+          "$ref": "#/$defs/baseObject",
+          "properties": {
+            "path": {
+              "$ref": "#/$defs/rulesetPath"
+            },
+            "format": {
+              "$ref": "#/$defs/rulesFormat"
+            },
+            "parallelism": {
+              "type": "integer"
+            }
+          },
+          "required": ["path", "format"]
+        }
+      },
+      "x-source": null,
+      "x-target": "ruleset"
+    },
+    "LoadPredictionWithoutIndex": {
+      "title": "Load ruleset",
+      "description": "Load serialized ruleset from a file in the workspace without a fact index. No operations requiring a fact index are not permitted.",
+      "$ref": "#/$defs/baseObject",
+      "properties": {
+        "name": {
+          "const": "LoadRulesetWithoutIndex"
+        },
+        "parameters": {
+          "$ref": "#/$defs/baseObject",
+          "properties": {
+            "path": {
+              "$ref": "#/$defs/predictionPath"
+            },
+            "format": {
+              "$ref": "#/$defs/predictionsFormat"
+            }
+          },
+          "required": ["path", "format"]
+        }
+      },
+      "x-source": null,
+      "x-target": "prediction"
+    },
+    "FilterQuads": {
+      "title": "Load predictions",
+      "description": "oad serialized predicted triples from a file in the workspace without a fact index. No operations requiring a fact index are not permitted.",
+      "$ref": "#/$defs/baseObject",
+      "properties": {
+        "name": {
+          "const": "LoadPredictionWithoutIndex"
         },
         "parameters": {
           "$ref": "#/$defs/baseObject",
@@ -106,6 +235,10 @@
   "items": {
     "anyOf": [
       { "$ref": "#/$defs/LoadGraph" },
+      { "$ref": "#/$defs/LoadDataset" },
+      { "$ref": "#/$defs/LoadIndex" },
+      { "$ref": "#/$defs/LoadRulesetWithoutIndex" },
+      { "$ref": "#/$defs/LoadPredictionWithoutIndex" },
       { "$ref": "#/$defs/FilterQuads" }
     ]
   }
