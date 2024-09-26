@@ -11,6 +11,18 @@
       "type": "string",
       "pattern": "^.+[.](ttl|nt|nq|json|jsonld|xml|rdf|owl|trig|trix|tsv|sql|cache)([.](gz|bz2))?$"
     },
+    "prefixesPath": {
+      "title": "Choose a file from the workspace",
+      "description": "It is possible to load a file with prefixes in the Turtle (.ttl) format from the workspace on the server side.",
+      "type": "string",
+      "pattern": "^.+[.]ttl$"
+    },
+    "prefixesUrl": {
+      "title": "URL",
+      "description": "A URL to a remote file to be loaded. If this is specified then the workspace file is ommited.",
+      "type": "string",
+      "format": "uri"
+    },
     "indexPath": {
       "title": "Choose a file from the workspace",
       "description": "You can load a serialized index file from the workspace on the server side (just click onto a file name).",
@@ -41,19 +53,37 @@
     "sourceSettings": {
       "title": "TSV parser",
       "description": "If you choose a tsv source file, you should select a mode of parsing (raw - everything is uri, parsedUris - try to distinguish between URIs and constants, parsedLiterals - constants are formated to string, numbers, intervals, boolean)",
-      "enum": ["tsvRaw", "tsvParsedUris", "tsvParsedLiterals"]
+      "enum": [
+        "tsvRaw",
+        "tsvParsedUris",
+        "tsvParsedLiterals"
+      ]
     },
     "rulesFormat": {
       "title": "Rules format",
       "description": "The ruleset format.",
       "type": "array",
-      "items": {"type": "string", "enum": ["ndjson", "json", "cache"]}
+      "items": {
+        "type": "string",
+        "enum": [
+          "ndjson",
+          "json",
+          "cache"
+        ]
+      }
     },
     "predictionsFormat": {
       "title": "Prediction format",
       "description": "The prediction format.",
       "type": "array",
-      "items": {"type": "string", "enum": ["ndjson", "json", "cache"]}
+      "items": {
+        "type": "string",
+        "enum": [
+          "ndjson",
+          "json",
+          "cache"
+        ]
+      }
     },
     "quadFilter": {
       "$ref": "#/$defs/baseObject",
@@ -75,6 +105,20 @@
         }
       },
       "additionalProperties": false
+    },
+    "prefix": {
+      "$ref": "#/$defs/baseObject",
+      "title": "Hand-defined prefix",
+      "properties": {
+        "prefix": {
+          "type": "string",
+          "pattern": "[0-9a-zA-Z]\\w*"
+        },
+        "nameSpace": {
+          "type": "string",
+          "pattern": "\\S+[/#?=&]"
+        }
+      }
     },
     "LoadGraph": {
       "title": "Load graph",
@@ -150,7 +194,10 @@
               "description": "If the index is used only for mapping of triple items then the fact indices of triples are not loaded."
             }
           },
-          "required": ["path", "partially"]
+          "required": [
+            "path",
+            "partially"
+          ]
         }
       },
       "x-source": null,
@@ -177,7 +224,10 @@
               "type": "integer"
             }
           },
-          "required": ["path", "format"]
+          "required": [
+            "path",
+            "format"
+          ]
         }
       },
       "x-source": null,
@@ -201,19 +251,22 @@
               "$ref": "#/$defs/predictionsFormat"
             }
           },
-          "required": ["path", "format"]
+          "required": [
+            "path",
+            "format"
+          ]
         }
       },
       "x-source": null,
       "x-target": "prediction"
     },
     "FilterQuads": {
-      "title": "Load predictions",
-      "description": "oad serialized predicted triples from a file in the workspace without a fact index. No operations requiring a fact index are not permitted.",
+      "title": "Filter quads",
+      "description": "Filter all quads by user-defined conditions.",
       "$ref": "#/$defs/baseObject",
       "properties": {
         "name": {
-          "const": "LoadPredictionWithoutIndex"
+          "const": "FilterQuads"
         },
         "parameters": {
           "$ref": "#/$defs/baseObject",
@@ -229,17 +282,93 @@
       },
       "x-source": "dataset",
       "x-target": "dataset"
+    },
+    "AddPrefixes": {
+      "title": "Add prefixes",
+      "description": "Add prefixes to datasets to shorten URIs.",
+      "$ref": "#/$defs/baseObject",
+      "properties": {
+        "name": {
+          "const": "AddPrefixes"
+        },
+        "parameters": {
+          "$ref": "#/$defs/baseObject",
+          "properties": {
+            "path": {
+              "$ref": "#/$defs/prefixesPath"
+            },
+            "url": {
+              "$ref": "#/$defs/prefixesUrl"
+            },
+            "prefixes": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/prefix"
+              }
+            }
+          }
+        }
+      },
+      "x-source": "dataset",
+      "x-target": "dataset"
+    },
+    "CacheDataset": {
+      "title": "Cache dataset",
+      "description": "Cache the input dataset into memory or a file in the workspace at the server side for later use.",
+      "$ref": "#/$defs/baseObject",
+      "properties": {
+        "name": {
+          "const": "CacheDataset"
+        },
+        "parameters": {
+          "$ref": "#/$defs/baseObject",
+          "properties": {
+            "inMemory": {
+              "type": "boolean",
+              "description": "Choose whether to save all previous transformations into memory or disk."
+            },
+            "path": {
+              "type": "string",
+              "description": "ID if in-memory is selected, or path to a workspace cache file which is saved on the disk."
+            },
+            "revalidate": {
+              "type": "boolean"
+            }
+          },
+          "required": ["inMemory", "path", "revalidate"]
+        }
+      },
+      "x-source": "dataset",
+      "x-target": "dataset"
     }
   },
   "type": "array",
   "items": {
     "anyOf": [
-      { "$ref": "#/$defs/LoadGraph" },
-      { "$ref": "#/$defs/LoadDataset" },
-      { "$ref": "#/$defs/LoadIndex" },
-      { "$ref": "#/$defs/LoadRulesetWithoutIndex" },
-      { "$ref": "#/$defs/LoadPredictionWithoutIndex" },
-      { "$ref": "#/$defs/FilterQuads" }
+      {
+        "$ref": "#/$defs/LoadGraph"
+      },
+      {
+        "$ref": "#/$defs/LoadDataset"
+      },
+      {
+        "$ref": "#/$defs/LoadIndex"
+      },
+      {
+        "$ref": "#/$defs/LoadRulesetWithoutIndex"
+      },
+      {
+        "$ref": "#/$defs/LoadPredictionWithoutIndex"
+      },
+      {
+        "$ref": "#/$defs/FilterQuads"
+      },
+      {
+        "$ref": "#/$defs/AddPrefixes"
+      },
+      {
+        "$ref": "#/$defs/CacheDataset"
+      }
     ]
   }
 }
