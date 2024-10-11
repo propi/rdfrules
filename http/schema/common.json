@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/propi/rdfrules/tree/master/http/schema/common.json",
+  "$defs": {
+    "rule": {
+      "type": "object",
+      "properties": {
+        "head": {
+          "$ref": "#/$defs/atom"
+        },
+        "body": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/atom"
+          }
+        },
+        "measures": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/measure"
+          }
+        }
+      },
+      "required": ["head", "body", "measures"]
+    },
+    "measure": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        }
+      }
+    },
+    "atom": {
+      "type": "object",
+      "properties": {
+        "subject": {
+          "$ref": "#/$defs/atomItem"
+        },
+        "predicate": {
+          "$ref": "#/$defs/tripleItemUri"
+        },
+        "object": {
+          "$ref": "#/$defs/atomItem"
+        },
+        "graphs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tripleItemUri"
+          }
+        }
+      },
+      "required": [
+        "subject",
+        "predicate",
+        "object"
+      ]
+    },
+    "atomItem": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/variable"
+        },
+        {
+          "$ref": "#/$defs/constant"
+        }
+      ]
+    },
+    "variable": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "variable"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ]
+    },
+    "constant": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "constant"
+        },
+        "value": {
+          "$ref": "#/$defs/tripleItem"
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ]
+    },
+    "tripleItem": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/tripleItemUri"
+        },
+        {
+          "$ref": "#/$defs/tripleItemText"
+        },
+        {
+          "$ref": "#/$defs/tripleItemNumber"
+        },
+        {
+          "$ref": "#/$defs/tripleItemBoolean"
+        },
+        {
+          "$ref": "#/$defs/tripleItemInterval"
+        }
+      ]
+    },
+    "tripleItemBoolean": {
+      "type": "boolean"
+    },
+    "tripleItemNumber": {
+      "type": "number"
+    },
+    "tripleItemText": {
+      "type": "string"
+    },
+    "tripleItemInterval": {
+      "type": "object",
+      "properties": {
+        "left": {
+          "type": "number"
+        },
+        "right": {
+          "type": "number"
+        },
+        "leftIsOpen": {
+          "type": "boolean"
+        },
+        "rightIsOpen": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "left",
+        "leftIsOpen",
+        "right",
+        "rightIsOpen"
+      ]
+    },
+    "tripleItemUri": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/tripleItemLongUri"
+        },
+        {
+          "$ref": "#/$defs/tripleItemPrefixedUri"
+        },
+        {
+          "$ref": "#/$defs/tripleItemBlankNode"
+        }
+      ]
+    },
+    "tripleItemLongUri": {
+      "type": "string",
+      "pattern": "<.*>"
+    },
+    "tripleItemPrefixedUri": {
+      "type": "object",
+      "properties": {
+        "prefix": {
+          "type": "string"
+        },
+        "nameSpace": {
+          "type": "string"
+        },
+        "localName": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "prefix",
+        "nameSpace",
+        "localName"
+      ]
+    },
+    "tripleItemBlankNode": {
+      "type": "string",
+      "pattern": "_:.*"
+    }
+  }
+}
