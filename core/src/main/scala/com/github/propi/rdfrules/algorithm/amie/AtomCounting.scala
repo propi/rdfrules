@@ -323,25 +323,18 @@ trait AtomCounting {
   def specifyVariableMapAtPosition(position: ConceptPosition, atom: Atom, variableMap: VariableMap): Iterator[VariableMap] = {
     val zeroConstant = Atom.Constant(tripleItemIndex.zero)
 
-    def constantOrZero(item: Atom.Item): Atom.Constant = item match {
-      case o: Atom.Constant => o
-      case _ => zeroConstant
-    }
-
     position match {
       case TriplePosition.Subject =>
         atom.subject match {
           case _: Atom.Constant => Iterator(variableMap)
           case v: Atom.Variable =>
-            val o = constantOrZero(atom.`object`)
-            tripleIndex.predicates.get(atom.predicate).iterator.flatMap(_.subjects.iterator).map(s => variableMap + (v -> Atom.Constant(s), atom.predicate, o))
+            tripleIndex.predicates.get(atom.predicate).iterator.flatMap(_.subjects.iterator).map(s => variableMap + (v -> Atom.Constant(s), atom.predicate, zeroConstant))
         }
       case TriplePosition.Object =>
         atom.`object` match {
           case _: Atom.Constant => Iterator(variableMap)
           case v: Atom.Variable =>
-            val s = constantOrZero(atom.subject)
-            tripleIndex.predicates.get(atom.predicate).iterator.flatMap(_.objects.iterator).map(o => variableMap + (v -> s, atom.predicate, Atom.Constant(o)))
+            tripleIndex.predicates.get(atom.predicate).iterator.flatMap(_.objects.iterator).map(o => variableMap + (v -> zeroConstant, atom.predicate, Atom.Constant(o)))
         }
     }
   }
