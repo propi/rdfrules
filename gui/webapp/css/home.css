@@ -542,6 +542,9 @@ main {
   list-style: none;
   font-size: 0.8em;
 }
+.action-progress ul.logs .message {
+  white-space: pre-line;
+}
 .action-progress .result {
   margin-bottom: 1em;
 }

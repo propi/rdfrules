@@ -115,9 +115,7 @@ trait ActionProgress {
             <li>
               <span class="time">
                 {log.time}
-                :</span> <span class="message">
-              {log.message}
-            </span>
+                :</span> <span class="message">{log.message}</span>
             </li>}
           </ul>
         </div>

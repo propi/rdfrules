@@ -10,6 +10,8 @@ trait FreshAtomGenerator extends RuleEnhancement with AtomCounting {
   import Atom.variableOrdering.mkOrderingOps
   import settings._
 
+  private lazy val isWithInstances = !constantsPosition.contains(ConstantsPosition.Nowhere) || constantsForPredicates.nonEmpty
+
   /**
     * This is an auxiliary hmap used to prevent the generation of duplicate rules
     * Set(a, b) -> max(p) : set of variables pointing to max predicate.

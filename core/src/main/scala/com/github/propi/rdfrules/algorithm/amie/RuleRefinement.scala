@@ -4,6 +4,7 @@ import com.github.propi.rdfrules.algorithm.amie.RuleFilter.{MinSupportRuleFilter
 import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.index.{TripleIndex, TripleItemIndex}
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
+import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsForPredicates.ConstantsForPredicatePosition
 import com.github.propi.rdfrules.rule._
 import com.github.propi.rdfrules.utils.{Debugger, IncrementalInt, TypedKeyMap}
 
@@ -43,26 +44,46 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
     hmap
   }
 
+  private lazy val instantiatedPositionForPredicate: PartialFunction[Int, Option[TriplePosition]] = new PartialFunction[Int, Option[TriplePosition]] {
+    def isDefinedAt(x: Int): Boolean = constantsForPredicates.nonEmpty && constantsForPredicates.contains(x)
+
+    def apply(v1: Int): Option[TriplePosition] = constantsForPredicates(v1) match {
+      case ConstantsForPredicatePosition.Subject => Some(TriplePosition.Subject)
+      case ConstantsForPredicatePosition.Object => Some(TriplePosition.Object)
+      case ConstantsForPredicatePosition.Both => None
+      case ConstantsForPredicatePosition.LowerCardinalitySide => Some(tripleIndex.predicates(v1).lowerCardinalitySide)
+    }
+  }
+
   /**
     * Instantiated position
     * It returns Object for Nowhere constants position, it does not matter because instantiatedPosition is called always after isWithInstances.
     * It returns None if both Subject and Object are acceptable.
     */
-  private lazy val instantiatedPosition: Int => Option[TriplePosition] = constantsPosition match {
-    case Some(constantsPosition) => constantsPosition match {
-      case ConstantsPosition.LowerCardinalitySide(false) => predicate => Some(tripleIndex.predicates(predicate).lowerCardinalitySide)
-      case ConstantsPosition.Subject =>
-        val pos = Some(TriplePosition.Subject)
-        _ => pos
-      case ConstantsPosition.Object =>
-        val pos = Some(TriplePosition.Object)
-        _ => pos
-      case _ =>
-        _ => None
+  private lazy val instantiatedPosition: PartialFunction[Int, Option[TriplePosition]] = new PartialFunction[Int, Option[TriplePosition]] {
+    private val withInstancesGlobaly = !constantsPosition.contains(ConstantsPosition.Nowhere)
+    private val withInstances = withInstancesGlobaly || constantsForPredicates.nonEmpty
+    private val f: Int => Option[TriplePosition] = constantsPosition match {
+      case Some(constantsPosition) => constantsPosition match {
+        case ConstantsPosition.LowerCardinalitySide(false) => predicate => instantiatedPositionForPredicate.applyOrElse(predicate, (_: Int) => Some(tripleIndex.predicates(predicate).lowerCardinalitySide))
+        case ConstantsPosition.Subject =>
+          val pos = Some(TriplePosition.Subject)
+          predicate => instantiatedPositionForPredicate.applyOrElse(predicate, (_: Int) => pos)
+        case ConstantsPosition.Object =>
+          val pos = Some(TriplePosition.Object)
+          predicate => instantiatedPositionForPredicate.applyOrElse(predicate, (_: Int) => pos)
+        case ConstantsPosition.LowerCardinalitySide(true) =>
+          predicate => instantiatedPositionForPredicate.applyOrElse(predicate, (_: Int) => None)
+        case ConstantsPosition.Nowhere =>
+          predicate => instantiatedPositionForPredicate(predicate)
+      }
+      case None => predicate => instantiatedPositionForPredicate.applyOrElse(predicate, (_: Int) => None)
     }
-    case None => _ => None
-  }
 
+    def isDefinedAt(x: Int): Boolean = withInstances && (withInstancesGlobaly || instantiatedPositionForPredicate.isDefinedAt(x))
+
+    def apply(v1: Int): Option[TriplePosition] = f(v1)
+  }
 
   //var test = false
 
@@ -206,7 +227,7 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
           //then we add new atom projection to atoms set
           projections += Atom(freshAtom.subject, atomWithSpecifiedPredicate.predicate, freshAtom.`object`)
         }
-        if (isWithInstances) {
+        if (instantiatedPosition.isDefinedAt(atomWithSpecifiedPredicate.predicate)) {
           val ip = instantiatedPosition(atomWithSpecifiedPredicate.predicate)
           if (freshAtom.subject == dangling && ip.forall(_ == TriplePosition.Subject)) {
             val maxConstant = maxConstants.get(freshAtom.objectPosition -> atomWithSpecifiedPredicate.predicate)
@@ -312,7 +333,7 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
         for (predicate <- tripleIndex.objects.get(oc).iterator.flatMap(_.predicates.iterator) if isValidFreshPredicate(atom, predicate)) {
           //if there exists atom in rule which has same predicate and object variable and is not instationed
           // - then we dont use this fresh atom for this predicate because p(a, B) -> p(a, b) is not allowed for functions (redundant and noisy rule)
-          if (isWithInstances && instantiatedPosition(predicate).forall(_ == TriplePosition.Subject)) {
+          if (instantiatedPosition.isDefinedAt(predicate) && instantiatedPosition(predicate).forall(_ == TriplePosition.Subject)) {
             //exists function is called before this method therefore for injectiveMapping we need to check whether a new atom is duplicated across rest atoms in the rule
             val isDup = isDuplicateInstantiatedAtom(predicate, atom.objectPosition, rest, variableMap)
             //a new constant C2 must be greater than possible constant C1 in the rule within a same pair of variable and predicate: E.g. (a p C2) => (a p C1) : hmap = (a -> p) -> C2 if C2 >= C1
@@ -336,7 +357,7 @@ trait RuleRefinement extends RuleEnhancement with AtomCounting with RuleExpansio
         //skip all counted predicates that are included in this rule
         var hasValidConstantAtom = false
         for (predicate <- tripleIndex.subjects.get(sc).iterator.flatMap(_.predicates.iterator) if isValidFreshPredicate(atom, predicate)) {
-          if (isWithInstances && instantiatedPosition(predicate).forall(_ == TriplePosition.Object)) {
+          if (instantiatedPosition.isDefinedAt(predicate) && instantiatedPosition(predicate).forall(_ == TriplePosition.Object)) {
             //exists function is called before this method therefore for injectiveMapping we need to check whether a new atom is duplicated across rest atoms in the rule
             val isDup = isDuplicateInstantiatedAtom(predicate, atom.subjectPosition, rest, variableMap)
             //a new constant C2 must be greater than possible constant C1 in the rule within a same pair of variable and predicate: E.g. (a p C2) => (a p C1) : hmap = (a -> p) -> C2 if C2 >= C1

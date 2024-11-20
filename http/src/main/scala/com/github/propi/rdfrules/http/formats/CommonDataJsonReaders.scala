@@ -23,6 +23,7 @@ import com.github.propi.rdfrules.prediction._
 import com.github.propi.rdfrules.prediction.aggregator.{MaximumScorer, NoisyOrScorer, NonRedundantTopRules, TopRules}
 import com.github.propi.rdfrules.rule.Rule.FinalRule
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
+import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsForPredicates.ConstantsForPredicatePosition
 import com.github.propi.rdfrules.rule.{AtomPattern, DefaultConfidence, Measure, Rule, RuleConstraint, RulePattern, Threshold}
 import com.github.propi.rdfrules.ruleset.{Ruleset, RulesetSource}
 import com.github.propi.rdfrules.utils.JsonSelector.PimpedJsValue
@@ -204,8 +205,20 @@ object CommonDataJsonReaders {
       case "WithoutDuplicitPredicates" => RuleConstraint.WithoutDuplicatePredicates()
       case "OnlyPredicates" => RuleConstraint.OnlyPredicates(fields("values").convertTo[JsArray].elements.map(_.convertTo[TripleItem.Uri]).toSet)
       case "WithoutPredicates" => RuleConstraint.WithoutPredicates(fields("values").convertTo[JsArray].elements.map(_.convertTo[TripleItem.Uri]).toSet)
+      case "ConstantsForPredicates" => RuleConstraint.ConstantsForPredicates(fields("values").convertTo[JsArray].elements.iterator.flatMap { jsValue =>
+        val selector = jsValue.toSelector
+        selector("predicate").toOpt[TripleItem.Uri].zip(selector("position").toOpt[ConstantsForPredicatePosition])
+      }.toMap)
       case x => deserializationError(s"Invalid rule constraint name: $x")
     }
+  }
+
+  implicit val constantsForPredicatePositionReader: RootJsonReader[ConstantsForPredicatePosition] = {
+    case JsString("Subject") => ConstantsForPredicatePosition.Subject
+    case JsString("Object") => ConstantsForPredicatePosition.Object
+    case JsString("LowerCardinalitySide") => ConstantsForPredicatePosition.LowerCardinalitySide
+    case JsString("Both") => ConstantsForPredicatePosition.Both
+    case x => deserializationError(s"Invalid constants for predicate position: $x")
   }
 
   implicit def rulesMiningReader(implicit debugger: Debugger): RootJsonReader[RulesMining] = (json: JsValue) => {

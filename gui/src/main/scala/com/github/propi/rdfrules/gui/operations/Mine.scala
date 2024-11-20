@@ -166,11 +166,18 @@ class Mine(fromOperation: Operation, val info: OperationInfo) extends Operation 
     }
     val constraints = DynamicGroup("constraints", "Constraints", SummaryTitle.NoTitle) { implicit context =>
       val value = new DynamicElement(Constants(
-        context.use("OnlyPredicates or WithoutPredicates")(implicit context => ArrayElement("values", "Values")(implicit context => new OptionalText[String]("value", "Value", validator = RegExp("<.*>|\\w+:.*"))))
+        context.use("OnlyPredicates or WithoutPredicates")(implicit context => ArrayElement("values", "Values")(implicit context => new OptionalText[String]("value", "Value", validator = RegExp("<.*>|\\w+:.*")))),
+        context.use("ConstantsForPredicatePosition")(implicit context => DynamicGroup("values", "Constant position for predicates") { implicit context =>
+          Constants(
+            new FixedText[String]("predicate", "Predicate URI", validator = RegExp("<.*>|\\w+:.*")),
+            new Select("position", "Constant position", Constants("Subject" -> "Subject", "Object" -> "Object", "LowerCardinalitySide" -> "Lower cardinality side", "Both" -> "Both"), summaryTitle = SummaryTitle.NoTitle)
+          )
+        })
       ), true)
       Constants(
-        new Select("name", "Name", Constants("WithoutConstants" -> "Without constants", "OnlyObjectConstants" -> "With constants at the object position", "OnlySubjectConstants" -> "With constants at the subject position", "OnlyLowerCardinalitySideConstants" -> "With constants at the lower cardinality side", "OnlyLowerCardinalitySideAtHeadConstants" -> "With constants at the lower cardinality side only in the head", "WithoutDuplicitPredicates" -> "Without duplicit predicates", "OnlyPredicates" -> "Only predicates", "WithoutPredicates" -> "Without predicates"), onSelect = {
+        new Select("name", "Name", Constants("WithoutConstants" -> "Without constants", "OnlyObjectConstants" -> "With constants at the object position", "OnlySubjectConstants" -> "With constants at the subject position", "OnlyLowerCardinalitySideConstants" -> "With constants at the lower cardinality side", "OnlyLowerCardinalitySideAtHeadConstants" -> "With constants at the lower cardinality side only in the head", "ConstantsForPredicates" -> "With constants for selected predicates", "WithoutDuplicitPredicates" -> "Without duplicit predicates", "OnlyPredicates" -> "Only predicates", "WithoutPredicates" -> "Without predicates"), onSelect = {
           case ("OnlyPredicates", _) | ("WithoutPredicates", _) => value.setElement(0)
+          case ("ConstantsForPredicates", _) => value.setElement(1)
           case _ => value.setElement(-1)
         }, summaryTitle = SummaryTitle.NoTitle),
         value

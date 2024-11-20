@@ -3,6 +3,7 @@ package com.github.propi.rdfrules.rule
 import com.github.propi.rdfrules.data.TripleItem
 import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
+import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsForPredicates.ConstantsForPredicatePosition
 import com.github.propi.rdfrules.utils.TypedKeyMap.{Key, Value}
 
 import scala.language.implicitConversions
@@ -42,6 +43,28 @@ object RuleConstraint {
 
   implicit object WithoutPredicates extends Key[WithoutPredicates] {
     def apply(predicates: TripleItem.Uri*): WithoutPredicates = new WithoutPredicates(predicates.toSet)
+  }
+
+  case class ConstantsForPredicates(predicates: Map[TripleItem.Uri, ConstantsForPredicatePosition]) extends RuleConstraint {
+    def companion: ConstantsForPredicates.type = ConstantsForPredicates
+
+    def mapped(implicit mapper: TripleItemIndex): Map[Int, ConstantsForPredicatePosition] = predicates.iterator.map(x => mapper.getIndex(x._1) -> x._2).toMap
+  }
+
+  implicit object ConstantsForPredicates extends Key[ConstantsForPredicates] {
+
+    sealed trait ConstantsForPredicatePosition
+
+    object ConstantsForPredicatePosition {
+      case object Subject extends ConstantsForPredicatePosition
+
+      case object Object extends ConstantsForPredicatePosition
+
+      case object LowerCardinalitySide extends ConstantsForPredicatePosition
+
+      case object Both extends ConstantsForPredicatePosition
+    }
+
   }
 
   case class ConstantsAtPosition(position: ConstantsPosition) extends RuleConstraint {

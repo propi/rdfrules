@@ -4,6 +4,7 @@ import com.github.propi.rdfrules.data.TriplePosition
 import com.github.propi.rdfrules.rule.ExpandingRule.DanglingRule
 import com.github.propi.rdfrules.rule.PatternMatcher.Aliases
 import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsAtPosition.ConstantsPosition
+import com.github.propi.rdfrules.rule.RuleConstraint.ConstantsForPredicates.ConstantsForPredicatePosition
 import com.github.propi.rdfrules.rule.{Atom, ExpandingRule, MappedAtomPatternMatcher}
 import com.github.propi.rdfrules.utils.Debugger.ActionDebugger
 import com.github.propi.rdfrules.utils.{Debugger, ForEach}
@@ -21,18 +22,25 @@ trait HeadsFetcher extends AtomCounting {
   implicit val forAtomMatcher: MappedAtomPatternMatcher[Atom]
 
   private def logicalHeadToRules(logicalHead: Atom)(implicit actionDebugger: ActionDebugger): Iterator[DanglingRule] = {
-    val possibleAtoms = if (settings.isWithInstances) {
+    val possibleAtoms = if (!settings.constantsPosition.contains(ConstantsPosition.Nowhere) || settings.constantsForPredicates.nonEmpty) {
       //if instantiated atoms are allowed then we specify variables by constants
       //only one variable may be replaced by a constant
       //result is original variable atom + instantied atoms with constants in subject + instantied atoms with constants in object
       //we do not instantient subject variable if onlyObjectInstances is true
-      val it = settings.constantsPosition match {
+      val resolvedConstantsPosition = settings.constantsForPredicates.get(logicalHead.predicate).map {
+        case ConstantsForPredicatePosition.Subject => Some(ConstantsPosition.Subject)
+        case ConstantsForPredicatePosition.Object => Some(ConstantsPosition.Object)
+        case ConstantsForPredicatePosition.LowerCardinalitySide => Some(ConstantsPosition.LowerCardinalitySide(true))
+        case ConstantsForPredicatePosition.Both => None
+      }.getOrElse(settings.constantsPosition)
+      val it = resolvedConstantsPosition match {
         case Some(ConstantsPosition.LowerCardinalitySide(_)) => tripleIndex.predicates(logicalHead.predicate).lowerCardinalitySide match {
           case TriplePosition.Subject => specifySubject(logicalHead).map(_.transform(`object` = Atom.Variable(0)))
           case TriplePosition.Object => specifyObject(logicalHead)
         }
         case Some(ConstantsPosition.Object) => specifyObject(logicalHead)
         case Some(ConstantsPosition.Subject) => specifySubject(logicalHead).map(_.transform(`object` = Atom.Variable(0)))
+        case Some(ConstantsPosition.Nowhere) => Iterator.empty
         case _ => specifySubject(logicalHead).map(_.transform(`object` = Atom.Variable(0))) ++ specifyObject(logicalHead)
       }
       Iterator(logicalHead) ++ it.filter(settings.test)

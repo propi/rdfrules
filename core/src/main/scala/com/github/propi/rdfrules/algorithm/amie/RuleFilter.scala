@@ -1,7 +1,9 @@
 package com.github.propi.rdfrules.algorithm.amie
 
+import com.github.propi.rdfrules.index.TripleItemIndex
 import com.github.propi.rdfrules.rule.PatternMatcher.Aliases
 import com.github.propi.rdfrules.rule._
+import com.github.propi.rdfrules.utils.{TypedKeyMap, Wrapper}
 
 import scala.annotation.tailrec
 import scala.language.implicitConversions
@@ -60,7 +62,7 @@ object RuleFilter {
     *
     * @param rule original rule (without refinement)
     */
-  class RulePatternFilter(rule: ExpandingRule, patterns: List[RulePattern.Mapped], maxRuleLength: Int)(implicit atomMatcher: MappedAtomPatternMatcher[Atom], freshAtomMatcher: MappedAtomPatternMatcher[FreshAtom]) extends RuleFilter {
+  class RulePatternFilter(rule: ExpandingRule, patterns: List[RulePattern.Mapped], maxRuleLength: Int)(implicit atomMatcher: MappedAtomPatternMatcher[Atom], freshAtomMatcher: MappedAtomPatternMatcher[FreshAtom], tripleItemIndex: TripleItemIndex) extends RuleFilter {
 
     private def _matchAtom(atom: Either[Atom, FreshAtom], patterns: Iterable[(AtomPattern.Mapped, Aliases)]): Boolean = atom.fold(atom => patterns.exists(x => atomMatcher.matchPattern(atom, x._1)(x._2).isDefined), freshAtom => patterns.exists(x => freshAtomMatcher.matchPattern(freshAtom, x._1)(x._2).isDefined))
 
@@ -98,9 +100,9 @@ object RuleFilter {
     private class OrderlessExactAtomMatcher(pattern: RulePattern.Mapped)(implicit aliases: Aliases) extends NewAtomMatcher {
       private val remainingAtomPatterns: Set[(AtomPattern.Mapped, Aliases)] = {
         if (rule.body.length < pattern.body.length) {
-          def selectRemainingAtomPatterns(body: Seq[Atom], atomPatterns: Set[AtomPattern.Mapped])(implicit aliases: Aliases): Set[(AtomPattern.Mapped, Aliases)] = {
+          def selectRemainingAtomPatterns(body: Seq[Atom], atomPatterns: Set[Wrapper[AtomPattern.Mapped]])(implicit aliases: Aliases): Set[(AtomPattern.Mapped, Aliases)] = {
             if (body.isEmpty) {
-              atomPatterns.map(_ -> aliases)
+              atomPatterns.map(_.x -> aliases)
             } else {
               //each atom of the rule must match an atom pattern since it must be exact
               //we start from the left-side atom to the right-side atom.
@@ -109,14 +111,14 @@ object RuleFilter {
               //for each atom we find all matching paterns and for each we create an individual branch
               atomPatterns
                 .iterator
-                .flatMap(y => atomMatcher.matchPattern(x, y).map(y -> _))
+                .flatMap(y => atomMatcher.matchPattern(x, y.x).map(y -> _))
                 .map { case (pattern, aliases) => selectRemainingAtomPatterns(tail, atomPatterns - pattern)(aliases) }
                 .reduceOption(_ ++ _)
                 .getOrElse(Set.empty)
             }
           }
 
-          selectRemainingAtomPatterns(rule.body, pattern.body.toSet)
+          selectRemainingAtomPatterns(rule.body, pattern.body.iterator.map(Wrapper(_)).toSet)
         } else {
           Set.empty
         }
@@ -205,20 +207,21 @@ object RuleFilter {
           //- perms are: (p1:a1, p2:a2), (p1:a1, p2:a3), (p1:a2, p2:a1), (p1:a2, p2:a3), (p1:a3, p2:a1), (p1:a3, p2:a2)
           //or, e.g, p1, p2, p3 (atom patterns), a1, a2 (rule atoms)
           //- perms are: (a1:p1, a2:p2), (a1:p1, p2:p3), (a1:p2, a2:p1), (a1:p2, a2:p3), (a1:p3, a2:p1), (a1:p3, a2:p2)
-          collectNonMatchedPatterns(permutations(pattern.body, rule.body), Set.empty)
+          val bodyPatterns = pattern.body.iterator.map(Wrapper(_)).toSet
+          collectNonMatchedPatterns(permutations(bodyPatterns, rule.body), Set.empty, bodyPatterns)
         }
       }
 
       @tailrec
-      private def collectNonMatchedPatterns(it: Iterator[Iterable[(AtomPattern.Mapped, Atom)]], res: Set[(AtomPattern.Mapped, Aliases)]): Option[Set[(AtomPattern.Mapped, Aliases)]] = {
+      private def collectNonMatchedPatterns(it: Iterator[Iterable[(Wrapper[AtomPattern.Mapped], Atom)]], res: Set[(AtomPattern.Mapped, Aliases)], bodyPatterns: Set[Wrapper[AtomPattern.Mapped]]): Option[Set[(AtomPattern.Mapped, Aliases)]] = {
         if (it.hasNext) {
           //get a permutation, e.g. (p1:a1, p2:a2)
           val perm = it.next()
           //we count all matched patterns
           //we return all pattern which are matching with the paired atom of the permutation
-          val matchedPatterns = collection.mutable.Set.empty[AtomPattern.Mapped]
+          val matchedPatterns = collection.mutable.Set.empty[Wrapper[AtomPattern.Mapped]]
           val filledAliases = perm.foldLeft(aliases) { case (aliases, (atomPattern, atom)) =>
-            atomMatcher.matchPattern(atom, atomPattern)(aliases) match {
+            atomMatcher.matchPattern(atom, atomPattern.x)(aliases) match {
               case Some(aliases) =>
                 matchedPatterns += atomPattern
                 aliases
@@ -232,11 +235,11 @@ object RuleFilter {
             None
           } else if (newMinRequiredMatching == 1) {
             //only one atom pattern must be matched by the fresh atom, we save all nonMatchedPatterns which should be matched by the fresh atom (min one of them)
-            collectNonMatchedPatterns(it, res ++ pattern.body.iterator.filterNot(matchedPatterns).map(_ -> filledAliases))
+            collectNonMatchedPatterns(it, res ++ bodyPatterns.iterator.filterNot(matchedPatterns).map(_.x -> filledAliases), bodyPatterns)
           } else {
             //still more than one atom pattern must be matched. But now it is not possible to do because the fresh atom can match only one pattern
             //therefore this permutation is invalid and skipped.
-            collectNonMatchedPatterns(it, res)
+            collectNonMatchedPatterns(it, res, bodyPatterns)
           }
         } else {
           Some(res)
