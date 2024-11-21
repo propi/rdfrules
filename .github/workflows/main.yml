@@ -18,4 +18,9 @@ jobs:
           sudo apt-get install -y zip
           chmod 777 pack-release.sh
       - name: Make archive
+        id: make-archive
         run: ./pack-release.sh
+      - name: Create release
+        env:
+          VERSION: ${{ steps.make-archive.outputs.VERSION }}
+        run: echo "The selected version is $VERSION"
