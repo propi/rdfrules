@@ -17,6 +17,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y zip
           chmod 777 pack-release.sh
+          sbt "project http" pack
+          sbt "project gui" fullOptJS
       - name: Make archive
         id: make-archive
         run: ./pack-release.sh
