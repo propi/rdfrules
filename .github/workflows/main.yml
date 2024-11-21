@@ -1,0 +1,16 @@
+name: GitHub Auto Release
+on: workflow_dispatch
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4.5.0
+        with:
+          java-version: 11
+          distribution: corretto
+          cache: sbt
+      - name: Compile Scala
+        run: sbt "project http" pack
+      - name: Make archive
+        run: ./pack-release.sh
