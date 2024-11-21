@@ -20,3 +20,5 @@ cd build-release || exit
 zip -r "../rdfrules-$VERSION.zip" *
 cd ..
 rm -R build-release
+
+echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
