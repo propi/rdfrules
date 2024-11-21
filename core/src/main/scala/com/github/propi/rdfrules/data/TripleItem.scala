@@ -8,6 +8,7 @@ import org.apache.jena.graph.{Node, NodeFactory}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
+import java.util.Objects
 import scala.language.{implicitConversions, reflectiveCalls}
 
 /**
@@ -145,6 +146,14 @@ object TripleItem {
 
   case class Interval(interval: DiscretizationInterval) extends Literal {
     def intern: TripleItem = this
+
+    override def hashCode(): Int = Objects.hash(interval.minValue, interval.maxValue)
+
+    //this is necessary because easyminer discretization plugin has different hashCode and equals results for two types of intervals (simple and with frequencies)
+    override def equals(obj: Any): Boolean = obj match {
+      case obj: Interval => (this eq obj) || (interval.minValue == obj.interval.minValue && interval.maxValue == obj.interval.maxValue)
+      case _ => false
+    }
 
     override def toString: String = s"${if (interval.isLeftBoundClosed()) "[" else "("} ${interval.getLeftBoundValue()} ; ${interval.getRightBoundValue()} ${if (interval.isRightBoundClosed()) "]" else ")"}"
   }
