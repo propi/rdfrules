@@ -14,7 +14,7 @@ cp ./gui/target/scala-2.13/gui-opt.js build-release/webapp/js
 
 sed -i -e "s/DEV/v$VERSION/g" ./build-release/webapp/index.html
 sed -i -e "s/\.\.\/target\/scala-2.13\/gui-fastopt\/main.js/js\/gui-opt.js/g" ./build-release/webapp/index.html
-sed -i -e "s/(\.js|\.css)/\0?v=$VERSION/g" ./build-release/webapp/index.html
+sed -i -r -e "s/(\.js|\.css)/\1?v=$VERSION/g" ./build-release/webapp/index.html
 
 cd build-release || exit
 zip -r "../rdfrules-$VERSION.zip" *
