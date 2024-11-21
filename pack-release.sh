@@ -18,3 +18,5 @@ sed -i -e "s/(\.js|\.css)/\0?v=$VERSION/g" ./build-release/webapp/index.html
 
 cd build-release || exit
 zip -r "../rdfrules-$VERSION.zip" *
+cd ..
+rm -R build-release
