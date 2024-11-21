@@ -4,6 +4,8 @@ jobs:
   build-release:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Setup Java JDK
         uses: actions/setup-java@v4.5.0
         with:
