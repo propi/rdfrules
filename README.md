@@ -394,5 +394,11 @@ Thanks to these organizations for supporting us:
 
 [CIMPLE](https://www.chistera.eu/projects/cimple) (TAČR TH74010002)
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbLTEyNjYzMTYxMzddfQ==
+eyJkaXNjdXNzaW9ucyI6eyJPS0NkSVBzc1U0NGhodFVaIjp7In
+N0YXJ0IjoxOSwiZW5kIjoyNCwidGV4dCI6IlJ1bGVzIn19LCJj
+b21tZW50cyI6eyI4WHJwZE1rZnN5bWdwNmNQIjp7ImRpc2N1c3
+Npb25JZCI6Ik9LQ2RJUHNzVTQ0aGh0VVoiLCJzdWIiOiJnaDo1
+MDgyNTY1IiwidGV4dCI6ImhvaG8iLCJjcmVhdGVkIjoxNzc4Nz
+Y0NzczNDY5fX0sImhpc3RvcnkiOlstMzk4NjMyMTk1LC0xMjY2
+MzE2MTM3XX0=
 -->
