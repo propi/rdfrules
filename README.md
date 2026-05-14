@@ -1,6 +1,6 @@
 # RDFRules
 
-aaaaRDFRules is a powerful analytical tool for rule mining from RDF knowledge graphs. It offers a complex rule mining solution including RDF data pre-processing, rules post-processing and prediction abilities from rules. The core of RDFRules is written in the Scala language. Besides the Scala API, RDFRules also provides REST web service with graphical user interface via a web browser. RDFRules uses the [AMIE](https://www.mpi-inf.mpg.de/departments/databases-and-information-systems/research/yago-naga/amie/) algorithm with several extensions as a basis for a complete rule mining solution.
+RDFRules is a powerful analytical tool for rule mining from RDF knowledge graphs. It offers a complex rule mining solution including RDF data pre-processing, rules post-processing and prediction abilities from rules. The core of RDFRules is written in the Scala language. Besides the Scala API, RDFRules also provides REST web service with graphical user interface via a web browser. RDFRules uses the [AMIE](https://www.mpi-inf.mpg.de/departments/databases-and-information-systems/research/yago-naga/amie/) algorithm with several extensions as a basis for a complete rule mining solution.
 
 LIVE DEMO: [https://br-dev.lmcloud.vse.cz/rdfrules/](https://br-dev.lmcloud.vse.cz/rdfrules/)
 
@@ -394,19 +394,6 @@ Thanks to these organizations for supporting us:
 
 [CIMPLE](https://www.chistera.eu/projects/cimple) (TAČR TH74010002)
 <!--stackedit_data:
-eyJkaXNjdXNzaW9ucyI6eyJPS0NkSVBzc1U0NGhodFVaIjp7In
-RleHQiOiJSdWxlcyIsInN0YXJ0IjoxOSwiZW5kIjoyNH0sIkU3
-blRtckpTY0liaWpZczQiOnsidGV4dCI6ImFhYWEiLCJzdGFydC
-I6MTIsImVuZCI6MTZ9fSwiY29tbWVudHMiOnsiOFhycGRNa2Zz
-eW1ncDZjUCI6eyJkaXNjdXNzaW9uSWQiOiJPS0NkSVBzc1U0NG
-hodFVaIiwic3ViIjoiZ2g6NTA4MjU2NSIsInRleHQiOiJob2hv
-IiwiY3JlYXRlZCI6MTc3ODc2NDc3MzQ2OX0sImpWRGcyekd2RW
-ZSUXF3Q0siOnsiZGlzY3Vzc2lvbklkIjoiRTduVG1ySlNjSWJp
-allzNCIsInN1YiI6ImdoOjY0NTI1MzgiLCJ0ZXh0IjoiVG8gam
-UgZGl2bmUiLCJjcmVhdGVkIjoxNzc4NzY0Nzg1MTc2fSwicXgw
-ZTlORmh1ekhrd0oyciI6eyJkaXNjdXNzaW9uSWQiOiJFN25UbX
-JKU2NJYmlqWXM0Iiwic3ViIjoiZ2g6NTA4MjU2NSIsInRleHQi
-OiJuZSBuZW5pIiwiY3JlYXRlZCI6MTc3ODc2NDgwODIyNH19LC
-JoaXN0b3J5IjpbLTY2NjQ1MjgzNSwtMTE0NjYzMjAzOSwtMzk4
-NjMyMTk1LC0xMjY2MzE2MTM3XX0=
+eyJoaXN0b3J5IjpbLTE3MjIyNzI4MDksLTY2NjQ1MjgzNSwtMT
+E0NjYzMjAzOSwtMzk4NjMyMTk1LC0xMjY2MzE2MTM3XX0=
 -->
